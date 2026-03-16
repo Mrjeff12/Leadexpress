@@ -74,6 +74,18 @@ const translations = {
     'sub.unlimited': 'Unlimited',
     'sub.per_month': '/month',
 
+    // Settings
+    'settings.title': 'Service Settings',
+    'settings.subtitle': 'Manage professions, coverage areas & schedule',
+    'settings.save': 'Save',
+    'settings.saved': 'Saved!',
+    'settings.professions': 'Professions',
+    'settings.zip_codes': 'Service Areas (ZIP)',
+    'settings.schedule': 'Working Days & Hours',
+    'settings.day_off': 'Day off',
+    'settings.no_zips': 'No ZIP codes added yet.',
+    'settings.map_key_missing': 'Add VITE_GOOGLE_MAPS_KEY to .env to display map',
+
     // Admin
     'admin.total_contractors': 'Active Contractors',
     'admin.leads_today': 'Leads Today',
@@ -151,6 +163,18 @@ const translations = {
     'sub.pro': 'פרו',
     'sub.unlimited': 'ללא הגבלה',
     'sub.per_month': '/חודש',
+
+    // Settings
+    'settings.title': 'הגדרות שירות',
+    'settings.subtitle': 'נהל מקצועות, אזורים ולוח זמנים',
+    'settings.save': 'שמור',
+    'settings.saved': 'נשמר!',
+    'settings.professions': 'מקצועות',
+    'settings.zip_codes': 'אזורי שירות (מיקוד)',
+    'settings.schedule': 'ימי ושעות עבודה',
+    'settings.day_off': 'יום חופש',
+    'settings.no_zips': 'לא נוספו אזורים עדיין',
+    'settings.map_key_missing': 'הוסף VITE_GOOGLE_MAPS_KEY ב-.env כדי להציג מפה',
 
     // Admin
     'admin.total_contractors': 'קבלנים פעילים',

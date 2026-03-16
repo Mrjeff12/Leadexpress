@@ -6,25 +6,11 @@ import {
   User,
   Phone,
   Mail,
-  Briefcase,
-  MapPin,
-  Plus,
-  X,
   Save,
   CheckCircle,
   Send,
   Link2,
 } from 'lucide-react'
-
-/* ─── Profession metadata ─── */
-const PROFESSIONS = [
-  { id: 'hvac',       label: 'HVAC',            emoji: '❄️', color: '#3b82f6', borderClass: 'border-l-blue-500'    },
-  { id: 'renovation', label: 'Renovation',       emoji: '🔨', color: '#f59e0b', borderClass: 'border-l-amber-500'  },
-  { id: 'fencing',    label: 'Fencing',          emoji: '🏗️', color: '#10b981', borderClass: 'border-l-emerald-500' },
-  { id: 'cleaning',   label: 'Garage Cleaning',  emoji: '🧹', color: '#8b5cf6', borderClass: 'border-l-violet-500' },
-] as const
-
-type ProfessionId = (typeof PROFESSIONS)[number]['id']
 
 /* ─── Helper: placeholder token ─── */
 function generatePlaceholderToken(): string {
@@ -43,9 +29,6 @@ export default function Profile() {
   // Form state
   const [fullName, setFullName] = useState('')
   const [phone, setPhone] = useState('')
-  const [professions, setProfessions] = useState<ProfessionId[]>([])
-  const [zipCodes, setZipCodes] = useState<string[]>([])
-  const [zipInput, setZipInput] = useState('')
   const [telegramChatId, setTelegramChatId] = useState<number | null>(null)
   const [telegramToken, setTelegramToken] = useState<string | null>(null)
 
@@ -61,19 +44,16 @@ export default function Profile() {
 
     const { data } = await supabase
       .from('profiles')
-      .select('full_name, phone, professions, zip_codes, telegram_chat_id, telegram_token')
+      .select('full_name, phone, telegram_chat_id, telegram_token')
       .eq('id', user.id)
       .maybeSingle()
 
     if (data) {
       setFullName(data.full_name ?? '')
       setPhone(data.phone ?? '')
-      setProfessions((data.professions as ProfessionId[]) ?? [])
-      setZipCodes((data.zip_codes as string[]) ?? [])
       setTelegramChatId(data.telegram_chat_id ?? null)
       setTelegramToken(data.telegram_token ?? null)
     } else {
-      // Fallback to auth context
       setFullName(profile?.full_name ?? '')
       setTelegramChatId(profile?.telegram_chat_id ?? null)
     }
@@ -84,35 +64,6 @@ export default function Profile() {
   useEffect(() => {
     loadProfile()
   }, [loadProfile])
-
-  /* ─── Profession toggle ─── */
-  function toggleProfession(id: ProfessionId) {
-    setProfessions((prev) =>
-      prev.includes(id) ? prev.filter((p) => p !== id) : [...prev, id],
-    )
-    setSaved(false)
-  }
-
-  /* ─── Zip codes ─── */
-  function addZipCode() {
-    const cleaned = zipInput.trim().replace(/\D/g, '')
-    if (!cleaned || zipCodes.includes(cleaned)) return
-    setZipCodes((prev) => [...prev, cleaned])
-    setZipInput('')
-    setSaved(false)
-  }
-
-  function removeZipCode(zip: string) {
-    setZipCodes((prev) => prev.filter((z) => z !== zip))
-    setSaved(false)
-  }
-
-  function handleZipKeyDown(e: React.KeyboardEvent) {
-    if (e.key === 'Enter') {
-      e.preventDefault()
-      addZipCode()
-    }
-  }
 
   /* ─── Telegram deep-link ─── */
   function generateTelegramLink(): string {
@@ -135,8 +86,6 @@ export default function Profile() {
         id: user.id,
         full_name: fullName.trim(),
         phone: phone.trim(),
-        professions,
-        zip_codes: zipCodes,
         telegram_token: token,
       })
 
@@ -170,7 +119,7 @@ export default function Profile() {
         </div>
         <div>
           <h1 className="text-xl font-semibold text-zinc-900">{t('profile.title')}</h1>
-          <p className="text-sm text-zinc-500">Configure your lead preferences</p>
+          <p className="text-sm text-zinc-500">Manage your personal information</p>
         </div>
       </div>
 
@@ -227,106 +176,6 @@ export default function Profile() {
               </div>
             </div>
           </div>
-        </section>
-
-        {/* ─── Professions ─── */}
-        <section className="glass-panel p-6 space-y-4">
-          <div className="flex items-center gap-2 text-sm font-medium text-zinc-700">
-            <Briefcase className="h-4 w-4 text-emerald-600" />
-            {t('profile.professions')}
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {PROFESSIONS.map((prof) => {
-              const isActive = professions.includes(prof.id)
-              return (
-                <button
-                  key={prof.id}
-                  type="button"
-                  onClick={() => toggleProfession(prof.id)}
-                  className={[
-                    'flex items-center gap-3 rounded-xl border-l-4 px-4 py-3 text-left transition-all duration-200',
-                    prof.borderClass,
-                    isActive
-                      ? 'bg-white shadow-sm ring-2 ring-emerald-200'
-                      : 'bg-white/60 hover:bg-white/80 hover:shadow-sm',
-                  ].join(' ')}
-                >
-                  <span className="text-xl">{prof.emoji}</span>
-                  <span className="flex-1 text-sm font-medium text-zinc-800">{prof.label}</span>
-                  <div
-                    className={[
-                      'flex items-center justify-center h-5 w-5 rounded-md border-2 transition-colors',
-                      isActive
-                        ? 'bg-emerald-500 border-emerald-500 text-white'
-                        : 'border-zinc-300 bg-white',
-                    ].join(' ')}
-                  >
-                    {isActive && (
-                      <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                      </svg>
-                    )}
-                  </div>
-                </button>
-              )
-            })}
-          </div>
-        </section>
-
-        {/* ─── Service Areas ─── */}
-        <section className="glass-panel p-6 space-y-4">
-          <div className="flex items-center gap-2 text-sm font-medium text-zinc-700">
-            <MapPin className="h-4 w-4 text-emerald-600" />
-            {t('profile.zip_codes')}
-          </div>
-
-          {/* Input row */}
-          <div className="flex items-center gap-2">
-            <input
-              type="text"
-              value={zipInput}
-              onChange={(e) => setZipInput(e.target.value)}
-              onKeyDown={handleZipKeyDown}
-              placeholder="Enter zip code"
-              maxLength={10}
-              className="flex-1 rounded-xl border border-zinc-200 bg-white/80 py-2.5 px-4 text-sm text-zinc-900 placeholder:text-zinc-400 outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 transition-all"
-            />
-            <button
-              type="button"
-              onClick={addZipCode}
-              disabled={!zipInput.trim()}
-              className="btn-primary inline-flex items-center gap-1.5 rounded-xl px-4 py-2.5 text-sm font-medium disabled:opacity-40 disabled:cursor-not-allowed"
-            >
-              <Plus className="h-4 w-4" />
-              Add
-            </button>
-          </div>
-
-          {/* Zip badges */}
-          {zipCodes.length > 0 ? (
-            <div className="flex flex-wrap gap-2">
-              {zipCodes.map((zip) => (
-                <span
-                  key={zip}
-                  className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 border border-emerald-200 px-3 py-1 text-sm font-medium text-emerald-700"
-                >
-                  <MapPin className="h-3 w-3" />
-                  {zip}
-                  <button
-                    type="button"
-                    onClick={() => removeZipCode(zip)}
-                    className="ml-0.5 rounded-full p-0.5 hover:bg-emerald-200 transition-colors"
-                    aria-label={`Remove ${zip}`}
-                  >
-                    <X className="h-3 w-3" />
-                  </button>
-                </span>
-              ))}
-            </div>
-          ) : (
-            <p className="text-sm text-zinc-400 italic">No zip codes added yet.</p>
-          )}
         </section>
 
         {/* ─── Telegram Connection ─── */}

@@ -9,6 +9,7 @@ import LeadsFeed from './pages/LeadsFeed'
 import Profile from './pages/Profile'
 import Subscription from './pages/Subscription'
 import TelegramConnect from './pages/TelegramConnect'
+import ServiceSettings from './pages/ServiceSettings'
 import AdminDashboard from './pages/AdminDashboard'
 import AdminContractors from './pages/AdminContractors'
 import AdminGroups from './pages/AdminGroups'
@@ -67,7 +68,7 @@ function AppShell() {
             <Route path="/profile" element={<Profile />} />
             <Route path="/subscription" element={<Subscription />} />
             <Route path="/telegram" element={<TelegramConnect />} />
-            <Route path="/settings" element={<div className="animate-fade-in"><h1 className="text-xl font-semibold">Settings</h1><p className="mt-2 text-sm" style={{ color: 'hsl(40 4% 42%)' }}>Coming soon.</p></div>} />
+            <Route path="/settings" element={<ServiceSettings />} />
 
             {/* Admin routes */}
             <Route path="/admin" element={<RequireAdmin><AdminDashboard /></RequireAdmin>} />
