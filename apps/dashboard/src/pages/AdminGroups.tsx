@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useI18n } from '../lib/i18n'
 import { supabase } from '../lib/supabase'
-import { Radio, MessageSquare, Wifi, WifiOff, Users, Shield, ShoppingCart } from 'lucide-react'
+import { Radio, MessageSquare, Wifi, WifiOff, Users } from 'lucide-react'
 
 interface Group {
   id: string

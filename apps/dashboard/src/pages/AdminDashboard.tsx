@@ -3,19 +3,14 @@ import { useI18n } from '../lib/i18n'
 import { supabase } from '../lib/supabase'
 import { Link } from 'react-router-dom'
 import {
-  Users,
   Zap,
-  TrendingUp,
   MessageSquare,
   Clock,
   MapPin,
-  Send,
   Pause,
   Play,
   ChevronRight,
   Radio,
-  Wifi,
-  WifiOff,
   Flame,
   Thermometer,
   Snowflake,

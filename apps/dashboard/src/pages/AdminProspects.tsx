@@ -3,29 +3,20 @@ import { useNavigate } from 'react-router-dom'
 import { useI18n } from '../lib/i18n'
 import { supabase } from '../lib/supabase'
 import {
-  Users,
   Search,
   Loader2,
   Phone,
   MessageCircle,
   UserPlus,
-  Filter,
-  ChevronRight,
-  ChevronLeft,
-  Clock,
   ArrowRight,
   Sparkles,
   CircleDot,
   CheckCircle2,
   XCircle,
   DollarSign,
-  Eye,
-  MoreHorizontal,
   LayoutGrid,
   List,
   X,
-  Bell,
-  ExternalLink,
   ChevronDown,
   Inbox,
 } from 'lucide-react'
@@ -429,7 +420,7 @@ export default function AdminProspects() {
                 borderColor: 'hsl(220 8% 90%)',
                 background: 'white',
                 fontFamily: 'Outfit, sans-serif',
-                ringColor: 'hsl(155 44% 30% / 0.2)',
+                outline: '2px solid hsl(155 44% 30% / 0.2)',
               }}
             />
             {search && (

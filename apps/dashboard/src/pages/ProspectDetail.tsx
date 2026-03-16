@@ -3,11 +3,11 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { useI18n } from '../lib/i18n'
 import { supabase } from '../lib/supabase'
 import {
-  ArrowLeft, ArrowRight, Phone, MessageCircle, Send, Clock, Loader2,
+  ArrowRight, Phone, MessageCircle, Send, Clock, Loader2,
   ChevronDown, Check, CheckCheck, CircleDot, Sparkles, DollarSign,
-  XCircle, StickyNote, PhoneCall, Edit3, Calendar, Users, X, Plus,
-  AlertTriangle, Zap, Copy, ExternalLink, Flame, Snowflake, TrendingUp,
-  Search, ChevronRight, Inbox,
+  XCircle, PhoneCall, Edit3, Calendar, X, Plus,
+  AlertTriangle, Zap, Copy, ExternalLink,
+  Search, Inbox,
 } from 'lucide-react'
 
 /* ── Design tokens ─────────────────────────────────────────────────── */

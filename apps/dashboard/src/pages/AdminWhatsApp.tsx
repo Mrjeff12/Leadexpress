@@ -5,8 +5,6 @@ import {
   Smartphone,
   QrCode,
   CheckCircle2,
-  RefreshCw,
-  Wifi,
   WifiOff,
   Radio,
   MessageSquare,
@@ -25,12 +23,10 @@ import {
   TrendingUp,
   Shield,
   Plus,
-  MapPin,
-  Hash,
 } from 'lucide-react'
 
 // ── Types ──────────────────────────────────────────────────────────────────────
-type ConnectionStatus = 'disconnected' | 'waiting_qr' | 'connecting' | 'connected'
+type ConnectionStatus = 'disconnected' | 'waiting_qr' | 'connecting' | 'connected' | 'blocked'
 
 type PipelineStage =
   | 'received' | 'quick_filtered' | 'sender_filtered' | 'pattern_matched'
@@ -189,7 +185,7 @@ function timeAgo(ts: string | number, he: boolean): string {
 function DemoQR({ size = 180 }: { size?: number }) {
   const cells = 25
   const cellSize = size / cells
-  const rects: JSX.Element[] = []
+  const rects: React.ReactElement[] = []
   let seed = 42
   function rand() { seed = (seed * 16807) % 2147483647; return (seed - 1) / 2147483646 }
   for (let y = 0; y < cells; y++) {
