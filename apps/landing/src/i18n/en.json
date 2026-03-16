@@ -1,0 +1,225 @@
+{
+  "nav": {
+    "features": "Features",
+    "pricing": "Pricing",
+    "faq": "FAQ",
+    "contact": "Contact",
+    "getStarted": "Get Started"
+  },
+  "hero": {
+    "badge": "Stop missing leads. Start closing jobs.",
+    "title1": "Your personal",
+    "titleHighlight": "lead engine",
+    "title2": "to fill your work calendar",
+    "subtitle": "Tired of group chats full of noise? Lead Express sends you real, verified leads matched to your zip code and trade — directly to you, no competition.",
+    "cta1": "Get Started Free",
+    "cta2": "See How It Works",
+    "trustedBy": "Trusted by 5,000+ field technicians & contractors"
+  },
+  "logos": {
+    "label": "Trusted partners"
+  },
+  "workflow": {
+    "title": "Smart Lead Matching",
+    "subtitle": "Lead Express helps technicians get the right jobs in their area and improve their income.",
+    "cards": [
+      {
+        "title": "County, City & Zip Targeting",
+        "desc": "Filter by county, city, or zip code — get leads only from the areas you actually work in. No more driving 2 hours for a $50 job."
+      },
+      {
+        "title": "Trade-Specific Filtering",
+        "desc": "HVAC, plumbing, electrical, roofing — leads matched to your exact niche, not random requests."
+      },
+      {
+        "title": "Real-Time Alerts",
+        "desc": "Instant notifications when a lead drops in your zone. Be the first to respond, close the deal."
+      }
+    ]
+  },
+  "features": {
+    "section1": {
+      "title": "No more group chat chaos",
+      "desc": "The Advanced Lead Filtering system lets you cut through the noise. While others fight over scraps in crowded groups, you get exclusive, targeted leads delivered straight to your phone.",
+      "cta": "Get Started Free",
+      "bullets": [
+        "Leads matched to your zip code automatically.",
+        "Filtered by your trade and specialization.",
+        "Direct delivery — no group competition."
+      ]
+    },
+    "section2": {
+      "title": "Smart scheduling and job tracking",
+      "desc": "The Advanced Analytics & Customer Insights feature empowers technicians to make data-driven decisions, providing a comprehensive understanding of their lead pipeline.",
+      "cta": "Get Started Free"
+    }
+  },
+  "featureGrid": {
+    "items": [
+      { "title": "Zip Code Matching", "desc": "Get leads only from the neighborhoods you serve." },
+      { "title": "Niche Filtering", "desc": "Filter by trade — HVAC, plumbing, electrical, and more." },
+      { "title": "Direct Leads", "desc": "No groups, no noise. Leads come straight to you." },
+      { "title": "Performance Dashboard", "desc": "Track your conversion rate, response time, and revenue." }
+    ]
+  },
+  "marketing": {
+    "title": "Growing Your Business Made Easy",
+    "subtitle": "Lead Express helps you keep track of your leads and improve your closing rate",
+    "features": [
+      { "title": "Personalized lead feed", "desc": "Curated leads based on your profile, location, and trade specialty." },
+      { "title": "Knowledge base integration", "desc": "Seamless integration with existing FAQs and job templates. Self-service support for common customer inquiries." },
+      { "title": "Sentiment and tone analysis", "desc": "Detect customer urgency to prioritize hot leads. Monitor tone to ensure fast, empathetic responses." }
+    ]
+  },
+  "testimonials": {
+    "title": "Trusted by 19,000+ technicians",
+    "subtitle": "Rated 4.7 stars across review platforms",
+    "items": [
+      {
+        "text": "Lead Express transformed how I get customers! Response times are faster, and my calendar is always full.",
+        "name": "Mike Thompson",
+        "role": "HVAC Technician"
+      },
+      {
+        "text": "I used to waste hours in group chats fighting for leads. Now they come directly to me, matched to my area.",
+        "name": "Sarah Chen",
+        "role": "Electrician"
+      },
+      {
+        "text": "Lead Express streamlined my lead generation. My team can now focus on what truly matters — doing great work.",
+        "name": "Carlos Rivera",
+        "role": "Plumbing Contractor"
+      },
+      {
+        "text": "Lead Express is our secret weapon for booking more jobs. It understands our service area perfectly.",
+        "name": "David Kim",
+        "role": "Roofing Specialist"
+      },
+      {
+        "text": "From lead to booked job, Lead Express handles it all seamlessly. Our customers love the fast response!",
+        "name": "Jessica Park",
+        "role": "General Contractor"
+      },
+      {
+        "text": "We implemented Lead Express during our busy season, and it managed thousands of leads without breaking a sweat.",
+        "name": "Alex Morgan",
+        "role": "Landscaping Pro"
+      }
+    ]
+  },
+  "pricing": {
+    "title": "Choose a plan that fits your hustle",
+    "subtitle": "Grow your business with the right plan",
+    "monthly": "Monthly",
+    "yearly": "Yearly",
+    "plans": [
+      {
+        "name": "Starter",
+        "desc": "Solo technicians just getting started with lead generation.",
+        "price": "$29",
+        "period": "/month",
+        "cta": "Select Plan",
+        "features": [
+          "Up to 50 leads per month",
+          "1 zip code zone",
+          "1 trade niche",
+          "Basic lead notifications",
+          "Email support"
+        ]
+      },
+      {
+        "name": "Growth",
+        "desc": "Growing technicians looking to expand their service area.",
+        "price": "$59",
+        "period": "/month",
+        "cta": "Select Plan",
+        "features": [
+          "Up to 200 leads per month",
+          "3 zip code zones",
+          "2 trade niches",
+          "Priority notifications",
+          "Basic analytics dashboard"
+        ]
+      },
+      {
+        "name": "Professional",
+        "desc": "Busy pros who need maximum coverage and smart tools.",
+        "price": "$99",
+        "period": "/month",
+        "cta": "Select Plan",
+        "popular": true,
+        "features": [
+          "Unlimited leads",
+          "10 zip code zones",
+          "All trade niches",
+          "Advanced workflow automation",
+          "CRM integration"
+        ]
+      },
+      {
+        "name": "Enterprise",
+        "desc": "Large teams with high volume and complex needs.",
+        "price": "$129",
+        "period": "/month",
+        "cta": "Select Plan",
+        "features": [
+          "Unlimited everything",
+          "Dedicated account manager",
+          "Custom feature development",
+          "Enhanced data security",
+          "Priority 24/7 support"
+        ]
+      }
+    ]
+  },
+  "faq": {
+    "title": "Frequently Asked Questions",
+    "subtitle": "Everything you need to know about Lead Express",
+    "items": [
+      {
+        "q": "How does Lead Express match leads to my area?",
+        "a": "Lead Express uses your zip code and service radius to automatically filter and deliver only leads within your work zone. No manual searching required."
+      },
+      {
+        "q": "Can I choose which types of jobs I receive?",
+        "a": "Yes! You select your trade niche (HVAC, plumbing, electrical, etc.) and Lead Express filters leads specifically for your expertise."
+      },
+      {
+        "q": "How is this different from Facebook groups?",
+        "a": "Unlike crowded groups where hundreds of technicians fight over the same lead, Lead Express delivers leads directly to you based on your location and trade. No noise, no competition."
+      },
+      {
+        "q": "How fast do I get notified about new leads?",
+        "a": "Instantly. Our real-time notification system alerts you the moment a matching lead comes in, so you can be the first to respond."
+      },
+      {
+        "q": "Does Lead Express integrate with my existing tools?",
+        "a": "Yes, Lead Express integrates with popular CRMs, scheduling tools, and communication platforms to fit seamlessly into your workflow."
+      },
+      {
+        "q": "What kind of support is available?",
+        "a": "We offer email support for all plans, priority support for Growth and above, and dedicated account management for Enterprise customers."
+      }
+    ]
+  },
+  "cta": {
+    "title": "Grow your business fast",
+    "desc": "In today's competitive market, technicians need a smarter way to find and close leads. Stop scrolling through noisy groups — let the leads come to you.",
+    "button": "Get 14 Days Free Trial"
+  },
+  "footer": {
+    "desc": "Lead Express is designed to revolutionize how technicians find and close jobs.",
+    "company": "Company",
+    "aboutUs": "About Us",
+    "features": "Features",
+    "pricing": "Pricing",
+    "resources": "Resources",
+    "blog": "Blog & Articles",
+    "contact": "Contact Us",
+    "integrations": "Integrations",
+    "legal": "Legal",
+    "privacy": "Privacy Policy",
+    "terms": "Terms & Conditions",
+    "copyright": "© 2025 Lead Express, Inc. All rights reserved."
+  }
+}

@@ -1,0 +1,9 @@
+packages:
+  - apps/*
+  - packages/*
+  - services/*
+
+ignoredBuiltDependencies:
+  - esbuild
+  - msgpackr-extract
+  - puppeteer

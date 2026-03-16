@@ -1,0 +1,96 @@
+version: '3.8'
+
+services:
+  redis:
+    image: redis:7-alpine
+    command: redis-server --appendonly yes
+    volumes:
+      - redis-data:/data
+    ports:
+      - "6379:6379"
+    restart: always
+
+  wa-listener:
+    build: ./services/wa-listener
+    environment:
+      - WA_ACCOUNT_ID=${WA_ACCOUNT_1_ID:-account-1}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_SERVICE_KEY=${SUPABASE_SERVICE_KEY}
+    volumes:
+      - wa-sessions:/data/sessions
+    depends_on: [redis]
+    restart: always
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+
+  parser:
+    build: ./services/parser
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_SERVICE_KEY=${SUPABASE_SERVICE_KEY}
+    depends_on: [redis]
+    restart: always
+
+  matching:
+    build: ./services/matching
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_SERVICE_KEY=${SUPABASE_SERVICE_KEY}
+    depends_on: [redis]
+    restart: always
+
+  notification:
+    build: ./services/notification
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_SERVICE_KEY=${SUPABASE_SERVICE_KEY}
+    depends_on: [redis]
+    restart: always
+
+  telegram-bot:
+    build: ./services/telegram-bot
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+      - TELEGRAM_WEBHOOK_URL=${TELEGRAM_WEBHOOK_URL}
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_SERVICE_KEY=${SUPABASE_SERVICE_KEY}
+    ports:
+      - "3001:3001"
+    depends_on: [redis]
+    restart: always
+
+  whatsapp-notify:
+    build: ./services/whatsapp-notify
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_SERVICE_KEY=${SUPABASE_SERVICE_KEY}
+      - TWILIO_ACCOUNT_SID=${TWILIO_ACCOUNT_SID}
+      - TWILIO_AUTH_TOKEN=${TWILIO_AUTH_TOKEN}
+      - TWILIO_WA_FROM=${TWILIO_WA_FROM:-whatsapp:+14155238886}
+      - CHECKIN_CRON=0 7 * * *
+      - CHECKIN_TIMEZONE=America/New_York
+      - PORT=3002
+    ports:
+      - "3002:3002"
+    depends_on: [redis]
+    restart: always
+
+volumes:
+  redis-data:
+  wa-sessions:

@@ -1,0 +1,17 @@
+{
+  "name": "leadexpress",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Lead Express — Smart lead routing for home service contractors",
+  "scripts": {
+    "dev:dashboard": "pnpm --filter dashboard dev",
+    "dev:services": "docker compose up",
+    "build:dashboard": "pnpm --filter dashboard build",
+    "build:shared": "pnpm --filter @leadexpress/shared build",
+    "db:migrate": "npx supabase db push",
+    "typecheck": "pnpm -r typecheck"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

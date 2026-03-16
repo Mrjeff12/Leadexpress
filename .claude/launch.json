@@ -1,0 +1,53 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "Dashboard (Vite)",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["--filter", "admin", "dev"],
+      "port": 5173
+    },
+    {
+      "name": "WA Listener",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["--filter", "@leadexpress/wa-listener", "dev"],
+      "port": 0
+    },
+    {
+      "name": "Parser Worker",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["--filter", "@leadexpress/parser", "dev"],
+      "port": 0
+    },
+    {
+      "name": "Matching Worker",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["--filter", "@leadexpress/matching", "dev"],
+      "port": 0
+    },
+    {
+      "name": "Notification Worker",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["--filter", "@leadexpress/notification", "dev"],
+      "port": 0
+    },
+    {
+      "name": "Telegram Bot",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["--filter", "@leadexpress/telegram-bot", "dev"],
+      "port": 3001
+    },
+    {
+      "name": "All Services (Docker)",
+      "runtimeExecutable": "docker",
+      "runtimeArgs": ["compose", "up"],
+      "port": 0
+    },
+    {
+      "name": "Landing Page",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev", "--prefix", "apps/landing"],
+      "port": 5174
+    }
+  ]
+}

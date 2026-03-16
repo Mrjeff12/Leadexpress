@@ -1,0 +1,2005 @@
+/* SalesBot Overlay - Modern Clean Design */
+.salesbot-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: transparent;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.salesbot-overlay .main-container {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background: transparent;
+  overflow: hidden;
+}
+
+/* Agents Dashboard - Modern Clean Design */
+.agents-dashboard {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 90vw;
+  height: 85vh;
+  margin: 0;
+  max-width: 1400px;
+  max-height: 900px;
+  background: #ffffff;
+  border-radius: 24px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.08),
+              0 0 0 1px rgba(0, 0, 0, 0.04);
+  overflow: hidden;
+  opacity: 1;
+  visibility: visible;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  direction: rtl;
+}
+
+/* Dashboard Header - Clean Modern Style */
+.dashboard-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 24px 32px;
+  border-bottom: 1px solid #e5e7eb;
+  background: #ffffff;
+  direction: rtl;
+  flex-shrink: 0;
+  height: 84px;
+  box-sizing: border-box;
+}
+
+/* Dashboard Content - Clean Spacious Layout */
+.dashboard-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 32px;
+  direction: rtl;
+  background: #f8fafc;
+}
+
+.dashboard-content::-webkit-scrollbar {
+  width: 10px;
+}
+
+.dashboard-content::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 10px;
+}
+
+.dashboard-content::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 10px;
+  border: 2px solid #f1f5f9;
+}
+
+.dashboard-content::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Window Controls */
+.window-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  direction: rtl;
+}
+
+.window-control {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: none;
+  cursor: pointer;
+}
+
+.window-control.red {
+  background: #FF5F56;
+}
+
+.window-control.yellow {
+  background: #FFBD2E;
+}
+
+.window-control.green {
+  background: #27CA3F;
+}
+
+/* Dashboard Title - Modern Typography */
+.dashboard-title {
+  text-align: right;
+  direction: rtl;
+}
+
+.dashboard-title h1 {
+  font-size: 24px;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0;
+  letter-spacing: -0.02em;
+  font-family: 'Heebo', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+.dashboard-title .subtitle {
+  font-size: 14px;
+  font-weight: 500;
+  color: #64748b;
+  margin-top: 4px;
+  font-family: 'Assistant', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+/* Header Actions - Modern Minimal Buttons */
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  direction: rtl;
+}
+
+.dashboard-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.action-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: #f1f5f9;
+  border: none;
+  color: #475569;
+  font-size: 18px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.action-btn::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  background: rgba(59, 130, 246, 0.1);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  transition: width 0.4s ease, height 0.4s ease;
+}
+
+.action-btn:hover {
+  background: #e2e8f0;
+  color: #1e293b;
+  transform: translateY(-1px);
+}
+
+.action-btn:hover::before {
+  width: 100px;
+  height: 100px;
+}
+
+.action-btn.primary {
+  background: #3b82f6;
+  color: white;
+  box-shadow: 0 4px 14px rgba(59, 130, 246, 0.25);
+}
+
+.action-btn.primary:hover {
+  background: #2563eb;
+  box-shadow: 0 6px 20px rgba(59, 130, 246, 0.35);
+  transform: translateY(-2px);
+}
+
+/* User Profile - Clean Modern Card */
+.user-profile {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+  background: #f8fafc;
+  border-radius: 14px;
+  border: 1px solid #e2e8f0;
+  direction: rtl;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.user-profile:hover {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+}
+
+.user-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 600;
+  color: white;
+}
+
+.user-info {
+  text-align: right;
+}
+
+.user-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: #0f172a;
+  line-height: 1.3;
+  font-family: 'Heebo', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+.user-role {
+  font-size: 12px;
+  color: #64748b;
+  line-height: 1.3;
+  font-family: 'Assistant', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+/* Back Arrow Button */
+.back-arrow-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.6);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  color: #1d1d1f;
+  font-size: 18px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  margin-left: 12px;
+  flex-shrink: 0;
+}
+
+
+
+/* Agent Profile Header */
+.agent-profile-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  direction: rtl;
+}
+
+.agent-header-image {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.agent-header-info h1 {
+  font-size: 20px;
+  font-weight: 700;
+  color: #1d1d1f;
+  margin: 0;
+  letter-spacing: -0.5px;
+}
+
+.agent-header-info .subtitle {
+  font-size: 13px;
+  font-weight: 400;
+  color: rgba(29, 29, 31, 0.7);
+  margin-top: 2px;
+}
+
+.main-content {
+  flex: 1;
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(30px);
+  -webkit-backdrop-filter: blur(30px);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 0px;
+  padding: 40px;
+  height: 100%;
+  overflow-y: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.empty-state {
+  text-align: center;
+  opacity: 0.6;
+}
+
+.empty-state h2 {
+  font-size: 24px;
+  font-weight: 600;
+  color: #1d1d1f;
+  margin-bottom: 8px;
+}
+
+.empty-state p {
+  font-size: 16px;
+  color: rgba(29, 29, 31, 0.7);
+}
+
+/* Agents Content Styles - Spacious Modern Layout */
+.agents-content {
+  flex: 1;
+  padding: 0;
+  height: 100%;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+/* Stats Section */
+.agents-stats {
+  margin-bottom: 20px;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+}
+
+.stat-card {
+  background: rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 12px;
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  transition: all 0.3s ease;
+}
+
+.stat-card:hover {
+  background: rgba(255, 255, 255, 0.8);
+  transform: translateY(-2px);
+}
+
+.stat-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  color: white;
+  flex-shrink: 0;
+}
+
+.stat-icon.active {
+  background: linear-gradient(135deg, #34C759, #30D158);
+}
+
+.stat-icon.tasks {
+  background: #000000;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+}
+
+.stat-icon.efficiency {
+  background: linear-gradient(135deg, #FF9500, #FFCC02);
+}
+
+.stat-icon.response {
+  background: linear-gradient(135deg, #FF3B30, #FF6482);
+}
+
+.stat-dot {
+  width: 12px;
+  height: 12px;
+  background: #34C759;
+  border-radius: 50%;
+  box-shadow: 0 0 0 3px rgba(52, 199, 89, 0.2);
+}
+
+.stat-info {
+  flex: 1;
+}
+
+.stat-number {
+  font-size: 20px;
+  font-weight: 700;
+  color: #1d1d1f;
+  line-height: 1.2;
+}
+
+.stat-label {
+  font-size: 14px;
+  font-weight: 500;
+  color: rgba(29, 29, 31, 0.7);
+  margin: 4px 0;
+}
+
+.stat-change {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 6px;
+  display: inline-block;
+}
+
+.stat-change.positive {
+  background: rgba(52, 199, 89, 0.2);
+  color: #34C759;
+}
+
+.stat-change.negative {
+  background: rgba(255, 69, 58, 0.2);
+  color: #FF453A;
+}
+
+/* Agents Section - Clean Card Design */
+.agents-section {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 20px;
+  padding: 28px;
+  margin-bottom: 0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 28px;
+}
+
+.header-actions-group {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.section-header h3 {
+  font-size: 22px;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0;
+  font-family: 'Heebo', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: -0.02em;
+}
+
+.section-badge {
+  padding: 8px 16px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: 'Assistant', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+.section-badge.active {
+  background: #e0f2fe;
+  color: #0369a1;
+  border: 1px solid #bae6fd;
+}
+
+.section-badge.marketplace {
+  background: linear-gradient(135deg, #007AFF 0%, #5AC8FA 100%);
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow: 0 4px 16px rgba(0, 122, 255, 0.3);
+  backdrop-filter: blur(15px);
+  -webkit-backdrop-filter: blur(15px);
+}
+
+.marketplace-btn {
+  background: #6366f1;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 4px 14px rgba(99, 102, 241, 0.25);
+  font-family: 'Assistant', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+.marketplace-btn:hover {
+  background: #5558e3;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(99, 102, 241, 0.35);
+}
+
+.marketplace-btn:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.25);
+}
+
+/* Agents Grid - Modern Card Layout */
+.agents-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 24px;
+}
+
+.agent-card {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  padding: 24px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  direction: rtl;
+  cursor: pointer;
+}
+
+.agent-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.06),
+              0 0 0 1px rgba(99, 102, 241, 0.1);
+  border-color: #c7d2fe;
+}
+
+.agent-status {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  background: rgba(236, 253, 245, 0.7);
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #059669;
+  font-family: 'Assistant', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+.status-dot {
+  width: 5px;
+  height: 5px;
+  background: #10b981;
+  border-radius: 50%;
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: .5;
+  }
+}
+
+.agent-avatar {
+  width: 80px;
+  height: 80px;
+  border-radius: 16px;
+  overflow: hidden;
+  margin-bottom: 20px;
+  background: linear-gradient(135deg, #f3f4f6, #e5e7eb);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+  transition: all 0.3s ease;
+}
+
+.agent-card:hover .agent-avatar {
+  transform: scale(1.05);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
+}
+
+.agent-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.agent-info {
+  margin-bottom: 20px;
+}
+
+.agent-info h4 {
+  font-size: 18px;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0 0 6px 0;
+  font-family: 'Heebo', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: -0.01em;
+}
+
+.agent-info p {
+  font-size: 14px;
+  font-weight: 500;
+  color: #64748b;
+  margin: 0;
+  font-family: 'Assistant', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+.agent-metrics {
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.metric {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.metric-value {
+  font-size: 20px;
+  font-weight: 700;
+  color: #1d1d1f;
+}
+
+.metric-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: rgba(29, 29, 31, 0.6);
+}
+
+.metric-details {
+  font-size: 12px;
+  color: rgba(29, 29, 31, 0.5);
+}
+
+.agent-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.agent-actions .action-btn.primary {
+  flex: 1;
+  background: #3b82f6;
+  color: white;
+  border: none;
+  padding: 12px 20px;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: 'Assistant', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.2);
+}
+
+.agent-actions .action-btn.primary:hover {
+  background: #2563eb;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+.agent-actions .action-btn.secondary {
+  width: 44px;
+  height: 44px;
+  background: #f1f5f9;
+  border: none;
+  border-radius: 12px;
+  font-size: 18px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.agent-actions .action-btn.secondary:hover {
+  background: #e2e8f0;
+  transform: translateY(-1px);
+}
+
+/* Marketplace Styles - Modern Filter Pills */
+.marketplace-filters {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 28px;
+  flex-wrap: wrap;
+}
+
+.filter-btn {
+  padding: 10px 20px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: 'Assistant', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+.filter-btn:hover {
+  background: #f1f5f9;
+  color: #334155;
+  border-color: #cbd5e1;
+  transform: translateY(-1px);
+}
+
+.filter-btn.active {
+  background: #3b82f6;
+  color: white;
+  border-color: #3b82f6;
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.25);
+}
+
+.marketplace-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+}
+
+.marketplace-card {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  padding: 28px;
+  text-align: center;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+}
+
+.marketplace-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, #6366f1, #8b5cf6);
+  transform: translateY(-100%);
+  transition: transform 0.3s ease;
+}
+
+.marketplace-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.06);
+  border-color: #c7d2fe;
+}
+
+.marketplace-card:hover::before {
+  transform: translateY(0);
+}
+
+.marketplace-card .agent-avatar {
+  width: 60px;
+  height: 60px;
+  margin: 0 auto 16px;
+}
+
+.marketplace-card .agent-info {
+  margin-bottom: 12px;
+}
+
+.marketplace-card .agent-info h4 {
+  font-size: 16px;
+  margin-bottom: 4px;
+}
+
+.marketplace-card .agent-info p {
+  font-size: 13px;
+}
+
+.pricing {
+  background: #f8fafc;
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 20px;
+  border: 1px solid #e2e8f0;
+}
+
+.price {
+  display: block;
+  font-size: 20px;
+  font-weight: 700;
+  color: #0f172a;
+  margin-bottom: 4px;
+  font-family: 'Heebo', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+.roi {
+  font-size: 13px;
+  color: #10b981;
+  font-weight: 600;
+  font-family: 'Assistant', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+.add-btn {
+  width: 100%;
+  background: #6366f1;
+  color: white;
+  border: none;
+  padding: 14px 24px;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 14px rgba(99, 102, 241, 0.25);
+  font-family: 'Assistant', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  position: relative;
+  overflow: hidden;
+}
+
+.add-btn::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  transition: width 0.4s ease, height 0.4s ease;
+}
+
+.add-btn:hover {
+  background: #5558e3;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(99, 102, 241, 0.35);
+}
+
+.add-btn:hover::before {
+  width: 200px;
+  height: 200px;
+}
+
+/* Responsive Design - Tablet */
+@media (max-width: 1200px) {
+  .agents-dashboard {
+    width: 95vw;
+    height: 90vh;
+    max-width: none;
+  }
+  
+  .dashboard-content {
+    padding: 24px;
+  }
+  
+  .agents-grid {
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 20px;
+  }
+}
+
+@media (max-width: 768px) {
+  /* Mobile - Full Screen App */
+  .salesbot-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100vw;
+    height: 100vh;
+    max-width: 100vw;
+    max-height: 100vh;
+    background: transparent;
+    padding: 0;
+    margin: 0;
+    z-index: 10000;
+    overflow: hidden;
+  }
+
+  /* Use bottom dock like /chats on mobile */
+  .salesbot-overlay + .dock,
+  .salesbot-overlay .dock {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    top: auto;
+    transform: none;
+    width: 100%;
+    padding: 8px 12px;
+    height: 64px;
+    border-radius: 0;
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.1);
+    z-index: 10000;
+    background: #ffffff;
+  }
+
+  .salesbot-overlay + .dock .dock-icons,
+  .salesbot-overlay .dock .dock-icons {
+    width: 100%;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0 !important;
+  }
+
+  .salesbot-overlay + .dock .dock-icon,
+  .salesbot-overlay .dock .dock-icon {
+    flex: 0 0 auto !important;
+    width: 21% !important;
+    max-width: 21% !important;
+  }
+
+  /* Mobile Dashboard - Full Screen */
+  .agents-dashboard {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100vw;
+    height: 100vh;
+    max-width: 100vw;
+    max-height: 100vh;
+    background: #ffffff;
+    border-radius: 0;
+    box-shadow: none;
+    transform: none;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    z-index: 1000;
+    border: none;
+  }
+
+  /* Mobile Header - Clean iOS Style */
+  .dashboard-header {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    width: 100vw;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: none;
+    border-bottom: 1px solid #e5e7eb;
+    border-radius: 0;
+    padding: env(safe-area-inset-top, 20px) 20px 16px 20px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    margin-bottom: 0;
+    overflow: hidden;
+    z-index: 1100;
+    height: calc(60px + env(safe-area-inset-top, 20px));
+  }
+
+  /* Make content area respect fixed header and bottom dock */
+  .dashboard-content {
+    padding: 16px;
+    padding-top: calc(60px + env(safe-area-inset-top, 20px) + 12px);
+    padding-bottom: calc(64px + env(safe-area-inset-bottom, 20px) + 20px);
+  }
+
+  /* Remove window controls */
+  .window-controls {
+    display: none;
+  }
+
+  /* Mobile Dashboard Container - Modern Scrollable */
+  .mobile-dashboard-container {
+    position: fixed;
+    top: calc(60px + env(safe-area-inset-top, 20px));
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100vw;
+    /* subtract bottom dock height */
+    height: calc(100vh - 60px - env(safe-area-inset-top, 20px) - 64px - env(safe-area-inset-bottom, 0px));
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding: 16px;
+    padding-bottom: calc(env(safe-area-inset-bottom, 20px) + 84px);
+    background: #f8fafc;
+  }
+
+  /* Mobile Agent Header - Clean Card Design */
+  .mobile-agent-header {
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 20px;
+    padding: 24px;
+    margin: 0 0 16px 0;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .mobile-agent-avatar {
+    width: 60px;
+    height: 60px;
+    border-radius: 16px;
+    border: 1px solid #e5e7eb;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+  }
+
+  /* Mobile Tab Grid - Modern Card Grid */
+  .mobile-tab-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    padding: 0;
+    padding-bottom: 20px;
+    overflow: visible;
+    min-height: 0;
+  }
+
+  .mobile-tab-btn {
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 16px;
+    padding: 20px;
+    text-align: left;
+    min-height: 120px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    align-items: flex-start;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+    direction: ltr;
+  }
+
+  .mobile-tab-btn:active {
+    transform: scale(0.98);
+    background: #f8fafc;
+  }
+  
+  .mobile-tab-btn:hover {
+    border-color: #cbd5e1;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+  }
+
+  .mobile-icon-wrapper {
+    position: relative;
+    flex-shrink: 0;
+    align-self: flex-end;
+    margin-bottom: 8px;
+  }
+
+  .mobile-tab-icon {
+    width: 44px;
+    height: 44px;
+    background: #f1f5f9;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    font-weight: 700;
+    color: #1e293b;
+    flex-shrink: 0;
+    position: relative;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  }
+
+  .mobile-play-button {
+    position: absolute;
+    bottom: -6px;
+    right: -6px;
+    width: 20px;
+    height: 20px;
+    background: #3b82f6;
+    border: 2px solid #ffffff;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
+  }
+
+  .mobile-play-button::before {
+    content: '▶';
+    color: white;
+    font-size: 8px;
+    margin-left: 1px;
+  }
+
+  .tab-info {
+    text-align: left;
+    flex: 1;
+    align-self: flex-start;
+  }
+
+  .tab-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: #0f172a;
+    margin-bottom: 4px;
+    line-height: 1.2;
+    letter-spacing: -0.01em;
+    font-family: 'Heebo', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  }
+
+  .tab-description {
+    font-size: 13px;
+    color: #64748b;
+    font-weight: 500;
+    line-height: 1.3;
+    font-family: 'Assistant', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  }
+
+
+
+  /* Last row buttons spacing */
+  .mobile-tab-btn:nth-last-child(-n+2) {
+    margin-bottom: 40px;
+  }
+
+  /* Mobile Tab Header - Clean iOS Style */
+  .mobile-tab-header {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    width: 100vw;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 16px 20px;
+    padding-top: calc(env(safe-area-inset-top, 20px) + 16px);
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: none;
+    border-bottom: 1px solid #e5e7eb;
+    border-radius: 0;
+    z-index: 1100;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    height: calc(60px + env(safe-area-inset-top, 20px));
+  }
+
+  .mobile-back-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    background: #f1f5f9;
+    border: none;
+    color: #1e293b;
+    font-size: 18px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+
+  .mobile-back-btn:active {
+    transform: scale(0.95);
+    background: #e2e8f0;
+  }
+
+  .mobile-tab-title {
+    font-size: 20px;
+    font-weight: 700;
+    color: #1d1d1f;
+    margin: 0;
+    text-align: center;
+    flex: 1;
+  }
+
+  /* Dashboard title styling */
+  .dashboard-title {
+    text-align: center;
+    padding: 0;
+    background: transparent;
+  }
+
+  .dashboard-title h1 {
+    font-size: 20px;
+    margin: 0;
+    color: #1d1d1f;
+    font-weight: 700;
+  }
+
+  .dashboard-title .subtitle {
+    font-size: 14px;
+    color: #6e6e73;
+    margin: 0;
+  }
+
+  /* iOS Safe Area Support */
+  @supports (-webkit-touch-callout: none) {
+    .mobile-dashboard-container {
+      min-height: -webkit-fill-available;
+      height: -webkit-fill-available;
+      padding-bottom: calc(env(safe-area-inset-bottom) + 40px);
+    }
+
+    .dashboard-header,
+    .mobile-tab-header {
+      padding-top: calc(env(safe-area-inset-top) + 20px);
+      height: calc(80px + env(safe-area-inset-top));
+    }
+
+    .mobile-dashboard-container {
+      top: calc(80px + env(safe-area-inset-top));
+      height: calc(100vh - 80px - env(safe-area-inset-top));
+    }
+  }
+
+  /* Agents list page spacing and grid for mobile */
+  .agents-content { 
+    gap: 16px; 
+    padding: 0 4px; 
+  }
+  .agents-section { 
+    padding: 16px; 
+    border-radius: 16px; 
+  }
+  .agents-grid { 
+    grid-template-columns: 1fr; 
+    gap: 16px; 
+  }
+  .agent-card { 
+    padding: 16px; 
+  }
+  .agent-avatar { 
+    width: 64px; 
+    height: 64px; 
+    margin-bottom: 12px; 
+  }
+}
+
+@media (max-width: 480px) {
+  .agents-dashboard {
+    width: 98vw;
+    height: 90vh;
+    border-radius: 8px;
+  }
+  
+  .dashboard-header {
+    padding: 10px 12px;
+    height: 55px;
+    flex-wrap: wrap;
+  }
+  
+  .dashboard-title h1 {
+    font-size: 16px;
+  }
+  
+  .dashboard-title .subtitle {
+    font-size: 11px;
+  }
+  
+  .dashboard-content {
+    padding: 12px;
+  }
+  
+  .header-actions {
+    gap: 4px;
+  }
+  
+  .dashboard-controls {
+    gap: 4px;
+  }
+  
+  .action-btn {
+    width: 24px;
+    height: 24px;
+    font-size: 12px;
+  }
+  
+  .user-profile {
+    display: none;
+  }
+  
+  .window-controls {
+    gap: 6px;
+  }
+  
+  .window-control {
+    width: 12px;
+    height: 12px;
+  }
+} 
+
+/* ============== RULES MOBILE REDESIGN ============== */
+.rules-mobile-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100vw;
+  height: 100vh;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  z-index: 1000;
+  
+  /* Apple Intelligence Background - Subtle and Elegant */
+  background: 
+    radial-gradient(ellipse 1200px 800px at 15% 25%, rgba(90, 200, 250, 0.03) 0%, transparent 70%),
+    radial-gradient(ellipse 1000px 600px at 85% 15%, rgba(0, 122, 255, 0.025) 0%, transparent 75%),
+    radial-gradient(ellipse 800px 500px at 65% 85%, rgba(175, 82, 222, 0.02) 0%, transparent 80%),
+    radial-gradient(ellipse 1200px 700px at 5% 75%, rgba(255, 45, 85, 0.015) 0%, transparent 85%),
+    radial-gradient(ellipse 700px 400px at 95% 95%, rgba(255, 149, 0, 0.02) 0%, transparent 75%),
+    linear-gradient(180deg, 
+      rgba(255, 255, 255, 1) 0%,
+      rgba(253, 253, 255, 0.99) 15%,
+      rgba(251, 252, 255, 0.98) 25%,
+      rgba(248, 250, 255, 0.97) 35%,
+      rgba(245, 248, 255, 0.96) 45%,
+      rgba(242, 246, 255, 0.95) 55%,
+      rgba(240, 244, 255, 0.94) 65%,
+      rgba(238, 242, 255, 0.93) 75%,
+      rgba(236, 240, 255, 0.92) 85%,
+      rgba(234, 238, 255, 0.91) 95%,
+      rgba(232, 236, 255, 0.9) 100%);
+  
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+/* ============== BRAND NEW SALESBOT MOBILE (sbm-*) ============== */
+@media (max-width: 768px) {
+  .sbm-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: #f8fafc;
+    display: flex;
+    flex-direction: column;
+    padding-top: calc(16px + env(safe-area-inset-top, 16px));
+    padding-bottom: calc(84px + env(safe-area-inset-bottom, 0px)); /* room for dock */
+    overflow: hidden;
+  }
+
+  .sbm-header {
+    position: sticky;
+    top: 0;
+    z-index: 5;
+    background: #f8fafc;
+    padding: 16px 16px 8px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .sbm-title {
+    font-size: 20px;
+    font-weight: 800;
+    color: #0f172a;
+  }
+
+  .sbm-badge {
+    padding: 6px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 700;
+    color: #0369a1;
+    background: #e0f2fe;
+    border: 1px solid #bae6fd;
+  }
+
+  .sbm-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 8px 12px 16px 12px;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .sbm-card {
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 18px;
+    padding: 14px 14px 16px;
+    box-shadow: 0 8px 24px rgba(15,23,42,0.06);
+    position: relative;
+    overflow: hidden;
+    transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+  }
+
+  .sbm-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(120% 140% at 100% 0%, rgba(59,130,246,0.06) 0%, transparent 60%);
+    pointer-events: none;
+  }
+
+  .sbm-card:active { transform: scale(.995); }
+
+  .sbm-card-main {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  .sbm-card-info { text-align: right; }
+  .sbm-card-name { font-size: 16px; font-weight: 700; color: #0f172a; }
+  .sbm-card-role { font-size: 13px; color: #64748b; font-weight: 500; }
+
+  .sbm-card-avatar {
+    width: 56px;
+    height: 56px;
+    border-radius: 14px;
+    object-fit: cover;
+    border: 1px solid #e5e7eb;
+    box-shadow: 0 6px 16px rgba(0,0,0,0.08);
+  }
+
+  .sbm-card-status {
+    position: absolute;
+    top: 10px;
+    right: 12px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 8px;
+    font-size: 11px;
+    font-weight: 700;
+    color: #059669;
+    background: #ecfdf5;
+    border: 1px solid #bbf7d0;
+    border-radius: 999px;
+  }
+  .sbm-dot { width: 6px; height: 6px; border-radius: 50%; background: #10b981; }
+
+  .sbm-meta { display: flex; gap: 8px; margin-top: 10px; }
+  .sbm-chip {
+    padding: 6px 10px;
+    border-radius: 10px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #334155;
+    background: #f1f5f9;
+    border: 1px solid #e2e8f0;
+  }
+  .sbm-chip.success { color: #047857; background: #ecfdf5; border-color: #bbf7d0; }
+
+  .sbm-card-btn {
+    width: 100%;
+    margin-top: 12px;
+    background: #3b82f6;
+    color: #fff;
+    border: none;
+    border-radius: 12px;
+    padding: 12px 16px;
+    font-size: 14px;
+    font-weight: 700;
+    box-shadow: 0 8px 22px rgba(59,130,246,.28);
+    transition: transform .15s ease, box-shadow .15s ease, background .15s ease;
+  }
+  .sbm-card-btn:active { transform: translateY(1px); box-shadow: 0 4px 12px rgba(59,130,246,.24); }
+
+  /* Bottom dock positioning for this mobile screen */
+  .sbm-container + .dock,
+  .sbm-container .dock {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    top: auto;
+    transform: none;
+    width: 100%;
+    padding: 8px 12px;
+    height: 64px;
+    border-radius: 0;
+    box-shadow: 0 -4px 20px rgba(0,0,0,.1);
+    z-index: 10000;
+    background: #fff;
+  }
+  .sbm-container + .dock .dock-icons,
+  .sbm-container .dock .dock-icons { width: 100%; justify-content: space-between; gap: 0 !important; }
+  .sbm-container + .dock .dock-icon,
+  .sbm-container .dock .dock-icon { flex: 0 0 auto !important; width: 21% !important; max-width: 21% !important; }
+}
+
+/* Mobile Header */
+.rules-mobile-header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 80px;
+  background: 
+    linear-gradient(135deg, 
+      rgba(255, 255, 255, 0.95) 0%,
+      rgba(248, 250, 255, 0.9) 100%);
+  backdrop-filter: blur(15px) saturate(160%);
+  -webkit-backdrop-filter: blur(15px) saturate(160%);
+  border-bottom: 1px solid rgba(148, 197, 255, 0.2);
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
+  box-shadow: 
+    0 4px 20px rgba(148, 197, 255, 0.1),
+    0 2px 10px rgba(189, 217, 255, 0.08);
+}
+
+.rules-back-btn {
+  width: 40px;
+  height: 40px;
+  background: rgba(255, 255, 255, 0.8);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  color: #1d1d1f;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.rules-back-btn:hover {
+  background: rgba(255, 255, 255, 0.95);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.rules-header-title {
+  font-family: 'Heebo', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  font-size: 22px;
+  font-weight: 700;
+  color: #1d1d1f;
+  margin: 0;
+  letter-spacing: -0.02em;
+}
+
+/* Progress Section */
+.rules-progress-section {
+  padding: 100px 20px 20px;
+  text-align: center;
+}
+
+.rules-counter {
+  display: inline-block;
+  background: 
+    linear-gradient(135deg, 
+      rgba(255, 255, 255, 0.25) 0%,
+      rgba(255, 255, 255, 0.1) 100%);
+  backdrop-filter: blur(12px) saturate(150%);
+  -webkit-backdrop-filter: blur(12px) saturate(150%);
+  color: #1d1d1f;
+  font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  padding: 10px 18px;
+  border-radius: 20px;
+  border: 0.5px solid rgba(255, 255, 255, 0.3);
+  box-shadow: 
+    0 2px 16px rgba(0, 0, 0, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
+}
+
+.rules-counter span {
+  color: #007AFF;
+  font-weight: 700;
+}
+
+/* Rules Content */
+.rules-content {
+  padding: 0 20px 20px;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+/* Add Rule Card */
+.add-rule-card {
+  background: 
+    linear-gradient(135deg, 
+      rgba(255, 255, 255, 0.65) 0%,
+      rgba(255, 255, 255, 0.35) 40%,
+      rgba(255, 255, 255, 0.25) 100%);
+  backdrop-filter: blur(30px) saturate(180%) brightness(105%);
+  -webkit-backdrop-filter: blur(30px) saturate(180%) brightness(105%);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: 20px;
+  margin-bottom: 24px;
+  padding: 24px;
+  box-shadow: 
+    0 4px 20px rgba(0, 0, 0, 0.08),
+    0 2px 8px rgba(0, 0, 0, 0.04),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  position: relative;
+  overflow: hidden;
+}
+
+.add-rule-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, 
+    transparent 0%, 
+    rgba(255, 255, 255, 0.6) 20%, 
+    rgba(255, 255, 255, 0.8) 50%, 
+    rgba(255, 255, 255, 0.6) 80%, 
+    transparent 100%);
+}
+
+.add-rule-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.add-rule-icon {
+  width: 50px;
+  height: 50px;
+  background: rgba(0, 122, 255, 0.1);
+  border: 1px solid rgba(0, 122, 255, 0.2);
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.rule-plus-icon {
+  font-size: 24px;
+  color: #007AFF;
+  font-weight: 300;
+}
+
+.add-rule-info h3 {
+  font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  font-size: 18px;
+  font-weight: 700;
+  color: #1d1d1f;
+  margin: 0 0 4px 0;
+  letter-spacing: -0.01em;
+}
+
+.add-rule-info p {
+  font-family: 'SF Pro Text', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  font-size: 14px;
+  color: rgba(29, 29, 31, 0.7);
+  margin: 0;
+  line-height: 1.4;
+}
+
+.add-rule-action-btn {
+  width: 100%;
+  background: #000000;
+  color: white;
+  border: none;
+  border-radius: 14px;
+  padding: 16px 24px;
+  font-family: 'Heebo', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  font-size: 16px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 
+    0 0 20px rgba(90, 200, 250, 0.4),
+    0 0 40px rgba(0, 122, 255, 0.3);
+  animation: rotatingShadow 3s linear infinite;
+}
+
+.add-rule-action-btn:hover {
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 
+    0 8px 25px rgba(0, 0, 0, 0.2),
+    0 0 30px rgba(90, 200, 250, 0.8);
+}
+
+.add-rule-action-btn:active {
+  transform: translateY(0);
+}
+
+/* Rules Accordion */
+.rules-accordion {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 40px;
+}
+
+.rule-accordion-item {
+  background: 
+    linear-gradient(135deg, 
+      rgba(255, 255, 255, 0.6) 0%,
+      rgba(255, 255, 255, 0.3) 100%);
+  backdrop-filter: blur(25px) saturate(160%);
+  -webkit-backdrop-filter: blur(25px) saturate(160%);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 18px;
+  overflow: hidden;
+  box-shadow: 
+    0 2px 16px rgba(0, 0, 0, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.7);
+  transition: all 0.3s ease;
+}
+
+.rule-accordion-item:hover {
+  background: 
+    linear-gradient(135deg, 
+      rgba(255, 255, 255, 0.75) 0%,
+      rgba(255, 255, 255, 0.45) 100%);
+  transform: translateY(-2px);
+  box-shadow: 
+    0 4px 20px rgba(0, 0, 0, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
+}
+
+.rule-accordion-item.expanded {
+  background: 
+    linear-gradient(135deg, 
+      rgba(255, 255, 255, 0.8) 0%,
+      rgba(255, 255, 255, 0.5) 100%);
+  border: 1px solid rgba(0, 122, 255, 0.2);
+  box-shadow: 
+    0 4px 20px rgba(0, 122, 255, 0.1),
+    0 2px 8px rgba(0, 0, 0, 0.05),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+
+.rule-accordion-item.expanded:hover {
+  transform: none;
+}
+
+.rule-accordion-header {
+  padding: 20px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  cursor: pointer;
+}
+
+.rule-status-icon {
+  width: 24px;
+  height: 24px;
+  background: rgba(52, 199, 89, 0.1);
+  border: 1px solid rgba(52, 199, 89, 0.3);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.rule-check {
+  color: #34c759;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.rule-content-info {
+  flex: 1;
+}
+
+.rule-accordion-title {
+  font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  font-size: 16px;
+  font-weight: 600;
+  color: #1d1d1f;
+  margin: 0 0 4px 0;
+  letter-spacing: -0.01em;
+}
+
+.rule-accordion-preview {
+  font-family: 'SF Pro Text', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  font-size: 14px;
+  color: rgba(29, 29, 31, 0.6);
+  margin: 0;
+  line-height: 1.3;
+}
+
+.rule-remove-btn {
+  width: 32px;
+  height: 32px;
+  background: rgba(255, 59, 48, 0.1);
+  border: 1px solid rgba(255, 59, 48, 0.2);
+  border-radius: 8px;
+  color: #ff3b30;
+  font-size: 18px;
+  font-weight: 300;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.rule-remove-btn:hover {
+  background: rgba(255, 59, 48, 0.2);
+  transform: scale(1.1);
+}
+
+.rule-accordion-content {
+  padding: 0 20px 20px;
+  border-top: 1px solid rgba(255, 255, 255, 0.3);
+  margin-top: 16px;
+  padding-top: 20px;
+}
+
+.rule-full-description {
+  font-family: 'SF Pro Text', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  font-size: 15px;
+  color: #1d1d1f;
+  line-height: 1.5;
+  margin-bottom: 16px;
+}
+
+.rule-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.rule-edit-btn, .rule-duplicate-btn {
+  flex: 1;
+  padding: 10px 16px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.rule-edit-btn {
+  background: rgba(0, 122, 255, 0.1);
+  color: #007AFF;
+  border-color: rgba(0, 122, 255, 0.2);
+}
+
+.rule-duplicate-btn {
+  background: rgba(255, 255, 255, 0.6);
+  color: #1d1d1f;
+}
+
+.rule-edit-btn:hover, .rule-duplicate-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* Empty State */
+.rules-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 60px 20px;
+}
+
+.empty-state-illustration {
+  margin-bottom: 24px;
+}
+
+.empty-icon {
+  font-size: 64px;
+  opacity: 0.5;
+}
+
+.rules-empty-state h3 {
+  font-family: 'Heebo', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  font-size: 24px;
+  font-weight: 700;
+  color: #1d1d1f;
+  margin: 0 0 12px 0;
+  letter-spacing: -0.02em;
+}
+
+.rules-empty-state p {
+  font-family: 'Assistant', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  font-size: 16px;
+  color: rgba(29, 29, 31, 0.6);
+  line-height: 1.5;
+  margin: 0 0 32px 0;
+  max-width: 300px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.empty-state-btn {
+  background: #007AFF;
+  color: white;
+  border: none;
+  border-radius: 12px;
+  padding: 14px 28px;
+  font-family: 'Heebo', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 16px rgba(0, 122, 255, 0.3);
+}
+
+.empty-state-btn:hover {
+  background: #0056b3;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 122, 255, 0.4);
+}
+
+
+
+/* Keyframes for rotating shadow */
+@keyframes rotatingShadow {
+  0% {
+    box-shadow: 
+      0 0 20px rgba(90, 200, 250, 0.6),
+      0 0 40px rgba(90, 200, 250, 0.4);
+  }
+  20% {
+    box-shadow: 
+      0 0 20px rgba(0, 122, 255, 0.6),
+      0 0 40px rgba(0, 122, 255, 0.4);
+  }
+  40% {
+    box-shadow: 
+      0 0 20px rgba(175, 82, 222, 0.6),
+      0 0 40px rgba(175, 82, 222, 0.4);
+  }
+  60% {
+    box-shadow: 
+      0 0 20px rgba(255, 45, 85, 0.6),
+      0 0 40px rgba(255, 45, 85, 0.4);
+  }
+  80% {
+    box-shadow: 
+      0 0 20px rgba(255, 149, 0, 0.6),
+      0 0 40px rgba(255, 149, 0, 0.4);
+  }
+  100% {
+    box-shadow: 
+      0 0 20px rgba(90, 200, 250, 0.6),
+      0 0 40px rgba(90, 200, 250, 0.4);
+  }
+} 

@@ -1,0 +1,8 @@
+.tab-navigation{padding:16px 20px;background:#fff;border-bottom:1px solid #e5e7eb}
+.tab-buttons{display:flex;flex-wrap:wrap;gap:8px}
+.tab-btn{display:inline-flex;align-items:center;gap:8px;padding:10px 14px;border:1px solid #e5e7eb;border-radius:12px;background:#f8fafc;color:#0f172a;cursor:pointer;transition:all .2s}
+.tab-btn:hover{background:#f1f5f9;border-color:#cbd5e1}
+.tab-btn.active{background:#3b82f6;color:#fff;border-color:#3b82f6}
+.tab-icon{display:inline-flex}
+.tab-label{font-weight:700}
+

@@ -1,0 +1,28 @@
+{
+  "name": "@leadexpress/whatsapp-notify",
+  "version": "1.0.0",
+  "description": "WhatsApp Business API notifications — daily check-in + lead delivery",
+  "type": "module",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "tsx src/index.ts"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.49.1",
+    "bullmq": "^5.34.3",
+    "dotenv": "^16.4.7",
+    "@hono/node-server": "^1.13.0",
+    "hono": "^4.6.0",
+    "ioredis": "^5.4.2",
+    "node-cron": "^3.0.3",
+    "pino": "^9.6.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.4",
+    "@types/node-cron": "^3.0.11",
+    "tsx": "^4.19.3",
+    "typescript": "^5.7.3"
+  }
+}

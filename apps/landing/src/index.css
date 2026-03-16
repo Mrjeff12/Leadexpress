@@ -1,0 +1,315 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Heebo:wght@300;400;500;600;700;800;900&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+  body {
+    @apply bg-cream text-dark antialiased;
+    font-family: 'Inter', sans-serif;
+  }
+  html[dir="rtl"] body {
+    font-family: 'Heebo', 'Inter', sans-serif;
+  }
+  h1, h2, h3, h4 {
+    letter-spacing: -0.04em;
+    font-weight: 500;
+  }
+  html[dir="rtl"] h1,
+  html[dir="rtl"] h2,
+  html[dir="rtl"] h3,
+  html[dir="rtl"] h4 {
+    font-family: 'Heebo', sans-serif;
+    letter-spacing: -0.02em;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 rounded-full bg-dark text-white px-7 py-3.5 text-sm font-semibold
+           transition-all duration-300 hover:bg-primary hover:scale-105 active:scale-95;
+  }
+  .btn-secondary {
+    @apply inline-flex items-center justify-center gap-2 rounded-full border border-dark/20 bg-white text-dark px-7 py-3.5 text-sm font-semibold
+           transition-all duration-300 hover:border-primary hover:text-primary hover:scale-105 active:scale-95;
+  }
+  .card {
+    @apply rounded-2xl border border-[#efeff1] bg-white p-6 transition-all duration-300 hover:shadow-lg hover:-translate-y-1;
+  }
+  .section-padding {
+    @apply py-20 md:py-28;
+  }
+}
+
+/* ═══════════════════════════════════════════════
+   HERO — CINEMATIC ENTRANCE (Steve Jobs style)
+   ═══════════════════════════════════════════════ */
+
+/* Background: dark → cream reveal */
+.hero-bg-animate {
+  animation: heroBgReveal 2s ease-out forwards;
+}
+@keyframes heroBgReveal {
+  0% { opacity: 1; }
+  60% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+/* Green glow pulse */
+.hero-glow-pulse {
+  animation: heroGlowPulse 4s ease-in-out infinite alternate;
+}
+@keyframes heroGlowPulse {
+  0% { opacity: 0.05; transform: translateX(-50%) scale(0.9); }
+  100% { opacity: 0.12; transform: translateX(-50%) scale(1.1); }
+}
+
+/* Text elements — staggered dramatic reveal */
+.hero-text-reveal {
+  animation: heroTextReveal 1s ease-out 0.3s forwards;
+  opacity: 0;
+}
+@keyframes heroTextReveal {
+  from { opacity: 0; transform: translateY(40px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.hero-badge {
+  animation: heroBadge 0.8s ease-out 0.5s forwards;
+  opacity: 0;
+}
+@keyframes heroBadge {
+  from { opacity: 0; transform: translateY(20px) scale(0.9); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.hero-title {
+  animation: heroTitle 1s cubic-bezier(0.16, 1, 0.3, 1) 0.7s forwards;
+  opacity: 0;
+}
+@keyframes heroTitle {
+  from { opacity: 0; transform: translateY(50px); filter: blur(4px); }
+  to { opacity: 1; transform: translateY(0); filter: blur(0); }
+}
+
+.hero-subtitle {
+  animation: heroSubtitle 1s ease-out 1s forwards;
+  opacity: 0;
+}
+@keyframes heroSubtitle {
+  from { opacity: 0; transform: translateY(30px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.hero-ctas {
+  animation: heroCtas 0.8s ease-out 1.3s forwards;
+  opacity: 0;
+}
+@keyframes heroCtas {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.hero-trust {
+  animation: heroTrust 0.8s ease-out 1.6s forwards;
+  opacity: 0;
+}
+@keyframes heroTrust {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Phone — rises dramatically from below */
+.hero-phone-reveal {
+  animation: heroPhoneReveal 1.4s cubic-bezier(0.16, 1, 0.3, 1) 0.8s forwards;
+  opacity: 0;
+}
+@keyframes heroPhoneReveal {
+  from { opacity: 0; transform: translateY(120px) scale(0.85); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* Spinning ring behind phone */
+.hero-ring-spin {
+  animation: heroRingSpin 20s linear infinite;
+}
+@keyframes heroRingSpin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* Floating notification badges */
+.hero-float-badge-1 {
+  animation: heroFloatBadge1 1s cubic-bezier(0.34, 1.56, 0.64, 1) 2s forwards,
+             heroFloat 3s ease-in-out 3s infinite alternate;
+  opacity: 0;
+}
+@keyframes heroFloatBadge1 {
+  from { opacity: 0; transform: translateX(40px) translateY(-20px) scale(0.5); }
+  to { opacity: 1; transform: translateX(0) translateY(0) scale(1); }
+}
+
+.hero-float-badge-2 {
+  animation: heroFloatBadge2 1s cubic-bezier(0.34, 1.56, 0.64, 1) 2.4s forwards,
+             heroFloat 3.5s ease-in-out 3.4s infinite alternate-reverse;
+  opacity: 0;
+}
+@keyframes heroFloatBadge2 {
+  from { opacity: 0; transform: translateX(-40px) translateY(20px) scale(0.5); }
+  to { opacity: 1; transform: translateX(0) translateY(0) scale(1); }
+}
+
+@keyframes heroFloat {
+  0% { transform: translateY(0); }
+  100% { transform: translateY(-8px); }
+}
+
+/* WhatsApp chat messages — staggered typing reveal */
+.wa-msg-1 { animation: waMsgIn 0.5s ease-out 1.8s forwards; opacity: 0; }
+.wa-msg-2 { animation: waMsgIn 0.5s ease-out 2.2s forwards; opacity: 0; }
+.wa-msg-3 { animation: waMsgIn 0.5s ease-out 2.6s forwards; opacity: 0; }
+.wa-msg-4 { animation: waMsgIn 0.5s ease-out 3.0s forwards; opacity: 0; }
+.wa-msg-5 { animation: waMsgIn 0.5s ease-out 3.4s forwards; opacity: 0; }
+
+@keyframes waMsgIn {
+  from { opacity: 0; transform: translateY(10px) scale(0.95); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* Scroll indicator */
+.hero-scroll-indicator {
+  animation: heroScrollIndicator 1s ease-out 3.5s forwards;
+  opacity: 0;
+}
+@keyframes heroScrollIndicator {
+  from { opacity: 0; transform: translate(-50%, 20px); }
+  to { opacity: 1; transform: translate(-50%, 0); }
+}
+
+
+/* ═══════════════════════════════════════════════
+   GRAIN OVERLAY
+   ═══════════════════════════════════════════════ */
+.grain::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  pointer-events: none;
+  opacity: 0.03;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+}
+
+/* ═══════════════════════════════════════════════
+   GENERAL STYLES
+   ═══════════════════════════════════════════════ */
+
+.gradient-text {
+  background: linear-gradient(135deg, #fe5b25, #ff8a5c);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.highlight-box {
+  @apply relative inline-block;
+  background: #fe5b25;
+  color: white;
+  padding: 0.05em 0.3em;
+  border-radius: 0.2em;
+  -webkit-text-fill-color: white;
+}
+
+/* Scroll-triggered fade-in */
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(30px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-in-up {
+  animation: fadeInUp 0.7s ease-out forwards;
+}
+
+.delay-100 { animation-delay: 0.1s; }
+.delay-200 { animation-delay: 0.2s; }
+.delay-300 { animation-delay: 0.3s; }
+.delay-400 { animation-delay: 0.4s; }
+
+/* Logo marquee */
+@keyframes marquee {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+.animate-marquee {
+  animation: marquee 25s linear infinite;
+}
+
+/* FAQ accordion */
+.faq-answer {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.4s ease, padding 0.4s ease;
+}
+.faq-answer.open {
+  max-height: 300px;
+  padding-top: 1rem;
+}
+
+/* Phone mockup glow — now WhatsApp green */
+.phone-glow {
+  filter: drop-shadow(0 25px 80px rgba(37, 211, 102, 0.2)) drop-shadow(0 8px 30px rgba(0, 0, 0, 0.3));
+}
+
+/* Decorative circle */
+.deco-circle {
+  @apply absolute rounded-full opacity-10;
+  background: radial-gradient(circle, #fe5b25, transparent 70%);
+}
+
+/* Chaos message appear animation */
+.chaos-msg-appear {
+  animation: chaosMsgAppear 0.3s ease-out forwards;
+}
+@keyframes chaosMsgAppear {
+  from { opacity: 0; transform: translateY(8px) scale(0.95); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* Order exclusive badge animation */
+.order-exclusive-badge {
+  animation: orderExclusiveBadge 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+@keyframes orderExclusiveBadge {
+  from { opacity: 0; transform: translateY(10px) scale(0.9); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* Lead card shimmer line */
+.lead-shimmer {
+  animation: leadShimmer 2s ease-in-out infinite;
+}
+@keyframes leadShimmer {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 1; }
+}
+
+/* Dashed line animation for connection */
+.lead-dash-animate {
+  animation: leadDash 1.5s linear infinite;
+}
+@keyframes leadDash {
+  to { stroke-dashoffset: -20; }
+}
+
+/* Map pin drop animation */
+.map-pin-drop {
+  animation: mapPinDrop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  opacity: 0;
+}
+@keyframes mapPinDrop {
+  from { opacity: 0; transform: translateY(-20px) scale(0); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}

@@ -1,0 +1,889 @@
+import { useState, useEffect, useRef, useCallback } from 'react'
+import { supabase } from '../lib/supabase'
+import { useI18n } from '../lib/i18n'
+import {
+  Smartphone,
+  QrCode,
+  CheckCircle2,
+  RefreshCw,
+  Wifi,
+  WifiOff,
+  Radio,
+  MessageSquare,
+  AlertTriangle,
+  Loader2,
+  Search,
+  Eye,
+  EyeOff,
+  Zap,
+  Filter,
+  Brain,
+  ArrowRight,
+  UserX,
+  Clock,
+  Activity,
+  TrendingUp,
+  Shield,
+  Plus,
+  MapPin,
+  Hash,
+} from 'lucide-react'
+
+// ── Types ──────────────────────────────────────────────────────────────────────
+type ConnectionStatus = 'disconnected' | 'waiting_qr' | 'connecting' | 'connected'
+
+type PipelineStage =
+  | 'received' | 'quick_filtered' | 'sender_filtered' | 'pattern_matched'
+  | 'ai_parsing' | 'ai_parsed' | 'no_lead' | 'lead_created'
+  | 'matched' | 'sent' | 'claimed' | 'expired'
+
+interface WAGroup {
+  id: string
+  name: string
+  messageCount: number
+  isActive: boolean
+  lastMessageAt?: string
+  totalMembers?: number
+  knownSellers?: number
+  knownBuyers?: number
+  category?: string
+}
+
+interface WAMessage {
+  id: string
+  sender: string
+  senderName: string
+  text: string
+  timestamp: number
+  isLead?: boolean
+  pipelineStage?: PipelineStage
+  senderClassification?: 'unknown' | 'seller' | 'buyer' | 'bot' | 'admin'
+}
+
+interface PipelineEvent {
+  id: string
+  groupName?: string
+  senderName?: string
+  stage: PipelineStage
+  detail?: Record<string, unknown>
+  messagePreview?: string
+  createdAt: string
+}
+
+interface WAAccount {
+  id: string
+  label: string
+  region: string
+  phone: string | null
+  status: ConnectionStatus
+  groupCount: number
+  leadsToday: number
+  messagesTotal: number
+  qr: string | null
+  connectedSince: string | null
+}
+
+interface WAState {
+  status: ConnectionStatus
+  qr: string | null
+  phone: string | null
+  connectedSince: string | null
+}
+
+// ── Region config ──────────────────────────────────────────────────────────────
+const REGION_CONFIG: Record<string, { emoji: string; label: string; labelHe: string }> = {
+  'us-fl': { emoji: '🌴', label: 'Florida', labelHe: 'פלורידה' },
+  'us-ny': { emoji: '🗽', label: 'New York', labelHe: 'ניו יורק' },
+  'us-tx': { emoji: '🤠', label: 'Texas', labelHe: 'טקסס' },
+  'us-ca': { emoji: '☀️', label: 'California', labelHe: 'קליפורניה' },
+  'il':    { emoji: '🇮🇱', label: 'Israel', labelHe: 'ישראל' },
+}
+
+// ── Demo data ──────────────────────────────────────────────────────────────────
+const DEMO_ACCOUNTS: WAAccount[] = [
+  { id: 'acc-fl', label: 'Florida Home Services', region: 'us-fl', phone: '+1 (305) 555-0199', status: 'connected', groupCount: 4, leadsToday: 8, messagesTotal: 342, qr: null, connectedSince: new Date(Date.now() - 86_400_000 * 3).toISOString() },
+  { id: 'acc-ny', label: 'NY Locksmiths', region: 'us-ny', phone: '+1 (212) 555-0177', status: 'connected', groupCount: 3, leadsToday: 5, messagesTotal: 187, qr: null, connectedSince: new Date(Date.now() - 86_400_000 * 7).toISOString() },
+  { id: 'acc-tx', label: 'Texas Expansion', region: 'us-tx', phone: null, status: 'disconnected', groupCount: 0, leadsToday: 0, messagesTotal: 0, qr: null, connectedSince: null },
+]
+const DEMO_GROUPS: WAGroup[] = [
+  { id: 'g1', name: 'Miami Home Services 🏠', messageCount: 342, isActive: true, lastMessageAt: new Date(Date.now() - 120_000).toISOString(), totalMembers: 187, knownSellers: 23, knownBuyers: 41, category: 'hvac' },
+  { id: 'g2', name: 'South FL Contractors', messageCount: 189, isActive: true, lastMessageAt: new Date(Date.now() - 600_000).toISOString(), totalMembers: 94, knownSellers: 12, knownBuyers: 28, category: 'renovation' },
+  { id: 'g3', name: 'Broward Handyman Network', messageCount: 94, isActive: true, lastMessageAt: new Date(Date.now() - 3_600_000).toISOString(), totalMembers: 156, knownSellers: 31, knownBuyers: 19, category: 'cleaning' },
+  { id: 'g4', name: 'Palm Beach Renovations', messageCount: 67, isActive: false, lastMessageAt: new Date(Date.now() - 86_400_000).toISOString(), totalMembers: 72, knownSellers: 8, knownBuyers: 15, category: 'renovation' },
+]
+
+const DEMO_MESSAGES: Record<string, WAMessage[]> = {
+  g1: [
+    { id: 'm1', sender: '972501234567', senderName: 'יוסי א.', text: 'מישהו מכיר טכנאי מזגנים באזור מיאמי ביץ? ZIP 33139 צריך תיקון דחוף מזגן מרכזי', timestamp: Date.now() - 60_000, isLead: true, pipelineStage: 'sent', senderClassification: 'buyer' },
+    { id: 'm2', sender: '972509876543', senderName: 'דוד כהן', text: 'שלום! אני טכנאי מזגנים מורשה 15 שנות ניסיון, אזור מיאמי דייד. התקשרו 305-555-0147', timestamp: Date.now() - 120_000, isLead: false, pipelineStage: 'sender_filtered', senderClassification: 'seller' },
+    { id: 'm3', sender: '972507654321', senderName: 'משה לוי', text: '😂😂', timestamp: Date.now() - 180_000, isLead: false, pipelineStage: 'quick_filtered', senderClassification: 'unknown' },
+    { id: 'm4', sender: '972502345678', senderName: 'שרה ג.', text: 'צריכה שיפוץ מטבח באזור Hollywood FL 33020, מישהו יכול לתת הצעת מחיר?', timestamp: Date.now() - 300_000, isLead: true, pipelineStage: 'matched', senderClassification: 'buyer' },
+    { id: 'm5', sender: '972509876543', senderName: 'דוד כהן', text: 'יש לי מבצע התקנת מזגן מרכזי $2500 כולל ציוד. שלחו הודעה 305-555-0147', timestamp: Date.now() - 500_000, isLead: false, pipelineStage: 'sender_filtered', senderClassification: 'seller' },
+    { id: 'm6', sender: '972508765432', senderName: 'אבי ר.', text: 'מחפש מישהו לגדר חצר אחורית, Fort Lauderdale 33301, בערך 40 מטר', timestamp: Date.now() - 900_000, isLead: true, pipelineStage: 'claimed', senderClassification: 'buyer' },
+    { id: 'm7', sender: '972501111111', senderName: 'Admin Bot', text: 'ברוכים הבאים לקבוצה! כללי הקבוצה: ...', timestamp: Date.now() - 1_800_000, isLead: false, pipelineStage: 'quick_filtered', senderClassification: 'bot' },
+  ],
+  g2: [
+    { id: 'm8', sender: '972503456789', senderName: 'רונית ש.', text: 'יש מישהו שעושה ריצוף בקורל גיבלס? ZIP 33134 בערך 50 מ"ר', timestamp: Date.now() - 240_000, isLead: true, pipelineStage: 'ai_parsing', senderClassification: 'buyer' },
+    { id: 'm9', sender: '972504567890', senderName: 'חיים ב.', text: 'בוקר טוב! מי פנוי היום?', timestamp: Date.now() - 600_000, isLead: false, pipelineStage: 'quick_filtered', senderClassification: 'unknown' },
+  ],
+  g3: [
+    { id: 'm10', sender: '972505678901', senderName: 'נתן מ.', text: 'צריך ניקוי גראז׳ Pembroke Pines 33024, גראז׳ כפול מלא חפצים', timestamp: Date.now() - 180_000, isLead: true, pipelineStage: 'lead_created', senderClassification: 'buyer' },
+  ],
+  g4: [],
+}
+
+const DEMO_PIPELINE: PipelineEvent[] = [
+  { id: 'pe1', groupName: 'Miami Home Services 🏠', senderName: 'יוסי א.', stage: 'received', messagePreview: 'מישהו מכיר טכנאי מזגנים באזור מיאמי ביץ?...', createdAt: new Date(Date.now() - 55_000).toISOString() },
+  { id: 'pe2', groupName: 'Miami Home Services 🏠', senderName: 'יוסי א.', stage: 'pattern_matched', detail: { signals: ['zip:33139', 'keyword:מזגנים', 'keyword:תיקון'] }, messagePreview: 'מישהו מכיר טכנאי מזגנים...', createdAt: new Date(Date.now() - 54_000).toISOString() },
+  { id: 'pe3', groupName: 'Miami Home Services 🏠', senderName: 'יוסי א.', stage: 'ai_parsed', detail: { profession: 'hvac', zip: '33139', urgency: 'hot' }, messagePreview: 'מישהו מכיר טכנאי מזגנים...', createdAt: new Date(Date.now() - 52_000).toISOString() },
+  { id: 'pe4', groupName: 'Miami Home Services 🏠', senderName: 'יוסי א.', stage: 'matched', detail: { contractors: 2 }, messagePreview: 'מישהו מכיר טכנאי מזגנים...', createdAt: new Date(Date.now() - 50_000).toISOString() },
+  { id: 'pe5', groupName: 'Miami Home Services 🏠', senderName: 'יוסי א.', stage: 'sent', detail: { via: 'telegram', to: 'Avi R.' }, createdAt: new Date(Date.now() - 48_000).toISOString() },
+  { id: 'pe6', groupName: 'Miami Home Services 🏠', senderName: 'דוד כהן', stage: 'received', messagePreview: 'שלום! אני טכנאי מזגנים מורשה...', createdAt: new Date(Date.now() - 115_000).toISOString() },
+  { id: 'pe7', groupName: 'Miami Home Services 🏠', senderName: 'דוד כהן', stage: 'sender_filtered', detail: { reason: 'known_seller', serviceRatio: 0.85 }, createdAt: new Date(Date.now() - 114_500).toISOString() },
+  { id: 'pe8', groupName: 'Miami Home Services 🏠', senderName: 'משה לוי', stage: 'received', messagePreview: '😂😂', createdAt: new Date(Date.now() - 175_000).toISOString() },
+  { id: 'pe9', groupName: 'Miami Home Services 🏠', senderName: 'משה לוי', stage: 'quick_filtered', detail: { reason: 'too_short', length: 2 }, createdAt: new Date(Date.now() - 174_500).toISOString() },
+  { id: 'pe10', groupName: 'South FL Contractors', senderName: 'רונית ש.', stage: 'received', messagePreview: 'יש מישהו שעושה ריצוף בקורל גיבלס?...', createdAt: new Date(Date.now() - 235_000).toISOString() },
+  { id: 'pe11', groupName: 'South FL Contractors', senderName: 'רונית ש.', stage: 'ai_parsing', detail: { model: 'gpt-4o-mini' }, createdAt: new Date(Date.now() - 234_000).toISOString() },
+]
+
+// ── Stage helpers ──────────────────────────────────────────────────────────────
+const STAGE_CONFIG: Record<PipelineStage, { label: string; labelHe: string; color: string; icon: typeof Zap }> = {
+  received:        { label: 'Received',       labelHe: 'התקבלה',      color: 'hsl(40 4% 55%)',   icon: MessageSquare },
+  quick_filtered:  { label: 'Quick Filter ✗', labelHe: 'פילטר מהיר ✗', color: 'hsl(0 50% 55%)',  icon: Filter },
+  sender_filtered: { label: 'Sender Filter ✗',labelHe: 'פילטר שולח ✗', color: 'hsl(25 70% 50%)', icon: UserX },
+  pattern_matched: { label: 'Pattern Match ✓',labelHe: 'תבנית ✓',     color: 'hsl(199 70% 45%)', icon: Search },
+  ai_parsing:      { label: 'AI Parsing...',  labelHe: 'ניתוח AI...',  color: 'hsl(262 60% 55%)', icon: Brain },
+  ai_parsed:       { label: 'AI Parsed ✓',   labelHe: 'נותח ✓',       color: 'hsl(262 60% 45%)', icon: Brain },
+  no_lead:         { label: 'Not a Lead',     labelHe: 'לא ליד',       color: 'hsl(0 40% 55%)',   icon: EyeOff },
+  lead_created:    { label: 'Lead Created',   labelHe: 'ליד נוצר',     color: 'hsl(155 44% 35%)', icon: Zap },
+  matched:         { label: 'Matched',        labelHe: 'שויך',         color: 'hsl(155 44% 30%)', icon: TrendingUp },
+  sent:            { label: 'Sent',           labelHe: 'נשלח',         color: 'hsl(199 70% 40%)', icon: ArrowRight },
+  claimed:         { label: 'Claimed!',       labelHe: 'נתפס!',        color: 'hsl(155 44% 25%)', icon: CheckCircle2 },
+  expired:         { label: 'Expired',        labelHe: 'פג תוקף',      color: 'hsl(0 30% 55%)',   icon: Clock },
+}
+
+const SENDER_BADGE: Record<string, { label: string; labelHe: string; color: string; bg: string }> = {
+  seller:  { label: 'Seller',  labelHe: 'מוכר',   color: 'hsl(25 80% 40%)',  bg: 'hsl(25 95% 93%)' },
+  buyer:   { label: 'Buyer',   labelHe: 'קונה',    color: 'hsl(155 44% 30%)', bg: 'hsl(152 46% 90%)' },
+  bot:     { label: 'Bot',     labelHe: 'בוט',     color: 'hsl(262 60% 45%)', bg: 'hsl(262 80% 93%)' },
+  admin:   { label: 'Admin',   labelHe: 'אדמין',   color: 'hsl(199 70% 35%)', bg: 'hsl(199 89% 93%)' },
+  unknown: { label: 'Unknown', labelHe: 'לא ידוע', color: 'hsl(40 4% 55%)',   bg: 'hsl(35 25% 93%)' },
+}
+
+const CATEGORY_EMOJI: Record<string, string> = {
+  hvac: '❄️', renovation: '🔨', fencing: '🏗️', cleaning: '🧹',
+}
+
+function timeAgo(ts: string | number, he: boolean): string {
+  const diff = Date.now() - (typeof ts === 'number' ? ts : new Date(ts).getTime())
+  const mins = Math.floor(diff / 60_000)
+  if (mins < 1) return he ? 'עכשיו' : 'now'
+  if (mins < 60) return he ? `לפני ${mins} דק׳` : `${mins}m ago`
+  const hrs = Math.floor(mins / 60)
+  if (hrs < 24) return he ? `לפני ${hrs} שע׳` : `${hrs}h ago`
+  const days = Math.floor(hrs / 24)
+  return he ? `לפני ${days} ימים` : `${days}d ago`
+}
+
+// ── Demo QR ────────────────────────────────────────────────────────────────────
+function DemoQR({ size = 180 }: { size?: number }) {
+  const cells = 25
+  const cellSize = size / cells
+  const rects: JSX.Element[] = []
+  let seed = 42
+  function rand() { seed = (seed * 16807) % 2147483647; return (seed - 1) / 2147483646 }
+  for (let y = 0; y < cells; y++) {
+    for (let x = 0; x < cells; x++) {
+      const isFinderTL = x < 7 && y < 7
+      const isFinderTR = x >= cells - 7 && y < 7
+      const isFinderBL = x < 7 && y >= cells - 7
+      if (isFinderTL || isFinderTR || isFinderBL) {
+        const ox = isFinderTL ? 0 : isFinderTR ? cells - 7 : 0
+        const oy = isFinderTL ? 0 : isFinderTR ? 0 : cells - 7
+        const lx = x - ox, ly = y - oy
+        if (lx === 0 || lx === 6 || ly === 0 || ly === 6 || (lx >= 2 && lx <= 4 && ly >= 2 && ly <= 4)) {
+          rects.push(<rect key={`${x}-${y}`} x={x * cellSize} y={y * cellSize} width={cellSize} height={cellSize} fill="hsl(155 44% 30%)" />)
+        }
+      } else if (rand() > 0.55) {
+        rects.push(<rect key={`${x}-${y}`} x={x * cellSize} y={y * cellSize} width={cellSize} height={cellSize} fill="hsl(155 44% 30%)" rx={1} />)
+      }
+    }
+  }
+  return (
+    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{ borderRadius: 8 }}>
+      <rect width={size} height={size} fill="white" rx={8} />
+      {rects}
+    </svg>
+  )
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// ██  MAIN COMPONENT  ████████████████████████████████████████████████████████
+// ═══════════════════════════════════════════════════════════════════════════════
+export default function AdminWhatsApp() {
+  const { locale } = useI18n()
+  const he = locale === 'he'
+  const WA_API = import.meta.env.VITE_WA_LISTENER_URL || ''
+  const IS_DEV = !WA_API
+
+  // ── Connection state ───────────────────────────────────────────────────────
+  const [connState, setConnState] = useState<WAState>({
+    status: 'disconnected', qr: null, phone: null, connectedSince: null,
+  })
+  const [demoStep, setDemoStep] = useState<ConnectionStatus>('disconnected')
+
+  // ── Multi-account state ─────────────────────────────────────────────────────
+  const [accounts, setAccounts] = useState<WAAccount[]>([])
+  const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null)
+
+  // ── Monitor state ──────────────────────────────────────────────────────────
+  const [groups, setGroups] = useState<WAGroup[]>([])
+  const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null)
+  const [messages, setMessages] = useState<WAMessage[]>([])
+  const [pipeline, setPipeline] = useState<PipelineEvent[]>([])
+  const [groupSearch, setGroupSearch] = useState('')
+  const [showOnlyLeads, setShowOnlyLeads] = useState(false)
+
+  const messagesEndRef = useRef<HTMLDivElement>(null)
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const status = IS_DEV ? demoStep : connState.status
+
+  // ── Production polling ─────────────────────────────────────────────────────
+  useEffect(() => {
+    if (IS_DEV) return
+    async function poll() {
+      try {
+        const res = await fetch(`${WA_API}/api/status`)
+        if (res.ok) {
+          const data = await res.json()
+          setConnState(data)
+        }
+      } catch {
+        setConnState(prev => ({ ...prev, status: 'disconnected' }))
+      }
+    }
+    poll()
+    pollRef.current = setInterval(poll, 3000)
+    return () => { if (pollRef.current) clearInterval(pollRef.current) }
+  }, [IS_DEV, WA_API])
+
+  // ── Helper: fetch groups from API ─────────────────────────────────────────
+  const fetchGroups = useCallback(() => {
+    if (IS_DEV || status !== 'connected') return
+    fetch(`${WA_API}/api/groups`).then(r => r.json()).then(d => Array.isArray(d) && setGroups(d)).catch(() => {})
+  }, [IS_DEV, WA_API, status])
+
+  // ── Helper: fetch messages for selected group ───────────────────────────
+  const fetchMessages = useCallback(() => {
+    if (IS_DEV || !selectedGroupId || status !== 'connected') return
+    fetch(`${WA_API}/api/messages/${selectedGroupId}?limit=50`)
+      .then(r => r.json()).then(d => Array.isArray(d) && setMessages(d)).catch(() => {})
+  }, [IS_DEV, WA_API, selectedGroupId, status])
+
+  // ── Helper: fetch pipeline events ───────────────────────────────────────
+  const fetchPipeline = useCallback(() => {
+    if (IS_DEV || status !== 'connected') return
+    fetch(`${WA_API}/api/pipeline?limit=50`).then(r => r.json()).then(d => Array.isArray(d) && setPipeline(d)).catch(() => {})
+  }, [IS_DEV, WA_API, status])
+
+  // ── Load accounts + groups when connected ──────────────────────────────────
+  useEffect(() => {
+    if (status !== 'connected') { setGroups([]); setAccounts([]); return }
+    if (IS_DEV) {
+      setAccounts(DEMO_ACCOUNTS)
+      setGroups(DEMO_GROUPS)
+      setPipeline(DEMO_PIPELINE)
+      if (!selectedAccountId) setSelectedAccountId('acc-fl')
+      if (!selectedGroupId) setSelectedGroupId('g1')
+      return
+    }
+    fetch(`${WA_API}/api/accounts`).then(r => r.json()).then(d => Array.isArray(d) && setAccounts(d)).catch(() => {})
+    fetchGroups()
+    fetchPipeline()
+  }, [status, IS_DEV, WA_API, fetchGroups, fetchPipeline])
+
+  // ── Load messages when group selected ──────────────────────────────────────
+  useEffect(() => {
+    if (!selectedGroupId || status !== 'connected') { setMessages([]); return }
+    if (IS_DEV) {
+      setMessages(DEMO_MESSAGES[selectedGroupId] ?? [])
+      return
+    }
+    fetchMessages()
+  }, [selectedGroupId, status, IS_DEV, fetchMessages])
+
+  // ── Realtime: Supabase subscription on pipeline_events ──────────────────
+  useEffect(() => {
+    if (IS_DEV || status !== 'connected') return
+
+    const channel = supabase
+      .channel('pipeline-realtime')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'pipeline_events' }, () => {
+        fetchPipeline()
+        fetchGroups()
+        fetchMessages()
+      })
+      .subscribe()
+
+    return () => { supabase.removeChannel(channel) }
+  }, [IS_DEV, status, fetchPipeline, fetchGroups, fetchMessages])
+
+  // ── Polling: refresh messages every 10s, groups+pipeline every 15s ──────
+  useEffect(() => {
+    if (IS_DEV || status !== 'connected') return
+
+    const msgInterval = setInterval(fetchMessages, 10_000)
+    const grpInterval = setInterval(() => { fetchGroups(); fetchPipeline() }, 15_000)
+
+    return () => {
+      clearInterval(msgInterval)
+      clearInterval(grpInterval)
+    }
+  }, [IS_DEV, status, fetchMessages, fetchGroups, fetchPipeline])
+
+  // ── Auto-scroll messages ───────────────────────────────────────────────────
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [messages])
+
+  // ── Demo connection flow ───────────────────────────────────────────────────
+  function startDemoConnect() {
+    setDemoStep('waiting_qr')
+    setConnState({ status: 'waiting_qr', qr: 'demo-qr', phone: null, connectedSince: null })
+    setTimeout(() => {
+      setDemoStep('connecting')
+      setConnState(prev => ({ ...prev, status: 'connecting', qr: null }))
+    }, 4000)
+    setTimeout(() => {
+      setDemoStep('connected')
+      setConnState({ status: 'connected', qr: null, phone: '+1 (305) 555-0199', connectedSince: new Date().toISOString() })
+    }, 6000)
+  }
+
+  function handleDisconnect() {
+    setDemoStep('disconnected')
+    setConnState({ status: 'disconnected', qr: null, phone: null, connectedSince: null })
+    setGroups([])
+    setMessages([])
+    setPipeline([])
+    setSelectedGroupId(null)
+  }
+
+  const toggleGroupMonitoring = useCallback((groupId: string) => {
+    setGroups(prev => prev.map(g =>
+      g.id === groupId ? { ...g, isActive: !g.isActive } : g
+    ))
+  }, [])
+
+  const selectedGroup = groups.find(g => g.id === selectedGroupId)
+  const filteredGroups = groups.filter(g =>
+    !groupSearch || g.name.toLowerCase().includes(groupSearch.toLowerCase())
+  )
+  const filteredMessages = showOnlyLeads ? messages.filter(m => m.isLead) : messages
+
+  // ═════════════════════════════════════════════════════════════════════════════
+  // NOT CONNECTED — Show QR / connection UI
+  // ═════════════════════════════════════════════════════════════════════════════
+  if (status !== 'connected') {
+    return (
+      <div className="animate-fade-in space-y-6">
+        <div>
+          <h1 className="text-xl font-semibold" style={{ color: 'hsl(40 8% 10%)' }}>
+            {he ? 'חיבור WhatsApp' : 'WhatsApp Connection'}
+          </h1>
+          <p className="text-sm mt-1" style={{ color: 'hsl(40 4% 42%)' }}>
+            {he ? 'סרוק QR כדי לחבר את WhatsApp להאזנה לקבוצות' : 'Scan QR to connect WhatsApp for group monitoring'}
+          </p>
+        </div>
+
+        <div className="glass-panel p-6 sm:p-8">
+          <div className="flex flex-col sm:flex-row gap-8 items-center justify-center">
+            {status === 'disconnected' && (
+              <div className="flex flex-col items-center gap-5">
+                <div className="w-[180px] h-[180px] rounded-xl flex flex-col items-center justify-center gap-3" style={{ background: 'hsl(35 25% 95%)' }}>
+                  <QrCode className="w-12 h-12" style={{ color: 'hsl(40 4% 55%)' }} />
+                  <p className="text-xs" style={{ color: 'hsl(40 4% 42%)' }}>{he ? 'לא מחובר' : 'Not connected'}</p>
+                </div>
+                <button onClick={IS_DEV ? startDemoConnect : undefined} className="btn-primary px-6 py-2.5 rounded-lg text-sm font-semibold flex items-center gap-2">
+                  <Smartphone className="w-4 h-4" />
+                  {he ? 'חבר WhatsApp' : 'Connect WhatsApp'}
+                </button>
+              </div>
+            )}
+            {status === 'waiting_qr' && (
+              <div className="flex flex-col items-center gap-4">
+                <div className="relative">
+                  {connState.qr && !IS_DEV ? (
+                    <img src={`data:image/png;base64,${connState.qr}`} alt="QR" width={180} height={180} className="rounded-xl" />
+                  ) : (
+                    <DemoQR size={180} />
+                  )}
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="w-9 h-9 rounded-lg flex items-center justify-center font-bold text-white text-xs" style={{ background: 'hsl(155 44% 30%)' }}>LE</div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 text-sm" style={{ color: 'hsl(155 44% 30%)' }}>
+                  <div className="animate-pulse w-2 h-2 rounded-full bg-[#2D6A4F]" />
+                  {he ? 'ממתין לסריקה...' : 'Waiting for scan...'}
+                </div>
+              </div>
+            )}
+            {status === 'connecting' && (
+              <div className="flex flex-col items-center gap-4">
+                <div className="w-[180px] h-[180px] rounded-xl flex flex-col items-center justify-center gap-3" style={{ background: 'hsl(152 46% 90% / 0.5)' }}>
+                  <Loader2 className="w-10 h-10 animate-spin" style={{ color: 'hsl(155 44% 30%)' }} />
+                  <p className="text-sm font-medium" style={{ color: 'hsl(155 44% 30%)' }}>{he ? 'מתחבר...' : 'Connecting...'}</p>
+                </div>
+              </div>
+            )}
+
+            {/* Instructions */}
+            <div className="flex-1 max-w-md space-y-4">
+              <h2 className="text-base font-semibold" style={{ color: 'hsl(40 8% 10%)' }}>
+                {he ? 'איך זה עובד' : 'How it works'}
+              </h2>
+              {[
+                { step: 1, t: he ? 'לחץ "חבר WhatsApp"' : 'Click "Connect WhatsApp"', d: he ? 'ייוצר QR code ייחודי' : 'A unique QR code will be generated' },
+                { step: 2, t: he ? 'סרוק מהטלפון' : 'Scan from your phone', d: 'WhatsApp → ⋮ → Linked Devices → Link a Device' },
+                { step: 3, t: he ? 'בחר קבוצות' : 'Select groups', d: he ? 'לאחר החיבור, בחר קבוצות לניטור' : 'After connecting, toggle groups to monitor' },
+              ].map(item => (
+                <div key={item.step} className="flex gap-3 items-start">
+                  <div className="w-6 h-6 rounded-full flex items-center justify-center shrink-0 text-xs font-bold" style={{ background: 'hsl(35 25% 92%)', color: 'hsl(40 4% 42%)' }}>
+                    {item.step}
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium" style={{ color: 'hsl(40 8% 10%)' }}>{item.t}</p>
+                    <p className="text-xs mt-0.5" style={{ color: 'hsl(40 4% 42%)' }}>{item.d}</p>
+                  </div>
+                </div>
+              ))}
+              <div className="flex items-start gap-2.5 rounded-lg px-4 py-3 text-xs" style={{ background: 'hsl(40 80% 94%)', color: 'hsl(35 60% 30%)', border: '1px solid hsl(40 60% 85%)' }}>
+                <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
+                <span>{he ? 'המערכת מאזינה בלבד ולא שולחת הודעות.' : 'The system is read-only and never sends messages.'}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Service status */}
+        <div className="glass-panel p-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Radio className="w-4 h-4" style={{ color: 'hsl(40 4% 42%)' }} />
+              <span className="text-xs font-medium" style={{ color: 'hsl(40 4% 42%)' }}>{he ? 'שירות WA Listener' : 'WA Listener Service'}</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <div className="w-2 h-2 rounded-full" style={{ background: status === 'disconnected' ? 'hsl(0 60% 50%)' : 'hsl(40 80% 50%)' }} />
+              <span className="text-xs" style={{ color: 'hsl(40 4% 42%)' }}>{status === 'disconnected' ? (he ? 'לא פועל' : 'Offline') : (he ? 'מתחבר...' : 'Connecting...')}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // ═════════════════════════════════════════════════════════════════════════════
+  // CONNECTED — 3-Panel WhatsApp Monitor
+  // ═════════════════════════════════════════════════════════════════════════════
+  const selectedAccount = accounts.find(a => a.id === selectedAccountId)
+  const totalLeadsToday = accounts.reduce((sum, a) => sum + a.leadsToday, 0)
+  const totalMessages = accounts.reduce((sum, a) => sum + a.messagesTotal, 0)
+  const connectedCount = accounts.filter(a => a.status === 'connected').length
+  const pipelineReceived = pipeline.filter(e => e.stage === 'received').length
+  const pipelineFiltered = pipeline.filter(e => e.stage === 'quick_filtered' || e.stage === 'sender_filtered').length
+  const aiSavingsPct = pipelineReceived > 0 ? Math.round((pipelineFiltered / pipelineReceived) * 100) : 0
+
+  return (
+    <div className="animate-fade-in flex flex-col" style={{ height: 'calc(100vh - 2rem)' }}>
+      {/* ── KPI Bar ──────────────────────────────────────────────────────────── */}
+      <div className="grid grid-cols-4 gap-3 mb-3">
+        {[
+          { label: he ? 'הודעות היום' : 'Messages Today', value: totalMessages, icon: MessageSquare, color: 'hsl(40 4% 42%)' },
+          { label: he ? 'לידים היום' : 'Leads Today', value: totalLeadsToday, icon: Zap, color: 'hsl(155 44% 30%)' },
+          { label: he ? 'חיסכון AI' : 'AI Savings', value: `${aiSavingsPct}%`, icon: Brain, color: 'hsl(262 60% 45%)' },
+          { label: he ? 'חשבונות פעילים' : 'Active Accounts', value: `${connectedCount}/${accounts.length}`, icon: Smartphone, color: 'hsl(199 70% 40%)' },
+        ].map(kpi => (
+          <div key={kpi.label} className="glass-panel px-4 py-3 flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: `${kpi.color}15` }}>
+              <kpi.icon className="w-4.5 h-4.5" style={{ color: kpi.color }} />
+            </div>
+            <div>
+              <div className="text-lg font-semibold" style={{ color: 'hsl(40 8% 10%)' }}>{kpi.value}</div>
+              <div className="text-[10px]" style={{ color: 'hsl(40 4% 55%)' }}>{kpi.label}</div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* ── Account Tabs ─────────────────────────────────────────────────────── */}
+      <div className="flex items-center gap-2 mb-3 overflow-x-auto no-scrollbar">
+        {accounts.map(acc => {
+          const region = REGION_CONFIG[acc.region] ?? { emoji: '🌍', label: acc.region, labelHe: acc.region }
+          const isSelected = acc.id === selectedAccountId
+          return (
+            <button
+              key={acc.id}
+              onClick={() => setSelectedAccountId(acc.id)}
+              className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-medium shrink-0 transition-all"
+              style={{
+                background: isSelected ? 'hsl(155 44% 30%)' : 'white',
+                color: isSelected ? 'white' : 'hsl(40 8% 10%)',
+                border: isSelected ? 'none' : '1px solid rgba(0,0,0,0.06)',
+                boxShadow: isSelected ? '0 2px 8px hsl(155 44% 30% / 0.3)' : 'none',
+              }}
+            >
+              <span>{region.emoji}</span>
+              <span>{he ? region.labelHe : region.label}</span>
+              <div className="w-1.5 h-1.5 rounded-full" style={{
+                background: acc.status === 'connected' ? (isSelected ? 'hsl(152 46% 75%)' : 'hsl(155 44% 40%)')
+                  : acc.status === 'blocked' ? 'hsl(0 60% 50%)'
+                  : 'hsl(40 80% 50%)',
+              }} />
+              {acc.status === 'connected' && (
+                <span style={{ opacity: 0.7 }}>{acc.groupCount}g · {acc.leadsToday}L</span>
+              )}
+            </button>
+          )
+        })}
+        <button
+          className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium shrink-0 transition-all"
+          style={{ border: '1px dashed hsl(35 15% 80%)', color: 'hsl(40 4% 55%)' }}
+        >
+          <Plus className="w-3 h-3" />
+          {he ? 'חשבון חדש' : 'Add Account'}
+        </button>
+      </div>
+
+      {/* ── Header Row ───────────────────────────────────────────────────────── */}
+      <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center gap-3">
+          <h2 className="text-sm font-semibold" style={{ color: 'hsl(40 8% 10%)' }}>
+            {selectedAccount ? (
+              <>
+                {REGION_CONFIG[selectedAccount.region]?.emoji} {selectedAccount.label}
+              </>
+            ) : (he ? 'בחר חשבון' : 'Select account')}
+          </h2>
+          <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-medium" style={{ background: 'hsl(152 46% 85% / 0.5)', color: 'hsl(155 44% 30%)' }}>
+            <div className="w-1.5 h-1.5 rounded-full animate-pulse-green" style={{ background: 'hsl(155 44% 40%)' }} />
+            {he ? 'פעיל' : 'Live'}
+          </div>
+          {selectedAccount?.phone && (
+            <span className="text-[10px]" style={{ color: 'hsl(40 4% 55%)' }}>{selectedAccount.phone}</span>
+          )}
+        </div>
+        <button onClick={handleDisconnect} className="btn-ghost px-3 py-1.5 rounded-lg text-xs flex items-center gap-1.5">
+          <WifiOff className="w-3.5 h-3.5" />
+          {he ? 'נתק' : 'Disconnect'}
+        </button>
+      </div>
+
+      {/* 3-Panel Layout */}
+      <div className="flex-1 grid gap-3 min-h-0" style={{ gridTemplateColumns: '280px 1fr 320px' }}>
+
+        {/* ═══ PANEL 1: Groups Sidebar ═══ */}
+        <div className="glass-panel flex flex-col min-h-0 overflow-hidden">
+          {/* Search */}
+          <div className="p-3 border-b" style={{ borderColor: 'rgba(0,0,0,0.04)' }}>
+            <div className="relative">
+              <Search className="w-3.5 h-3.5 absolute top-1/2 -translate-y-1/2" style={{ left: he ? 'auto' : 8, right: he ? 8 : 'auto', color: 'hsl(40 4% 55%)' }} />
+              <input
+                type="text"
+                value={groupSearch}
+                onChange={e => setGroupSearch(e.target.value)}
+                placeholder={he ? 'חפש קבוצה...' : 'Search groups...'}
+                className="w-full text-xs py-2 rounded-lg bg-white/60"
+                style={{ paddingLeft: he ? 10 : 28, paddingRight: he ? 28 : 10, border: '1px solid hsl(35 15% 88%)', color: 'hsl(40 8% 10%)' }}
+              />
+            </div>
+            <div className="flex items-center justify-between mt-2">
+              <span className="text-[10px] font-medium" style={{ color: 'hsl(40 4% 55%)' }}>
+                {groups.filter(g => g.isActive).length}/{groups.length} {he ? 'מנוטרות' : 'monitored'}
+              </span>
+            </div>
+          </div>
+
+          {/* Group List */}
+          <div className="flex-1 overflow-y-auto no-scrollbar">
+            {filteredGroups.map(group => (
+              <div
+                key={group.id}
+                onClick={() => setSelectedGroupId(group.id)}
+                className="flex items-center gap-2.5 px-3 py-2.5 cursor-pointer transition-colors"
+                style={{
+                  background: selectedGroupId === group.id ? 'hsl(152 46% 90% / 0.4)' : 'transparent',
+                  borderBottom: '1px solid rgba(0,0,0,0.03)',
+                }}
+                onMouseEnter={e => { if (selectedGroupId !== group.id) e.currentTarget.style.background = 'rgba(0,0,0,0.02)' }}
+                onMouseLeave={e => { if (selectedGroupId !== group.id) e.currentTarget.style.background = 'transparent' }}
+              >
+                {/* Toggle */}
+                <button
+                  onClick={e => { e.stopPropagation(); toggleGroupMonitoring(group.id) }}
+                  className="w-8 h-[18px] rounded-full relative shrink-0 transition-colors"
+                  style={{ background: group.isActive ? 'hsl(155 44% 40%)' : 'hsl(35 15% 82%)' }}
+                >
+                  <div className="absolute top-[2px] w-[14px] h-[14px] rounded-full bg-white shadow-sm transition-all" style={{ left: group.isActive ? 'calc(100% - 16px)' : '2px' }} />
+                </button>
+
+                {/* Group Info */}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-xs">{CATEGORY_EMOJI[group.category ?? ''] ?? '💬'}</span>
+                    <p className="text-xs font-medium truncate" style={{ color: 'hsl(40 8% 10%)' }}>{group.name}</p>
+                  </div>
+                  <div className="flex items-center gap-2 mt-0.5">
+                    <span className="text-[10px]" style={{ color: 'hsl(40 4% 55%)' }}>
+                      {group.messageCount} {he ? 'הודעות' : 'msgs'}
+                    </span>
+                    {group.lastMessageAt && (
+                      <span className="text-[10px]" style={{ color: 'hsl(40 4% 65%)' }}>
+                        {timeAgo(group.lastMessageAt, he)}
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Member intelligence mini-badge */}
+                {(group.knownSellers ?? 0) > 0 && (
+                  <div className="flex flex-col items-end gap-0.5 shrink-0">
+                    <span className="text-[9px] px-1.5 py-0.5 rounded-full" style={{ background: 'hsl(25 95% 93%)', color: 'hsl(25 80% 40%)' }}>
+                      {group.knownSellers}S
+                    </span>
+                    <span className="text-[9px] px-1.5 py-0.5 rounded-full" style={{ background: 'hsl(152 46% 90%)', color: 'hsl(155 44% 30%)' }}>
+                      {group.knownBuyers}B
+                    </span>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+
+          {/* Filter Stats */}
+          <div className="p-3 border-t" style={{ borderColor: 'rgba(0,0,0,0.04)' }}>
+            <div className="flex items-center gap-2">
+              <Shield className="w-3.5 h-3.5" style={{ color: 'hsl(155 44% 30%)' }} />
+              <span className="text-[10px] font-medium" style={{ color: 'hsl(155 44% 30%)' }}>
+                {he ? 'Smart Filter פעיל' : 'Smart Filter Active'}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* ═══ PANEL 2: Messages ═══ */}
+        <div className="glass-panel flex flex-col min-h-0 overflow-hidden">
+          {/* Chat Header */}
+          <div className="px-4 py-3 border-b flex items-center justify-between" style={{ borderColor: 'rgba(0,0,0,0.04)' }}>
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-lg flex items-center justify-center text-sm" style={{ background: 'hsl(152 46% 85% / 0.5)' }}>
+                {CATEGORY_EMOJI[selectedGroup?.category ?? ''] ?? '💬'}
+              </div>
+              <div>
+                <p className="text-sm font-medium" style={{ color: 'hsl(40 8% 10%)' }}>{selectedGroup?.name ?? (he ? 'בחר קבוצה' : 'Select a group')}</p>
+                {selectedGroup && (
+                  <p className="text-[10px]" style={{ color: 'hsl(40 4% 55%)' }}>
+                    {selectedGroup.totalMembers ?? '?'} {he ? 'חברים' : 'members'} · {selectedGroup.knownSellers ?? 0} {he ? 'מוכרים' : 'sellers'} · {selectedGroup.knownBuyers ?? 0} {he ? 'קונים' : 'buyers'}
+                  </p>
+                )}
+              </div>
+            </div>
+            {selectedGroup && (
+              <button
+                onClick={() => setShowOnlyLeads(prev => !prev)}
+                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[10px] font-medium transition-colors"
+                style={{
+                  background: showOnlyLeads ? 'hsl(155 44% 30%)' : 'hsl(35 25% 93%)',
+                  color: showOnlyLeads ? 'white' : 'hsl(40 4% 42%)',
+                }}
+              >
+                {showOnlyLeads ? <Eye className="w-3 h-3" /> : <EyeOff className="w-3 h-3" />}
+                {he ? 'לידים בלבד' : 'Leads only'}
+              </button>
+            )}
+          </div>
+
+          {/* Messages Feed */}
+          <div className="flex-1 overflow-y-auto p-3 space-y-2 no-scrollbar" style={{ background: 'hsl(35 25% 97% / 0.3)' }}>
+            {!selectedGroup && (
+              <div className="flex flex-col items-center justify-center h-full gap-3" style={{ color: 'hsl(40 4% 55%)' }}>
+                <MessageSquare className="w-10 h-10 opacity-30" />
+                <p className="text-sm">{he ? 'בחר קבוצה מהרשימה' : 'Select a group from the list'}</p>
+              </div>
+            )}
+
+            {selectedGroup && filteredMessages.length === 0 && (
+              <div className="flex flex-col items-center justify-center h-full gap-2" style={{ color: 'hsl(40 4% 55%)' }}>
+                <p className="text-xs">{showOnlyLeads ? (he ? 'אין לידים עדיין' : 'No leads yet') : (he ? 'אין הודעות' : 'No messages')}</p>
+              </div>
+            )}
+
+            {filteredMessages.map(msg => {
+              const stageConf = msg.pipelineStage ? STAGE_CONFIG[msg.pipelineStage] : null
+              const senderBadge = msg.senderClassification ? SENDER_BADGE[msg.senderClassification] : null
+              const StageIcon = stageConf?.icon ?? MessageSquare
+
+              return (
+                <div
+                  key={msg.id}
+                  className="rounded-xl px-3 py-2.5 transition-all"
+                  style={{
+                    background: msg.isLead
+                      ? 'linear-gradient(135deg, hsl(152 46% 95%), hsl(152 46% 90% / 0.5))'
+                      : 'white',
+                    border: msg.isLead ? '1px solid hsl(152 46% 80%)' : '1px solid rgba(0,0,0,0.04)',
+                    opacity: msg.pipelineStage === 'quick_filtered' || msg.pipelineStage === 'sender_filtered' ? 0.55 : 1,
+                  }}
+                >
+                  {/* Sender row */}
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-[11px] font-semibold" style={{ color: 'hsl(40 8% 10%)' }}>{msg.senderName}</span>
+                    {senderBadge && senderBadge.label !== 'Unknown' && (
+                      <span className="text-[9px] px-1.5 py-0.5 rounded-full font-medium" style={{ background: senderBadge.bg, color: senderBadge.color }}>
+                        {he ? senderBadge.labelHe : senderBadge.label}
+                      </span>
+                    )}
+                    <span className="text-[10px] ms-auto" style={{ color: 'hsl(40 4% 65%)' }}>{timeAgo(msg.timestamp, he)}</span>
+                  </div>
+
+                  {/* Message text */}
+                  <p className="text-xs leading-relaxed" style={{ color: 'hsl(40 8% 18%)' }}>{msg.text}</p>
+
+                  {/* Pipeline stage tag */}
+                  {stageConf && (
+                    <div className="flex items-center gap-1.5 mt-1.5">
+                      <StageIcon className="w-3 h-3" style={{ color: stageConf.color }} />
+                      <span className="text-[10px] font-medium" style={{ color: stageConf.color }}>
+                        {he ? stageConf.labelHe : stageConf.label}
+                      </span>
+                      {msg.isLead && (
+                        <Zap className="w-3 h-3 ms-auto" style={{ color: 'hsl(155 44% 30%)' }} />
+                      )}
+                    </div>
+                  )}
+                </div>
+              )
+            })}
+            <div ref={messagesEndRef} />
+          </div>
+        </div>
+
+        {/* ═══ PANEL 3: Live Pipeline Feed ═══ */}
+        <div className="glass-panel flex flex-col min-h-0 overflow-hidden">
+          <div className="px-4 py-3 border-b flex items-center gap-2" style={{ borderColor: 'rgba(0,0,0,0.04)' }}>
+            <Activity className="w-4 h-4" style={{ color: 'hsl(155 44% 30%)' }} />
+            <h2 className="text-sm font-semibold" style={{ color: 'hsl(40 8% 10%)' }}>
+              {he ? 'פייפליין חי' : 'Live Pipeline'}
+            </h2>
+            <div className="ms-auto flex items-center gap-1">
+              <div className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: 'hsl(155 44% 40%)' }} />
+              <span className="text-[10px]" style={{ color: 'hsl(40 4% 55%)' }}>
+                {he ? 'זמן אמת' : 'Real-time'}
+              </span>
+            </div>
+          </div>
+
+          <div className="flex-1 overflow-y-auto p-2 space-y-1.5 no-scrollbar">
+            {pipeline.map(event => {
+              const conf = STAGE_CONFIG[event.stage]
+              const Icon = conf.icon
+              const isFiltered = event.stage === 'quick_filtered' || event.stage === 'sender_filtered' || event.stage === 'no_lead'
+              const isSuccess = event.stage === 'lead_created' || event.stage === 'matched' || event.stage === 'sent' || event.stage === 'claimed'
+
+              return (
+                <div
+                  key={event.id}
+                  className="rounded-lg px-3 py-2 transition-all"
+                  style={{
+                    background: isSuccess
+                      ? 'hsl(152 46% 95% / 0.6)'
+                      : isFiltered
+                      ? 'hsl(0 0% 97%)'
+                      : 'white',
+                    border: isSuccess
+                      ? '1px solid hsl(152 46% 82%)'
+                      : '1px solid rgba(0,0,0,0.03)',
+                    opacity: isFiltered ? 0.6 : 1,
+                  }}
+                >
+                  <div className="flex items-center gap-2">
+                    <Icon className="w-3.5 h-3.5 shrink-0" style={{ color: conf.color }} />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[10px] font-semibold" style={{ color: conf.color }}>
+                          {he ? conf.labelHe : conf.label}
+                        </span>
+                        {event.senderName && (
+                          <span className="text-[10px] truncate" style={{ color: 'hsl(40 4% 55%)' }}>
+                            · {event.senderName}
+                          </span>
+                        )}
+                      </div>
+                      {event.messagePreview && (
+                        <p className="text-[10px] truncate mt-0.5" style={{ color: 'hsl(40 4% 42%)' }}>
+                          {event.messagePreview}
+                        </p>
+                      )}
+                      {event.detail && Object.keys(event.detail).length > 0 && (
+                        <div className="flex flex-wrap gap-1 mt-1">
+                          {Object.entries(event.detail).map(([k, v]) => (
+                            <span key={k} className="text-[9px] px-1.5 py-0.5 rounded-md" style={{ background: 'hsl(35 25% 92%)', color: 'hsl(40 4% 42%)' }}>
+                              {k}: {typeof v === 'object' ? JSON.stringify(v) : String(v)}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    <span className="text-[9px] shrink-0" style={{ color: 'hsl(40 4% 65%)' }}>
+                      {timeAgo(event.createdAt, he)}
+                    </span>
+                  </div>
+                </div>
+              )
+            })}
+
+            {pipeline.length === 0 && (
+              <div className="flex flex-col items-center justify-center h-full gap-2" style={{ color: 'hsl(40 4% 55%)' }}>
+                <Activity className="w-8 h-8 opacity-20" />
+                <p className="text-xs">{he ? 'ממתין להודעות...' : 'Waiting for messages...'}</p>
+              </div>
+            )}
+          </div>
+
+          {/* Pipeline Stats Summary */}
+          <div className="p-3 border-t space-y-2" style={{ borderColor: 'rgba(0,0,0,0.04)' }}>
+            <div className="text-[10px] font-medium" style={{ color: 'hsl(40 8% 10%)' }}>
+              {he ? 'Smart Filter — סיכום' : 'Smart Filter — Summary'}
+            </div>
+            <div className="grid grid-cols-3 gap-2">
+              {[
+                { label: he ? 'נקלטו' : 'Received', value: pipeline.filter(e => e.stage === 'received').length, color: 'hsl(40 4% 55%)' },
+                { label: he ? 'סוננו' : 'Filtered', value: pipeline.filter(e => e.stage === 'quick_filtered' || e.stage === 'sender_filtered' || e.stage === 'no_lead').length, color: 'hsl(0 50% 55%)' },
+                { label: he ? 'לידים' : 'Leads', value: pipeline.filter(e => e.stage === 'lead_created' || e.stage === 'matched' || e.stage === 'sent' || e.stage === 'claimed').length, color: 'hsl(155 44% 30%)' },
+              ].map(stat => (
+                <div key={stat.label} className="text-center">
+                  <div className="text-base font-semibold" style={{ color: stat.color }}>{stat.value}</div>
+                  <div className="text-[9px]" style={{ color: 'hsl(40 4% 55%)' }}>{stat.label}</div>
+                </div>
+              ))}
+            </div>
+            {/* AI savings estimate */}
+            {(() => {
+              const total = pipeline.filter(e => e.stage === 'received').length
+              const filtered = pipeline.filter(e => e.stage === 'quick_filtered' || e.stage === 'sender_filtered').length
+              if (filtered === 0 || total === 0) return null
+              const pct = Math.round((filtered / total) * 100)
+              return (
+                <div className="flex items-center gap-2 mt-1 px-2 py-1.5 rounded-lg" style={{ background: 'hsl(152 46% 93%)', border: '1px solid hsl(152 46% 85%)' }}>
+                  <Brain className="w-3.5 h-3.5" style={{ color: 'hsl(155 44% 30%)' }} />
+                  <span className="text-[10px] font-medium" style={{ color: 'hsl(155 44% 25%)' }}>
+                    {he ? `חיסכון AI: ${pct}% סוננו לפני AI` : `AI savings: ${pct}% filtered before AI`}
+                  </span>
+                </div>
+              )
+            })()}
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
