@@ -1,8 +1,9 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { useState, useCallback, type ReactNode } from 'react'
 import { AuthProvider, useAuth } from './lib/auth'
 import { I18nContext, createTranslator, isRtl, type Locale } from './lib/i18n'
 import Sidebar from './components/Sidebar'
+import AdminLayout from './components/AdminLayout'
 import Login from './pages/Login'
 import ContractorDashboard from './pages/ContractorDashboard'
 import LeadsFeed from './pages/LeadsFeed'
@@ -10,13 +11,6 @@ import Profile from './pages/Profile'
 import Subscription from './pages/Subscription'
 import TelegramConnect from './pages/TelegramConnect'
 import ServiceSettings from './pages/ServiceSettings'
-import AdminDashboard from './pages/AdminDashboard'
-import AdminContractors from './pages/AdminContractors'
-import AdminGroups from './pages/AdminGroups'
-import AdminWhatsApp from './pages/AdminWhatsApp'
-import AdminLeads from './pages/AdminLeads'
-import AdminProspects from './pages/AdminProspects'
-import ProspectDetail from './pages/ProspectDetail'
 import { Globe } from 'lucide-react'
 
 /* ─── Auth guard ─── */
@@ -52,8 +46,14 @@ function LoadingScreen() {
   )
 }
 
-/* ─── App Shell (authenticated pages) ─── */
+/* ─── App Shell (authenticated pages — contractor only) ─── */
 function AppShell() {
+  const { isAdmin } = useAuth()
+  const location = useLocation()
+  const isFullBleed = location.pathname === '/'
+
+  if (isAdmin) return <Navigate to="/admin" replace />
+
   return (
     <div className="min-h-screen">
       <div className="le-bg" />
@@ -61,27 +61,25 @@ function AppShell() {
       <Sidebar />
       <main className="relative transition-all duration-300"
         style={{ paddingInlineStart: 240 }}>
-        <div className="max-w-6xl mx-auto px-6 py-8">
-          <Routes>
-            <Route path="/" element={<ContractorDashboard />} />
-            <Route path="/leads" element={<LeadsFeed />} />
-            <Route path="/profile" element={<Profile />} />
-            <Route path="/subscription" element={<Subscription />} />
-            <Route path="/telegram" element={<TelegramConnect />} />
-            <Route path="/settings" element={<ServiceSettings />} />
-
-            {/* Admin routes */}
-            <Route path="/admin" element={<RequireAdmin><AdminDashboard /></RequireAdmin>} />
-            <Route path="/admin/contractors" element={<RequireAdmin><AdminContractors /></RequireAdmin>} />
-            <Route path="/admin/groups" element={<RequireAdmin><AdminGroups /></RequireAdmin>} />
-            <Route path="/admin/whatsapp" element={<RequireAdmin><AdminWhatsApp /></RequireAdmin>} />
-            <Route path="/admin/leads" element={<RequireAdmin><AdminLeads /></RequireAdmin>} />
-            <Route path="/admin/prospects" element={<RequireAdmin><AdminProspects /></RequireAdmin>} />
-            <Route path="/admin/prospects/:id" element={<RequireAdmin><ProspectDetail /></RequireAdmin>} />
-
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
-        </div>
+        {isFullBleed ? (
+          <div className="h-screen">
+            <Routes>
+              <Route path="/" element={<ContractorDashboard />} />
+            </Routes>
+          </div>
+        ) : (
+          <div className="max-w-6xl mx-auto px-6 py-8">
+            <Routes>
+              <Route path="/" element={<ContractorDashboard />} />
+              <Route path="/leads" element={<LeadsFeed />} />
+              <Route path="/profile" element={<Profile />} />
+              <Route path="/subscription" element={<Subscription />} />
+              <Route path="/telegram" element={<TelegramConnect />} />
+              <Route path="/settings" element={<ServiceSettings />} />
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </div>
+        )}
       </main>
     </div>
   )
@@ -124,6 +122,9 @@ function App() {
 
             <Routes>
               <Route path="/login" element={<Login />} />
+              <Route path="/admin/*" element={
+                <RequireAuth><RequireAdmin><AdminLayout /></RequireAdmin></RequireAuth>
+              } />
               <Route path="/*" element={<RequireAuth><AppShell /></RequireAuth>} />
             </Routes>
           </BrowserRouter>

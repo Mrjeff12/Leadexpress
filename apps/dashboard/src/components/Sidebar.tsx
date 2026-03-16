@@ -9,12 +9,6 @@ import {
   Send,
   Settings,
   LogOut,
-  Shield,
-  Users,
-  Radio,
-  FileText,
-  Smartphone,
-  UserCheck,
   ChevronLeft,
   ChevronRight,
 } from 'lucide-react'
@@ -27,7 +21,7 @@ type NavItem = {
 }
 
 export default function Sidebar() {
-  const { isAdmin, signOut } = useAuth()
+  const { signOut } = useAuth()
   const { t, locale } = useI18n()
   const location = useLocation()
   const [collapsed, setCollapsed] = useState(false)
@@ -39,15 +33,6 @@ export default function Sidebar() {
     { label: t('nav.profile'), to: '/profile', icon: User },
     { label: t('nav.subscription'), to: '/subscription', icon: CreditCard },
     { label: t('nav.telegram'), to: '/telegram', icon: Send },
-  ]
-
-  const adminNav: NavItem[] = [
-    { label: t('nav.admin.dashboard'), to: '/admin', icon: Shield },
-    { label: t('nav.admin.contractors'), to: '/admin/contractors', icon: Users },
-    { label: t('nav.admin.groups'), to: '/admin/groups', icon: Radio },
-    { label: locale === 'he' ? 'חיבור WhatsApp' : 'WhatsApp', to: '/admin/whatsapp', icon: Smartphone },
-    { label: t('nav.admin.leads'), to: '/admin/leads', icon: FileText },
-    { label: locale === 'he' ? 'פרוספקטים' : 'Prospects', to: '/admin/prospects', icon: UserCheck },
   ]
 
   const CollapseIcon = isRtl
@@ -114,36 +99,6 @@ export default function Sidebar() {
           </NavLink>
         ))}
 
-        {isAdmin && (
-          <>
-            <div className="pt-5 pb-1">
-              {!collapsed && (
-                <div className="text-[10px] font-bold uppercase tracking-[0.12em] px-3 mb-3 text-stone-300">
-                  {t('nav.admin')}
-                </div>
-              )}
-            </div>
-            {adminNav.map((item) => (
-              <NavLink
-                key={item.to}
-                to={item.to}
-                end={item.to === '/admin'}
-                className={() => {
-                  const isActive = item.to === '/admin' ? location.pathname === '/admin' : location.pathname.startsWith(item.to)
-                  return [
-                    'sidebar-link',
-                    isActive ? 'active' : '',
-                    collapsed ? 'justify-center px-0' : '',
-                  ].join(' ')
-                }}
-                title={item.label}
-              >
-                <item.icon className="w-[18px] h-[18px] shrink-0" />
-                {!collapsed && <span className="truncate">{item.label}</span>}
-              </NavLink>
-            ))}
-          </>
-        )}
       </nav>
 
       {/* Footer */}

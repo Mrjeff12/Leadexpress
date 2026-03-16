@@ -16,6 +16,21 @@ const translations = {
     'nav.admin.contractors': 'Contractors',
     'nav.admin.groups': 'Groups',
     'nav.admin.leads': 'All Leads',
+    'nav.admin.whatsapp': 'WhatsApp',
+    'nav.admin.prospects': 'Prospects',
+    'nav.admin.message_templates': 'Templates',
+    'nav.admin.subscriptions': 'Subscriptions',
+    'nav.admin.revenue': 'Revenue',
+    'nav.admin.analytics': 'Analytics',
+    'nav.admin.activity_log': 'Activity Log',
+    'nav.admin.professions': 'Professions',
+    'nav.admin.service_areas': 'Service Areas',
+    'nav.admin.system_settings': 'System',
+    'nav.admin.category.business': 'Business',
+    'nav.admin.category.channels': 'Channels',
+    'nav.admin.category.finance': 'Finance',
+    'nav.admin.category.reports': 'Reports',
+    'nav.admin.category.settings': 'Settings',
     'nav.logout': 'Log Out',
 
     // Auth
@@ -84,7 +99,7 @@ const translations = {
     'settings.schedule': 'Working Days & Hours',
     'settings.day_off': 'Day off',
     'settings.no_zips': 'No ZIP codes added yet.',
-    'settings.map_key_missing': 'Add VITE_GOOGLE_MAPS_KEY to .env to display map',
+    'settings.map_key_missing': 'Add VITE_MAPBOX_TOKEN to .env to display map',
 
     // Admin
     'admin.total_contractors': 'Active Contractors',
@@ -106,6 +121,21 @@ const translations = {
     'nav.admin.contractors': 'קבלנים',
     'nav.admin.groups': 'קבוצות',
     'nav.admin.leads': 'כל הלידים',
+    'nav.admin.whatsapp': 'WhatsApp',
+    'nav.admin.prospects': 'פרוספקטים',
+    'nav.admin.message_templates': 'תבניות הודעה',
+    'nav.admin.subscriptions': 'מנויים',
+    'nav.admin.revenue': 'הכנסות',
+    'nav.admin.analytics': 'אנליטיקס',
+    'nav.admin.activity_log': 'יומן פעילות',
+    'nav.admin.professions': 'מקצועות',
+    'nav.admin.service_areas': 'אזורי שירות',
+    'nav.admin.system_settings': 'מערכת',
+    'nav.admin.category.business': 'ניהול עסקי',
+    'nav.admin.category.channels': 'ערוצים',
+    'nav.admin.category.finance': 'כספים',
+    'nav.admin.category.reports': 'דוחות',
+    'nav.admin.category.settings': 'הגדרות',
     'nav.logout': 'התנתק',
 
     // Auth
@@ -174,7 +204,7 @@ const translations = {
     'settings.schedule': 'ימי ושעות עבודה',
     'settings.day_off': 'יום חופש',
     'settings.no_zips': 'לא נוספו אזורים עדיין',
-    'settings.map_key_missing': 'הוסף VITE_GOOGLE_MAPS_KEY ב-.env כדי להציג מפה',
+    'settings.map_key_missing': 'הוסף VITE_MAPBOX_TOKEN ב-.env כדי להציג מפה',
 
     // Admin
     'admin.total_contractors': 'קבלנים פעילים',

@@ -14,6 +14,13 @@ import {
   Flame,
   Thermometer,
   Snowflake,
+  AlertTriangle,
+  WifiOff,
+  UserPlus,
+  Download,
+  TrendingUp,
+  TrendingDown,
+  Users,
 } from 'lucide-react'
 
 /* ------------------------------------------------------------------ */
@@ -213,31 +220,118 @@ export default function AdminDashboard() {
           label={locale === 'he' ? 'סה"כ לידים' : 'Total Leads'}
           value={kpis.totalLeads}
           sub={locale === 'he' ? 'מנותחים ע"י AI' : 'AI-parsed leads'}
+          trend={{ value: 12, label: '+12%' }}
         />
         <KpiCard
           icon={<Flame className="h-5 w-5" style={{ color: '#ef4444' }} />}
           label="Hot"
           value={kpis.hotLeads}
           sub={locale === 'he' ? 'דחוף - היום/מחר' : 'Today / tomorrow'}
+          trend={{ value: 8, label: '+8%' }}
         />
         <KpiCard
           icon={<Thermometer className="h-5 w-5" style={{ color: '#f59e0b' }} />}
           label="Warm"
           value={kpis.warmLeads}
           sub={locale === 'he' ? 'השבוע' : 'This week'}
+          trend={{ value: -3, label: '-3%' }}
         />
         <KpiCard
           icon={<Snowflake className="h-5 w-5" style={{ color: '#3b82f6' }} />}
           label="Cold"
           value={kpis.coldLeads}
           sub={locale === 'he' ? 'עתידי' : 'Future / no date'}
+          trend={{ value: 5, label: '+5%' }}
         />
         <KpiCard
           icon={<MessageSquare className="h-5 w-5" style={{ color: '#7c6bb5' }} />}
           label={locale === 'he' ? 'קבוצות פעילות' : 'Active Groups'}
           value={`${kpis.activeGroups}/${kpis.totalGroups}`}
           sub={locale === 'he' ? 'קבוצות מנוטרות' : 'Monitored groups'}
+          trend={{ value: 2, label: '+2' }}
         />
+      </section>
+
+      {/* ── System Alerts ── */}
+      <section>
+        <SectionHeader
+          title={locale === 'he' ? 'התראות מערכת' : 'System Alerts'}
+          subtitle={locale === 'he' ? 'דורש תשומת לב' : 'Needs attention'}
+        />
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {[
+            {
+              type: 'warning' as const,
+              icon: AlertTriangle,
+              message: locale === 'he' ? '2 תשלומים נכשלו' : '2 failed payments',
+              link: '/admin/subscriptions',
+            },
+            {
+              type: 'error' as const,
+              icon: WifiOff,
+              message: locale === 'he' ? 'WhatsApp מנותק' : 'WhatsApp disconnected',
+              link: '/admin/whatsapp',
+            },
+            {
+              type: 'info' as const,
+              icon: UserPlus,
+              message: locale === 'he' ? '3 קבלנים חדשים השבוע' : '3 new contractors this week',
+              link: '/admin/contractors',
+            },
+          ].map((alert) => {
+            const borderColor =
+              alert.type === 'error' ? '#ef4444' : alert.type === 'warning' ? '#f59e0b' : '#3b82f6'
+            const AlertIcon = alert.icon
+            return (
+              <Link
+                key={alert.link}
+                to={alert.link}
+                className="glass-panel flex items-center gap-3 px-4 py-3 transition-colors hover:bg-white/40"
+                style={{ borderLeft: `3px solid ${borderColor}` }}
+              >
+                <AlertIcon className="h-4.5 w-4.5 shrink-0" style={{ color: borderColor }} />
+                <span className="text-sm font-medium" style={{ color: '#2d3a2e' }}>
+                  {alert.message}
+                </span>
+                <ChevronRight className="ml-auto h-4 w-4 shrink-0" style={{ color: '#9ca89e' }} />
+              </Link>
+            )
+          })}
+        </div>
+      </section>
+
+      {/* ── Quick Actions ── */}
+      <section>
+        <SectionHeader
+          title={locale === 'he' ? 'פעולות מהירות' : 'Quick Actions'}
+          subtitle={locale === 'he' ? 'קיצורי דרך' : 'Shortcuts'}
+        />
+        <div className="flex flex-wrap gap-3">
+          <Link
+            to="/admin/contractors"
+            className="glass-panel inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium transition-colors hover:bg-white/40"
+            style={{ color: '#2d3a2e' }}
+          >
+            <Users className="h-4 w-4" style={{ color: '#5a8a5e' }} />
+            {locale === 'he' ? 'הוסף קבלן' : 'Add Contractor'}
+          </Link>
+          <Link
+            to="/admin/leads"
+            className="glass-panel inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium transition-colors hover:bg-white/40"
+            style={{ color: '#2d3a2e' }}
+          >
+            <Zap className="h-4 w-4" style={{ color: '#c97d3a' }} />
+            {locale === 'he' ? 'הצג כל הלידים' : 'View All Leads'}
+          </Link>
+          <button
+            type="button"
+            className="glass-panel inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium transition-colors hover:bg-white/40"
+            style={{ color: '#2d3a2e', cursor: 'pointer', border: 'none' }}
+          >
+            <Download className="h-4 w-4" style={{ color: '#6b7c6e' }} />
+            {locale === 'he' ? 'ייצוא דו"ח' : 'Export Report'}
+          </button>
+        </div>
       </section>
 
       {/* ── Recent Leads ── */}
@@ -393,11 +487,13 @@ function KpiCard({
   label,
   value,
   sub,
+  trend,
 }: {
   icon: React.ReactNode
   label: string
   value: string | number
   sub: string
+  trend?: { value: number; label: string }
 }) {
   return (
     <div className="glass-panel flex flex-col gap-2 px-5 py-4">
@@ -407,9 +503,27 @@ function KpiCard({
           {label}
         </span>
       </div>
-      <span className="kpi-value text-2xl font-bold tracking-tight" style={{ color: '#2d3a2e' }}>
-        {value}
-      </span>
+      <div className="flex items-center gap-2">
+        <span className="kpi-value text-2xl font-bold tracking-tight" style={{ color: '#2d3a2e' }}>
+          {value}
+        </span>
+        {trend && (
+          <span
+            className="inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[10px] font-semibold"
+            style={{
+              background: trend.value >= 0 ? 'rgba(90,138,94,0.12)' : 'rgba(239,68,68,0.12)',
+              color: trend.value >= 0 ? '#3d7a41' : '#dc2626',
+            }}
+          >
+            {trend.value >= 0 ? (
+              <TrendingUp className="h-3 w-3" />
+            ) : (
+              <TrendingDown className="h-3 w-3" />
+            )}
+            {trend.label}
+          </span>
+        )}
+      </div>
       <span className="kpi-sub text-xs" style={{ color: '#9ca89e' }}>
         {sub}
       </span>
