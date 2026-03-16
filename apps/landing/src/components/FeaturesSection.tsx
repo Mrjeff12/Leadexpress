@@ -80,40 +80,7 @@ export default function FeaturesSection() {
           </div>
         </div>
 
-        {/* Feature 2: Analytics + Chart */}
-        <div className="grid md:grid-cols-2 gap-12 items-center">
-          <div className="order-2 md:order-1">
-            <h2 className="text-3xl md:text-4xl font-medium mb-5 leading-tight">
-              {t.features.section2.title}
-            </h2>
-            <p className="text-gray-subtle/70 mb-8 leading-relaxed">
-              {t.features.section2.desc}
-            </p>
-            <a href="#pricing" className="btn-primary">
-              {t.features.section2.cta}
-              <ArrowRight size={16} />
-            </a>
-          </div>
-
-          {/* Chart mockup */}
-          <div className="order-1 md:order-2 card !p-8 bg-cream">
-            <div className="text-xs text-gray-subtle/50 mb-2">Last month</div>
-            <div className="text-3xl font-bold mb-6">2.5M</div>
-            <div className="flex items-end gap-3 h-40">
-              {[120, 180, 420, 150, 280, 200].map((h, i) => (
-                <div key={i} className="flex-1 flex flex-col items-center gap-2">
-                  <div
-                    className={`w-full rounded-t-lg transition-all duration-500 ${i === 2 ? 'bg-primary' : 'bg-dark/10'}`}
-                    style={{ height: `${(h / 420) * 100}%` }}
-                  />
-                  <span className="text-[10px] text-gray-subtle/50">
-                    {['Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][i]}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
+        {/* Feature 2 (analytics) hidden — not relevant to current product */}
       </div>
     </section>
   )

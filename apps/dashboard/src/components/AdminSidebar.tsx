@@ -15,6 +15,7 @@ import {
   ClipboardList,
   Wrench,
   Map,
+  MapPin,
   Settings,
   LogOut,
   ChevronLeft,
@@ -60,6 +61,7 @@ export default function AdminSidebar() {
         { label: he ? 'לידים' : 'Leads', to: '/admin/leads', icon: Zap },
         { label: he ? 'פרוספקטים' : 'Prospects', to: '/admin/prospects', icon: UserCheck },
         { label: he ? 'קבלנים' : 'Contractors', to: '/admin/contractors', icon: Users },
+        { label: he ? 'מפת לידים' : 'Leads Map', to: '/admin/leads-map', icon: MapPin },
       ],
     },
     {

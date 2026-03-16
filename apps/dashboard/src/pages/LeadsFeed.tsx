@@ -5,23 +5,41 @@ import { supabase } from '../lib/supabase'
 import { Search, Filter, Zap, MapPin, Clock, DollarSign } from 'lucide-react'
 
 const PROF_CONFIG: Record<string, { emoji: string; label: { en: string; he: string }; cssClass: string }> = {
-  hvac:       { emoji: '❄️', label: { en: 'HVAC', he: 'מזגנים' },          cssClass: 'lead-card--hvac' },
-  renovation: { emoji: '🔨', label: { en: 'Renovation', he: 'שיפוצים' },   cssClass: 'lead-card--renovation' },
-  fencing:    { emoji: '🧱', label: { en: 'Fencing', he: 'גדרות' },        cssClass: 'lead-card--fencing' },
-  cleaning:   { emoji: '✨', label: { en: 'Garage Cleaning', he: 'ניקוי גראז׳' }, cssClass: 'lead-card--cleaning' },
+  hvac:             { emoji: '❄️', label: { en: 'HVAC', he: 'מזגנים' },               cssClass: 'lead-card--hvac' },
+  air_duct:         { emoji: '💨', label: { en: 'Air Duct', he: 'תעלות אוויר' },      cssClass: 'lead-card--hvac' },
+  chimney:          { emoji: '🏠', label: { en: 'Chimney', he: 'ארובות' },             cssClass: 'lead-card--hvac' },
+  dryer_vent:       { emoji: '🌀', label: { en: 'Dryer Vent', he: 'פתח מייבש' },      cssClass: 'lead-card--hvac' },
+  renovation:       { emoji: '🔨', label: { en: 'Renovation', he: 'שיפוצים' },        cssClass: 'lead-card--renovation' },
+  fencing:          { emoji: '🏗️', label: { en: 'Fencing', he: 'גדרות' },             cssClass: 'lead-card--fencing' },
+  cleaning:         { emoji: '🧹', label: { en: 'Cleaning', he: 'ניקיון' },           cssClass: 'lead-card--cleaning' },
+  carpet_cleaning:  { emoji: '🧼', label: { en: 'Carpet Cleaning', he: 'ניקוי שטיחים' }, cssClass: 'lead-card--cleaning' },
+  plumbing:         { emoji: '🔧', label: { en: 'Plumbing', he: 'אינסטלציה' },        cssClass: 'lead-card--hvac' },
+  electrical:       { emoji: '⚡', label: { en: 'Electrical', he: 'חשמל' },            cssClass: 'lead-card--hvac' },
+  painting:         { emoji: '🎨', label: { en: 'Painting', he: 'צביעה' },             cssClass: 'lead-card--renovation' },
+  locksmith:        { emoji: '🔑', label: { en: 'Locksmith', he: 'מנעולן' },           cssClass: 'lead-card--hvac' },
+  garage_door:      { emoji: '🚪', label: { en: 'Garage Door', he: 'דלת מוסך' },       cssClass: 'lead-card--hvac' },
+  roofing:          { emoji: '🏗️', label: { en: 'Roofing', he: 'גגות' },              cssClass: 'lead-card--renovation' },
+  landscaping:      { emoji: '🌿', label: { en: 'Landscaping', he: 'גינון' },          cssClass: 'lead-card--cleaning' },
+  tiling:           { emoji: '🔲', label: { en: 'Tiling', he: 'ריצוף' },               cssClass: 'lead-card--renovation' },
+  kitchen:          { emoji: '🍳', label: { en: 'Kitchen', he: 'מטבח' },               cssClass: 'lead-card--renovation' },
+  bathroom:         { emoji: '🚿', label: { en: 'Bathroom', he: 'אמבטיה' },            cssClass: 'lead-card--renovation' },
+  pool:             { emoji: '🏊', label: { en: 'Pool', he: 'בריכה' },                 cssClass: 'lead-card--cleaning' },
+  moving:           { emoji: '📦', label: { en: 'Moving', he: 'הובלות' },              cssClass: 'lead-card--cleaning' },
+  other:            { emoji: '📋', label: { en: 'Other', he: 'אחר' },                  cssClass: 'lead-card--cleaning' },
 }
 
 interface Lead {
   id: string
   profession: string
-  summary: string
+  parsed_summary: string | null
+  raw_message: string | null
   city: string | null
-  zip_code: string
+  zip_code: string | null
   urgency: 'hot' | 'warm' | 'cold'
-  budget_min: number | null
-  budget_max: number | null
-  source_name: string | null
+  budget_range: string | null
+  sender_id: string | null
   created_at: string
+  group_name: string | null
 }
 
 export default function LeadsFeed() {
@@ -39,13 +57,15 @@ export default function LeadsFeed() {
       // Fetch leads that were sent to this contractor
       const { data, error } = await supabase
         .from('leads')
-        .select('*')
-        .eq('status', 'sent')
+        .select('id, profession, parsed_summary, raw_message, city, zip_code, urgency, budget_range, sender_id, created_at, groups ( name )')
         .order('created_at', { ascending: false })
         .limit(50)
 
       if (!error && data) {
-        setLeads(data as Lead[])
+        setLeads(data.map((row: any) => ({
+          ...row,
+          group_name: row.groups?.name ?? null,
+        })))
       }
       setLoading(false)
     }
@@ -55,7 +75,11 @@ export default function LeadsFeed() {
   const filtered = leads.filter((lead) => {
     if (filterProf !== 'all' && lead.profession !== filterProf) return false
     if (filterUrgency !== 'all' && lead.urgency !== filterUrgency) return false
-    if (search && !lead.summary.toLowerCase().includes(search.toLowerCase())) return false
+    if (search) {
+      const q = search.toLowerCase()
+      const text = (lead.parsed_summary ?? lead.raw_message ?? '').toLowerCase()
+      if (!text.includes(q) && !lead.city?.toLowerCase().includes(q) && !lead.zip_code?.includes(q)) return false
+    }
     return true
   })
 
@@ -68,12 +92,7 @@ export default function LeadsFeed() {
     return `${Math.floor(hours / 24)}d ago`
   }
 
-  function formatBudget(min: number | null, max: number | null): string | null {
-    if (min && max) return `$${min.toLocaleString()}-${max.toLocaleString()}`
-    if (min) return `$${min.toLocaleString()}+`
-    if (max) return `up to $${max.toLocaleString()}`
-    return null
-  }
+  // budget_range is already a formatted string from the parser (e.g. "$99–$199")
 
   return (
     <div className="animate-fade-in space-y-6">
@@ -154,7 +173,6 @@ export default function LeadsFeed() {
         <div className="space-y-3 stagger-children">
           {filtered.map((lead) => {
             const prof = PROF_CONFIG[lead.profession] ?? PROF_CONFIG.cleaning
-            const budget = formatBudget(lead.budget_min, lead.budget_max)
             const urgencyClass = `urgency-${lead.urgency}`
             const urgencyLabel = t(`lead.${lead.urgency}` as 'lead.hot' | 'lead.warm' | 'lead.cold')
 
@@ -172,7 +190,7 @@ export default function LeadsFeed() {
 
                     {/* Summary */}
                     <p className="text-sm leading-relaxed mb-3" style={{ color: 'hsl(40 8% 10%)' }}>
-                      {lead.summary}
+                      {lead.parsed_summary ?? lead.raw_message?.slice(0, 120) ?? '—'}
                     </p>
 
                     {/* Meta */}
@@ -183,10 +201,10 @@ export default function LeadsFeed() {
                           {[lead.city, lead.zip_code].filter(Boolean).join(', ')}
                         </span>
                       )}
-                      {budget && (
+                      {lead.budget_range && (
                         <span className="flex items-center gap-1">
                           <DollarSign className="w-3 h-3" />
-                          {budget}
+                          {lead.budget_range}
                         </span>
                       )}
                       <span className="flex items-center gap-1">

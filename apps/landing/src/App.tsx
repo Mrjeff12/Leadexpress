@@ -20,13 +20,13 @@ export default function App() {
       <div className="grain">
         <Navbar />
         <Hero />
-        <LogoStrip />
+        {/* <LogoStrip /> */}
         <ChaosToOrderSection />
-        <MapSection />
         <WorkflowSection />
+        <MapSection />
         <FeaturesSection />
-        <FeatureGrid />
-        <MarketingSection />
+        {/* <FeatureGrid /> */}
+        {/* <MarketingSection /> */}
         <TestimonialsSection />
         <PricingSection />
         <FAQSection />

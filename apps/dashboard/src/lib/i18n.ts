@@ -107,6 +107,9 @@ const translations = {
     'admin.delivery_rate': 'Delivery Rate',
     'admin.active_groups': 'Active Groups',
     'admin.revenue': 'MRR',
+    'nav.admin.leads_map': 'Leads Map',
+    'contractor.detail.title': 'Contractor Details',
+    'contractor.detail.back': 'Back to Contractors',
   },
   he: {
     // Nav
@@ -212,6 +215,9 @@ const translations = {
     'admin.delivery_rate': 'אחוז מסירה',
     'admin.active_groups': 'קבוצות פעילות',
     'admin.revenue': 'הכנסה חודשית',
+    'nav.admin.leads_map': 'מפת לידים',
+    'contractor.detail.title': 'פרטי קבלן',
+    'contractor.detail.back': 'חזרה לקבלנים',
   },
 } as const
 

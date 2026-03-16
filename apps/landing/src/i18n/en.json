@@ -1,51 +1,51 @@
 {
   "nav": {
-    "features": "Features",
+    "features": "How It Works",
     "pricing": "Pricing",
     "faq": "FAQ",
     "contact": "Contact",
-    "getStarted": "Get Started"
+    "getStarted": "Start Free"
   },
   "hero": {
-    "badge": "Stop missing leads. Start closing jobs.",
-    "title1": "Your personal",
-    "titleHighlight": "lead engine",
-    "title2": "to fill your work calendar",
-    "subtitle": "Tired of group chats full of noise? Lead Express sends you real, verified leads matched to your zip code and trade — directly to you, no competition.",
-    "cta1": "Get Started Free",
+    "badge": "AI-Powered WhatsApp Lead Extraction",
+    "title1": "Your AI scans",
+    "titleHighlight": "WhatsApp groups",
+    "title2": "and sends you only the jobs that matter",
+    "subtitle": "You're in dozens of WhatsApp groups, all on mute. Jobs are posted every minute and you're missing them. Lead Express reads every message, extracts the leads that match your trade and area, and sends them straight to your WhatsApp.",
+    "cta1": "Start Getting Leads",
     "cta2": "See How It Works",
-    "trustedBy": "Trusted by 5,000+ field technicians & contractors"
+    "trustedBy": "Helping contractors across the US find more work, faster."
   },
   "logos": {
     "label": "Trusted partners"
   },
   "workflow": {
-    "title": "Smart Lead Matching",
-    "subtitle": "Lead Express helps technicians get the right jobs in their area and improve their income.",
+    "title": "How It Works",
+    "subtitle": "Set up in 2 minutes. Start getting leads today.",
     "cards": [
       {
-        "title": "County, City & Zip Targeting",
-        "desc": "Filter by county, city, or zip code — get leads only from the areas you actually work in. No more driving 2 hours for a $50 job."
+        "title": "Tell Us What You Do",
+        "desc": "Set your trade (HVAC, plumbing, electrical...) and the areas you work in. That's it."
       },
       {
-        "title": "Trade-Specific Filtering",
-        "desc": "HVAC, plumbing, electrical, roofing — leads matched to your exact niche, not random requests."
+        "title": "We Monitor 24/7",
+        "desc": "Our AI reads every message in WhatsApp groups — yours and ours — and extracts real job requests."
       },
       {
-        "title": "Real-Time Alerts",
-        "desc": "Instant notifications when a lead drops in your zone. Be the first to respond, close the deal."
+        "title": "Get Leads on WhatsApp",
+        "desc": "Matching jobs are sent directly to your WhatsApp. Interested? We connect you to the original poster."
       }
     ]
   },
   "features": {
     "section1": {
-      "title": "No more group chat chaos",
-      "desc": "The Advanced Lead Filtering system lets you cut through the noise. While others fight over scraps in crowded groups, you get exclusive, targeted leads delivered straight to your phone.",
-      "cta": "Get Started Free",
+      "title": "No more scrolling through group chaos",
+      "desc": "Lead Express does the reading for you. While you're on a job site, our AI is scanning every group, finding leads that match your profile, and sending them to you instantly.",
+      "cta": "Sign Up in 2 Minutes",
       "bullets": [
-        "Leads matched to your zip code automatically.",
-        "Filtered by your trade and specialization.",
-        "Direct delivery — no group competition."
+        "AI extracts job requests from hundreds of daily messages.",
+        "Matched to your trade and zip code automatically.",
+        "Sent directly to your WhatsApp — no app to check."
       ]
     },
     "section2": {
@@ -76,98 +76,84 @@
     "subtitle": "Rated 4.7 stars across review platforms",
     "items": [
       {
-        "text": "Lead Express transformed how I get customers! Response times are faster, and my calendar is always full.",
+        "text": "I used to miss half the jobs in my groups because they were on mute. Now Lead Express sends me only what matters — I just respond and close.",
         "name": "Mike Thompson",
         "role": "HVAC Technician"
       },
       {
-        "text": "I used to waste hours in group chats fighting for leads. Now they come directly to me, matched to my area.",
+        "text": "I'm in 30+ WhatsApp groups. There's no way to read them all. Lead Express scans everything and sends me just the plumbing jobs in my area.",
         "name": "Sarah Chen",
         "role": "Electrician"
       },
       {
-        "text": "Lead Express streamlined my lead generation. My team can now focus on what truly matters — doing great work.",
+        "text": "Setup took 2 minutes. Within an hour I got my first lead straight to WhatsApp. This thing actually works.",
         "name": "Carlos Rivera",
         "role": "Plumbing Contractor"
       },
       {
-        "text": "Lead Express is our secret weapon for booking more jobs. It understands our service area perfectly.",
+        "text": "Lead Express is like having an assistant who reads all my groups 24/7 and only tells me about the roofing jobs near me.",
         "name": "David Kim",
         "role": "Roofing Specialist"
       },
       {
-        "text": "From lead to booked job, Lead Express handles it all seamlessly. Our customers love the fast response!",
+        "text": "I was losing jobs every week because I couldn't keep up with the messages. Now I get notified the second something relevant drops.",
         "name": "Jessica Park",
         "role": "General Contractor"
       },
       {
-        "text": "We implemented Lead Express during our busy season, and it managed thousands of leads without breaking a sweat.",
+        "text": "The AI actually understands what's a job request and what's just chat. I only get real leads. No noise.",
         "name": "Alex Morgan",
         "role": "Landscaping Pro"
       }
     ]
   },
   "pricing": {
-    "title": "Choose a plan that fits your hustle",
-    "subtitle": "Grow your business with the right plan",
+    "title": "Simple pricing. Sign up in 2 minutes.",
+    "subtitle": "Pick your plan, set your trade and area, and start getting leads today.",
     "monthly": "Monthly",
     "yearly": "Yearly",
     "plans": [
       {
         "name": "Starter",
-        "desc": "Solo technicians just getting started with lead generation.",
+        "desc": "Solo technicians getting started.",
         "price": "$29",
         "period": "/month",
-        "cta": "Select Plan",
+        "cta": "Start Free Trial",
         "features": [
           "Up to 50 leads per month",
-          "1 zip code zone",
-          "1 trade niche",
-          "Basic lead notifications",
-          "Email support"
+          "1 area zone",
+          "1 trade",
+          "Your groups only",
+          "WhatsApp delivery"
         ]
       },
       {
-        "name": "Growth",
-        "desc": "Growing technicians looking to expand their service area.",
+        "name": "Pro",
+        "desc": "For contractors who want full coverage.",
         "price": "$59",
         "period": "/month",
-        "cta": "Select Plan",
-        "features": [
-          "Up to 200 leads per month",
-          "3 zip code zones",
-          "2 trade niches",
-          "Priority notifications",
-          "Basic analytics dashboard"
-        ]
-      },
-      {
-        "name": "Professional",
-        "desc": "Busy pros who need maximum coverage and smart tools.",
-        "price": "$99",
-        "period": "/month",
-        "cta": "Select Plan",
+        "cta": "Start Free Trial",
         "popular": true,
         "features": [
-          "Unlimited leads",
-          "10 zip code zones",
-          "All trade niches",
-          "Advanced workflow automation",
-          "CRM integration"
+          "Up to 200 leads per month",
+          "5 area zones",
+          "3 trades",
+          "Your groups + our database",
+          "Priority WhatsApp delivery"
         ]
       },
       {
-        "name": "Enterprise",
-        "desc": "Large teams with high volume and complex needs.",
-        "price": "$129",
+        "name": "Unlimited",
+        "desc": "Maximum coverage. Never miss a job.",
+        "price": "$99",
         "period": "/month",
-        "cta": "Select Plan",
+        "cta": "Start Free Trial",
         "features": [
-          "Unlimited everything",
-          "Dedicated account manager",
-          "Custom feature development",
-          "Enhanced data security",
-          "Priority 24/7 support"
+          "Unlimited leads",
+          "Unlimited areas & trades",
+          "Your groups + our full database",
+          "Priority delivery + alerts",
+          "Dedicated support"
         ]
       }
     ]
@@ -177,41 +163,41 @@
     "subtitle": "Everything you need to know about Lead Express",
     "items": [
       {
-        "q": "How does Lead Express match leads to my area?",
-        "a": "Lead Express uses your zip code and service radius to automatically filter and deliver only leads within your work zone. No manual searching required."
+        "q": "How does Lead Express find leads?",
+        "a": "Our AI monitors WhatsApp groups 24/7 — both groups you share with us and groups from our own database. It reads every message, identifies real job requests, and sends you only the ones that match your trade and area."
       },
       {
-        "q": "Can I choose which types of jobs I receive?",
-        "a": "Yes! You select your trade niche (HVAC, plumbing, electrical, etc.) and Lead Express filters leads specifically for your expertise."
+        "q": "Can I add my own WhatsApp groups?",
+        "a": "Yes! You can share invite links to any WhatsApp groups you're already in. Our AI will monitor them alongside our own curated groups in your area."
       },
       {
-        "q": "How is this different from Facebook groups?",
-        "a": "Unlike crowded groups where hundreds of technicians fight over the same lead, Lead Express delivers leads directly to you based on your location and trade. No noise, no competition."
+        "q": "How do I get the leads?",
+        "a": "Directly to your WhatsApp. When a matching lead is found, you receive a message with all the details. If you're interested, we connect you to the original poster."
       },
       {
-        "q": "How fast do I get notified about new leads?",
-        "a": "Instantly. Our real-time notification system alerts you the moment a matching lead comes in, so you can be the first to respond."
+        "q": "How fast do I get notified?",
+        "a": "In real time. The moment our AI detects a matching job request, you get notified on WhatsApp. Be the first to respond, close the deal."
       },
       {
-        "q": "Does Lead Express integrate with my existing tools?",
-        "a": "Yes, Lead Express integrates with popular CRMs, scheduling tools, and communication platforms to fit seamlessly into your workflow."
+        "q": "How is this different from just reading the groups myself?",
+        "a": "You're in 20+ groups, all on mute. Hundreds of messages a day. You can't read them all. Our AI reads every message across all groups, 24/7, and only sends you what's relevant. No more missed jobs."
       },
       {
-        "q": "What kind of support is available?",
-        "a": "We offer email support for all plans, priority support for Growth and above, and dedicated account management for Enterprise customers."
+        "q": "How long does setup take?",
+        "a": "About 2 minutes. Pick your trade, set your area, and optionally share your group links. That's it — leads start coming in immediately."
       }
     ]
   },
   "cta": {
-    "title": "Grow your business fast",
-    "desc": "In today's competitive market, technicians need a smarter way to find and close leads. Stop scrolling through noisy groups — let the leads come to you.",
-    "button": "Get 14 Days Free Trial"
+    "title": "Stop missing jobs. Start today.",
+    "desc": "Your WhatsApp groups are full of work opportunities right now. Every minute you're not monitoring them, someone else is closing the deal. Let our AI do the work for you.",
+    "button": "Sign Up in 2 Minutes — Free Trial"
   },
   "footer": {
-    "desc": "Lead Express is designed to revolutionize how technicians find and close jobs.",
+    "desc": "Lead Express — AI that reads your WhatsApp groups and sends you only the jobs that matter.",
     "company": "Company",
     "aboutUs": "About Us",
-    "features": "Features",
+    "features": "How It Works",
     "pricing": "Pricing",
     "resources": "Resources",
     "blog": "Blog & Articles",

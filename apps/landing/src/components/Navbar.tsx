@@ -30,13 +30,14 @@ export default function Navbar() {
         </div>
 
         <div className="hidden md:flex items-center gap-3">
-          <button
+          {/* Language toggle hidden — Hebrew preserved in he.json */}
+          {/* <button
             onClick={() => setLang(lang === 'en' ? 'he' : 'en')}
             className="flex items-center gap-1.5 text-sm text-gray-subtle hover:text-primary transition-colors px-3 py-2 rounded-full border border-dark/10 hover:border-primary/30"
           >
             <Globe size={15} />
             {lang === 'en' ? 'עברית' : 'English'}
-          </button>
+          </button> */}
           <a href="#pricing" className="btn-primary text-xs !px-5 !py-2.5">{t.nav.getStarted}</a>
         </div>
 
@@ -53,10 +54,11 @@ export default function Navbar() {
           <a href="#pricing" className="block text-sm py-2">{t.nav.pricing}</a>
           <a href="#faq" className="block text-sm py-2">{t.nav.faq}</a>
           <a href="#contact" className="block text-sm py-2">{t.nav.contact}</a>
-          <button onClick={() => setLang(lang === 'en' ? 'he' : 'en')} className="flex items-center gap-1.5 text-sm py-2">
+          {/* Language toggle hidden */}
+          {/* <button onClick={() => setLang(lang === 'en' ? 'he' : 'en')} className="flex items-center gap-1.5 text-sm py-2">
             <Globe size={15} />
             {lang === 'en' ? 'עברית' : 'English'}
-          </button>
+          </button> */}
           <a href="#pricing" className="btn-primary w-full text-center">{t.nav.getStarted}</a>
         </div>
       )}

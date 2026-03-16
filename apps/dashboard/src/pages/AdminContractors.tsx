@@ -17,51 +17,6 @@ import {
 } from 'lucide-react'
 
 const BOT_NAME = 'LeadExpressBot'
-const IS_DEV = !import.meta.env.VITE_SUPABASE_URL
-
-// Demo data for dev mode
-const DEMO_CONTRACTORS: Contractor[] = [
-  {
-    user_id: 'demo-c-001',
-    professions: ['hvac', 'renovation'],
-    zip_codes: ['33139', '33140', '33141'],
-    is_active: true,
-    profiles: { full_name: 'Carlos Mendez', telegram_chat_id: 987654321, phone: '+1 (305) 555-0101' },
-    subscriptions: { status: 'active', plans: { name: 'Pro' } },
-  },
-  {
-    user_id: 'demo-c-002',
-    professions: ['locksmith'],
-    zip_codes: ['10001', '10002', '10003', '10004', '10005'],
-    is_active: true,
-    profiles: { full_name: 'Dmitry Volkov', telegram_chat_id: null, phone: '+1 (718) 555-0202' },
-    subscriptions: { status: 'active', plans: { name: 'Starter' } },
-  },
-  {
-    user_id: 'demo-c-003',
-    professions: ['cleaning', 'renovation'],
-    zip_codes: ['33139', '33142'],
-    is_active: true,
-    profiles: { full_name: 'Maria Santos', telegram_chat_id: 111222333, phone: '+1 (786) 555-0303' },
-    subscriptions: { status: 'active', plans: { name: 'Unlimited' } },
-  },
-  {
-    user_id: 'demo-c-004',
-    professions: ['fencing'],
-    zip_codes: ['33155', '33156'],
-    is_active: false,
-    profiles: { full_name: 'Yossi Ben David', telegram_chat_id: null, phone: '+972 50-123-4567' },
-    subscriptions: null,
-  },
-  {
-    user_id: 'demo-c-005',
-    professions: ['plumbing', 'hvac'],
-    zip_codes: ['77001', '77002', '77003', '77004'],
-    is_active: true,
-    profiles: { full_name: 'James Rodriguez', telegram_chat_id: null, phone: '+1 (832) 555-0505' },
-    subscriptions: { status: 'active', plans: { name: 'Pro' } },
-  },
-]
 
 interface Contractor {
   user_id: string
@@ -111,12 +66,6 @@ export default function AdminContractors() {
   const [copied, setCopied] = useState(false)
 
   const fetchContractors = useCallback(async () => {
-    if (IS_DEV) {
-      setContractors(DEMO_CONTRACTORS)
-      setLoading(false)
-      return
-    }
-
     const { data, error } = await supabase
       .from('contractors')
       .select(`

@@ -1,4 +1,4 @@
-import { Routes, Route, Navigate } from 'react-router-dom'
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import AdminSidebar from './AdminSidebar'
 
 // Import existing admin pages
@@ -19,15 +19,20 @@ import ActivityLog from '../pages/admin/ActivityLog'
 import Professions from '../pages/admin/Professions'
 import ServiceAreas from '../pages/admin/ServiceAreas'
 import SystemSettings from '../pages/admin/SystemSettings'
+import LeadsMap from '../pages/admin/LeadsMap'
+import ContractorDetail from '../pages/admin/ContractorDetail'
 
 export default function AdminLayout() {
+  const location = useLocation()
+  const isFullBleed = location.pathname === '/admin/leads-map'
+
   return (
     <div className="min-h-screen">
       <div className="le-bg" />
       <div className="le-grain" />
       <AdminSidebar />
       <main className="relative transition-all duration-300" style={{ paddingInlineStart: 264 }}>
-        <div className="max-w-6xl mx-auto px-6 py-8">
+        <div className={isFullBleed ? 'h-screen' : 'max-w-6xl mx-auto px-6 py-8'}>
           <Routes>
             <Route path="/" element={<AdminDashboard />} />
             <Route path="/leads" element={<AdminLeads />} />
@@ -44,6 +49,8 @@ export default function AdminLayout() {
             <Route path="/professions" element={<Professions />} />
             <Route path="/service-areas" element={<ServiceAreas />} />
             <Route path="/system-settings" element={<SystemSettings />} />
+            <Route path="/leads-map" element={<LeadsMap />} />
+            <Route path="/contractors/:id" element={<ContractorDetail />} />
             <Route path="*" element={<Navigate to="/admin" replace />} />
           </Routes>
         </div>
