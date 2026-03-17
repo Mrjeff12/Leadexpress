@@ -317,12 +317,29 @@ async function processNotification(notif: GreenNotification): Promise<void> {
     accountId: config.whatsapp.accountId,
   };
 
-  await enqueueMessage(job);
+  try {
+    await enqueueMessage(job);
+    logger.info(
+      { messageId, signals: filterResult.signals },
+      'Message passed Smart Filter — enqueued for AI parsing'
+    );
 
-  logger.info(
-    { messageId, signals: filterResult.signals },
-    'Message passed Smart Filter — enqueued for AI parsing'
-  );
+    // Log successful enqueue to Supabase for diagnostics
+    await logPipelineEvent(chatId, messageId, senderId, 'enqueued', {
+      signals: filterResult.signals,
+    });
+  } catch (enqueueErr) {
+    logger.error(
+      { err: enqueueErr, messageId },
+      'FAILED to enqueue message to BullMQ'
+    );
+
+    // Log failure to Supabase
+    await logPipelineEvent(chatId, messageId, senderId, 'enqueue_failed', {
+      error: String(enqueueErr),
+      signals: filterResult.signals,
+    });
+  }
 }
 
 // ── Polling loop (long-polling) ──────────────────────────────────────────────

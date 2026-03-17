@@ -1,7 +1,8 @@
+import { createClient } from '@supabase/supabase-js';
 import { logger } from './logger.js';
 import { startListener, stopListener } from './listener.js';
 import { startHeartbeat, stopHeartbeat } from './health.js';
-import { closeQueue } from './queue.js';
+import { closeQueue, getQueue } from './queue.js';
 import { startAPI, stopAPI } from './api.js';
 import { config } from './config.js';
 
@@ -11,9 +12,41 @@ async function main(): Promise<void> {
     'Starting wa-listener service'
   );
 
+  // Startup diagnostic: log to Supabase
+  const supabase = createClient(config.supabase.url, config.supabase.serviceKey);
+  await supabase.from('pipeline_events').insert({
+    stage: 'listener_started',
+    detail: {
+      redis_host: config.redis.host,
+      redis_port: config.redis.port,
+      has_tls: !!(config.redis as any).tls,
+      timestamp: new Date().toISOString(),
+    },
+  });
+
   await startAPI(parseInt(process.env.WA_API_PORT ?? '3001', 10));
   await startHeartbeat();
   await startListener();
+
+  // Test BullMQ connection
+  try {
+    const q = getQueue();
+    await q.add('health-check', { messageId: 'test', groupId: 'test', body: 'startup-test', sender: null, timestamp: Date.now(), accountId: 'test' } as any, {
+      jobId: 'startup-test',
+      removeOnComplete: true,
+    });
+    logger.info('BullMQ test job enqueued successfully');
+    await supabase.from('pipeline_events').insert({
+      stage: 'listener_queue_ok',
+      detail: { queue: 'raw-messages', timestamp: new Date().toISOString() },
+    });
+  } catch (queueErr) {
+    logger.error({ err: queueErr }, 'BullMQ test enqueue FAILED');
+    await supabase.from('pipeline_events').insert({
+      stage: 'listener_queue_failed',
+      detail: { error: String(queueErr), timestamp: new Date().toISOString() },
+    });
+  }
 
   logger.info('wa-listener service is running');
 }
