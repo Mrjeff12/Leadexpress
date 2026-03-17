@@ -1,6 +1,6 @@
 import { LanguageProvider } from './i18n/LanguageContext'
 import Navbar from './components/Navbar'
-import Hero from './components/Hero'
+import Hero from './components/HeroOptionA'
 import LogoStrip from './components/LogoStrip'
 import ChaosToOrderSection from './components/ChaosToOrderSection'
 import MapSection from './components/MapSection'
