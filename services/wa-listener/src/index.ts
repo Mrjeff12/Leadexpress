@@ -93,20 +93,21 @@ async function shutdown(signal: string): Promise<void> {
 process.on('SIGTERM', () => shutdown('SIGTERM'));
 process.on('SIGINT', () => shutdown('SIGINT'));
 
-process.on('unhandledRejection', async (reason) => {
+process.on('unhandledRejection', (reason) => {
   logger.error({ err: reason }, 'Unhandled rejection');
-  await logCrash('unhandledRejection', reason);
+  logCrash('unhandledRejection', reason).catch(() => {});
 });
 
-process.on('uncaughtException', async (err) => {
+process.on('uncaughtException', (err) => {
   logger.fatal({ err }, 'Uncaught exception — shutting down');
-  await logCrash('uncaughtException', err);
-  // Give Supabase 3 seconds to write the crash event
-  setTimeout(() => process.exit(1), 3000);
+  logCrash('uncaughtException', err).finally(() => {
+    process.exit(1);
+  });
 });
 
-main().catch(async (err) => {
+main().catch((err) => {
   logger.fatal({ err }, 'Failed to start wa-listener');
-  await logCrash('main', err);
-  setTimeout(() => process.exit(1), 3000);
+  logCrash('main', err).finally(() => {
+    process.exit(1);
+  });
 });
