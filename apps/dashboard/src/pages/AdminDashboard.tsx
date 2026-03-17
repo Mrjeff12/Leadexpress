@@ -21,6 +21,8 @@ import {
   TrendingUp,
   TrendingDown,
   Users,
+  Filter,
+  BarChart3,
 } from 'lucide-react'
 
 /* ------------------------------------------------------------------ */
@@ -35,6 +37,9 @@ interface KPIs {
   activeGroups: number
   totalGroups: number
   deliveryRate: number
+  messagesReceived: number
+  messagesFiltered: number
+  conversionRate: number
 }
 
 interface RecentLead {
@@ -93,6 +98,7 @@ export default function AdminDashboard() {
   const [kpis, setKpis] = useState<KPIs>({
     totalLeads: 0, hotLeads: 0, warmLeads: 0, coldLeads: 0,
     activeGroups: 0, totalGroups: 0, deliveryRate: 0,
+    messagesReceived: 0, messagesFiltered: 0, conversionRate: 0,
   })
   const [leads, setLeads] = useState<RecentLead[]>([])
   const [groups, setGroups] = useState<GroupSummary[]>([])
@@ -108,7 +114,7 @@ export default function AdminDashboard() {
   // Fetch real data from Supabase
   useEffect(() => {
     async function fetchAll() {
-      const [leadsRes, groupsRes, urgencyRes] = await Promise.all([
+      const [leadsRes, groupsRes, urgencyRes, pipelineRes] = await Promise.all([
         supabase
           .from('leads')
           .select('id, profession, city, zip_code, urgency, status, sent_to_count, parsed_summary, created_at')
@@ -121,6 +127,9 @@ export default function AdminDashboard() {
         supabase
           .from('leads')
           .select('urgency, status'),
+        supabase
+          .from('pipeline_events')
+          .select('stage'),
       ])
 
       if (leadsRes.data) setLeads(leadsRes.data)
@@ -135,6 +144,16 @@ export default function AdminDashboard() {
         const sent = rows.filter(r => r.status === 'sent').length
         const activeGroups = groupsRes.data?.filter(g => g.status === 'active').length ?? 0
 
+        // Pipeline funnel stats
+        const pe = pipelineRes.data ?? []
+        const received = pe.filter(e => e.stage === 'received').length
+        const filtered = pe.filter(e =>
+          e.stage === 'sender_filtered' || e.stage === 'quick_filtered'
+        ).length
+        const noLead = pe.filter(e => e.stage === 'no_lead').length
+        const totalFiltered = filtered + noLead
+        const convRate = received > 0 ? Math.round((total / received) * 1000) / 10 : 0
+
         setKpis({
           totalLeads: total,
           hotLeads: hot,
@@ -143,6 +162,9 @@ export default function AdminDashboard() {
           activeGroups,
           totalGroups: groupsRes.data?.length ?? 0,
           deliveryRate: total > 0 ? Math.round((sent / total) * 1000) / 10 : 0,
+          messagesReceived: received,
+          messagesFiltered: totalFiltered,
+          conversionRate: convRate,
         })
       }
 
@@ -180,8 +202,8 @@ export default function AdminDashboard() {
     return (
       <div className="animate-fade-in space-y-6">
         <div className="h-8 bg-black/[0.04] rounded w-1/4 animate-pulse" />
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
-          {[1,2,3,4,5].map(i => (
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+          {[1,2,3,4,5,6,7].map(i => (
             <div key={i} className="glass-panel p-5 animate-pulse">
               <div className="h-4 bg-black/[0.04] rounded w-1/2 mb-2" />
               <div className="h-6 bg-black/[0.04] rounded w-1/3" />
@@ -211,7 +233,7 @@ export default function AdminDashboard() {
       </header>
 
       {/* ── KPI Strip ── */}
-      <section className="stagger-children grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
+      <section className="stagger-children grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
         <KpiCard
           icon={<Zap className="h-5 w-5" style={{ color: '#c97d3a' }} />}
           label={locale === 'he' ? 'סה"כ לידים' : 'Total Leads'}
@@ -239,6 +261,19 @@ export default function AdminDashboard() {
           value={kpis.coldLeads}
           sub={locale === 'he' ? 'עתידי' : 'Future / no date'}
           trend={{ value: 5, label: '+5%' }}
+        />
+        <KpiCard
+          icon={<Filter className="h-5 w-5" style={{ color: '#9ca89e' }} />}
+          label={locale === 'he' ? 'נסננו' : 'Filtered'}
+          value={kpis.messagesFiltered}
+          sub={locale === 'he' ? `מתוך ${kpis.messagesReceived} הודעות` : `of ${kpis.messagesReceived} messages`}
+        />
+        <KpiCard
+          icon={<BarChart3 className="h-5 w-5" style={{ color: '#5a8a5e' }} />}
+          label={locale === 'he' ? 'יחס המרה' : 'Conversion'}
+          value={`${kpis.conversionRate}%`}
+          sub={locale === 'he' ? 'הודעות → לידים' : 'Messages → leads'}
+          trend={kpis.conversionRate > 5 ? { value: 1, label: 'Healthy' } : { value: -1, label: 'Low' }}
         />
         <KpiCard
           icon={<MessageSquare className="h-5 w-5" style={{ color: '#7c6bb5' }} />}
