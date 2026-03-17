@@ -42,12 +42,24 @@ async function main(): Promise<void> {
 
   logger.info('Phase 1: startAPI...');
   await startAPI(parseInt(process.env.WA_API_PORT ?? '3001', 10));
+  await supabase.from('pipeline_events').insert({
+    stage: 'listener_phase',
+    detail: { phase: 1, name: 'startAPI_ok', timestamp: new Date().toISOString() },
+  });
 
   logger.info('Phase 2: startHeartbeat...');
   await startHeartbeat();
+  await supabase.from('pipeline_events').insert({
+    stage: 'listener_phase',
+    detail: { phase: 2, name: 'startHeartbeat_ok', timestamp: new Date().toISOString() },
+  });
 
   logger.info('Phase 3: startListener...');
   await startListener();
+  await supabase.from('pipeline_events').insert({
+    stage: 'listener_phase',
+    detail: { phase: 3, name: 'startListener_ok', timestamp: new Date().toISOString() },
+  });
 
   logger.info('Phase 4: testing BullMQ...');
   // Test BullMQ connection
