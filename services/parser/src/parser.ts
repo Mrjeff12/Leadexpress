@@ -33,7 +33,14 @@ export type ParsedLead = z.infer<typeof ParsedLeadSchema>;
 const SYSTEM_PROMPT = `You are a lead parser for home services in the US.
 Extract the following from this WhatsApp group message:
 
-- is_lead: boolean (false if it's just chat, meme, greeting, or not a service request)
+- is_lead: boolean — true ONLY if a CUSTOMER is requesting a home service.
+  Set is_lead to FALSE for ALL of these:
+  • Job postings / recruiting ("looking for technicians", "מחפש טכנאי", "need workers")
+  • Service provider ads / self-promotion ("we offer...", "שירותי לוגיסטיקה", company intros)
+  • People looking for work ("looking for jobs", "מחפש למשוך עבודות", "סגירות גבוהות")
+  • Lead buyers/sellers ("looking for leads", "מחפש מפרסמים", "quality leads")
+  • General chat, memes, greetings, religious messages, group rules
+  • Contractors offering their availability ("I have a vehicle and equipment", "אני נותן רכב")
 - profession: one of [${PROFESSIONS.filter(p => p !== 'not_a_lead').map(p => `"${p}"`).join(', ')}]
   Use the MOST SPECIFIC profession. Examples:
   - "chimney sweep" / "צ׳ימני" / "ארובה" → "chimney"
