@@ -6,6 +6,23 @@ import { closeQueue, getQueue } from './queue.js';
 import { startAPI, stopAPI } from './api.js';
 import { config } from './config.js';
 
+// Global Supabase client for crash reporting
+const supabase = createClient(config.supabase.url, config.supabase.serviceKey);
+
+async function logCrash(source: string, error: unknown): Promise<void> {
+  try {
+    await supabase.from('pipeline_events').insert({
+      stage: 'listener_crash',
+      detail: {
+        source,
+        error: String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+        timestamp: new Date().toISOString(),
+      },
+    });
+  } catch { /* best effort */ }
+}
+
 async function main(): Promise<void> {
   logger.info(
     { accountId: config.whatsapp.accountId },
@@ -13,7 +30,6 @@ async function main(): Promise<void> {
   );
 
   // Startup diagnostic: log to Supabase
-  const supabase = createClient(config.supabase.url, config.supabase.serviceKey);
   await supabase.from('pipeline_events').insert({
     stage: 'listener_started',
     detail: {
@@ -24,10 +40,16 @@ async function main(): Promise<void> {
     },
   });
 
+  logger.info('Phase 1: startAPI...');
   await startAPI(parseInt(process.env.WA_API_PORT ?? '3001', 10));
+
+  logger.info('Phase 2: startHeartbeat...');
   await startHeartbeat();
+
+  logger.info('Phase 3: startListener...');
   await startListener();
 
+  logger.info('Phase 4: testing BullMQ...');
   // Test BullMQ connection
   try {
     const q = getQueue();
@@ -71,16 +93,20 @@ async function shutdown(signal: string): Promise<void> {
 process.on('SIGTERM', () => shutdown('SIGTERM'));
 process.on('SIGINT', () => shutdown('SIGINT'));
 
-process.on('unhandledRejection', (reason) => {
+process.on('unhandledRejection', async (reason) => {
   logger.error({ err: reason }, 'Unhandled rejection');
+  await logCrash('unhandledRejection', reason);
 });
 
-process.on('uncaughtException', (err) => {
+process.on('uncaughtException', async (err) => {
   logger.fatal({ err }, 'Uncaught exception — shutting down');
-  shutdown('uncaughtException').catch(() => process.exit(1));
+  await logCrash('uncaughtException', err);
+  // Give Supabase 3 seconds to write the crash event
+  setTimeout(() => process.exit(1), 3000);
 });
 
-main().catch((err) => {
+main().catch(async (err) => {
   logger.fatal({ err }, 'Failed to start wa-listener');
-  process.exit(1);
+  await logCrash('main', err);
+  setTimeout(() => process.exit(1), 3000);
 });
