@@ -53,7 +53,14 @@ export interface Subscription {
 
 // --- Contractors ---
 
-export type Profession = 'hvac' | 'renovation' | 'fencing' | 'cleaning' | 'locksmith' | 'plumbing' | 'electrical' | 'other'
+export type Profession =
+  | 'hvac' | 'air_duct' | 'chimney' | 'dryer_vent'
+  | 'garage_door' | 'locksmith' | 'roofing'
+  | 'plumbing' | 'electrical' | 'painting'
+  | 'cleaning' | 'carpet_cleaning'
+  | 'renovation' | 'fencing' | 'landscaping'
+  | 'tiling' | 'kitchen' | 'bathroom' | 'pool'
+  | 'moving' | 'other'
 
 export interface Contractor {
   user_id: string
@@ -91,7 +98,7 @@ export interface Group {
 // --- Leads ---
 
 export type LeadUrgency = 'hot' | 'warm' | 'cold'
-export type LeadStatus = 'new' | 'parsed' | 'sent' | 'expired'
+export type LeadStatus = 'new' | 'parsed' | 'sent' | 'claimed' | 'expired'
 
 export interface Lead {
   id: string

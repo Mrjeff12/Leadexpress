@@ -116,44 +116,44 @@
       {
         "name": "Starter",
         "desc": "Solo technicians getting started.",
-        "price": "$29",
+        "price": "$149",
         "period": "/month",
         "cta": "Start Free Trial",
         "features": [
-          "Up to 50 leads per month",
-          "1 area zone",
-          "1 trade",
-          "Your groups only",
-          "WhatsApp delivery"
+          "5 WhatsApp groups monitored",
+          "1 profession",
+          "3 zip codes",
+          "Unlimited leads",
+          "Basic dashboard"
         ]
       },
       {
         "name": "Pro",
         "desc": "For contractors who want full coverage.",
-        "price": "$59",
+        "price": "$249",
         "period": "/month",
         "cta": "Start Free Trial",
         "popular": true,
         "features": [
-          "Up to 200 leads per month",
-          "5 area zones",
-          "3 trades",
-          "Your groups + our database",
-          "Priority WhatsApp delivery"
+          "15 WhatsApp groups monitored",
+          "3 professions",
+          "8 zip codes",
+          "Unlimited leads",
+          "Weekly report + advanced dashboard"
         ]
       },
       {
         "name": "Unlimited",
         "desc": "Maximum coverage. Never miss a job.",
-        "price": "$99",
+        "price": "$399",
         "period": "/month",
         "cta": "Start Free Trial",
         "features": [
+          "Unlimited WhatsApp groups",
+          "Unlimited professions & zip codes",
           "Unlimited leads",
-          "Unlimited areas & trades",
-          "Your groups + our full database",
-          "Priority delivery + alerts",
-          "Dedicated support"
+          "Weekly report + smart alerts",
+          "Full dashboard + stats"
         ]
       }
     ]

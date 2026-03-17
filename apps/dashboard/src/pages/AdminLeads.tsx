@@ -88,7 +88,7 @@ export default function AdminLeads() {
     ;(async () => {
       const { data } = await supabase
         .from('leads')
-        .select('*')
+        .select('id, group_id, profession, parsed_summary, raw_message, city, zip_code, budget_range, urgency, status, sent_to_count, sender_id, created_at')
         .order('created_at', { ascending: false })
         .limit(200)
       if (data) setLeads(data as Lead[])

@@ -67,6 +67,27 @@ interface MemberRecord {
 const senderCache: Map<string, { data: MemberRecord; expires: number }> = new Map();
 const SENDER_CACHE_TTL_MS = 30_000; // 30 seconds
 
+// Group UUID cache (avoid repeated wa_group_id → UUID lookups)
+const groupUuidCache: Map<string, { id: string; expires: number }> = new Map();
+const GROUP_CACHE_TTL_MS = 60_000; // 60 seconds (groups rarely change)
+
+async function resolveGroupUuid(waGroupId: string): Promise<string | null> {
+  const cached = groupUuidCache.get(waGroupId);
+  if (cached && cached.expires > Date.now()) return cached.id;
+
+  const { data: group } = await supabase
+    .from('groups')
+    .select('id')
+    .eq('wa_group_id', waGroupId)
+    .single();
+
+  if (group) {
+    groupUuidCache.set(waGroupId, { id: group.id, expires: Date.now() + GROUP_CACHE_TTL_MS });
+    return group.id;
+  }
+  return null;
+}
+
 async function getSenderRecord(groupId: string, senderId: string): Promise<MemberRecord | null> {
   const cacheKey = `${groupId}:${senderId}`;
   const cached = senderCache.get(cacheKey);
@@ -74,18 +95,13 @@ async function getSenderRecord(groupId: string, senderId: string): Promise<Membe
 
   try {
     // Look up by group's UUID + sender ID
-    const { data: group } = await supabase
-      .from('groups')
-      .select('id')
-      .eq('wa_group_id', groupId)
-      .single();
-
-    if (!group) return null;
+    const groupUuid = await resolveGroupUuid(groupId);
+    if (!groupUuid) return null;
 
     const { data, error } = await supabase
       .from('group_members')
       .select('classification, total_messages, service_messages, manual_override')
-      .eq('group_id', group.id)
+      .eq('group_id', groupUuid)
       .eq('wa_sender_id', senderId)
       .single();
 
@@ -323,19 +339,14 @@ export async function updateSenderStats(
 ): Promise<void> {
   try {
     // Get group UUID
-    const { data: group } = await supabase
-      .from('groups')
-      .select('id')
-      .eq('wa_group_id', groupWaId)
-      .single();
-
-    if (!group) return;
+    const groupUuid = await resolveGroupUuid(groupWaId);
+    if (!groupUuid) return;
 
     // Upsert member record
     const { data: existing } = await supabase
       .from('group_members')
       .select('id, total_messages, lead_messages, service_messages, classification, manual_override')
-      .eq('group_id', group.id)
+      .eq('group_id', groupUuid)
       .eq('wa_sender_id', senderId)
       .single();
 
@@ -392,7 +403,7 @@ export async function updateSenderStats(
       await supabase
         .from('group_members')
         .insert({
-          group_id: group.id,
+          group_id: groupUuid,
           wa_sender_id: senderId,
           display_name: senderName,
           total_messages: 1,
@@ -420,14 +431,10 @@ export async function logPipelineEvent(
 ): Promise<void> {
   try {
     // Get group UUID
-    const { data: group } = await supabase
-      .from('groups')
-      .select('id')
-      .eq('wa_group_id', groupWaId)
-      .single();
+    const groupUuid = await resolveGroupUuid(groupWaId);
 
     await supabase.from('pipeline_events').insert({
-      group_id: group?.id ?? null,
+      group_id: groupUuid ?? null,
       wa_message_id: messageId,
       sender_id: senderId,
       stage,

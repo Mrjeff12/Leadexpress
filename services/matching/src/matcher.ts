@@ -6,7 +6,7 @@ import { config } from './config.js';
 export interface Lead {
   id: string;
   profession: string;
-  zip_code: string;
+  zip_code: string | null;
   city: string | null;
   budget_range: string | null;
   urgency: 'hot' | 'warm' | 'cold';
@@ -76,7 +76,7 @@ export async function matchLead(
   // - matching profession AND zip_code
   // Join path: contractors → profiles → subscriptions
   // (no direct FK between contractors and subscriptions)
-  const { data: matches, error } = await supabase
+  let query = supabase
     .from('contractors')
     .select(`
       user_id,
@@ -94,8 +94,13 @@ export async function matchLead(
     `)
     .eq('is_active', true)
     .eq('profiles.subscriptions.status', 'active')
-    .contains('professions', [lead.profession])
-    .contains('zip_codes', [lead.zip_code]);
+    .contains('professions', [lead.profession]);
+
+  if (lead.zip_code) {
+    query = query.contains('zip_codes', [lead.zip_code]);
+  }
+
+  const { data: matches, error } = await query;
 
   if (error) {
     throw new Error(`Supabase query failed: ${error.message}`);

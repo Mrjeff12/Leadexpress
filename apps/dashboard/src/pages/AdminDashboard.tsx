@@ -108,7 +108,7 @@ export default function AdminDashboard() {
   // Fetch real data from Supabase
   useEffect(() => {
     async function fetchAll() {
-      const [leadsRes, groupsRes] = await Promise.all([
+      const [leadsRes, groupsRes, urgencyRes] = await Promise.all([
         supabase
           .from('leads')
           .select('id, profession, city, zip_code, urgency, status, sent_to_count, parsed_summary, created_at')
@@ -118,31 +118,28 @@ export default function AdminDashboard() {
           .from('groups')
           .select('id, name, status, total_members, message_count')
           .order('created_at', { ascending: false }),
+        supabase
+          .from('leads')
+          .select('urgency, status'),
       ])
 
       if (leadsRes.data) setLeads(leadsRes.data)
       if (groupsRes.data) setGroups(groupsRes.data)
 
-      // Compute KPIs from leads
-      if (leadsRes.data) {
-        // Get full count by urgency
-        const [hotRes, warmRes, coldRes, totalRes, sentRes] = await Promise.all([
-          supabase.from('leads').select('id', { count: 'exact', head: true }).eq('urgency', 'hot'),
-          supabase.from('leads').select('id', { count: 'exact', head: true }).eq('urgency', 'warm'),
-          supabase.from('leads').select('id', { count: 'exact', head: true }).eq('urgency', 'cold'),
-          supabase.from('leads').select('id', { count: 'exact', head: true }),
-          supabase.from('leads').select('id', { count: 'exact', head: true }).eq('status', 'sent'),
-        ])
-
-        const total = totalRes.count ?? 0
-        const sent = sentRes.count ?? 0
+      if (urgencyRes.data) {
+        const rows = urgencyRes.data
+        const hot = rows.filter(r => r.urgency === 'hot').length
+        const warm = rows.filter(r => r.urgency === 'warm').length
+        const cold = rows.filter(r => r.urgency === 'cold').length
+        const total = rows.length
+        const sent = rows.filter(r => r.status === 'sent').length
         const activeGroups = groupsRes.data?.filter(g => g.status === 'active').length ?? 0
 
         setKpis({
           totalLeads: total,
-          hotLeads: hotRes.count ?? 0,
-          warmLeads: warmRes.count ?? 0,
-          coldLeads: coldRes.count ?? 0,
+          hotLeads: hot,
+          warmLeads: warm,
+          coldLeads: cold,
           activeGroups,
           totalGroups: groupsRes.data?.length ?? 0,
           deliveryRate: total > 0 ? Math.round((sent / total) * 1000) / 10 : 0,

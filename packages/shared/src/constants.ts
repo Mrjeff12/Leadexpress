@@ -1,31 +1,25 @@
-import type { Profession } from './types'
-
 // Profession display config
-export const PROFESSIONS: Record<Profession, { label: string; labelHe: string; emoji: string; aliases: string[] }> = {
-  hvac: {
-    label: 'HVAC / AC',
-    labelHe: 'מזגנים',
-    emoji: '❄️',
-    aliases: ['ac', 'air conditioning', 'air conditioner', 'hvac', 'cooling', 'heating', 'מזגן', 'מזגנים', 'מיזוג']
-  },
-  renovation: {
-    label: 'Renovation',
-    labelHe: 'שיפוצים',
-    emoji: '🏗️',
-    aliases: ['renovation', 'remodel', 'remodeling', 'kitchen', 'bathroom', 'שיפוץ', 'שיפוצים', 'שיפוצניק']
-  },
-  fencing: {
-    label: 'Fencing & Railing',
-    labelHe: 'גדרות ומעקות',
-    emoji: '🏗️',
-    aliases: ['fence', 'fencing', 'railing', 'gate', 'דור', 'גדר', 'מעקה', 'שער']
-  },
-  cleaning: {
-    label: 'Garage Cleaning',
-    labelHe: 'ניקוי גאראז\'ים',
-    emoji: '🧹',
-    aliases: ['garage', 'cleaning', 'pressure wash', 'power wash', 'ניקוי', 'גאראז', 'שטיפה']
-  }
+export const PROFESSIONS: Record<string, { label: string; labelHe: string; emoji: string; aliases: string[] }> = {
+  hvac: { label: 'HVAC / AC', labelHe: 'מזגנים', emoji: '❄️', aliases: ['ac', 'air conditioning', 'hvac', 'cooling', 'heating', 'מזגן', 'מזגנים', 'מיזוג'] },
+  air_duct: { label: 'Air Duct', labelHe: 'תעלות אוויר', emoji: '💨', aliases: ['air duct', 'airduct', 'air-duct', 'duct cleaning', 'אייר דאקט', 'תעלות אוויר'] },
+  chimney: { label: 'Chimney', labelHe: 'ארובות', emoji: '🏠', aliases: ['chimney', 'chimney sweep', 'צימני', 'ארובה'] },
+  dryer_vent: { label: 'Dryer Vent', labelHe: 'פתח מייבש', emoji: '🌀', aliases: ['dryer vent', 'dryer-vent', 'dryer', 'דרייר'] },
+  garage_door: { label: 'Garage Door', labelHe: 'דלת מוסך', emoji: '🚪', aliases: ['garage door', 'garage', 'גראג׳', 'דלת מוסך'] },
+  locksmith: { label: 'Locksmith', labelHe: 'מנעולן', emoji: '🔑', aliases: ['locksmith', 'lock', 'car key', 'מנעולן', 'מפתח'] },
+  roofing: { label: 'Roofing', labelHe: 'גגות', emoji: '🏗️', aliases: ['roofing', 'roof', 'shingles', 'גגות', 'גג'] },
+  plumbing: { label: 'Plumbing', labelHe: 'אינסטלציה', emoji: '🔧', aliases: ['plumber', 'plumbing', 'שרברב', 'אינסטלטור', 'אינסטלציה'] },
+  electrical: { label: 'Electrical', labelHe: 'חשמל', emoji: '⚡', aliases: ['electrician', 'electrical', 'חשמלאי', 'חשמל'] },
+  painting: { label: 'Painting', labelHe: 'צביעה', emoji: '🎨', aliases: ['painting', 'painter', 'paint', 'צביעה', 'צבע'] },
+  cleaning: { label: 'Cleaning', labelHe: 'ניקיון', emoji: '🧹', aliases: ['cleaning', 'pressure wash', 'power wash', 'ניקוי', 'ניקיון'] },
+  carpet_cleaning: { label: 'Carpet Cleaning', labelHe: 'ניקוי שטיחים', emoji: '🧼', aliases: ['carpet', 'carpet cleaning', 'שטיחים', 'ניקוי שטיחים'] },
+  renovation: { label: 'Renovation', labelHe: 'שיפוצים', emoji: '🔨', aliases: ['renovation', 'remodel', 'remodeling', 'שיפוץ', 'שיפוצים'] },
+  fencing: { label: 'Fencing & Railing', labelHe: 'גדרות ומעקות', emoji: '🏗️', aliases: ['fence', 'fencing', 'railing', 'gate', 'גדר', 'מעקה', 'שער'] },
+  landscaping: { label: 'Landscaping', labelHe: 'גינון', emoji: '🌿', aliases: ['landscaping', 'lawn', 'garden', 'גינון', 'דשא'] },
+  tiling: { label: 'Tiling', labelHe: 'ריצוף', emoji: '🔲', aliases: ['tiling', 'tile', 'tiles', 'ריצוף', 'אריחים'] },
+  kitchen: { label: 'Kitchen', labelHe: 'מטבחים', emoji: '🍳', aliases: ['kitchen', 'cabinets', 'מטבח', 'מטבחים'] },
+  bathroom: { label: 'Bathroom', labelHe: 'חדרי אמבטיה', emoji: '🚿', aliases: ['bathroom', 'bath', 'אמבטיה', 'חדר אמבטיה'] },
+  pool: { label: 'Pool', labelHe: 'בריכות', emoji: '🏊', aliases: ['pool', 'swimming pool', 'בריכה', 'בריכות'] },
+  moving: { label: 'Moving', labelHe: 'הובלות', emoji: '📦', aliases: ['moving', 'movers', 'relocation', 'הובלה', 'הובלות'] },
 }
 
 // Lead urgency config

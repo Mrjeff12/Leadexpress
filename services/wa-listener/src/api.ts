@@ -538,6 +538,7 @@ let server: http.Server | null = null;
 
 // ── Auth: bearer token check ────────────────────────────────────────────────
 const API_SECRET = process.env.WA_LISTENER_API_SECRET;
+const IS_PRODUCTION = process.env.NODE_ENV === 'production';
 
 function isAuthorized(req: http.IncomingMessage): boolean {
   // Health endpoint is always open (for load balancers / k8s probes)
@@ -545,7 +546,10 @@ function isAuthorized(req: http.IncomingMessage): boolean {
   if (url === '/api/health' || url.startsWith('/api/health?')) return true;
 
   if (!API_SECRET) {
-    // If no secret configured, log a warning once and allow (dev mode)
+    if (IS_PRODUCTION) {
+      logger.error('WA_LISTENER_API_SECRET not set in production — denying request');
+      return false;
+    }
     return true;
   }
 
@@ -555,12 +559,22 @@ function isAuthorized(req: http.IncomingMessage): boolean {
 
 export async function startAPI(port = 3001): Promise<void> {
   if (!API_SECRET) {
+    if (IS_PRODUCTION) {
+      logger.error('FATAL: WA_LISTENER_API_SECRET not set in production!');
+      process.exit(1);
+    }
     logger.warn('WA_LISTENER_API_SECRET not set — API is unauthenticated (OK for local dev only)');
   }
 
   server = http.createServer(async (req, res) => {
     // CORS headers for dashboard
-    res.setHeader('Access-Control-Allow-Origin', '*');
+    const ALLOWED_ORIGINS = process.env.CORS_ORIGINS?.split(',') ?? ['http://localhost:5173', 'http://localhost:3000'];
+    const origin = req.headers.origin ?? '';
+    if (ALLOWED_ORIGINS.includes(origin) || ALLOWED_ORIGINS.includes('*')) {
+      res.setHeader('Access-Control-Allow-Origin', origin);
+    } else if (!IS_PRODUCTION) {
+      res.setHeader('Access-Control-Allow-Origin', '*');
+    }
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 

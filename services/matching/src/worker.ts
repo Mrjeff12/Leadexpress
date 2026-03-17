@@ -1,8 +1,20 @@
 import { Worker, Queue } from 'bullmq';
 import { createClient } from '@supabase/supabase-js';
 import type { Logger } from 'pino';
+import { CITY_ZIPS } from '@leadexpress/shared';
 import { config } from './config.js';
 import { matchLead, type Lead } from './matcher.js';
+
+function resolveZipFromCity(city: string): string | null {
+  const normalized = city.toLowerCase().replace(/\s+/g, '_');
+  for (const state of Object.values(CITY_ZIPS)) {
+    const cityInfo = state[normalized];
+    if (cityInfo && cityInfo.zips.length > 0) {
+      return cityInfo.zips[0];
+    }
+  }
+  return null;
+}
 
 const supabase = createClient(config.supabase.url, config.supabase.serviceKey);
 
@@ -73,10 +85,23 @@ export function createMatchingWorker(log: Logger): { worker: Worker; cleanup: ()
         return { matched: 0, skipped: true };
       }
 
+      // Resolve city to zip if needed
+      let resolvedZip = row.zip_code;
+      if (!resolvedZip && row.city) {
+        resolvedZip = resolveZipFromCity(row.city);
+        if (resolvedZip) {
+          jobLog.info({ city: row.city, resolvedZip }, 'Resolved city to ZIP code');
+        } else {
+          jobLog.warn({ city: row.city }, 'Could not resolve city to ZIP — no match in city-zips data');
+          await supabase.from('leads').update({ status: 'new' }).eq('id', leadId);
+          return { matched: 0, skipped: true };
+        }
+      }
+
       const lead: Lead = {
         id: row.id,
         profession: row.profession,
-        zip_code: row.zip_code,
+        zip_code: resolvedZip,
         city: row.city ?? null,
         budget_range: row.budget_range ?? null,
         urgency: row.urgency ?? 'warm',
