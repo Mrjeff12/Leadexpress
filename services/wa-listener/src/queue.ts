@@ -22,6 +22,7 @@ export function getQueue(): Queue<RawMessageJob> {
         port: config.redis.port,
         password: config.redis.password,
         maxRetriesPerRequest: null,
+        ...((config.redis as any).tls ? { tls: {} } : {}),
       },
       defaultJobOptions: {
         removeOnComplete: { count: 1000 },

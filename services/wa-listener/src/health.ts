@@ -13,6 +13,7 @@ function getRedis(): Redis {
       password: config.redis.password,
       maxRetriesPerRequest: null,
       lazyConnect: true,
+      ...((config.redis as any).tls ? { tls: {} } : {}),
     });
 
     redis.on('error', (err) => {

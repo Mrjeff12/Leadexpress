@@ -13,10 +13,12 @@ function parseRedis() {
   if (url && !process.env.REDIS_HOST) {
     try {
       const parsed = new URL(url);
+      const useTls = parsed.protocol === 'rediss:';
       return {
         host: parsed.hostname || 'localhost',
         port: Number(parsed.port || 6379),
         password: parsed.password || undefined,
+        ...(useTls ? { tls: {} } : {}),
       };
     } catch { /* fall through */ }
   }
