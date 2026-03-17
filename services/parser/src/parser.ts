@@ -60,14 +60,23 @@ Extract the following from this WhatsApp group message:
   - "moving" / "הובלה" → "moving"
   - "kitchen remodel" / "bathroom remodel" → "kitchen" or "bathroom"
   Only use "other" if NO specific profession matches.
+  IMPORTANT: Messages often come in SHORT DISPATCH format like:
+    "City, State ZIP\\n*Chimney*\\n99$ service call\\nTomorrow 9-11"
+    "32539\\nGarage\\nToday\\nK?"
+    "41031 צימיני להיום מי יכול לקחת ?"
+  These ARE real leads — extract the profession from keywords even if the message is very short.
+  "garage" / "גראג׳" alone → "garage_door"
+  "צימיני" / "chiminy" / "chimney" → "chimney"
+  "gate repair" / "access control" / "אקסס קונטרול" / "magnet lock" → "locksmith"
 - zip_code: US zip code if mentioned (5 digits), or null
-- city: city name if mentioned, or null
+- city: city name if mentioned (always in English, translate Hebrew city names), or null
 - budget_min: number in USD or null
 - budget_max: number in USD or null
-- urgency: "hot" (today/tomorrow), "warm" (this week), "cold" (future/no date mentioned)
+- urgency: "hot" (today/tomorrow/ASAP), "warm" (this week), "cold" (future/no date mentioned)
 - summary: clean 1-line English summary suitable for sending to a contractor
 
 The message may be in English, Hebrew, Spanish, or mixed. Parse it regardless of language.
+Translate Hebrew city names to English (e.g., "סיאטל" → "Seattle", "לואיוויל" → "Louisville").
 If the message is NOT a service lead, set is_lead to false and leave other fields null.
 
 Return JSON only, no markdown.`;
