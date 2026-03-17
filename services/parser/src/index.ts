@@ -67,20 +67,26 @@ async function startupCheck(): Promise<void> {
   }
 }
 
-await startupCheck();
+// Run startup check, then start worker
+startupCheck()
+  .then(() => {
+    const worker = startWorker();
 
-const worker = startWorker();
+    // Graceful shutdown
+    async function shutdown(signal: string): Promise<void> {
+      log.info({ signal }, 'Shutting down...');
+      await worker.close();
+      log.info('Worker closed — exiting');
+      process.exit(0);
+    }
 
-// Graceful shutdown
-async function shutdown(signal: string): Promise<void> {
-  log.info({ signal }, 'Shutting down...');
-  await worker.close();
-  log.info('Worker closed — exiting');
-  process.exit(0);
-}
-
-process.on('SIGTERM', () => shutdown('SIGTERM'));
-process.on('SIGINT', () => shutdown('SIGINT'));
+    process.on('SIGTERM', () => shutdown('SIGTERM'));
+    process.on('SIGINT', () => shutdown('SIGINT'));
+  })
+  .catch((err) => {
+    log.fatal({ err }, 'Startup check failed');
+    process.exit(1);
+  });
 
 process.on('unhandledRejection', (err) => {
   log.fatal({ err }, 'Unhandled rejection');
