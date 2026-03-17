@@ -48,7 +48,7 @@ export function getQueue(): Queue<RawMessageJob> {
 export async function enqueueMessage(job: RawMessageJob): Promise<void> {
   const q = getQueue();
   await q.add('raw-message', job, {
-    jobId: `msg:${job.messageId}`,
+    jobId: `msg-${job.messageId.replace(/:/g, '-')}`,
   });
   logger.info(
     { messageId: job.messageId, groupId: job.groupId },
