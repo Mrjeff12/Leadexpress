@@ -563,8 +563,8 @@ export default function AdminGroups() {
 function Th({
   col,
   label,
-  sortBy,
-  sortDir,
+  sortBy: _sortBy,
+  sortDir: _sortDir,
   toggle,
   SortIcon,
 }: {

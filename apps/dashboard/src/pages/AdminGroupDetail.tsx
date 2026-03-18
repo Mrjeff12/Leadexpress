@@ -351,8 +351,8 @@ function MembersTab({ members, groupId, he }: { members: MemberRow[]; groupId: s
         av = a.total_messages > 0 ? a.service_messages / a.total_messages : 0
         bv = b.total_messages > 0 ? b.service_messages / b.total_messages : 0
       } else {
-        av = a[sortKey] ?? ''
-        bv = b[sortKey] ?? ''
+        av = (a[sortKey] as string | number) ?? ''
+        bv = (b[sortKey] as string | number) ?? ''
       }
       if (typeof av === 'number' && typeof bv === 'number') return sortAsc ? av - bv : bv - av
       return sortAsc ? String(av).localeCompare(String(bv)) : String(bv).localeCompare(String(av))
@@ -646,7 +646,7 @@ function MarketIntelTab({ market, he }: { market: MarketIntel | null | undefined
                   borderRadius: 8,
                   fontSize: 12,
                 }}
-                formatter={(value: number, _name: string, props: any) => [
+                formatter={(value: any, _name: any, props: any) => [
                   `${value} (${props.payload.pct}%)`,
                   he ? 'בקשות' : 'Requests',
                 ]}
