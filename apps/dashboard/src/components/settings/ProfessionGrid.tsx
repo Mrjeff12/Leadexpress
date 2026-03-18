@@ -25,7 +25,7 @@ export default function ProfessionGrid({ selected, onToggle }: Props) {
               className={[
                 'flex items-center gap-2 rounded-xl px-3 py-2.5 text-left text-sm transition-all duration-150',
                 active
-                  ? 'bg-[#fff4ef] ring-2 ring-emerald-300 text-[#a33310] font-medium shadow-sm'
+                  ? 'bg-[#fff4ef] ring-2 ring-[#fe5b25]/40 text-[#a33310] font-medium shadow-sm'
                   : 'bg-white/60 border border-zinc-200 text-zinc-600 hover:bg-white hover:shadow-sm',
               ].join(' ')}
             >

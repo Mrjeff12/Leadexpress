@@ -165,7 +165,7 @@ export default function Sidebar() {
               }}
             >
               <Settings className="w-3.5 h-3.5" />
-              {locale === 'he' ? 'הגדרות' : 'Settings'}
+              {locale === 'he' ? 'פרופיל' : 'Profile'}
             </NavLink>
           </div>
         )}
