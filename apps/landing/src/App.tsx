@@ -29,7 +29,7 @@ export default function App() {
         <WorkflowSection />
         {/* <PipelineSection /> */}
         <MapSection />
-        <FeaturesSection />
+        {/* <FeaturesSection /> */}
         {/* <FeatureGrid /> */}
         {/* <MarketingSection /> */}
         <SubcontractorFeature />
