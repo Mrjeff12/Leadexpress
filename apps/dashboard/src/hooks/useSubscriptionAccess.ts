@@ -19,7 +19,7 @@ export function useSubscriptionAccess() {
     async function fetchSub() {
       const { data: subData } = await supabase
         .from('subscriptions')
-        .select('status, plans ( name, can_manage_subcontractors )')
+        .select('status, plans ( name )')
         .eq('user_id', effectiveUserId)
         .maybeSingle()
 
@@ -28,11 +28,8 @@ export function useSubscriptionAccess() {
           const plan = subData.plans as any
           const fetchedPlan = plan?.name as string | undefined
           if (fetchedPlan) setPlanName(fetchedPlan)
-          setCanManageSubs(
-            plan?.can_manage_subcontractors === true || 
-            fetchedPlan === 'Pro' || 
-            fetchedPlan === 'Unlimited'
-          )
+          // Only Unlimited plan can manage subcontractors
+          setCanManageSubs(fetchedPlan === 'Unlimited')
         }
         setLoading(false)
       }

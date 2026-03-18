@@ -7,7 +7,7 @@ const translations = {
     // Nav
     'nav.dashboard': 'Dashboard',
     'nav.leads': 'My Leads',
-    'nav.subcontractors': 'My Team',
+    'nav.subcontractors': 'My Sub Contractors',
     'nav.profile': 'Profile',
     'nav.subscription': 'Subscription',
     'nav.telegram': 'Connect Telegram',
@@ -121,7 +121,7 @@ const translations = {
     // Nav
     'nav.dashboard': 'דף הבית',
     'nav.leads': 'הלידים שלי',
-    'nav.subcontractors': 'הצוות שלי',
+    'nav.subcontractors': 'קבלני המשנה שלי',
     'nav.profile': 'פרופיל',
     'nav.subscription': 'מנוי',
     'nav.telegram': 'חיבור טלגרם',

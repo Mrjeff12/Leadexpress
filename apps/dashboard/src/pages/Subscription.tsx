@@ -47,7 +47,7 @@ const PLAN_CONFIG: Record<string, {
   },
   unlimited: {
     icon: Crown,
-    features: ['All professions', 'Unlimited zip codes', 'VIP support', 'AI suggestions', 'Priority delivery', 'Dedicated account manager'],
+    features: ['All professions', 'Unlimited zip codes', 'Sub contractor management', 'VIP support', 'AI suggestions', 'Priority delivery', 'Dedicated account manager'],
     gradient: 'from-zinc-800 to-zinc-900',
     iconBg: 'bg-white/15 text-white',
     accentColor: 'zinc',

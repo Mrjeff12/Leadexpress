@@ -3,7 +3,7 @@ import { useAuth } from '../lib/auth'
 import { useI18n } from '../lib/i18n'
 import { supabase } from '../lib/supabase'
 import { PROFESSIONS } from '../lib/professions'
-import { Plus, Search, User, Phone, Briefcase, Trash2, Edit2 } from 'lucide-react'
+import { Plus, Search, User, Phone, Briefcase, Trash2, Edit2, ArrowRight, Clock, CheckCircle2, XCircle, Send } from 'lucide-react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/shadcn/ui/dialog'
 import { Button } from '../components/shadcn/ui/button'
 import { Input } from '../components/shadcn/ui/input'
@@ -20,6 +20,20 @@ interface Subcontractor {
 
 interface JobStats {
   [subId: string]: { active: number; completed: number }
+}
+
+interface ForwardedJob {
+  id: string
+  status: string
+  deal_type: string
+  deal_value: string
+  created_at: string
+  viewed_at: string | null
+  responded_at: string | null
+  sub_name: string
+  sub_phone: string
+  lead_city: string | null
+  lead_zip: string | null
 }
 
 export default function Subcontractors() {
@@ -42,12 +56,13 @@ export default function Subcontractors() {
     notes: '',
   })
   const [saving, setSaving] = useState(false)
+  const [forwardedJobs, setForwardedJobs] = useState<ForwardedJob[]>([])
 
   const fetchSubs = async (showLoading = true) => {
     if (!effectiveUserId) return
     if (showLoading) setLoading(true)
     try {
-      const [subsRes, jobsRes] = await Promise.all([
+      const [subsRes, jobsRes, fwdRes] = await Promise.all([
         supabase
           .from('subcontractors')
           .select('*')
@@ -58,6 +73,12 @@ export default function Subcontractors() {
           .select('subcontractor_id, status')
           .eq('contractor_id', effectiveUserId)
           .not('subcontractor_id', 'is', null),
+        supabase
+          .from('job_orders')
+          .select('id, status, deal_type, deal_value, created_at, viewed_at, responded_at, subcontractors ( full_name, phone ), leads ( city, zip_code )')
+          .eq('contractor_id', effectiveUserId)
+          .order('created_at', { ascending: false })
+          .limit(20),
       ])
 
       if (subsRes.error) throw subsRes.error
@@ -73,6 +94,23 @@ export default function Subcontractors() {
           if (jo.status === 'completed') stats[jo.subcontractor_id].completed++
         }
         setJobStats(stats)
+      }
+
+      // Build forwarded jobs list
+      if (fwdRes.data) {
+        setForwardedJobs(fwdRes.data.map((jo: any) => ({
+          id: jo.id,
+          status: jo.status,
+          deal_type: jo.deal_type,
+          deal_value: jo.deal_value,
+          created_at: jo.created_at,
+          viewed_at: jo.viewed_at,
+          responded_at: jo.responded_at,
+          sub_name: jo.subcontractors?.full_name || 'Unknown',
+          sub_phone: jo.subcontractors?.phone || '',
+          lead_city: jo.leads?.city || null,
+          lead_zip: jo.leads?.zip_code || null,
+        })))
       }
     } catch (err: unknown) {
       toast({ title: 'Error', description: 'Failed to load subcontractors', variant: 'destructive' })
@@ -192,7 +230,7 @@ export default function Subcontractors() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-xl font-semibold" style={{ color: 'hsl(40 8% 10%)' }}>
-            {locale === 'he' ? 'הצוות שלי' : 'My Team'}
+            {locale === 'he' ? 'קבלני המשנה שלי' : 'My Sub Contractors'}
           </h1>
           <p className="text-sm mt-1" style={{ color: 'hsl(40 4% 42%)' }}>
             {subs.length} {locale === 'he' ? 'קבלני משנה' : 'subcontractors'}
@@ -315,6 +353,71 @@ export default function Subcontractors() {
             </div>
           ))}
         </div>
+      )}
+
+      {/* ─── Forwarded Jobs CRM ─── */}
+      {forwardedJobs.length > 0 && (
+        <section className="space-y-3">
+          <div className="flex items-center gap-2">
+            <Send className="w-4 h-4 text-[#e04d1c]" />
+            <h2 className="text-sm font-semibold text-stone-800">
+              {locale === 'he' ? 'עבודות שהועברו' : 'Forwarded Jobs'}
+            </h2>
+            <span className="text-xs text-stone-400">({forwardedJobs.length})</span>
+          </div>
+          <div className="glass-panel overflow-hidden">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-stone-100 text-xs text-stone-400 uppercase tracking-wider">
+                  <th className="text-left px-4 py-3 font-medium">{locale === 'he' ? 'קבלן משנה' : 'Subcontractor'}</th>
+                  <th className="text-left px-4 py-3 font-medium">{locale === 'he' ? 'מיקום' : 'Location'}</th>
+                  <th className="text-left px-4 py-3 font-medium">{locale === 'he' ? 'עסקה' : 'Deal'}</th>
+                  <th className="text-left px-4 py-3 font-medium">{locale === 'he' ? 'סטטוס' : 'Status'}</th>
+                  <th className="text-left px-4 py-3 font-medium">{locale === 'he' ? 'תאריך' : 'Date'}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {forwardedJobs.map((job) => {
+                  const statusConfig: Record<string, { icon: typeof Clock; label: string; color: string }> = {
+                    pending: { icon: Clock, label: locale === 'he' ? 'ממתין' : 'Pending', color: 'text-amber-600 bg-amber-50' },
+                    accepted: { icon: CheckCircle2, label: locale === 'he' ? 'התקבל' : 'Accepted', color: 'text-green-600 bg-green-50' },
+                    rejected: { icon: XCircle, label: locale === 'he' ? 'נדחה' : 'Rejected', color: 'text-red-600 bg-red-50' },
+                    completed: { icon: CheckCircle2, label: locale === 'he' ? 'הושלם' : 'Completed', color: 'text-blue-600 bg-blue-50' },
+                    cancelled: { icon: XCircle, label: locale === 'he' ? 'בוטל' : 'Cancelled', color: 'text-stone-500 bg-stone-50' },
+                  }
+                  const sc = statusConfig[job.status] || statusConfig.pending
+                  const StatusIcon = sc.icon
+                  return (
+                    <tr key={job.id} className="border-b border-stone-50 hover:bg-stone-50/50 transition-colors">
+                      <td className="px-4 py-3">
+                        <p className="font-medium text-stone-800">{job.sub_name}</p>
+                        <p className="text-[10px] text-stone-400">{job.sub_phone}</p>
+                      </td>
+                      <td className="px-4 py-3 text-stone-600">
+                        {job.lead_city || job.lead_zip || '—'}
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className="text-xs font-mono text-stone-600">{job.deal_value}</span>
+                        <span className="text-[10px] text-stone-400 ml-1">
+                          {job.deal_type === 'percentage' ? '%' : job.deal_type === 'fixed_price' ? '$' : ''}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${sc.color}`}>
+                          <StatusIcon className="w-2.5 h-2.5" />
+                          {sc.label}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-xs text-stone-400">
+                        {new Date(job.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+        </section>
       )}
 
       {/* Modal */}
