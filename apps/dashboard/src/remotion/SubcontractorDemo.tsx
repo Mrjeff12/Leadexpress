@@ -11,8 +11,8 @@ import { TransitionSeries, springTiming } from '@remotion/transitions'
 import { fade } from '@remotion/transitions/fade'
 
 /* ─────────────────── Config ─────────────────── */
-const SCENE_DURATION = 170     // ~5.6s per scene at 30fps
-const TRANSITION_DURATION = 25 // ~0.8s transition overlap
+const SCENE_DURATION = 180     // 6s per scene at 30fps
+const TRANSITION_DURATION = 20 // ~0.67s transition overlap (shorter = less collision)
 
 /* ─────────────────── Helpers ─────────────────── */
 function useStagger(index: number, baseDelay = 8) {
