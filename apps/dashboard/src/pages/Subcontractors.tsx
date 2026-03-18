@@ -243,7 +243,7 @@ export default function Subcontractors() {
               <div className="absolute top-4 right-4 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                 <button
                   onClick={() => handleOpenModal(sub)}
-                  className="p-1.5 text-stone-400 hover:text-emerald-600 transition-colors bg-white rounded-md shadow-sm border border-stone-100"
+                  className="p-1.5 text-stone-400 hover:text-[#e04d1c] transition-colors bg-white rounded-md shadow-sm border border-stone-100"
                 >
                   <Edit2 className="w-3.5 h-3.5" />
                 </button>
@@ -256,8 +256,8 @@ export default function Subcontractors() {
               </div>
 
               <div className="flex items-center gap-3 mb-4">
-                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-emerald-100 to-emerald-50 flex items-center justify-center border border-emerald-200 shrink-0">
-                  <User className="w-5 h-5 text-emerald-600" />
+                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#fee8df] to-[#fff4ef] flex items-center justify-center border border-[#fdd5c5] shrink-0">
+                  <User className="w-5 h-5 text-[#e04d1c]" />
                 </div>
                 <div>
                   <h3 className="font-semibold text-stone-800 leading-tight">{sub.full_name}</h3>
@@ -368,7 +368,7 @@ export default function Subcontractors() {
                       className={[
                         'flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-all border text-left',
                         active
-                          ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
+                          ? 'bg-[#fff4ef] border-[#fdd5c5] text-[#c43d10]'
                           : 'bg-white border-stone-200 text-stone-600 hover:bg-stone-50',
                       ].join(' ')}
                     >
@@ -387,7 +387,7 @@ export default function Subcontractors() {
               <textarea
                 value={formData.notes}
                 onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                className="w-full min-h-[80px] rounded-md border border-stone-200 bg-white px-3 py-2 text-sm placeholder:text-stone-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                className="w-full min-h-[80px] rounded-md border border-stone-200 bg-white px-3 py-2 text-sm placeholder:text-stone-400 focus:outline-none focus:ring-2 focus:ring-[#fe5b25] focus:border-transparent"
                 placeholder={locale === 'he' ? 'הערות נוספות...' : 'Additional notes...'}
               />
             </div>

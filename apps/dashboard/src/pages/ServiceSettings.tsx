@@ -18,7 +18,7 @@ export default function ServiceSettings() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <div className="animate-spin h-8 w-8 rounded-full border-2 border-emerald-500 border-t-transparent" />
+        <div className="animate-spin h-8 w-8 rounded-full border-2 border-[#fe5b25] border-t-transparent" />
       </div>
     )
   }
@@ -28,7 +28,7 @@ export default function ServiceSettings() {
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
-          <div className="flex items-center justify-center h-10 w-10 rounded-xl bg-emerald-100 text-emerald-700">
+          <div className="flex items-center justify-center h-10 w-10 rounded-xl bg-[#fee8df] text-[#c43d10]">
             <Settings className="h-5 w-5" />
           </div>
           <div>
@@ -45,7 +45,7 @@ export default function ServiceSettings() {
 
         <div className="flex items-center gap-3">
           {saved && (
-            <span className="inline-flex items-center gap-1.5 text-sm font-medium text-emerald-600 animate-fade-in">
+            <span className="inline-flex items-center gap-1.5 text-sm font-medium text-[#e04d1c] animate-fade-in">
               <CheckCircle className="h-4 w-4" />
               {locale === 'he' ? 'נשמר!' : 'Saved!'}
             </span>

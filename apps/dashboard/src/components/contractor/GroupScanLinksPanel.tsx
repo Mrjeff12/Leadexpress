@@ -14,7 +14,7 @@ const StatusBadge = ({ status, locale }: { status: GroupScanStatus; locale: stri
       )
     case 'joined':
       return (
-        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-600 text-[10px] font-bold">
+        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-[#fff4ef] text-[#e04d1c] text-[10px] font-bold">
           <CheckCircle2 className="w-3 h-3" />
           {locale === 'he' ? 'נכנסנו' : 'Joined'}
         </span>
@@ -67,8 +67,8 @@ export default function GroupScanLinksPanel() {
   return (
     <div className="bg-white/40 rounded-2xl p-4 border border-stone-100 mb-5">
       <div className="flex items-center gap-2 mb-3">
-        <div className="w-6 h-6 rounded-lg bg-emerald-500/10 flex items-center justify-center">
-          <LinkIcon className="w-3.5 h-3.5 text-emerald-600" />
+        <div className="w-6 h-6 rounded-lg bg-[#fe5b25]/10 flex items-center justify-center">
+          <LinkIcon className="w-3.5 h-3.5 text-[#e04d1c]" />
         </div>
         <span className="text-[12px] font-extrabold text-stone-800">
           {locale === 'he' ? 'קבוצות WhatsApp לסריקה' : 'WhatsApp Groups for Scanning'}
@@ -88,13 +88,13 @@ export default function GroupScanLinksPanel() {
             value={newLink}
             onChange={(e) => setNewLink(e.target.value)}
             placeholder="https://chat.whatsapp.com/..."
-            className="flex-1 bg-white border border-stone-200 rounded-xl px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500/50 transition-all"
+            className="flex-1 bg-white border border-stone-200 rounded-xl px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-[#fe5b25]/20 focus:border-[#fe5b25]/50 transition-all"
             dir="ltr"
           />
           <button
             type="submit"
             disabled={submitting || !newLink.trim()}
-            className="px-3 py-1.5 rounded-xl bg-emerald-500 text-white text-xs font-bold hover:bg-emerald-600 disabled:opacity-50 transition-colors flex items-center gap-1"
+            className="px-3 py-1.5 rounded-xl bg-[#fe5b25] text-white text-xs font-bold hover:bg-[#e04d1c] disabled:opacity-50 transition-colors flex items-center gap-1"
           >
             {submitting ? (
               <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />

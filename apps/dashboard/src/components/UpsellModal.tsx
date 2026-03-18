@@ -37,7 +37,7 @@ export default function UpsellModal({ isOpen, onClose }: UpsellModalProps) {
               onClose()
               window.location.href = '/subscription'
             }}
-            className="px-4 py-2 text-sm font-medium text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl transition-colors"
+            className="px-4 py-2 text-sm font-medium text-white bg-[#e04d1c] hover:bg-[#c43d10] rounded-xl transition-colors"
           >
             {locale === 'he' ? 'שדרג עכשיו' : 'Upgrade Now'}
           </button>

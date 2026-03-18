@@ -34,7 +34,7 @@ export default function ZipManager({ zipCodes, onAdd, onRemove }: Props) {
           onKeyDown={handleKeyDown}
           placeholder={locale === 'he' ? 'הזן מיקוד...' : 'Enter ZIP code...'}
           maxLength={10}
-          className="flex-1 rounded-xl border border-zinc-200 bg-white/80 py-2 px-3 text-sm outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 transition-all"
+          className="flex-1 rounded-xl border border-zinc-200 bg-white/80 py-2 px-3 text-sm outline-none focus:border-[#fe5b25] focus:ring-2 focus:ring-[#fee8df] transition-all"
         />
         <button
           type="button"
@@ -51,14 +51,14 @@ export default function ZipManager({ zipCodes, onAdd, onRemove }: Props) {
           {zipCodes.map((zip) => (
             <span
               key={zip}
-              className="inline-flex items-center gap-1 rounded-full bg-emerald-50 border border-emerald-200 px-2.5 py-1 text-xs font-medium text-emerald-700"
+              className="inline-flex items-center gap-1 rounded-full bg-[#fff4ef] border border-[#fdd5c5] px-2.5 py-1 text-xs font-medium text-[#c43d10]"
             >
               <MapPin className="h-3 w-3" />
               {zip}
               <button
                 type="button"
                 onClick={() => onRemove(zip)}
-                className="rounded-full p-0.5 hover:bg-emerald-200 transition-colors"
+                className="rounded-full p-0.5 hover:bg-[#fdd5c5] transition-colors"
               >
                 <X className="h-3 w-3" />
               </button>

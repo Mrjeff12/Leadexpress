@@ -378,7 +378,7 @@ export default function CoverageMap({ zipCodes, onAddZip, onRemoveZip, onBatchAd
       >
         <div className="text-center">
           <div className="w-12 h-12 rounded-2xl bg-white/60 backdrop-blur flex items-center justify-center mx-auto mb-3 shadow-sm">
-            <MapPin className="w-6 h-6 text-emerald-500/60" />
+            <MapPin className="w-6 h-6 text-[#fe5b25]/60" />
           </div>
           <p className="text-sm text-stone-400 font-medium">
             {he ? 'הוסף VITE_MAPBOX_TOKEN להצגת מפה' : 'Add VITE_MAPBOX_TOKEN to display map'}
@@ -406,8 +406,8 @@ export default function CoverageMap({ zipCodes, onAddZip, onRemoveZip, onBatchAd
               boxShadow: '0 0 0 0.5px rgba(0,0,0,0.03), 0 12px 48px -8px rgba(0,0,0,0.12), inset 0 0.5px 0 rgba(255,255,255,0.8)',
             }}
           >
-            <div className="w-14 h-14 rounded-2xl bg-emerald-500/10 flex items-center justify-center">
-              <MousePointerClick className="w-7 h-7 text-emerald-600" />
+            <div className="w-14 h-14 rounded-2xl bg-[#fe5b25]/10 flex items-center justify-center">
+              <MousePointerClick className="w-7 h-7 text-[#e04d1c]" />
             </div>
             <div className="text-center">
               <h3 className="text-base font-bold text-stone-800 mb-1">
@@ -459,7 +459,7 @@ export default function CoverageMap({ zipCodes, onAddZip, onRemoveZip, onBatchAd
                 onBatchAddZipsRef.current?.(batchAddInfo.zips)
                 setBatchAddInfo(null)
               }}
-              className="px-4 py-2 rounded-xl bg-emerald-500 text-white text-[12px] font-bold hover:bg-emerald-600 transition-colors shrink-0 shadow-sm"
+              className="px-4 py-2 rounded-xl bg-[#fe5b25] text-white text-[12px] font-bold hover:bg-[#e04d1c] transition-colors shrink-0 shadow-sm"
             >
               {he ? 'הוסף הכל' : 'Add all'}
             </button>
@@ -476,7 +476,7 @@ export default function CoverageMap({ zipCodes, onAddZip, onRemoveZip, onBatchAd
       {/* Loading indicator */}
       {loadingBoundaries && (
         <div className="absolute bottom-4 left-4 z-20 flex items-center gap-2 px-3 py-2 rounded-xl bg-white/80 backdrop-blur-lg border border-white/60 shadow-sm">
-          <Loader2 className="w-3.5 h-3.5 text-emerald-500 animate-spin" />
+          <Loader2 className="w-3.5 h-3.5 text-[#fe5b25] animate-spin" />
           <span className="text-[10px] font-bold text-stone-500">
             {he ? 'טוען אזורים...' : 'Loading zones...'}
           </span>
@@ -510,10 +510,10 @@ export default function CoverageMap({ zipCodes, onAddZip, onRemoveZip, onBatchAd
               onChange={(e) => setSearchQuery(e.target.value)}
               onFocus={() => searchResults.length > 0 && setShowResults(true)}
               placeholder={he ? 'חפש עיר, county, ZIP...' : 'Search city, county, or ZIP...'}
-              className="w-full bg-transparent rounded-[20px] pl-11 pr-10 py-3.5 text-sm font-semibold text-stone-800 placeholder:text-stone-400/70 outline-none focus:ring-2 focus:ring-emerald-500/20 transition-all"
+              className="w-full bg-transparent rounded-[20px] pl-11 pr-10 py-3.5 text-sm font-semibold text-stone-800 placeholder:text-stone-400/70 outline-none focus:ring-2 focus:ring-[#fe5b25]/20 transition-all"
             />
             {searching && (
-              <Loader2 className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-emerald-500 animate-spin" />
+              <Loader2 className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[#fe5b25] animate-spin" />
             )}
             {!searching && searchQuery && (
               <button
@@ -554,7 +554,7 @@ export default function CoverageMap({ zipCodes, onAddZip, onRemoveZip, onBatchAd
                     }`}
                   >
                     <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 ${
-                      isZip ? 'bg-emerald-500/10 text-emerald-600'
+                      isZip ? 'bg-[#fe5b25]/10 text-[#e04d1c]'
                         : isCounty ? 'bg-blue-500/10 text-blue-600'
                         : isCity ? 'bg-violet-500/10 text-violet-600'
                         : 'bg-black/5 text-stone-400'
@@ -570,7 +570,7 @@ export default function CoverageMap({ zipCodes, onAddZip, onRemoveZip, onBatchAd
                       </p>
                     </div>
                     {isZip && !alreadyAdded && (
-                      <span className="text-[10px] font-bold text-white bg-emerald-500 px-2.5 py-1 rounded-full shrink-0">
+                      <span className="text-[10px] font-bold text-white bg-[#fe5b25] px-2.5 py-1 rounded-full shrink-0">
                         + Add
                       </span>
                     )}

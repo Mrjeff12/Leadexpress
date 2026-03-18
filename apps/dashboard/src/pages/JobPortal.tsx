@@ -94,7 +94,7 @@ export default function JobPortal() {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
         <div className="animate-pulse flex flex-col items-center">
-          <div className="w-12 h-12 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin mb-4" />
+          <div className="w-12 h-12 border-4 border-[#fe5b25] border-t-transparent rounded-full animate-spin mb-4" />
           <p className="text-gray-500">{t(lang, 'Loading job details...', 'טוען פרטי עבודה...')}</p>
         </div>
       </div>
@@ -157,11 +157,11 @@ export default function JobPortal() {
       </button>
 
       <Card className="w-full max-w-lg shadow-lg border-0">
-        <CardHeader className="bg-emerald-50/50 border-b pb-6">
+        <CardHeader className="bg-[#fff4ef]/50 border-b pb-6">
           <div className="flex justify-between items-start mb-2">
             <Badge
               variant={isAccepted ? "default" : isRejected ? "destructive" : "secondary"}
-              className={isAccepted ? "bg-green-500 hover:bg-green-600" : isRejected ? "bg-red-500 hover:bg-red-600" : ""}
+              className={isAccepted ? "bg-[#fe5b25] hover:bg-[#e04d1c]" : isRejected ? "bg-red-500 hover:bg-red-600" : ""}
             >
               {isAccepted
                 ? t(lang, 'Accepted', 'אושר')
@@ -228,13 +228,13 @@ export default function JobPortal() {
             <>
               <div className="h-px bg-gray-100" />
               <div className="space-y-3">
-                <h3 className="text-sm font-semibold text-green-600 uppercase tracking-wider flex items-center gap-2">
+                <h3 className="text-sm font-semibold text-[#e04d1c] uppercase tracking-wider flex items-center gap-2">
                   <CheckCircle className="w-4 h-4" />
                   {t(lang, 'Customer Contact', 'פרטי הלקוח')}
                 </h3>
-                <div className="bg-green-50 p-4 rounded-lg border border-green-100 space-y-3">
+                <div className="bg-[#fff4ef] p-4 rounded-lg border border-green-100 space-y-3">
                   <div className="flex items-center gap-3 text-gray-800">
-                    <Phone className="w-5 h-5 text-green-600 shrink-0" />
+                    <Phone className="w-5 h-5 text-[#e04d1c] shrink-0" />
                     <a href={`tel:${formatPhoneNumber(lead.sender_id)}`} className="font-medium text-green-700 hover:underline">
                       {formatPhoneNumber(lead.sender_id)}
                     </a>
@@ -269,7 +269,7 @@ export default function JobPortal() {
               {actionLoading ? '...' : t(lang, 'Decline', 'דחה')}
             </Button>
             <Button
-              className="flex-1 h-12 text-base font-medium bg-emerald-600 hover:bg-emerald-700"
+              className="flex-1 h-12 text-base font-medium bg-[#e04d1c] hover:bg-[#c43d10]"
               onClick={() => handleAction('accepted')}
               disabled={actionLoading}
             >

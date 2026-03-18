@@ -267,8 +267,8 @@ export default function LeadsFeed() {
         </div>
         <div className="flex items-center gap-3 px-4 py-2 rounded-full bg-white/50 backdrop-blur-md border border-black/5 shadow-sm">
           <div className="relative flex h-2 w-2">
-            <div className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></div>
-            <div className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></div>
+            <div className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#fe5b25] opacity-75"></div>
+            <div className="relative inline-flex rounded-full h-2 w-2 bg-[#fe5b25]"></div>
           </div>
           <span className="text-xs font-bold tracking-tight text-black uppercase">{he ? 'זמן אמת' : 'Live Feed'}</span>
         </div>
@@ -462,8 +462,8 @@ export default function LeadsFeed() {
           })}
         </div>
 
-        <div className="px-4 py-2 rounded-xl bg-emerald-50 border border-emerald-100 ml-auto">
-          <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest">
+        <div className="px-4 py-2 rounded-xl bg-[#fff4ef] border border-[#fee8df] ml-auto">
+          <span className="text-[10px] font-bold text-[#e04d1c] uppercase tracking-widest">
             {filtered.length} {he ? 'תוצאות' : 'Leads Found'}
           </span>
         </div>
@@ -707,7 +707,7 @@ function KpiCard({
           <span
             className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-bold tracking-tight ${
               trend.value >= 0 
-                ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' 
+                ? 'bg-[#fff4ef] text-[#e04d1c] border border-[#fee8df]' 
                 : 'bg-rose-50 text-rose-600 border border-rose-100'
             }`}
           >

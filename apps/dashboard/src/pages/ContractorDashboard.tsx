@@ -274,7 +274,7 @@ export default function ContractorDashboard() {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <div className="flex flex-col items-center gap-4 animate-fade-in">
-          <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-emerald-400 to-green-600 flex items-center justify-center animate-pulse">
+          <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#fe5b25] to-[#e04d1c] flex items-center justify-center animate-pulse">
             <Sparkles className="w-6 h-6 text-white" />
           </div>
           <p className="text-sm font-medium text-stone-500">Loading dashboard...</p>
@@ -318,11 +318,11 @@ export default function ContractorDashboard() {
             {t('dash.welcome')}, {firstName}
           </h1>
           <div className="flex items-center gap-2 mt-2">
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-semibold bg-gradient-to-r from-emerald-50 to-green-50 text-emerald-700 border border-emerald-100">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-semibold bg-gradient-to-r from-[#fff4ef] to-[#fff4ef] text-[#c43d10] border border-[#fee8df]">
               <Sparkles className="w-3 h-3" />
               {planName}
             </span>
-            <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold ${telegramConnected ? 'bg-emerald-50 text-emerald-600' : 'bg-stone-100 text-stone-400'}`}>
+            <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold ${telegramConnected ? 'bg-[#fff4ef] text-[#e04d1c]' : 'bg-stone-100 text-stone-400'}`}>
               {telegramConnected ? <Wifi className="w-3 h-3" /> : <WifiOff className="w-3 h-3" />}
               {telegramConnected ? 'Telegram' : 'Offline'}
             </span>
@@ -349,11 +349,11 @@ export default function ContractorDashboard() {
         </div>
 
         {/* ═══ Lead Filter Preferences Header ═══ */}
-        <div className="rounded-2xl bg-gradient-to-r from-emerald-50/80 to-green-50/60 border border-emerald-100/60 p-3.5 mb-5">
+        <div className="rounded-2xl bg-gradient-to-r from-[#fff4ef]/80 to-[#fff4ef]/60 border border-[#fee8df]/60 p-3.5 mb-5">
           <div className="flex items-center justify-between mb-1">
             <div className="flex items-center gap-2">
-              <div className="w-6 h-6 rounded-lg bg-emerald-500/10 flex items-center justify-center">
-                <SlidersHorizontal className="w-3.5 h-3.5 text-emerald-600" />
+              <div className="w-6 h-6 rounded-lg bg-[#fe5b25]/10 flex items-center justify-center">
+                <SlidersHorizontal className="w-3.5 h-3.5 text-[#e04d1c]" />
               </div>
               <span className="text-[12px] font-extrabold text-stone-800">
                 {locale === 'he' ? 'הגדרות פילטר לידים' : 'Lead Preferences'}
@@ -368,9 +368,9 @@ export default function ContractorDashboard() {
               </div>
             )}
             {saved && !saving && (
-              <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-50 border border-emerald-200 animate-fade-in">
-                <CheckCircle2 className="w-3 h-3 text-emerald-500" strokeWidth={2.5} />
-                <span className="text-[9px] font-bold text-emerald-600">
+              <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#fff4ef] border border-[#fdd5c5] animate-fade-in">
+                <CheckCircle2 className="w-3 h-3 text-[#fe5b25]" strokeWidth={2.5} />
+                <span className="text-[9px] font-bold text-[#e04d1c]">
                   {locale === 'he' ? 'נשמר' : 'Saved'}
                 </span>
               </div>
@@ -391,7 +391,7 @@ export default function ContractorDashboard() {
             </p>
             <button
               onClick={() => setShowProfPicker(!showProfPicker)}
-              className="flex items-center gap-1 px-2 py-1 rounded-lg bg-emerald-50 text-emerald-600 text-[10px] font-bold hover:bg-emerald-100 transition-colors"
+              className="flex items-center gap-1 px-2 py-1 rounded-lg bg-[#fff4ef] text-[#e04d1c] text-[10px] font-bold hover:bg-[#fee8df] transition-colors"
             >
               {showProfPicker ? <X className="w-3 h-3" /> : <span className="text-sm leading-none">+</span>}
               {!showProfPicker && (locale === 'he' ? 'ערוך' : 'Edit')}
@@ -407,7 +407,7 @@ export default function ContractorDashboard() {
                   <button
                     key={profId}
                     onClick={() => handleToggleProfession(profId)}
-                    className="group flex items-center gap-1.5 bg-white/80 border border-emerald-100 rounded-xl py-1.5 px-2.5 shadow-sm hover:border-red-200 hover:bg-red-50/50 transition-all"
+                    className="group flex items-center gap-1.5 bg-white/80 border border-[#fee8df] rounded-xl py-1.5 px-2.5 shadow-sm hover:border-red-200 hover:bg-red-50/50 transition-all"
                   >
                     <span className="text-sm">{prof.emoji}</span>
                     <span className="text-[10px] font-bold text-stone-700 group-hover:text-red-500 transition-colors">
@@ -420,7 +420,7 @@ export default function ContractorDashboard() {
             ) : (
               <button
                 onClick={() => setShowProfPicker(true)}
-                className="text-[11px] text-emerald-500 font-bold hover:underline"
+                className="text-[11px] text-[#fe5b25] font-bold hover:underline"
               >
                 {locale === 'he' ? '+ בחר מקצועות' : '+ Choose professions'}
               </button>
@@ -438,11 +438,11 @@ export default function ContractorDashboard() {
                       key={prof.id}
                       onClick={() => handleToggleProfession(prof.id)}
                       className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-left transition-all ${
-                        active ? 'bg-emerald-50 text-emerald-800' : 'text-stone-600 hover:bg-stone-50'
+                        active ? 'bg-[#fff4ef] text-[#a33310]' : 'text-stone-600 hover:bg-stone-50'
                       }`}
                     >
                       <div className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 transition-colors ${
-                        active ? 'bg-emerald-500 border-emerald-500' : 'border-stone-300'
+                        active ? 'bg-[#fe5b25] border-[#fe5b25]' : 'border-stone-300'
                       }`}>
                         {active && <Check className="w-3 h-3 text-white" strokeWidth={3} />}
                       </div>
@@ -478,12 +478,12 @@ export default function ContractorDashboard() {
               value={newZip}
               onChange={(e) => setNewZip(e.target.value)}
               placeholder={locale === 'he' ? 'הוסף ZIP Code...' : 'Add ZIP Code...'}
-              className="w-full bg-white/50 border border-stone-100 rounded-xl px-3 py-2 text-xs font-bold focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500/50 transition-all"
+              className="w-full bg-white/50 border border-stone-100 rounded-xl px-3 py-2 text-xs font-bold focus:outline-none focus:ring-2 focus:ring-[#fe5b25]/20 focus:border-[#fe5b25]/50 transition-all"
             />
             <button
               type="submit"
               disabled={saving || !newZip.trim()}
-              className="absolute right-1.5 top-1.5 w-6 h-6 rounded-lg bg-emerald-500 text-white flex items-center justify-center hover:bg-emerald-600 disabled:opacity-50 transition-colors"
+              className="absolute right-1.5 top-1.5 w-6 h-6 rounded-lg bg-[#fe5b25] text-white flex items-center justify-center hover:bg-[#e04d1c] disabled:opacity-50 transition-colors"
             >
               <span className="text-lg leading-none">+</span>
             </button>
@@ -526,7 +526,7 @@ export default function ContractorDashboard() {
               className="bg-white/40 rounded-2xl p-3 border border-stone-100 cursor-pointer hover:bg-white/60 transition-all"
             >
               <div className="flex items-center gap-2 mb-2">
-                <Clock className="w-3.5 h-3.5 text-emerald-500" />
+                <Clock className="w-3.5 h-3.5 text-[#fe5b25]" />
                 <span className="text-[11px] font-bold text-stone-700">
                   {compactSchedule(workingHours, locale)}
                 </span>
@@ -535,7 +535,7 @@ export default function ContractorDashboard() {
                 {DAY_KEYS.map((day) => (
                   <div
                     key={day}
-                    className={`flex-1 h-1.5 rounded-full ${workingHours[day].enabled ? 'bg-emerald-400' : 'bg-stone-200'}`}
+                    className={`flex-1 h-1.5 rounded-full ${workingHours[day].enabled ? 'bg-[#fe5b25]' : 'bg-stone-200'}`}
                     title={locale === 'he' ? DAY_LABELS[day].he : DAY_LABELS[day].en}
                   />
                 ))}
@@ -557,7 +557,7 @@ export default function ContractorDashboard() {
                     <button
                       onClick={() => handleToggleDay(day)}
                       className={`relative w-8 h-4 rounded-full transition-colors shrink-0 ${
-                        schedule.enabled ? 'bg-emerald-500' : 'bg-stone-300'
+                        schedule.enabled ? 'bg-[#fe5b25]' : 'bg-stone-300'
                       }`}
                     >
                       <span className={`absolute top-0.5 w-3 h-3 rounded-full bg-white shadow transition-transform ${
@@ -571,14 +571,14 @@ export default function ContractorDashboard() {
                           type="time"
                           value={schedule.start}
                           onChange={(e) => handleSetTime(day, 'start', e.target.value)}
-                          className="rounded-lg border border-stone-200 px-1.5 py-0.5 text-[10px] font-bold text-stone-700 outline-none focus:border-emerald-400 w-[72px] bg-transparent"
+                          className="rounded-lg border border-stone-200 px-1.5 py-0.5 text-[10px] font-bold text-stone-700 outline-none focus:border-[#fe5b25] w-[72px] bg-transparent"
                         />
                         <span className="text-[10px] text-stone-400">–</span>
                         <input
                           type="time"
                           value={schedule.end}
                           onChange={(e) => handleSetTime(day, 'end', e.target.value)}
-                          className="rounded-lg border border-stone-200 px-1.5 py-0.5 text-[10px] font-bold text-stone-700 outline-none focus:border-emerald-400 w-[72px] bg-transparent"
+                          className="rounded-lg border border-stone-200 px-1.5 py-0.5 text-[10px] font-bold text-stone-700 outline-none focus:border-[#fe5b25] w-[72px] bg-transparent"
                         />
                       </div>
                     ) : (
@@ -614,7 +614,7 @@ export default function ContractorDashboard() {
           </h2>
           <Link
             to="/leads"
-            className="text-[11px] font-semibold text-emerald-600 hover:text-emerald-700 flex items-center gap-0.5 transition-colors"
+            className="text-[11px] font-semibold text-[#e04d1c] hover:text-[#c43d10] flex items-center gap-0.5 transition-colors"
           >
             {locale === 'he' ? 'הכל' : 'View all'}
             <ChevronRight size={12} />
@@ -671,7 +671,7 @@ export default function ContractorDashboard() {
                   <div className="flex items-center justify-between text-[9px] text-stone-400">
                     <div className="flex items-center gap-2">
                       {lead.group_name && (
-                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-600 font-semibold truncate max-w-[120px]">
+                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-[#fff4ef] text-[#e04d1c] font-semibold truncate max-w-[120px]">
                           💬 {lead.group_name}
                         </span>
                       )}
@@ -691,7 +691,7 @@ export default function ContractorDashboard() {
                           setShowUpsell(true)
                         }
                       }}
-                      className="p-1.5 rounded-lg bg-white border border-stone-200 text-stone-500 hover:text-emerald-600 hover:border-emerald-200 hover:bg-emerald-50 transition-colors"
+                      className="p-1.5 rounded-lg bg-white border border-stone-200 text-stone-500 hover:text-[#e04d1c] hover:border-[#fdd5c5] hover:bg-[#fff4ef] transition-colors"
                       title={locale === 'he' ? 'העבר לקבלן משנה' : 'Forward to Subcontractor'}
                     >
                       <Send size={12} />

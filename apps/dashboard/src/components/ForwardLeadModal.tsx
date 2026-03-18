@@ -202,7 +202,7 @@ export default function ForwardLeadModal({ lead, isOpen, onClose }: ForwardLeadM
                 <select
                   value={selectedSubId}
                   onChange={(e) => setSelectedSubId(e.target.value)}
-                  className="w-full h-10 px-3 rounded-xl border border-stone-200 bg-white text-sm focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none"
+                  className="w-full h-10 px-3 rounded-xl border border-stone-200 bg-white text-sm focus:border-[#fe5b25] focus:ring-1 focus:ring-[#fe5b25] outline-none"
                 >
                   {subcontractors.map(sub => (
                     <option key={sub.id} value={sub.id}>
@@ -230,7 +230,7 @@ export default function ForwardLeadModal({ lead, isOpen, onClose }: ForwardLeadM
                     onClick={() => setDealType(type.id as DealType)}
                     className={`py-2 px-3 text-xs font-medium rounded-xl border transition-colors ${
                       dealType === type.id 
-                        ? 'bg-emerald-50 border-emerald-200 text-emerald-700' 
+                        ? 'bg-[#fff4ef] border-[#fdd5c5] text-[#c43d10]' 
                         : 'bg-white border-stone-200 text-stone-600 hover:bg-stone-50'
                     }`}
                   >
@@ -255,7 +255,7 @@ export default function ForwardLeadModal({ lead, isOpen, onClose }: ForwardLeadM
                     dealType === 'fixed_price' ? 'e.g. 500' : 
                     'e.g. $100 + materials'
                   }
-                  className="w-full h-10 px-3 rounded-xl border border-stone-200 bg-white text-sm focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none"
+                  className="w-full h-10 px-3 rounded-xl border border-stone-200 bg-white text-sm focus:border-[#fe5b25] focus:ring-1 focus:ring-[#fe5b25] outline-none"
                 />
                 <div className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 text-sm pointer-events-none">
                   {dealType === 'percentage' ? '%' : dealType === 'fixed_price' ? (locale === 'he' ? '₪' : '$') : ''}
@@ -276,7 +276,7 @@ export default function ForwardLeadModal({ lead, isOpen, onClose }: ForwardLeadM
           <button
             onClick={handleSend}
             disabled={submitting || subcontractors.length === 0}
-            className="flex items-center gap-2 px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex items-center gap-2 px-5 py-2 bg-[#e04d1c] hover:bg-[#c43d10] text-white text-sm font-medium rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {submitting ? (
               <Loader2 size={16} className="animate-spin" />

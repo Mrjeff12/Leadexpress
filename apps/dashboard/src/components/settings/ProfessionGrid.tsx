@@ -25,14 +25,14 @@ export default function ProfessionGrid({ selected, onToggle }: Props) {
               className={[
                 'flex items-center gap-2 rounded-xl px-3 py-2.5 text-left text-sm transition-all duration-150',
                 active
-                  ? 'bg-emerald-50 ring-2 ring-emerald-300 text-emerald-800 font-medium shadow-sm'
+                  ? 'bg-[#fff4ef] ring-2 ring-emerald-300 text-[#a33310] font-medium shadow-sm'
                   : 'bg-white/60 border border-zinc-200 text-zinc-600 hover:bg-white hover:shadow-sm',
               ].join(' ')}
             >
               <span className="text-base">{prof.emoji}</span>
               <span className="flex-1 truncate">{locale === 'he' ? prof.he : prof.en}</span>
               {active && (
-                <svg className="w-4 h-4 text-emerald-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                <svg className="w-4 h-4 text-[#fe5b25] shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                 </svg>
               )}

@@ -104,7 +104,7 @@ export default function Profile() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <div className="animate-spin h-8 w-8 rounded-full border-2 border-emerald-500 border-t-transparent" />
+        <div className="animate-spin h-8 w-8 rounded-full border-2 border-[#fe5b25] border-t-transparent" />
       </div>
     )
   }
@@ -115,7 +115,7 @@ export default function Profile() {
     <div className="animate-fade-in max-w-3xl mx-auto space-y-6 pb-12">
       {/* Header */}
       <div className="flex items-center gap-3">
-        <div className="flex items-center justify-center h-10 w-10 rounded-xl bg-emerald-100 text-emerald-700">
+        <div className="flex items-center justify-center h-10 w-10 rounded-xl bg-[#fee8df] text-[#c43d10]">
           <User className="h-5 w-5" />
         </div>
         <div>
@@ -128,7 +128,7 @@ export default function Profile() {
         {/* ─── Personal Info ─── */}
         <section className="glass-panel p-6 space-y-4">
           <div className="flex items-center gap-2 text-sm font-medium text-zinc-700">
-            <User className="h-4 w-4 text-emerald-600" />
+            <User className="h-4 w-4 text-[#e04d1c]" />
             Personal Information
           </div>
 
@@ -143,7 +143,7 @@ export default function Profile() {
                   value={fullName}
                   onChange={(e) => { setFullName(e.target.value); setSaved(false) }}
                   placeholder="John Doe"
-                  className="w-full rounded-xl border border-zinc-200 bg-white/80 py-2.5 pl-10 pr-4 text-sm text-zinc-900 placeholder:text-zinc-400 outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 transition-all"
+                  className="w-full rounded-xl border border-zinc-200 bg-white/80 py-2.5 pl-10 pr-4 text-sm text-zinc-900 placeholder:text-zinc-400 outline-none focus:border-[#fe5b25] focus:ring-2 focus:ring-[#fee8df] transition-all"
                 />
               </div>
             </div>
@@ -172,7 +172,7 @@ export default function Profile() {
                   value={phone}
                   onChange={(e) => { setPhone(e.target.value); setSaved(false) }}
                   placeholder="+1 (555) 123-4567"
-                  className="w-full rounded-xl border border-zinc-200 bg-white/80 py-2.5 pl-10 pr-4 text-sm text-zinc-900 placeholder:text-zinc-400 outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 transition-all"
+                  className="w-full rounded-xl border border-zinc-200 bg-white/80 py-2.5 pl-10 pr-4 text-sm text-zinc-900 placeholder:text-zinc-400 outline-none focus:border-[#fe5b25] focus:ring-2 focus:ring-[#fee8df] transition-all"
                 />
               </div>
             </div>
@@ -182,13 +182,13 @@ export default function Profile() {
         {/* ─── Telegram Connection ─── */}
         <section className="glass-panel p-6 space-y-4">
           <div className="flex items-center gap-2 text-sm font-medium text-zinc-700">
-            <Send className="h-4 w-4 text-emerald-600" />
+            <Send className="h-4 w-4 text-[#e04d1c]" />
             {t('profile.telegram_status')}
           </div>
 
           {isTelegramConnected ? (
-            <div className="flex items-center gap-3 rounded-xl bg-emerald-50/80 border border-emerald-200 px-4 py-3">
-              <CheckCircle className="h-5 w-5 text-emerald-500 shrink-0" />
+            <div className="flex items-center gap-3 rounded-xl bg-[#fff4ef]/80 border border-[#fdd5c5] px-4 py-3">
+              <CheckCircle className="h-5 w-5 text-[#fe5b25] shrink-0" />
               <div className="flex-1">
                 <span className="badge-green inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium">
                   {t('profile.connected')}
@@ -225,7 +225,7 @@ export default function Profile() {
         {/* ─── Save Button ─── */}
         <div className="flex items-center justify-end gap-3 pt-2">
           {saved && (
-            <span className="inline-flex items-center gap-1.5 text-sm font-medium text-emerald-600 animate-fade-in">
+            <span className="inline-flex items-center gap-1.5 text-sm font-medium text-[#e04d1c] animate-fade-in">
               <CheckCircle className="h-4 w-4" />
               {t('profile.saved')}
             </span>

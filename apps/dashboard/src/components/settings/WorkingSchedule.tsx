@@ -43,7 +43,7 @@ export default function WorkingSchedule({ hours, onChange }: Props) {
                 onClick={() => toggleDay(day)}
                 className={[
                   'relative w-10 h-5 rounded-full transition-colors shrink-0',
-                  schedule.enabled ? 'bg-emerald-500' : 'bg-zinc-300',
+                  schedule.enabled ? 'bg-[#fe5b25]' : 'bg-zinc-300',
                 ].join(' ')}
               >
                 <span
@@ -62,14 +62,14 @@ export default function WorkingSchedule({ hours, onChange }: Props) {
                     type="time"
                     value={schedule.start}
                     onChange={(e) => setTime(day, 'start', e.target.value)}
-                    className="rounded-lg border border-zinc-200 px-2 py-1 text-xs text-zinc-700 outline-none focus:border-emerald-400"
+                    className="rounded-lg border border-zinc-200 px-2 py-1 text-xs text-zinc-700 outline-none focus:border-[#fe5b25]"
                   />
                   <span className="text-xs text-zinc-400">–</span>
                   <input
                     type="time"
                     value={schedule.end}
                     onChange={(e) => setTime(day, 'end', e.target.value)}
-                    className="rounded-lg border border-zinc-200 px-2 py-1 text-xs text-zinc-700 outline-none focus:border-emerald-400"
+                    className="rounded-lg border border-zinc-200 px-2 py-1 text-xs text-zinc-700 outline-none focus:border-[#fe5b25]"
                   />
                 </div>
               ) : (
