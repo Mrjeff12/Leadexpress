@@ -377,7 +377,7 @@ export default function ContractorDashboard() {
             { value: leadsToday, label: locale === 'he' ? 'היום' : 'Today', icon: Zap, gradient: 'from-amber-400 to-orange-500' },
             { value: leadsWeek, label: locale === 'he' ? 'השבוע' : 'Week', icon: CalendarDays, gradient: 'from-blue-400 to-indigo-500' },
             { value: leadsTotal, label: locale === 'he' ? 'סה"כ' : 'Total', icon: Hash, gradient: 'from-violet-400 to-purple-500' },
-            { value: contactedCount, label: locale === 'he' ? 'פניות' : 'Contacted', icon: Phone, gradient: 'from-emerald-400 to-green-500' },
+            { value: contactedCount, label: locale === 'he' ? 'פניות שלי' : 'My Contacts', icon: Phone, gradient: 'from-[#fe5b25] to-[#e04d1c]' },
           ].map((kpi) => (
             <div key={kpi.label} className="rounded-2xl bg-white/60 border border-white/80 p-3 text-center">
               <div className={`w-7 h-7 rounded-xl bg-gradient-to-br ${kpi.gradient} flex items-center justify-center mx-auto mb-1.5`}>
