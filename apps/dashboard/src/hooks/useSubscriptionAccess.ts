@@ -3,14 +3,13 @@ import { useAuth } from '../lib/auth'
 import { supabase } from '../lib/supabase'
 
 export function useSubscriptionAccess() {
-  const { user, profile } = useAuth()
+  const { effectiveUserId } = useAuth()
   const [planName, setPlanName] = useState('Starter')
   const [canManageSubs, setCanManageSubs] = useState(false)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    const userId = user?.id || profile?.id
-    if (!userId) {
+    if (!effectiveUserId) {
       setLoading(false)
       return
     }
@@ -21,7 +20,7 @@ export function useSubscriptionAccess() {
       const { data: subData } = await supabase
         .from('subscriptions')
         .select('status, plans ( name, can_manage_subcontractors )')
-        .eq('user_id', userId)
+        .eq('user_id', effectiveUserId)
         .maybeSingle()
 
       if (!cancelled) {
@@ -42,7 +41,7 @@ export function useSubscriptionAccess() {
     fetchSub()
 
     return () => { cancelled = true }
-  }, [user?.id, profile?.id])
+  }, [effectiveUserId])
 
   return { planName, canManageSubs, loading }
 }

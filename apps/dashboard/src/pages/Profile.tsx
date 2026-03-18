@@ -23,7 +23,7 @@ function generatePlaceholderToken(): string {
 
 /* ─── Component ─── */
 export default function Profile() {
-  const { user, profile, refreshProfile } = useAuth()
+  const { user, profile, refreshProfile, effectiveUserId, impersonatedProfile } = useAuth()
   const { t } = useI18n()
 
   // Form state
@@ -39,27 +39,28 @@ export default function Profile() {
 
   /* ─── Load profile data ─── */
   const loadProfile = useCallback(async () => {
-    if (!user) return
+    if (!effectiveUserId) return
     setLoading(true)
 
     const { data } = await supabase
       .from('profiles')
       .select('full_name, phone, telegram_chat_id, telegram_token')
-      .eq('id', user.id)
+      .eq('id', effectiveUserId)
       .maybeSingle()
 
+    const activeProfile = impersonatedProfile || profile
     if (data) {
       setFullName(data.full_name ?? '')
       setPhone(data.phone ?? '')
       setTelegramChatId(data.telegram_chat_id ?? null)
       setTelegramToken(data.telegram_token ?? null)
     } else {
-      setFullName(profile?.full_name ?? '')
-      setTelegramChatId(profile?.telegram_chat_id ?? null)
+      setFullName(activeProfile?.full_name ?? '')
+      setTelegramChatId(activeProfile?.telegram_chat_id ?? null)
     }
 
     setLoading(false)
-  }, [user, profile])
+  }, [effectiveUserId, profile, impersonatedProfile])
 
   useEffect(() => {
     loadProfile()
@@ -74,7 +75,7 @@ export default function Profile() {
 
   /* ─── Save ─── */
   async function handleSave() {
-    if (!user) return
+    if (!effectiveUserId) return
     setSaving(true)
     setSaved(false)
 
@@ -83,7 +84,7 @@ export default function Profile() {
     const { error } = await supabase
       .from('profiles')
       .upsert({
-        id: user.id,
+        id: effectiveUserId,
         full_name: fullName.trim(),
         phone: phone.trim(),
         telegram_token: token,

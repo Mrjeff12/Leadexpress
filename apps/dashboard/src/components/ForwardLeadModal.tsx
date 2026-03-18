@@ -28,7 +28,7 @@ interface ForwardLeadModalProps {
 type DealType = 'percentage' | 'fixed_price' | 'custom'
 
 export default function ForwardLeadModal({ lead, isOpen, onClose }: ForwardLeadModalProps) {
-  const { user } = useAuth()
+  const { effectiveUserId } = useAuth()
   const { locale } = useI18n()
   
   const [subcontractors, setSubcontractors] = useState<Subcontractor[]>([])
@@ -41,17 +41,17 @@ export default function ForwardLeadModal({ lead, isOpen, onClose }: ForwardLeadM
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    if (isOpen && user) {
+    if (isOpen && effectiveUserId) {
       fetchSubcontractors()
     }
-  }, [isOpen, user])
+  }, [isOpen, effectiveUserId])
 
   async function fetchSubcontractors() {
     setLoadingSubs(true)
     const { data, error } = await supabase
       .from('subcontractors')
       .select('id, full_name, phone')
-      .eq('contractor_id', user!.id)
+      .eq('contractor_id', effectiveUserId!)
       .order('full_name')
       
     if (!error && data) {
@@ -84,7 +84,7 @@ export default function ForwardLeadModal({ lead, isOpen, onClose }: ForwardLeadM
         .from('job_orders')
         .insert({
           lead_id: lead.id,
-          contractor_id: user!.id,
+          contractor_id: effectiveUserId!,
           subcontractor_id: selectedSubId,
           deal_type: dealType,
           deal_value: dealValue,

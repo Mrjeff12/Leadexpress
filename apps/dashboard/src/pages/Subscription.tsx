@@ -89,7 +89,7 @@ function daysRemaining(endDate: string): number {
 
 /* ─── Component ─── */
 export default function Subscription() {
-  const { user } = useAuth()
+  const { effectiveUserId } = useAuth()
   const { t } = useI18n()
 
   const [currentPlan, setCurrentPlan] = useState<'starter' | 'pro' | 'unlimited'>('starter')
@@ -100,13 +100,13 @@ export default function Subscription() {
   /* ─── Load subscription data ─── */
   useEffect(() => {
     async function loadSubscription() {
-      if (!user) return
+      if (!effectiveUserId) return
       setLoading(true)
 
       const { data } = await supabase
         .from('subscriptions')
         .select('status, current_period_end, plans ( slug )')
-        .eq('user_id', user.id)
+        .eq('user_id', effectiveUserId)
         .in('status', ['active', 'trialing'])
         .maybeSingle()
 
@@ -123,7 +123,7 @@ export default function Subscription() {
     }
 
     loadSubscription()
-  }, [user])
+  }, [effectiveUserId])
 
   const activePlan = PLANS.find((p) => p.id === currentPlan)!
 

@@ -124,7 +124,7 @@ function compactSchedule(hours: WorkingHours, locale: string): string {
 /* ───────────────────── Component ───────────────────── */
 
 export default function ContractorDashboard() {
-  const { profile } = useAuth()
+  const { profile, effectiveUserId, impersonatedProfile } = useAuth()
   const { locale, t } = useI18n()
   const { professions: selectedProfs, zipCodes, workingHours, loading: settingsLoading } = useContractorSettings()
 
@@ -135,12 +135,13 @@ export default function ContractorDashboard() {
   
   const { planName, canManageSubs } = useSubscriptionAccess()
 
-  const displayName = profile?.full_name ?? 'Contractor'
+  const activeProfile = impersonatedProfile || profile
+  const displayName = activeProfile?.full_name ?? 'Contractor'
   const firstName = displayName.split(' ')[0]
 
   /* ── Supabase fetch ── */
   useEffect(() => {
-    if (!profile?.id) return
+    if (!effectiveUserId) return
     let cancelled = false
 
     async function fetchData() {
@@ -160,7 +161,7 @@ export default function ContractorDashboard() {
       const { data: profData } = await supabase
         .from('profiles')
         .select('telegram_chat_id')
-        .eq('id', profile!.id)
+        .eq('id', effectiveUserId)
         .maybeSingle()
 
       if (profData && !cancelled) {
@@ -170,7 +171,7 @@ export default function ContractorDashboard() {
 
     fetchData()
     return () => { cancelled = true }
-  }, [profile?.id])
+  }, [effectiveUserId])
 
   /* ── KPIs ── */
   const now = new Date()

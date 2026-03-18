@@ -19,7 +19,7 @@ interface Subcontractor {
 }
 
 export default function Subcontractors() {
-  const { user } = useAuth()
+  const { effectiveUserId } = useAuth()
   const { locale } = useI18n()
   const { toast } = useToast()
 
@@ -39,13 +39,13 @@ export default function Subcontractors() {
   const [saving, setSaving] = useState(false)
 
   const fetchSubs = async (showLoading = true) => {
-    if (!user) return
+    if (!effectiveUserId) return
     if (showLoading) setLoading(true)
     try {
       const { data, error } = await supabase
         .from('subcontractors')
         .select('*')
-        .eq('contractor_id', user.id)
+        .eq('contractor_id', effectiveUserId)
         .order('created_at', { ascending: false })
 
       if (error) throw error
@@ -59,7 +59,7 @@ export default function Subcontractors() {
 
   useEffect(() => {
     fetchSubs()
-  }, [user])
+  }, [effectiveUserId])
 
   const filteredSubs = subs.filter((sub) => {
     if (!search) return true
@@ -96,7 +96,7 @@ export default function Subcontractors() {
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault()
-    if (!user) return
+    if (!effectiveUserId) return
 
     if (!formData.full_name || !formData.phone) {
       toast({ title: 'Error', description: 'Name and phone are required', variant: 'destructive' })
@@ -122,7 +122,7 @@ export default function Subcontractors() {
         const { error } = await supabase
           .from('subcontractors')
           .insert({
-            contractor_id: user.id,
+            contractor_id: effectiveUserId,
             full_name: formData.full_name,
             phone: formData.phone,
             profession_tags: formData.profession_tags,

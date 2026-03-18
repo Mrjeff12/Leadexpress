@@ -19,7 +19,7 @@ interface UseContractorSettingsReturn {
 }
 
 export function useContractorSettings(): UseContractorSettingsReturn {
-  const { user } = useAuth()
+  const { effectiveUserId } = useAuth()
   const [professions, setProfessions] = useState<ProfessionId[]>([])
   const [zipCodes, setZipCodes] = useState<string[]>([])
   const [workingHours, setWorkingHours] = useState<WorkingHours>(DEFAULT_WORKING_HOURS)
@@ -28,13 +28,13 @@ export function useContractorSettings(): UseContractorSettingsReturn {
   const [saved, setSaved] = useState(false)
 
   useEffect(() => {
-    if (!user) return
+    if (!effectiveUserId) return
     setLoading(true)
 
     supabase
       .from('contractors')
       .select('professions, zip_codes, working_days, working_hours')
-      .eq('user_id', user.id)
+      .eq('user_id', effectiveUserId)
       .maybeSingle()
       .then(({ data }) => {
         if (data) {
@@ -46,7 +46,7 @@ export function useContractorSettings(): UseContractorSettingsReturn {
         }
         setLoading(false)
       })
-  }, [user])
+  }, [effectiveUserId])
 
   const toggleProfession = useCallback((id: ProfessionId) => {
     setProfessions((prev) =>
@@ -69,7 +69,7 @@ export function useContractorSettings(): UseContractorSettingsReturn {
   }, [])
 
   const save = useCallback(async () => {
-    if (!user) return
+    if (!effectiveUserId) return
     setSaving(true)
     setSaved(false)
 
@@ -81,7 +81,7 @@ export function useContractorSettings(): UseContractorSettingsReturn {
     const { error } = await supabase
       .from('contractors')
       .upsert({
-        user_id: user.id,
+        user_id: effectiveUserId,
         professions,
         zip_codes: zipCodes,
         working_days: workingDays,
@@ -95,7 +95,7 @@ export function useContractorSettings(): UseContractorSettingsReturn {
     }
 
     setSaving(false)
-  }, [user, professions, zipCodes, workingHours])
+  }, [effectiveUserId, professions, zipCodes, workingHours])
 
   return {
     professions, zipCodes, workingHours,
