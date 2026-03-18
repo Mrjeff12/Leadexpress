@@ -1,0 +1,16 @@
+{
+  "name": "wa-scanner",
+  "version": "2.0.0",
+  "description": "Multi-account WhatsApp group scanner with Docker + proxy support",
+  "scripts": {
+    "start": "node src/worker.js",
+    "api": "node src/api.js"
+  },
+  "dependencies": {
+    "whatsapp-web.js": "^1.26.0",
+    "qrcode-terminal": "^0.12.0",
+    "@supabase/supabase-js": "^2.49.1",
+    "bullmq": "^5.34.0",
+    "express": "^4.21.0"
+  }
+}

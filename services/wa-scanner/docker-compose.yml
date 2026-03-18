@@ -1,0 +1,67 @@
+version: '3.8'
+
+services:
+  # ─── Coordinator API ───────────────────────────────
+  scanner-api:
+    build: .
+    command: node src/api.js
+    ports:
+      - "4000:4000"
+    environment:
+      - API_PORT=4000
+    env_file: .env
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+
+  # ─── Scanner Account 1 ────────────────────────────
+  scan-1:
+    build: .
+    environment:
+      - ACCOUNT_ID=scan-1
+      - PHONE=${SCAN_1_PHONE}
+      - PROXY=${SCAN_1_PROXY:-}
+    env_file: .env
+    volumes:
+      - ./data/scan-1:/app/data
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
+  # ─── Scanner Account 2 ────────────────────────────
+  scan-2:
+    build: .
+    environment:
+      - ACCOUNT_ID=scan-2
+      - PHONE=${SCAN_2_PHONE}
+      - PROXY=${SCAN_2_PROXY:-}
+    env_file: .env
+    volumes:
+      - ./data/scan-2:/app/data
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
+  # ─── Scanner Account 3 ────────────────────────────
+  scan-3:
+    build: .
+    environment:
+      - ACCOUNT_ID=scan-3
+      - PHONE=${SCAN_3_PHONE}
+      - PROXY=${SCAN_3_PROXY:-}
+    env_file: .env
+    volumes:
+      - ./data/scan-3:/app/data
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
+# Add more scan-N services as needed by copying the pattern above
