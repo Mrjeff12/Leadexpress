@@ -68,7 +68,7 @@ export default function AdminGroupDetail() {
   const { locale } = useI18n()
   const he = locale === 'he'
 
-  const { info, funnel, activity, members, market, trends, isLoading, isError } = useGroupDetail(id)
+  const { info, funnel, activity, members, market, trends, responses, responseCount, isLoading, isError } = useGroupDetail(id)
 
   const [tab, setTab] = useState<'overview' | 'members' | 'messages' | 'market'>('overview')
 
@@ -213,6 +213,15 @@ export default function AdminGroupDetail() {
             <KpiCard icon={<TrendingUp size={16} />} label={he ? '% תשואת לידים' : 'Lead Yield %'} value={`${kpis.leadYieldPct}%`} />
             <KpiCard icon={<Users size={16} />} label={he ? 'חברים פעילים' : 'Active Members'} value={kpis.activeMembers.toLocaleString()} />
             <KpiCard icon={<ShieldAlert size={16} />} label={he ? 'מוכרים ידועים' : 'Known Sellers'} value={kpis.knownSellers.toLocaleString()} />
+            <div className="glass-panel p-5">
+              <div className="flex items-center gap-2 mb-2">
+                <MessageSquare className="w-4 h-4" style={{ color: 'hsl(155 44% 30%)' }} />
+                <span className="text-xs" style={{ color: 'hsl(40 4% 42%)' }}>
+                  {he ? 'תגובות' : 'Responses'}
+                </span>
+              </div>
+              <p className="text-2xl font-bold" style={{ color: 'hsl(40 8% 10%)' }}>{responseCount}</p>
+            </div>
             <KpiCard icon={<Calendar size={16} />} label={he ? 'ימים פעילים' : 'Days Active'} value={kpis.daysActive.toLocaleString()} />
           </div>
 
@@ -330,7 +339,7 @@ export default function AdminGroupDetail() {
       )}
 
       {tab === 'market' && (
-        <MarketIntelTab market={market} he={he} />
+        <MarketIntelTab market={market} responses={responses} he={he} />
       )}
     </div>
   )
@@ -593,7 +602,7 @@ interface MarketIntel {
   }[]
 }
 
-function MarketIntelTab({ market, he }: { market: MarketIntel | null | undefined; he: boolean }) {
+function MarketIntelTab({ market, responses, he }: { market: MarketIntel | null | undefined; responses: { sender_id: string; response_count: number; last_response: string }[] | undefined; he: boolean }) {
   const professions = market?.professions ?? []
   const regions = market?.regions ?? []
   const urgency = market?.urgency ?? []
@@ -718,12 +727,12 @@ function MarketIntelTab({ market, he }: { market: MarketIntel | null | undefined
       {/* Section 4: Repeat Requesters */}
       <div className="glass-panel p-5">
         <h2 className="text-sm font-semibold" style={{ color: 'hsl(40 8% 10%)' }}>
-          {he ? 'מבקשים חוזרים' : 'Repeat Requesters'}
+          {he ? 'ספקי עבודות מובילים' : 'Top Lead Publishers'}
         </h2>
         <p className="text-xs mt-0.5 mb-4" style={{ color: 'hsl(40 4% 42%)' }}>
           {he
-            ? 'פרוספקטים בעלי ערך גבוה שפרסמו 2+ בקשות'
-            : 'High-value prospects who posted 2+ requests'}
+            ? 'מקורות לידים הכי פעילים בקבוצה'
+            : 'Most active lead sources in this group'}
         </p>
         {repeatRequesters.length === 0 ? (
           <p className="text-sm text-center py-4" style={{ color: 'hsl(40 4% 55%)' }}>
@@ -777,6 +786,40 @@ function MarketIntelTab({ market, he }: { market: MarketIntel | null | undefined
               </tbody>
             </table>
           </div>
+        )}
+      </div>
+
+      {/* Active Contractors */}
+      <div className="glass-panel p-5">
+        <h3 className="text-sm font-semibold mb-1" style={{ color: 'hsl(40 8% 10%)' }}>
+          {he ? 'קבלנים פעילים' : 'Active Contractors'}
+        </h3>
+        <p className="text-xs mb-4" style={{ color: 'hsl(40 4% 42%)' }}>
+          {he ? 'קבלנים שמגיבים על פרסומי עבודות' : 'Contractors responding to job postings'}
+        </p>
+        {responses && responses.length > 0 ? (
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b" style={{ borderColor: 'hsl(40 4% 90%)', color: 'hsl(40 4% 42%)' }}>
+                <th className="text-left py-2 text-xs font-medium">{he ? 'קבלן' : 'Contractor'}</th>
+                <th className="text-left py-2 text-xs font-medium">{he ? 'תגובות' : 'Responses'}</th>
+                <th className="text-left py-2 text-xs font-medium">{he ? 'אחרונה' : 'Last Response'}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {responses.slice(0, 15).map((c) => (
+                <tr key={c.sender_id} className="border-b last:border-b-0" style={{ borderColor: 'hsl(40 4% 94%)' }}>
+                  <td className="py-2 text-xs" style={{ color: 'hsl(40 8% 10%)' }}>{c.sender_id}</td>
+                  <td className="py-2 text-xs font-bold" style={{ color: 'hsl(155 44% 30%)' }}>{c.response_count}</td>
+                  <td className="py-2 text-xs" style={{ color: 'hsl(40 4% 42%)' }}>{relativeTime(c.last_response)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        ) : (
+          <p className="text-xs text-center py-4" style={{ color: 'hsl(40 4% 55%)' }}>
+            {he ? 'אין תגובות קבלנים עדיין' : 'No contractor responses yet'}
+          </p>
         )}
       </div>
     </div>

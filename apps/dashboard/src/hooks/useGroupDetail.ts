@@ -60,6 +60,12 @@ export interface MarketIntel {
   }[]
 }
 
+export interface ActiveContractor {
+  sender_id: string
+  response_count: number
+  last_response: string
+}
+
 /* ── Fetchers ──────────────────────────────────────────── */
 
 async function fetchGroupInfo(groupId: string): Promise<GroupInfo> {
@@ -227,6 +233,34 @@ async function fetchTrends(groupId: string): Promise<TrendMonth[]> {
   return result.sort((a, b) => a.month.localeCompare(b.month))
 }
 
+async function fetchResponses(groupId: string): Promise<ActiveContractor[]> {
+  const { data } = await supabase
+    .from('group_responses')
+    .select('sender_id, created_at')
+    .eq('group_id', groupId)
+
+  if (!data || data.length === 0) return []
+
+  const map: Record<string, { count: number; last: string }> = {}
+  data.forEach((r: any) => {
+    if (!map[r.sender_id]) map[r.sender_id] = { count: 0, last: r.created_at }
+    map[r.sender_id].count++
+    if (r.created_at > map[r.sender_id].last) map[r.sender_id].last = r.created_at
+  })
+
+  return Object.entries(map)
+    .map(([sender_id, v]) => ({ sender_id, response_count: v.count, last_response: v.last }))
+    .sort((a, b) => b.response_count - a.response_count)
+}
+
+async function fetchResponseCount(groupId: string): Promise<number> {
+  const { count } = await supabase
+    .from('group_responses')
+    .select('*', { count: 'exact', head: true })
+    .eq('group_id', groupId)
+  return count || 0
+}
+
 /* ── Hook ──────────────────────────────────────────────── */
 
 export function useGroupDetail(groupId: string | undefined) {
@@ -270,6 +304,19 @@ export function useGroupDetail(groupId: string | undefined) {
     staleTime: 120_000,
   })
 
+  const responsesQuery = useQuery({
+    queryKey: [...baseKey, 'responses'],
+    queryFn: () => fetchResponses(groupId!),
+    enabled: !!groupId,
+    staleTime: 60_000,
+  })
+
+  const responseCountQuery = useQuery({
+    queryKey: [...baseKey, 'responseCount'],
+    queryFn: () => fetchResponseCount(groupId!),
+    enabled: !!groupId,
+  })
+
   // Realtime for pipeline events + members
   useEffect(() => {
     if (!groupId) return
@@ -303,6 +350,8 @@ export function useGroupDetail(groupId: string | undefined) {
     members: membersQuery.data,
     market: marketQuery.data,
     trends: trendsQuery.data,
+    responses: responsesQuery.data,
+    responseCount: responseCountQuery.data ?? 0,
     isLoading: infoQuery.isLoading,
     isError: infoQuery.isError,
   }
