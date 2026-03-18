@@ -15,18 +15,29 @@ const SCENE_DURATION = 180     // 6s per scene at 30fps
 const TRANSITION_DURATION = 20 // ~0.67s transition overlap (shorter = less collision)
 
 /* ─────────────────── Helpers ─────────────────── */
-function useStagger(index: number, baseDelay = 8) {
+function useStagger(index: number, baseDelay = 10) {
   const frame = useCurrentFrame()
   const { fps } = useVideoConfig()
-  const s = spring({ frame, fps, delay: index * baseDelay + 10, config: { damping: 12, stiffness: 180 } })
-  return { opacity: s, y: interpolate(s, [0, 1], [30, 0]), scale: interpolate(s, [0, 1], [0.95, 1]) }
+  const s = spring({ frame, fps, delay: index * baseDelay + 12, config: { damping: 10, stiffness: 140 } })
+  return {
+    opacity: s,
+    y: interpolate(s, [0, 1], [60, 0]),
+    scale: interpolate(s, [0, 1], [0.85, 1]),
+    rotateX: interpolate(s, [0, 1], [12, 0]),
+  }
 }
 
 function useEnter(delay = 5) {
   const frame = useCurrentFrame()
   const { fps } = useVideoConfig()
-  const s = spring({ frame, fps, delay, config: { damping: 14, stiffness: 160 } })
+  const s = spring({ frame, fps, delay, config: { damping: 12, stiffness: 140 } })
   return s
+}
+
+/* Breathing/floating animation for cards after they enter */
+function useFloat(speed = 0.04, amount = 3) {
+  const frame = useCurrentFrame()
+  return Math.sin(frame * speed) * amount
 }
 
 /* ─────────────────── Noise overlay (cinematic grain) ─────────────────── */
@@ -269,27 +280,47 @@ function SceneTitle({ title, subtitle }: { title: string; subtitle: string }) {
 
 /* ─────────────────── Scene wrapper with background ─────────────────── */
 function SceneBase({ step, children }: { step: number; children: React.ReactNode }) {
+  const frame = useCurrentFrame()
+  const glowX = 50 + Math.sin(frame * 0.02) * 8
+  const glowY = 30 + Math.cos(frame * 0.015) * 5
+
   return (
     <AbsoluteFill
       style={{
-        background: 'linear-gradient(160deg, #1a1a2e 0%, #0f0f1a 40%, #1a0f0a 100%)',
+        background: 'linear-gradient(160deg, #12122a 0%, #0a0a18 35%, #180d08 100%)',
         fontFamily: 'Outfit, system-ui, -apple-system, sans-serif',
+        perspective: 1200,
       }}
     >
       <Particles />
       <NoiseGrain />
-      {/* Ambient glow */}
+      {/* Animated ambient glow — moves slowly */}
       <div
         style={{
           position: 'absolute',
-          top: '15%',
-          left: '50%',
-          width: 400,
-          height: 400,
+          top: `${glowY}%`,
+          left: `${glowX}%`,
+          width: 500,
+          height: 500,
           borderRadius: '50%',
-          background: 'radial-gradient(circle, rgba(254,91,37,0.06) 0%, transparent 70%)',
-          transform: 'translateX(-50%)',
+          background: 'radial-gradient(circle, rgba(254,91,37,0.1) 0%, rgba(254,91,37,0.03) 40%, transparent 70%)',
+          transform: 'translate(-50%, -50%)',
           pointerEvents: 'none',
+          filter: 'blur(40px)',
+        }}
+      />
+      {/* Secondary cool glow */}
+      <div
+        style={{
+          position: 'absolute',
+          bottom: '10%',
+          left: '20%',
+          width: 300,
+          height: 300,
+          borderRadius: '50%',
+          background: 'radial-gradient(circle, rgba(100,140,255,0.04) 0%, transparent 70%)',
+          pointerEvents: 'none',
+          filter: 'blur(30px)',
         }}
       />
       <div style={{ position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', height: '100%' }}>
@@ -306,22 +337,25 @@ function SceneBase({ step, children }: { step: number; children: React.ReactNode
 function SceneLead() {
   const frame = useCurrentFrame()
   const { fps } = useVideoConfig()
-  const cardEnter = spring({ frame, fps, delay: 15, config: { damping: 12, stiffness: 140 } })
+  const cardEnter = spring({ frame, fps, delay: 15, config: { damping: 10, stiffness: 120 } })
   const hotPulse = interpolate(Math.sin(frame * 0.15), [-1, 1], [0.92, 1.08])
   const ctaGlow = interpolate(Math.sin(frame * 0.1), [-1, 1], [0.6, 1])
+  const floatY = useFloat(0.035, 4)
+  const cardRotateX = interpolate(cardEnter, [0, 1], [15, 0])
+  const cardScale = interpolate(cardEnter, [0, 1], [0.8, 1])
 
   return (
     <SceneBase step={0}>
       <SceneTitle title="A New Lead Comes In" subtitle="You get a lead you can't handle — but your network can." />
       <div
         style={{
-          transform: `scale(${cardEnter}) translateY(${interpolate(cardEnter, [0, 1], [40, 0])}px)`,
+          transform: `perspective(800px) rotateX(${cardRotateX}deg) scale(${cardScale}) translateY(${interpolate(cardEnter, [0, 1], [80, floatY])}px)`,
           opacity: cardEnter,
           background: '#fff',
           borderRadius: 20,
           overflow: 'hidden',
           width: 520,
-          boxShadow: '0 25px 80px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.05)',
+          boxShadow: `0 ${25 + floatY}px 80px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.05), 0 0 40px rgba(254,91,37,0.05)`,
         }}
       >
         <div style={{ display: 'flex' }}>
@@ -375,8 +409,9 @@ function SceneLead() {
 function SceneSub() {
   const frame = useCurrentFrame()
   const { fps } = useVideoConfig()
-  const card1 = useStagger(0, 12)
-  const card2 = useStagger(1, 12)
+  const floatY = useFloat(0.03, 3)
+  const card1 = useStagger(0, 14)
+  const card2 = useStagger(1, 14)
   const check = spring({ frame, fps, delay: 45, config: { damping: 8, stiffness: 220 } })
   const checkScale = interpolate(check, [0, 0.5, 1], [0, 1.3, 1])
 
@@ -388,16 +423,16 @@ function SceneSub() {
   return (
     <SceneBase step={1}>
       <SceneTitle title="Pick a Subcontractor" subtitle="Choose from your trusted network — see their profile and track record." />
-      <div style={{ width: 420, display: 'flex', flexDirection: 'column', gap: 14 }}>
+      <div style={{ width: 440, display: 'flex', flexDirection: 'column', gap: 14, transform: `translateY(${floatY}px)` }}>
         {subs.map((sub) => (
           <div
             key={sub.name}
             style={{
               opacity: sub.anim.opacity,
-              transform: `translateY(${sub.anim.y}px) scale(${sub.anim.scale})`,
+              transform: `perspective(600px) rotateX(${sub.anim.rotateX}deg) translateY(${sub.anim.y}px) scale(${sub.anim.scale})`,
               background: '#fff',
-              borderRadius: 16,
-              padding: 18,
+              borderRadius: 18,
+              padding: 20,
               display: 'flex',
               alignItems: 'center',
               gap: 14,
@@ -460,22 +495,24 @@ function SceneSub() {
 function SceneWhatsApp() {
   const frame = useCurrentFrame()
   const { fps } = useVideoConfig()
-  const chatEnter = spring({ frame, fps, delay: 8, config: { damping: 14, stiffness: 140 } })
-  const msgEnter = spring({ frame, fps, delay: 20, config: { damping: 15, stiffness: 160 } })
-  const replyEnter = spring({ frame, fps, delay: 80, config: { damping: 14, stiffness: 160 } })
-  const tickAnim = spring({ frame, fps, delay: 35, config: { damping: 10, stiffness: 200 } })
+  const chatEnter = spring({ frame, fps, delay: 8, config: { damping: 10, stiffness: 120 } })
+  const msgEnter = spring({ frame, fps, delay: 25, config: { damping: 12, stiffness: 140 } })
+  const replyEnter = spring({ frame, fps, delay: 90, config: { damping: 12, stiffness: 140 } })
+  const tickAnim = spring({ frame, fps, delay: 40, config: { damping: 10, stiffness: 200 } })
+  const floatY = useFloat(0.03, 3)
+  const chatRotateX = interpolate(chatEnter, [0, 1], [20, 0])
 
   return (
     <SceneBase step={2}>
       <SceneTitle title="Send via WhatsApp" subtitle="A ready-made message goes out with all the lead details and deal terms." />
       <div
         style={{
-          width: 400,
-          borderRadius: 20,
+          width: 420,
+          borderRadius: 22,
           overflow: 'hidden',
-          transform: `scale(${chatEnter}) translateY(${interpolate(chatEnter, [0, 1], [30, 0])}px)`,
+          transform: `perspective(800px) rotateX(${chatRotateX}deg) scale(${interpolate(chatEnter, [0, 1], [0.8, 1])}) translateY(${interpolate(chatEnter, [0, 1], [80, floatY])}px)`,
           opacity: chatEnter,
-          boxShadow: '0 30px 80px rgba(0,0,0,0.5)',
+          boxShadow: `0 ${30 + floatY}px 80px rgba(0,0,0,0.6), 0 0 60px rgba(37,211,102,0.08)`,
         }}
       >
         {/* Header */}
@@ -540,26 +577,28 @@ function SceneWhatsApp() {
 function SceneDeal() {
   const frame = useCurrentFrame()
   const { fps } = useVideoConfig()
-  const modalEnter = spring({ frame, fps, delay: 10, config: { damping: 12, stiffness: 150 } })
-  const s0 = useStagger(0, 10)
-  const s1 = useStagger(1, 10)
-  const s2 = useStagger(2, 10)
-  const s3 = useStagger(3, 10)
+  const modalEnter = spring({ frame, fps, delay: 10, config: { damping: 10, stiffness: 120 } })
+  const s0 = useStagger(0, 12)
+  const s1 = useStagger(1, 12)
+  const s2 = useStagger(2, 12)
+  const s3 = useStagger(3, 12)
   const selectedPulse = interpolate(Math.sin(frame * 0.1), [-1, 1], [0.98, 1.03])
   const ctaGlow = interpolate(Math.sin(frame * 0.08), [-1, 1], [0.5, 1])
+  const floatY = useFloat(0.03, 3)
+  const modalRotateX = interpolate(modalEnter, [0, 1], [18, 0])
 
   return (
     <SceneBase step={3}>
       <SceneTitle title="Set the Deal Terms" subtitle="Percentage, fixed price, or custom — you control the split." />
       <div
         style={{
-          width: 380,
+          width: 400,
           background: '#fff',
-          borderRadius: 20,
-          padding: 24,
-          transform: `scale(${modalEnter}) translateY(${interpolate(modalEnter, [0, 1], [30, 0])}px)`,
+          borderRadius: 22,
+          padding: 26,
+          transform: `perspective(800px) rotateX(${modalRotateX}deg) scale(${interpolate(modalEnter, [0, 1], [0.8, 1])}) translateY(${interpolate(modalEnter, [0, 1], [70, floatY])}px)`,
           opacity: modalEnter,
-          boxShadow: '0 30px 80px rgba(0,0,0,0.4)',
+          boxShadow: `0 ${30 + floatY}px 80px rgba(0,0,0,0.5), 0 0 40px rgba(254,91,37,0.05)`,
         }}
       >
         {/* Header */}
@@ -631,7 +670,9 @@ function SceneDeal() {
 function SceneTrack() {
   const frame = useCurrentFrame()
   const { fps } = useVideoConfig()
-  const dashEnter = spring({ frame, fps, delay: 8, config: { damping: 14, stiffness: 130 } })
+  const dashEnter = spring({ frame, fps, delay: 8, config: { damping: 10, stiffness: 120 } })
+  const floatY = useFloat(0.025, 3)
+  const dashRotateX = interpolate(dashEnter, [0, 1], [12, 0])
 
   const kpis = [
     { icon: '📋', label: 'Total', value: '12', bg: 'linear-gradient(135deg, #fff4ef, #fee8df)', border: '#fdd5c5' },
@@ -649,7 +690,7 @@ function SceneTrack() {
   return (
     <SceneBase step={4}>
       <SceneTitle title="Track in Your Jobs Dashboard" subtitle="Status, payments, and sub performance — all in one view." />
-      <div style={{ width: 560, transform: `scale(${dashEnter})`, opacity: dashEnter }}>
+      <div style={{ width: 580, transform: `perspective(800px) rotateX(${dashRotateX}deg) scale(${interpolate(dashEnter, [0, 1], [0.85, 1])}) translateY(${interpolate(dashEnter, [0, 1], [60, floatY])}px)`, opacity: dashEnter }}>
         {/* KPI cards */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: 10, marginBottom: 14 }}>
           {kpis.map((s, i) => {
