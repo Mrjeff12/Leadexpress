@@ -30,7 +30,7 @@ export default function Navbar() {
         </div>
 
         <div className="hidden md:flex items-center gap-3">
-          <a href="http://localhost:5173/login" className="text-sm font-medium text-gray-subtle hover:text-dark transition-colors px-4 py-2">
+          <a href="https://app.leadexpress.co.il/login" className="text-sm font-medium text-gray-subtle hover:text-dark transition-colors px-4 py-2">
             Log in
           </a>
           <a href="#pricing" className="btn-primary text-xs !px-5 !py-2.5">{t.nav.getStarted}</a>
@@ -49,7 +49,7 @@ export default function Navbar() {
           <a href="#pricing" className="block text-sm py-2">{t.nav.pricing}</a>
           <a href="#faq" className="block text-sm py-2">{t.nav.faq}</a>
           <a href="#contact" className="block text-sm py-2">{t.nav.contact}</a>
-          <a href="http://localhost:5173/login" className="block text-sm py-2 font-medium text-gray-subtle">
+          <a href="https://app.leadexpress.co.il/login" className="block text-sm py-2 font-medium text-gray-subtle">
             Log in
           </a>
           <a href="#pricing" className="btn-primary w-full text-center">{t.nav.getStarted}</a>
