@@ -66,6 +66,13 @@ Deno.serve(async (req: Request) => {
 // ── Router ──────────────────────────────────────────────────────────────────
 
 async function routeMessage(phone: string, text: string, textLower: string): Promise<void> {
+  // 0. Check for account connection code (LE-{userId prefix})
+  const codeMatch = text.match(/LE-([a-f0-9]{8})/i);
+  if (codeMatch) {
+    await handleConnectionCode(phone, codeMatch[1]);
+    return;
+  }
+
   // 1. Check if user has onboarding state
   const { data: onboardState } = await supabase
     .from('wa_onboard_state')
@@ -183,6 +190,46 @@ async function handleKnownUser(
 
   // Default — show menu hint
   await sendText(phone, `Send *MENU* for options, or reply to your morning check-in to start receiving leads.`);
+}
+
+// ── Account Connection handler ──────────────────────────────────────────────
+
+async function handleConnectionCode(phone: string, codePrefix: string): Promise<void> {
+  // Find user by ID prefix
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('id, full_name')
+    .like('id', `${codePrefix}%`)
+    .maybeSingle();
+
+  if (!profile) {
+    await sendText(phone, `Invalid connection code. Please try again from your LeadExpress dashboard.`);
+    console.log(`[connect] No profile found for code prefix: ${codePrefix}`);
+    return;
+  }
+
+  // Check if already connected
+  const { data: existing } = await supabase
+    .from('profiles')
+    .select('whatsapp_phone')
+    .eq('id', profile.id)
+    .single();
+
+  if (existing?.whatsapp_phone) {
+    await sendText(phone, `Your account is already connected! 👍\nSend *MENU* for options.`);
+    return;
+  }
+
+  // Link WhatsApp phone to profile
+  await supabase.from('profiles').update({ whatsapp_phone: phone }).eq('id', profile.id);
+
+  const firstName = profile.full_name?.split(' ')[0] ?? 'there';
+  await sendText(
+    phone,
+    `✅ *Connected!* Welcome ${firstName}!\n\nYour WhatsApp is now linked to LeadExpress.\nYou'll receive leads and updates right here.\n\nSend *MENU* for options.`,
+  );
+
+  console.log(`[connect] WhatsApp linked: ${phone} → user ${profile.id}`);
 }
 
 // ── Check-in handler ────────────────────────────────────────────────────────

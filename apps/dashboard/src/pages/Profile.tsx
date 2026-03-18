@@ -1,50 +1,47 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useAuth } from '../lib/auth'
 import { useI18n } from '../lib/i18n'
 import { supabase } from '../lib/supabase'
+import { useNavigate } from 'react-router-dom'
 import {
   User,
   Phone,
   Mail,
   Save,
   CheckCircle,
+  CheckCircle2,
   Send,
-  Link2,
+  MessageCircle,
+  Radio,
+  ExternalLink,
+  Loader2,
 } from 'lucide-react'
 
-/* ─── Helper: placeholder token ─── */
-function generatePlaceholderToken(): string {
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
-    const r = (Math.random() * 16) | 0
-    const v = c === 'x' ? r : (r & 0x3) | 0x8
-    return v.toString(16)
-  })
-}
+const WA_NUMBER = '18623582898'
 
-/* ─── Component ─── */
 export default function Profile() {
   const { user, profile, refreshProfile, effectiveUserId, impersonatedProfile } = useAuth()
   const { t } = useI18n()
+  const navigate = useNavigate()
 
-  // Form state
   const [fullName, setFullName] = useState('')
   const [phone, setPhone] = useState('')
   const [telegramChatId, setTelegramChatId] = useState<number | null>(null)
-  const [telegramToken, setTelegramToken] = useState<string | null>(null)
+  const [whatsappPhone, setWhatsappPhone] = useState<string | null>(null)
 
-  // UI state
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [waPolling, setWaPolling] = useState(false)
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
-  /* ─── Load profile data ─── */
   const loadProfile = useCallback(async () => {
     if (!effectiveUserId) return
     setLoading(true)
 
     const { data } = await supabase
       .from('profiles')
-      .select('full_name, phone, telegram_chat_id, telegram_token')
+      .select('full_name, phone, telegram_chat_id, whatsapp_phone')
       .eq('id', effectiveUserId)
       .maybeSingle()
 
@@ -53,7 +50,7 @@ export default function Profile() {
       setFullName(data.full_name ?? '')
       setPhone(data.phone ?? '')
       setTelegramChatId(data.telegram_chat_id ?? null)
-      setTelegramToken(data.telegram_token ?? null)
+      setWhatsappPhone(data.whatsapp_phone ?? null)
     } else {
       setFullName(activeProfile?.full_name ?? '')
       setTelegramChatId(activeProfile?.telegram_chat_id ?? null)
@@ -66,20 +63,51 @@ export default function Profile() {
     loadProfile()
   }, [loadProfile])
 
-  /* ─── Telegram deep-link ─── */
-  function generateTelegramLink(): string {
-    const token = telegramToken || generatePlaceholderToken()
-    if (!telegramToken) setTelegramToken(token)
-    return `https://t.me/LeadExpressBot?start=${token}`
+  // Cleanup polling on unmount
+  useEffect(() => {
+    return () => {
+      if (pollRef.current) clearInterval(pollRef.current)
+    }
+  }, [])
+
+  function getWhatsAppCode(): string {
+    return effectiveUserId ? effectiveUserId.slice(0, 8) : 'unknown'
   }
 
-  /* ─── Save ─── */
+  function handleConnectWhatsApp() {
+    const code = getWhatsAppCode()
+    const message = encodeURIComponent(`Hey! Connect my account. Code: LE-${code}`)
+    window.open(`https://wa.me/${WA_NUMBER}?text=${message}`, '_blank')
+
+    // Start polling for connection
+    setWaPolling(true)
+    if (pollRef.current) clearInterval(pollRef.current)
+    pollRef.current = setInterval(async () => {
+      if (!effectiveUserId) return
+      const { data } = await supabase
+        .from('profiles')
+        .select('whatsapp_phone')
+        .eq('id', effectiveUserId)
+        .maybeSingle()
+
+      if (data?.whatsapp_phone) {
+        setWhatsappPhone(data.whatsapp_phone)
+        setWaPolling(false)
+        if (pollRef.current) clearInterval(pollRef.current)
+      }
+    }, 3000)
+
+    // Stop polling after 2 minutes
+    setTimeout(() => {
+      setWaPolling(false)
+      if (pollRef.current) clearInterval(pollRef.current)
+    }, 120_000)
+  }
+
   async function handleSave() {
     if (!effectiveUserId) return
     setSaving(true)
     setSaved(false)
-
-    const token = telegramToken || generatePlaceholderToken()
 
     const { error } = await supabase
       .from('profiles')
@@ -87,12 +115,10 @@ export default function Profile() {
         id: effectiveUserId,
         full_name: fullName.trim(),
         phone: phone.trim(),
-        telegram_token: token,
       })
 
     if (!error) {
       setSaved(true)
-      setTelegramToken(token)
       await refreshProfile()
       setTimeout(() => setSaved(false), 3000)
     }
@@ -100,7 +126,6 @@ export default function Profile() {
     setSaving(false)
   }
 
-  /* ─── Render ─── */
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
@@ -110,6 +135,7 @@ export default function Profile() {
   }
 
   const isTelegramConnected = telegramChatId !== null && telegramChatId !== 0
+  const isWhatsAppConnected = !!whatsappPhone
 
   return (
     <div className="animate-fade-in max-w-3xl mx-auto space-y-6 pb-12">
@@ -133,7 +159,6 @@ export default function Profile() {
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {/* Full Name */}
             <div className="space-y-1.5">
               <label className="text-xs font-medium text-zinc-500">Full Name</label>
               <div className="relative">
@@ -148,7 +173,6 @@ export default function Profile() {
               </div>
             </div>
 
-            {/* Email (readonly) */}
             <div className="space-y-1.5">
               <label className="text-xs font-medium text-zinc-500">Email</label>
               <div className="relative">
@@ -162,7 +186,6 @@ export default function Profile() {
               </div>
             </div>
 
-            {/* Phone */}
             <div className="space-y-1.5 sm:col-span-2">
               <label className="text-xs font-medium text-zinc-500">Phone</label>
               <div className="relative">
@@ -179,47 +202,123 @@ export default function Profile() {
           </div>
         </section>
 
-        {/* ─── Telegram Connection ─── */}
+        {/* ─── Communication Channels ─── */}
         <section className="glass-panel p-6 space-y-4">
           <div className="flex items-center gap-2 text-sm font-medium text-zinc-700">
-            <Send className="h-4 w-4 text-[#e04d1c]" />
-            {t('profile.telegram_status')}
+            <Radio className="h-4 w-4 text-[#e04d1c]" />
+            Communication Channels
           </div>
+          <p className="text-xs text-zinc-400">Choose how you want to receive leads and updates</p>
 
-          {isTelegramConnected ? (
-            <div className="flex items-center gap-3 rounded-xl bg-[#fff4ef]/80 border border-[#fdd5c5] px-4 py-3">
-              <CheckCircle className="h-5 w-5 text-[#fe5b25] shrink-0" />
-              <div className="flex-1">
-                <span className="badge-green inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium">
-                  {t('profile.connected')}
-                </span>
-                <p className="text-xs text-zinc-500 mt-1">
-                  Chat ID: <code className="font-mono text-zinc-700">{telegramChatId}</code>
-                </p>
-              </div>
-            </div>
-          ) : (
-            <div className="rounded-xl bg-amber-50/60 border border-amber-200 px-4 py-4 space-y-3">
-              <div className="flex items-start gap-3">
-                <Link2 className="h-5 w-5 text-amber-500 shrink-0 mt-0.5" />
-                <div>
-                  <p className="text-sm font-medium text-zinc-700">Telegram is not connected</p>
-                  <p className="text-xs text-zinc-500 mt-0.5">
-                    Connect your Telegram account to receive leads instantly.
-                  </p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {/* WhatsApp Channel */}
+            <div className={`rounded-xl border p-5 transition-all ${
+              isWhatsAppConnected
+                ? 'border-green-200 bg-green-50/50'
+                : 'border-zinc-200 bg-white hover:border-[#fe5b25]/30 hover:shadow-sm'
+            }`}>
+              <div className="flex items-center gap-3 mb-3">
+                <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
+                  isWhatsAppConnected ? 'bg-green-500' : 'bg-[#25D366]'
+                }`}>
+                  <MessageCircle className="h-5 w-5 text-white" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm font-bold text-zinc-900">WhatsApp</p>
+                  {isWhatsAppConnected ? (
+                    <span className="inline-flex items-center gap-1 text-[10px] font-bold text-green-600 bg-green-100 px-2 py-0.5 rounded-full">
+                      <CheckCircle2 className="h-2.5 w-2.5" /> Connected
+                    </span>
+                  ) : (
+                    <p className="text-[10px] text-zinc-400">Receive leads on WhatsApp</p>
+                  )}
                 </div>
               </div>
-              <a
-                href={generateTelegramLink()}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="btn-primary inline-flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-medium"
-              >
-                <Send className="h-4 w-4" />
-                Connect Telegram
-              </a>
+
+              {isWhatsAppConnected ? (
+                <div className="space-y-1.5">
+                  <p className="text-xs text-zinc-500">
+                    Connected as: <span className="font-mono font-semibold text-zinc-700">{whatsappPhone}</span>
+                  </p>
+                  <p className="text-[10px] text-zinc-400">Leads will be sent to this number</p>
+                </div>
+              ) : (
+                <div>
+                  <p className="text-xs text-zinc-500 mb-3">
+                    Send us a message on WhatsApp to connect your account instantly.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={handleConnectWhatsApp}
+                    disabled={waPolling}
+                    className="w-full py-2.5 rounded-xl text-sm font-semibold flex items-center justify-center gap-2 transition-all bg-[#25D366] text-white hover:bg-[#1da851] shadow-sm disabled:opacity-70"
+                  >
+                    {waPolling ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Waiting for message...
+                      </>
+                    ) : (
+                      <>
+                        <MessageCircle className="h-4 w-4" />
+                        Connect WhatsApp
+                        <ExternalLink className="h-3 w-3 opacity-60" />
+                      </>
+                    )}
+                  </button>
+                </div>
+              )}
             </div>
-          )}
+
+            {/* Telegram Channel */}
+            <div className={`rounded-xl border p-5 transition-all ${
+              isTelegramConnected
+                ? 'border-blue-200 bg-blue-50/50'
+                : 'border-zinc-200 bg-white hover:border-[#fe5b25]/30 hover:shadow-sm'
+            }`}>
+              <div className="flex items-center gap-3 mb-3">
+                <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
+                  isTelegramConnected ? 'bg-blue-500' : 'bg-[#0088CC]'
+                }`}>
+                  <Send className="h-5 w-5 text-white" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm font-bold text-zinc-900">Telegram</p>
+                  {isTelegramConnected ? (
+                    <span className="inline-flex items-center gap-1 text-[10px] font-bold text-blue-600 bg-blue-100 px-2 py-0.5 rounded-full">
+                      <CheckCircle2 className="h-2.5 w-2.5" /> Connected
+                    </span>
+                  ) : (
+                    <p className="text-[10px] text-zinc-400">Receive leads via Telegram bot</p>
+                  )}
+                </div>
+              </div>
+
+              {isTelegramConnected ? (
+                <div className="space-y-1.5">
+                  <p className="text-xs text-zinc-500">
+                    Chat ID: <span className="font-mono font-semibold text-zinc-700">{telegramChatId}</span>
+                  </p>
+                  <p className="text-[10px] text-zinc-400">Leads are sent to your Telegram</p>
+                </div>
+              ) : (
+                <div>
+                  <p className="text-xs text-zinc-500 mb-3">
+                    Connect our Telegram bot to get instant lead notifications.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => navigate('/telegram')}
+                    className="w-full py-2.5 rounded-xl text-sm font-semibold flex items-center justify-center gap-2 transition-all bg-[#0088CC] text-white hover:bg-[#006da8] shadow-sm"
+                  >
+                    <Send className="h-4 w-4" />
+                    Connect Telegram
+                    <ExternalLink className="h-3 w-3 opacity-60" />
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
         </section>
 
         {/* ─── Save Button ─── */}
