@@ -14,10 +14,6 @@ import {
   ArrowRight,
   Loader2,
   AlertCircle,
-  Send as SendIcon,
-  BarChart3 as BarChart3Icon,
-  DollarSign as DollarIcon,
-  Zap as ZapIcon,
 } from 'lucide-react'
 import JobDetailPanel from '../components/JobDetailPanel'
 import { useSubscriptionAccess } from '../hooks/useSubscriptionAccess'
@@ -193,58 +189,195 @@ export default function JobsDashboard() {
   if (!canManageSubs) {
     const teaserSteps = [
       {
-        icon: ZapIcon,
-        title: 'Forward Leads as Jobs',
-        description: 'Turn any lead into a job order and assign it to your subcontractor network.',
+        title: 'Your Jobs Dashboard',
+        subtitle: 'Track every forwarded job — status, payments, and sub performance at a glance.',
+        duration: 5000,
         visual: (
-          <div className="bg-white/10 rounded-xl px-4 py-3 text-left border border-white/10">
-            <div className="text-xs text-white/40 mb-1">New Job Order</div>
-            <div className="text-sm font-semibold text-white">Garage Door Install — Osprey, FL</div>
-            <div className="text-xs text-white/50 mt-1">Assigned to: Mike Johnson</div>
+          <div className="max-w-lg mx-auto space-y-3">
+            {/* KPI cards — mirrors our real JobsDashboard */}
+            <div className="grid grid-cols-4 gap-2">
+              {[
+                { label: 'Total Jobs', value: '12', icon: '📋', bg: 'bg-gradient-to-br from-[#fff4ef] to-[#fee8df]', border: 'border-[#fdd5c5]' },
+                { label: 'Active', value: '5', icon: '🔄', bg: 'bg-blue-50', border: 'border-blue-100' },
+                { label: 'Completed', value: '6', icon: '✅', bg: 'bg-green-50', border: 'border-green-100' },
+                { label: 'Revenue', value: '$4.2k', icon: '💰', bg: 'bg-amber-50', border: 'border-amber-100' },
+              ].map((s) => (
+                <div key={s.label} className={`${s.bg} rounded-xl p-3 border ${s.border} shadow-sm`}>
+                  <div className="text-[10px] text-stone-400 mb-1">{s.icon} {s.label}</div>
+                  <div className="text-lg font-extrabold text-stone-800">{s.value}</div>
+                </div>
+              ))}
+            </div>
+
+            {/* Filter tabs */}
+            <div className="bg-white rounded-xl p-2 border border-stone-100 flex gap-1">
+              {['All', 'Pending', 'Active', 'Completed', 'Overdue'].map((t, i) => (
+                <div key={t} className={`px-3 py-1.5 rounded-lg text-[10px] font-bold ${
+                  i === 0 ? 'bg-[#fff4ef] text-[#c43d10] border border-[#fdd5c5]' : 'text-stone-400'
+                }`}>{t}</div>
+              ))}
+            </div>
+
+            {/* Job table */}
+            <div className="bg-white rounded-xl border border-stone-100 shadow-sm overflow-hidden">
+              <table className="w-full text-[11px]">
+                <thead><tr className="border-b border-stone-100 text-stone-400 text-[10px] uppercase tracking-wider">
+                  <th className="px-3 py-2 text-left">Job</th>
+                  <th className="px-3 py-2 text-left">Sub</th>
+                  <th className="px-3 py-2 text-left">Deal</th>
+                  <th className="px-3 py-2 text-left">Status</th>
+                  <th className="px-3 py-2 text-left">Payment</th>
+                </tr></thead>
+                <tbody>
+                  {[
+                    { job: '🏠 Chimney Repair', loc: 'Cordova, TN', sub: 'Mike J.', deal: '20%', status: 'Accepted', sc: 'bg-blue-50 text-blue-700', pay: 'Pending', pc: 'bg-stone-100 text-stone-500' },
+                    { job: '🚪 Garage Door', loc: 'Osprey, FL', sub: 'Sarah C.', deal: '$500', status: 'Completed', sc: 'bg-green-50 text-green-700', pay: 'Paid', pc: 'bg-green-50 text-green-700' },
+                    { job: '🔧 Plumbing Fix', loc: 'Miami, FL', sub: 'Carlos R.', deal: '15%', status: 'In Progress', sc: 'bg-amber-50 text-amber-700', pay: 'Partial', pc: 'bg-amber-50 text-amber-700' },
+                  ].map((r) => (
+                    <tr key={r.job} className="border-b border-stone-50">
+                      <td className="px-3 py-2"><div className="font-medium text-stone-800">{r.job}</div><div className="text-[9px] text-stone-400">{r.loc}</div></td>
+                      <td className="px-3 py-2 text-stone-600">{r.sub}</td>
+                      <td className="px-3 py-2 font-mono text-stone-600">{r.deal}</td>
+                      <td className="px-3 py-2"><span className={`px-1.5 py-0.5 rounded text-[9px] font-bold ${r.sc}`}>{r.status}</span></td>
+                      <td className="px-3 py-2"><span className={`px-1.5 py-0.5 rounded text-[9px] font-bold ${r.pc}`}>{r.pay}</span></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         ),
       },
       {
-        icon: BarChart3Icon,
-        title: 'Track Job Progress',
-        description: 'See every job from assignment to completion with real-time status updates.',
+        title: 'Job Detail Panel',
+        subtitle: 'Click any job to see full details — timeline, financials, and sub info.',
+        duration: 4500,
         visual: (
-          <div className="flex gap-2">
-            {['Pending', 'In Progress', 'Completed'].map((s, i) => (
-              <div key={s} className={`px-3 py-1.5 rounded-lg text-xs font-medium ${
-                i === 2 ? 'bg-green-500/20 text-green-300' : i === 1 ? 'bg-blue-500/20 text-blue-300' : 'bg-white/10 text-white/50'
-              }`}>
-                {s}
+          <div className="max-w-sm mx-auto bg-white rounded-2xl shadow-xl border border-stone-100 overflow-hidden">
+            {/* Header */}
+            <div className="bg-gradient-to-r from-[#fff4ef] to-[#fee8df] px-5 py-4 border-b border-[#fdd5c5]">
+              <div className="flex items-center gap-2 mb-1">
+                <span>🏠</span>
+                <span className="text-sm font-bold text-stone-800">Chimney Repair</span>
+                <span className="px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 text-[9px] font-bold">Accepted</span>
               </div>
-            ))}
+              <div className="text-[10px] text-stone-500">Cordova, TN — 38016</div>
+            </div>
+            {/* Details */}
+            <div className="p-4 space-y-3">
+              <div className="flex justify-between text-xs">
+                <span className="text-stone-400">Subcontractor</span>
+                <span className="font-semibold text-stone-700">Mike Johnson</span>
+              </div>
+              <div className="flex justify-between text-xs">
+                <span className="text-stone-400">Deal</span>
+                <span className="font-semibold text-stone-700">20% of job value</span>
+              </div>
+              <div className="flex justify-between text-xs">
+                <span className="text-stone-400">Job Amount</span>
+                <span className="font-bold text-green-600">$1,200</span>
+              </div>
+              <div className="flex justify-between text-xs">
+                <span className="text-stone-400">Your Earnings</span>
+                <span className="font-bold text-[#e04d1c]">$240</span>
+              </div>
+              <div className="border-t border-stone-100 pt-3">
+                <div className="text-[10px] font-semibold text-stone-500 uppercase tracking-wider mb-2">Timeline</div>
+                <div className="space-y-2">
+                  {[
+                    { label: 'Created', time: 'Mar 15, 2:15 PM', icon: '📤' },
+                    { label: 'Viewed by sub', time: 'Mar 15, 2:20 PM', icon: '👁' },
+                    { label: 'Accepted', time: 'Mar 15, 2:22 PM', icon: '✅' },
+                  ].map((e) => (
+                    <div key={e.label} className="flex items-center gap-2 text-[10px]">
+                      <span>{e.icon}</span>
+                      <span className="font-medium text-stone-700">{e.label}</span>
+                      <span className="text-stone-400 ml-auto">{e.time}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
           </div>
         ),
       },
       {
-        icon: DollarIcon,
-        title: 'Financial Tracking',
-        description: 'Monitor payments, revenue splits, and overdue invoices all in one place.',
+        title: 'Financial Overview',
+        subtitle: 'Track revenue, payments, and overdue invoices across all your jobs.',
+        duration: 4500,
         visual: (
-          <div className="grid grid-cols-2 gap-2">
-            <div className="bg-white/10 rounded-lg px-3 py-2 border border-white/10">
-              <div className="text-lg font-bold text-green-400">$12.4k</div>
-              <div className="text-[10px] text-white/50">Total Revenue</div>
+          <div className="max-w-md mx-auto space-y-3">
+            {/* Revenue summary */}
+            <div className="bg-white rounded-xl p-4 border border-stone-100 shadow-sm">
+              <div className="text-[10px] text-stone-400 uppercase tracking-wider mb-3">Revenue Summary</div>
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <div className="text-xl font-extrabold text-stone-800">$12.4k</div>
+                  <div className="text-[10px] text-stone-400">Total Revenue</div>
+                </div>
+                <div>
+                  <div className="text-xl font-extrabold text-green-600">$8.2k</div>
+                  <div className="text-[10px] text-stone-400">Collected</div>
+                </div>
+                <div>
+                  <div className="text-xl font-extrabold text-red-500">$1.8k</div>
+                  <div className="text-[10px] text-stone-400">Overdue</div>
+                </div>
+              </div>
             </div>
-            <div className="bg-white/10 rounded-lg px-3 py-2 border border-white/10">
-              <div className="text-lg font-bold text-blue-400">8</div>
-              <div className="text-[10px] text-white/50">Active Jobs</div>
+            {/* Payment table */}
+            <div className="bg-white rounded-xl border border-stone-100 shadow-sm overflow-hidden">
+              <table className="w-full text-[11px]">
+                <thead><tr className="border-b border-stone-100 text-stone-400 text-[10px] uppercase tracking-wider">
+                  <th className="px-3 py-2 text-left">Job</th>
+                  <th className="px-3 py-2 text-left">Amount</th>
+                  <th className="px-3 py-2 text-left">Your Cut</th>
+                  <th className="px-3 py-2 text-left">Status</th>
+                </tr></thead>
+                <tbody>
+                  {[
+                    { job: '🏠 Chimney', amount: '$1,200', cut: '$240', status: 'Paid', sc: 'bg-green-50 text-green-700' },
+                    { job: '🚪 Garage Door', amount: '$2,500', cut: '$500', status: 'Paid', sc: 'bg-green-50 text-green-700' },
+                    { job: '🔧 Plumbing', amount: '$800', cut: '$120', status: 'Overdue', sc: 'bg-red-50 text-red-600' },
+                  ].map((r) => (
+                    <tr key={r.job} className="border-b border-stone-50">
+                      <td className="px-3 py-2 font-medium text-stone-700">{r.job}</td>
+                      <td className="px-3 py-2 text-stone-600">{r.amount}</td>
+                      <td className="px-3 py-2 font-bold text-[#e04d1c]">{r.cut}</td>
+                      <td className="px-3 py-2"><span className={`px-1.5 py-0.5 rounded text-[9px] font-bold ${r.sc}`}>{r.status}</span></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           </div>
         ),
       },
       {
-        icon: SendIcon,
         title: 'Sub Portal Access',
-        description: 'Subs get their own portal to view, accept, and update jobs — no app needed.',
+        subtitle: 'Your subs get a one-click portal to view, accept, and update jobs.',
+        duration: 4500,
         visual: (
-          <div className="bg-white/10 rounded-xl px-4 py-3 border border-white/10 text-center">
-            <div className="text-sm font-semibold text-white mb-1">🔗 Subcontractor Portal</div>
-            <div className="text-xs text-white/50">One-click link via WhatsApp</div>
+          <div className="max-w-sm mx-auto bg-white rounded-2xl shadow-xl border border-stone-100 overflow-hidden">
+            {/* Portal mockup */}
+            <div className="bg-gradient-to-r from-[#fe5b25] to-[#e04d1c] px-5 py-4">
+              <div className="text-white/60 text-[10px] font-bold uppercase tracking-wider">Subcontractor Portal</div>
+              <div className="text-white text-lg font-bold mt-1">New Job Offer</div>
+            </div>
+            <div className="p-4 space-y-3">
+              <div className="bg-stone-50 rounded-xl p-3 border border-stone-100">
+                <div className="text-xs font-medium text-stone-800 mb-1">🏠 Chimney Repair</div>
+                <div className="text-[10px] text-stone-500">📍 Cordova, TN — 1766 Black Bear Circle</div>
+                <div className="text-[10px] text-stone-500 mt-1">💰 Deal: 20% of job value</div>
+              </div>
+              <div className="flex gap-2">
+                <button className="flex-1 py-2.5 rounded-xl bg-green-500 text-white text-xs font-bold shadow-sm">✅ Accept Job</button>
+                <button className="flex-1 py-2.5 rounded-xl bg-stone-100 text-stone-500 text-xs font-bold">Decline</button>
+              </div>
+              <div className="text-center text-[9px] text-stone-400">
+                Sent via MasterLeadFlow • No account needed
+              </div>
+            </div>
           </div>
         ),
       },
