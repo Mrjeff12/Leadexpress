@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from 'react'
+import { useState, useMemo, useCallback, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import {
   BarChart,
@@ -275,7 +275,11 @@ export default function AdminGroupDetail() {
         <MembersTab members={members} groupId={id!} he={he} />
       )}
 
-      {(tab === 'messages' || tab === 'market') && (
+      {tab === 'messages' && (
+        <MessagesTab waGroupId={info.wa_group_id} he={he} />
+      )}
+
+      {tab === 'market' && (
         <div className="glass-panel p-12 text-center">
           <p style={{ color: 'hsl(40 4% 42%)' }}>Coming soon...</p>
         </div>
@@ -394,6 +398,134 @@ function MembersTab({ members, groupId, he }: { members: MemberRow[]; groupId: s
           )}
         </tbody>
       </table>
+    </div>
+  )
+}
+
+/* ── Messages Tab sub-component ─────────────────────── */
+
+interface MessageItem {
+  id: string
+  text: string
+  sender: string | null
+  senderId: string
+  timestamp: number
+  classification: string
+  isLead: boolean
+  profession?: string
+}
+
+function MessagesTab({ waGroupId, he }: { waGroupId: string; he: boolean }) {
+  const [messages, setMessages] = useState<MessageItem[]>([])
+  const [msgLoading, setMsgLoading] = useState(false)
+  const [expanded, setExpanded] = useState<Set<string>>(new Set())
+
+  useEffect(() => {
+    if (!waGroupId) return
+    setMsgLoading(true)
+    const baseUrl = import.meta.env.VITE_WA_LISTENER_URL || 'http://localhost:3001'
+    fetch(`${baseUrl}/api/messages/${waGroupId}?limit=50`)
+      .then((r) => r.json())
+      .then((data) => setMessages(data || []))
+      .catch(() => setMessages([]))
+      .finally(() => setMsgLoading(false))
+  }, [waGroupId])
+
+  const toggleExpand = useCallback((id: string) => {
+    setExpanded((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }, [])
+
+  if (msgLoading) {
+    return (
+      <div className="space-y-3">
+        {[1, 2, 3, 4].map((i) => (
+          <div key={i} className="glass-panel p-4 animate-pulse">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="h-4 w-24 rounded" style={{ background: 'hsl(40 4% 88%)' }} />
+              <div className="h-4 w-16 rounded" style={{ background: 'hsl(40 4% 92%)' }} />
+              <div className="flex-1" />
+              <div className="h-3 w-20 rounded" style={{ background: 'hsl(40 4% 92%)' }} />
+            </div>
+            <div className="h-4 w-3/4 rounded" style={{ background: 'hsl(40 4% 92%)' }} />
+          </div>
+        ))}
+      </div>
+    )
+  }
+
+  if (messages.length === 0) {
+    return (
+      <div className="glass-panel p-12 text-center">
+        <p style={{ color: 'hsl(40 4% 42%)' }}>{he ? 'לא נמצאו הודעות' : 'No messages found'}</p>
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-3">
+      {messages.map((msg) => {
+        const borderColor = msg.isLead
+          ? 'border-emerald-400'
+          : msg.classification === 'seller'
+            ? 'border-red-400'
+            : 'border-gray-200'
+        const cls = classificationStyle[msg.classification] || classificationStyle.unknown
+        const isLong = msg.text && msg.text.length > 200
+        const isExpanded = expanded.has(msg.id)
+        const displayText = isLong && !isExpanded ? msg.text.slice(0, 200) + '...' : msg.text
+
+        return (
+          <div key={msg.id} className={`glass-panel p-4 border-l-4 ${borderColor}`}>
+            {/* Top row */}
+            <div className="flex items-center gap-2 mb-2 flex-wrap">
+              <span className="font-semibold text-sm" style={{ color: 'hsl(40 8% 10%)' }}>
+                {msg.sender || msg.senderId}
+              </span>
+              <span
+                className="inline-block px-2 py-0.5 rounded-full text-xs font-medium"
+                style={{ background: cls.bg, color: cls.text }}
+              >
+                {he ? cls.label_he : cls.label_en}
+              </span>
+              <span className="flex-1" />
+              <span className="text-xs" style={{ color: 'hsl(40 4% 55%)' }}>
+                {new Date(msg.timestamp * 1000).toLocaleString()}
+              </span>
+            </div>
+
+            {/* Body */}
+            <p className="text-sm whitespace-pre-wrap" style={{ color: 'hsl(40 8% 20%)' }}>
+              {displayText}
+            </p>
+            {isLong && (
+              <button
+                onClick={() => toggleExpand(msg.id)}
+                className="text-xs mt-1 underline"
+                style={{ color: 'hsl(220 60% 55%)' }}
+              >
+                {isExpanded ? (he ? 'הצג פחות' : 'Show less') : (he ? 'הצג עוד' : 'Show more')}
+              </button>
+            )}
+
+            {/* Lead badge */}
+            {msg.isLead && (
+              <div className="mt-2">
+                <span
+                  className="inline-block px-2 py-0.5 rounded-full text-xs font-medium"
+                  style={{ background: 'hsl(152 46% 85% / 0.5)', color: 'hsl(155 44% 30%)' }}
+                >
+                  {msg.profession || (he ? 'ליד' : 'Lead')}
+                </span>
+              </div>
+            )}
+          </div>
+        )
+      })}
     </div>
   )
 }
