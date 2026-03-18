@@ -7,7 +7,6 @@ import {
   UserCheck,
   Users,
   Smartphone,
-  Radio,
   MessageSquareText,
   CreditCard,
   TrendingUp,
@@ -23,7 +22,7 @@ import {
   ChevronDown,
   ChevronUp,
 } from 'lucide-react'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 
 type NavItem = {
   label: string
@@ -51,6 +50,11 @@ export default function AdminSidebar() {
   })
   const isRtl = locale === 'he'
 
+  useEffect(() => {
+    if (collapsed) document.body.classList.add('sidebar-collapsed')
+    else document.body.classList.remove('sidebar-collapsed')
+  }, [collapsed])
+
   const he = locale === 'he'
 
   const categories: NavCategory[] = [
@@ -58,6 +62,7 @@ export default function AdminSidebar() {
       key: 'business',
       label: he ? 'ניהול עסקי' : 'Business',
       items: [
+        { label: he ? 'חדר מלחמה' : 'War Room', to: '/admin/inbox', icon: MessageSquareText },
         { label: he ? 'לידים' : 'Leads', to: '/admin/leads', icon: Zap },
         { label: he ? 'פרוספקטים' : 'Prospects', to: '/admin/prospects', icon: UserCheck },
         { label: he ? 'קבלנים' : 'Contractors', to: '/admin/contractors', icon: Users },
@@ -69,7 +74,7 @@ export default function AdminSidebar() {
       label: he ? 'ערוצים' : 'Channels',
       items: [
         { label: he ? 'WhatsApp' : 'WhatsApp', to: '/admin/whatsapp', icon: Smartphone },
-        { label: he ? 'קבוצות' : 'Groups', to: '/admin/groups', icon: Radio },
+        { label: he ? 'קבוצות' : 'Groups', to: '/admin/groups', icon: BarChart3 },
         { label: he ? 'תבניות הודעה' : 'Templates', to: '/admin/message-templates', icon: MessageSquareText },
       ],
     },
@@ -121,33 +126,34 @@ export default function AdminSidebar() {
         WebkitBackdropFilter: 'blur(24px) saturate(140%)',
         borderRight: isRtl ? 'none' : '1px solid hsl(220 8% 93%)',
         borderLeft: isRtl ? '1px solid hsl(220 8% 93%)' : 'none',
-        transition: 'width 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+        transition: 'width 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
+    boxShadow: '20px 0 80px rgba(0,0,0,0.02)',
+  }}
+>
+  {/* Logo */}
+  <div className={`flex items-center gap-3 py-8 border-b border-stone-50 ${collapsed ? 'px-4 justify-center' : 'px-6'}`}>
+    <div
+      className="w-10 h-10 rounded-[12px] flex items-center justify-center font-bold text-white text-[14px] shrink-0 shadow-lg"
+      style={{
+        background: 'linear-gradient(135deg, #007AFF 0%, #00C6FF 100%)',
       }}
     >
-      {/* Logo */}
-      <div className={`flex items-center gap-3 py-6 border-b border-stone-100 ${collapsed ? 'px-4 justify-center' : 'px-5'}`}>
-        <div
-          className="w-9 h-9 rounded-xl flex items-center justify-center font-bold text-white text-[13px] shrink-0 shadow-sm"
-          style={{
-            background: 'linear-gradient(135deg, hsl(155 44% 30%) 0%, hsl(155 50% 38%) 100%)',
-          }}
-        >
-          LE
-        </div>
-        {!collapsed && (
-          <div className="flex flex-col">
-            <span className="text-[15px] font-bold tracking-tight text-stone-800">
-              Lead Express
-            </span>
-            <span className="text-[10px] font-medium text-stone-400 tracking-wide uppercase">
-              {he ? 'פאנל ניהול' : 'Admin Panel'}
-            </span>
-          </div>
-        )}
+      LE
+    </div>
+    {!collapsed && (
+      <div className="flex flex-col">
+        <span className="text-[16px] font-bold tracking-tight text-black">
+          Lead Express
+        </span>
+        <span className="text-[10px] font-bold text-stone-400 tracking-widest uppercase">
+          {he ? 'פאנל ניהול' : 'Admin Panel'}
+        </span>
       </div>
+    )}
+  </div>
 
-      {/* Nav */}
-      <nav className="flex-1 overflow-y-auto no-scrollbar px-3 py-4 space-y-1">
+  {/* Nav */}
+  <nav className="flex-1 overflow-y-auto no-scrollbar px-4 py-6 space-y-1.5">
         {/* Dashboard standalone link */}
         <NavLink
           to="/admin"
