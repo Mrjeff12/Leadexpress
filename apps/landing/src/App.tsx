@@ -10,6 +10,7 @@ import WorkflowSection from './components/WorkflowSection'
 import FeaturesSection from './components/FeaturesSection'
 import FeatureGrid from './components/FeatureGrid'
 import MarketingSection from './components/MarketingSection'
+import SubcontractorFeature from './components/SubcontractorFeature'
 import TestimonialsSection from './components/TestimonialsSection'
 import PricingSection from './components/PricingSection'
 import FAQSection from './components/FAQSection'
@@ -31,6 +32,7 @@ export default function App() {
         <FeaturesSection />
         {/* <FeatureGrid /> */}
         {/* <MarketingSection /> */}
+        <SubcontractorFeature />
         <TestimonialsSection />
         <PricingSection />
         <FAQSection />

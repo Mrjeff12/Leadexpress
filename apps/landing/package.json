@@ -9,10 +9,13 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@remotion/player": "4.0.436",
+    "@remotion/transitions": "4.0.436",
+    "lucide-react": "^0.539.0",
+    "motion": "^12.12.1",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
-    "lucide-react": "^0.539.0",
-    "motion": "^12.12.1"
+    "remotion": "4.0.436"
   },
   "devDependencies": {
     "@types/react": "^19.1.10",
