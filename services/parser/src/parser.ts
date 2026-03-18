@@ -19,6 +19,7 @@ const PROFESSIONS = [
 
 const ParsedLeadSchema = z.object({
   is_lead: z.boolean(),
+  message_type: z.enum(['lead_publication', 'contractor_response', 'chat']).catch('chat'),
   profession: z.enum(PROFESSIONS).catch('other'),
   zip_code: z.string().regex(/^\d{5}$/).nullable().catch(null),
   city: z.string().nullable().catch(null),
@@ -41,6 +42,19 @@ Extract the following from this WhatsApp group message:
   • Lead buyers/sellers ("looking for leads", "מחפש מפרסמים", "quality leads")
   • General chat, memes, greetings, religious messages, group rules
   • Contractors offering their availability ("I have a vehicle and equipment", "אני נותן רכב")
+- message_type: one of "lead_publication", "contractor_response", "chat"
+  • "lead_publication": Someone posting a JOB or LEAD to the group — includes location, profession, time window. Examples:
+    - "California 95301, Chimney, Wed 2-4pm, Who can take?"
+    - "Fort Walton Beach FL 32548, 3 AC units, full duct cleaning, Tomorrow 3-5"
+    - "32539\nGarage\nToday\nK?"
+    These ARE leads (is_lead = true).
+  • "contractor_response": Someone RESPONDING to a posted job — short replies indicating interest. Examples:
+    - "K?", "I'll take it", "Interested", "DM me", "Mine", "How much?"
+    - "אני לוקח", "שלי", "מעוניין"
+    - Any reply quoting a job posting
+    These are NOT leads (is_lead = false) but are valuable contractor signals.
+  • "chat": General conversation, greetings, questions, memes, group rules, recruiting, service ads, job seeking.
+    These are NOT leads (is_lead = false).
 - profession: one of [${PROFESSIONS.filter(p => p !== 'not_a_lead').map(p => `"${p}"`).join(', ')}]
   Use the MOST SPECIFIC profession. Examples:
   - "chimney sweep" / "צ׳ימני" / "ארובה" → "chimney"
@@ -86,15 +100,20 @@ const openai = new OpenAI({ apiKey: config.openai.apiKey });
 export async function parseMessage(
   text: string,
   log: Logger,
+  quotedText?: string | null,
 ): Promise<{ parsed: ParsedLead; usage: OpenAI.CompletionUsage | undefined; durationMs: number }> {
   const start = performance.now();
+
+  const userMessage = quotedText
+    ? `[Replying to: "${quotedText.slice(0, 200)}"]\n\n${text}`
+    : text;
 
   const response = await openai.chat.completions.create({
     model: config.openai.model,
     response_format: { type: 'json_object' },
     messages: [
       { role: 'system', content: SYSTEM_PROMPT },
-      { role: 'user', content: text },
+      { role: 'user', content: userMessage },
     ],
     temperature: 0.1,
     max_tokens: 512,
