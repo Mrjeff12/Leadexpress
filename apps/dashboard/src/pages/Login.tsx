@@ -12,8 +12,6 @@ export default function Login() {
   const isRtl = locale === 'he'
   const [searchParams] = useSearchParams()
 
-  if (!authLoading && user) return <Navigate to="/" replace />
-
   const initialMode = searchParams.get('mode') === 'signup' ? 'signup' : 'login'
   const [mode, setMode] = useState<Mode>(initialMode)
   const [email, setEmail] = useState('')
@@ -22,6 +20,8 @@ export default function Login() {
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+
+  if (!authLoading && user) return <Navigate to="/" replace />
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
