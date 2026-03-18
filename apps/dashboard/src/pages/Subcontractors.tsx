@@ -6,6 +6,7 @@ import { PROFESSIONS } from '../lib/professions'
 import { Plus, Search, User, Phone, Briefcase, Trash2, Edit2, ArrowRight, Clock, CheckCircle2, XCircle, Send as SendIcon } from 'lucide-react'
 import { useSubscriptionAccess } from '../hooks/useSubscriptionAccess'
 import FeatureTeaser from '../components/FeatureTeaser'
+import { SubcontractorDemo, DEMO_DURATION_FRAMES, DEMO_FPS, DEMO_WIDTH, DEMO_HEIGHT } from '../remotion/SubcontractorDemo'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/shadcn/ui/dialog'
 import { Button } from '../components/shadcn/ui/button'
 import { Input } from '../components/shadcn/ui/input'
@@ -128,229 +129,18 @@ export default function Subcontractors() {
   const { canManageSubs } = useSubscriptionAccess()
 
   if (!canManageSubs) {
-    const teaserSteps = [
-      {
-        icon: '📨',
-        label: 'Lead',
-        title: 'A New Lead Comes In',
-        subtitle: "You get a lead you can't handle — but your network can.",
-        duration: 5000,
-        visual: (
-          <div className="bg-white rounded-2xl shadow-xl border border-stone-100 overflow-hidden max-w-md mx-auto">
-            {/* Lead card mockup — mirrors our LeadsFeed design */}
-            <div className="flex">
-              {/* Left: time */}
-              <div className="w-28 p-4 bg-black/[0.02] border-r border-black/[0.03] flex flex-col gap-1">
-                <span className="text-xs font-bold text-[#FF3B30]">🔥 Hot</span>
-                <span className="text-[10px] text-stone-400">2 min ago</span>
-                <span className="text-[10px] text-stone-400 mt-2">GENESIS SAS</span>
-              </div>
-              {/* Center: content */}
-              <div className="flex-1 p-4">
-                <div className="flex items-center gap-2 mb-2">
-                  <div className="w-7 h-7 rounded-lg flex items-center justify-center text-sm" style={{ background: '#ea580c15', color: '#ea580c' }}>🏠</div>
-                  <span className="text-xs font-bold" style={{ color: '#ea580c' }}>Chimney</span>
-                </div>
-                <p className="text-sm font-medium text-stone-800 mb-1">Chimney repair requested for tomorrow in Cordova, TN.</p>
-                <div className="flex items-center gap-3 text-[10px] text-stone-400">
-                  <span>📍 Cordova</span>
-                  <span>38016</span>
-                </div>
-              </div>
-              {/* Right: action */}
-              <div className="w-36 p-3 flex flex-col items-center justify-center gap-2">
-                <div className="w-full py-2 rounded-xl bg-[#25D366] text-white text-[11px] font-bold text-center shadow-sm">
-                  💬 Contact
-                </div>
-              </div>
-            </div>
-          </div>
-        ),
-      },
-      {
-        icon: '👤',
-        label: 'Sub',
-        title: 'Pick a Subcontractor',
-        subtitle: 'Choose from your trusted subs — with their profile and track record.',
-        duration: 4500,
-        visual: (
-          <div className="max-w-md mx-auto space-y-3">
-            {/* Sub card mockup — mirrors our Subcontractors design */}
-            {[
-              { name: 'Mike Johnson', phone: '+1 (305) 555-0147', trade: '🔧 Plumbing', jobs: 3, selected: true },
-              { name: 'Sarah Chen', phone: '+1 (786) 555-0234', trade: '⚡ Electrical', jobs: 2, selected: false },
-            ].map((sub) => (
-              <div key={sub.name} className={`bg-white rounded-xl p-4 flex items-center gap-3 border-2 transition-all ${sub.selected ? 'border-[#fe5b25] shadow-lg shadow-orange-100' : 'border-stone-100'}`}>
-                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#fee8df] to-[#fff4ef] border border-[#fdd5c5] flex items-center justify-center">
-                  <span className="text-sm font-bold text-[#e04d1c]">{sub.name.split(' ').map(n => n[0]).join('')}</span>
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="text-sm font-semibold text-stone-800">{sub.name}</div>
-                  <div className="text-[10px] text-stone-400">{sub.phone}</div>
-                  <div className="flex items-center gap-2 mt-1">
-                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-stone-100 text-stone-500">{sub.trade}</span>
-                    <span className="text-[10px] text-stone-400">{sub.jobs} active jobs</span>
-                  </div>
-                </div>
-                {sub.selected && (
-                  <div className="w-6 h-6 rounded-full bg-[#fe5b25] flex items-center justify-center">
-                    <span className="text-white text-xs">✓</span>
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        ),
-      },
-      {
-        icon: '💬',
-        label: 'Send',
-        title: 'Send via WhatsApp',
-        subtitle: 'A ready-made message is sent with all the lead details and deal terms.',
-        duration: 5000,
-        visual: (
-          <div className="max-w-sm mx-auto">
-            {/* WhatsApp chat mockup */}
-            <div className="bg-[#e5ddd5] rounded-2xl overflow-hidden shadow-xl">
-              {/* Header */}
-              <div className="bg-[#075E54] px-4 py-3 flex items-center gap-3">
-                <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center text-white text-xs font-bold">MJ</div>
-                <div>
-                  <div className="text-white text-sm font-semibold">Mike Johnson</div>
-                  <div className="text-green-200 text-[10px]">online</div>
-                </div>
-              </div>
-              {/* Messages */}
-              <div className="p-3 space-y-2">
-                <div className="bg-[#DCF8C6] rounded-xl rounded-tr-sm px-3 py-2 max-w-[85%] ml-auto shadow-sm">
-                  <p className="text-[11px] text-stone-700 leading-relaxed">
-                    Hey Mike! 👋 Got a chimney repair job for you:<br/><br/>
-                    📍 <b>Cordova, TN — 38016</b><br/>
-                    🏠 1766 Black Bear Circle<br/><br/>
-                    💰 Deal: <b>20% of job value</b><br/><br/>
-                    👉 View & accept: <span className="text-blue-600 underline">portal.masterleadflow.com/j/abc123</span>
-                  </p>
-                  <div className="text-[9px] text-stone-500 text-right mt-1">2:15 PM ✓✓</div>
-                </div>
-                <div className="bg-white rounded-xl rounded-tl-sm px-3 py-2 max-w-[70%] shadow-sm">
-                  <p className="text-[11px] text-stone-700">I'm in! Accepting the deal now 🤝</p>
-                  <div className="text-[9px] text-stone-400 text-right mt-1">2:16 PM</div>
-                </div>
-              </div>
-            </div>
-          </div>
-        ),
-      },
-      {
-        icon: '🤝',
-        label: 'Deal',
-        title: 'Set the Deal Terms',
-        subtitle: 'Choose how you split — percentage, fixed price, or custom.',
-        duration: 4500,
-        visual: (
-          <div className="max-w-sm mx-auto bg-white rounded-2xl shadow-xl border border-stone-100 p-5">
-            {/* Forward modal mockup */}
-            <div className="text-sm font-semibold text-stone-800 mb-3">Forward Lead to Sub</div>
-            <div className="bg-stone-50 rounded-xl p-3 mb-4 border border-stone-100">
-              <div className="flex items-center gap-2">
-                <span className="text-sm">🏠</span>
-                <span className="text-xs font-medium text-stone-700">Chimney Repair — Cordova, TN</span>
-              </div>
-            </div>
-
-            <div className="text-[10px] font-semibold text-stone-500 uppercase tracking-wider mb-2">Deal Type</div>
-            <div className="grid grid-cols-3 gap-2 mb-4">
-              {[
-                { label: 'Percentage', active: true },
-                { label: 'Fixed Price', active: false },
-                { label: 'Custom', active: false },
-              ].map((t) => (
-                <div key={t.label} className={`py-2 px-3 text-[11px] font-medium rounded-xl border text-center ${
-                  t.active
-                    ? 'bg-[#fff4ef] border-[#fdd5c5] text-[#c43d10]'
-                    : 'bg-white border-stone-200 text-stone-500'
-                }`}>{t.label}</div>
-              ))}
-            </div>
-
-            <div className="text-[10px] font-semibold text-stone-500 uppercase tracking-wider mb-2">Your Cut</div>
-            <div className="flex items-center gap-2 mb-4">
-              <div className="flex-1 h-10 px-3 rounded-xl border border-stone-200 flex items-center text-sm font-bold text-stone-800">20</div>
-              <span className="text-sm font-bold text-stone-400">%</span>
-            </div>
-
-            <div className="flex gap-2">
-              <button className="flex-1 py-2.5 rounded-xl bg-[#e04d1c] text-white text-xs font-bold flex items-center justify-center gap-1.5">
-                📤 Send via WhatsApp
-              </button>
-            </div>
-          </div>
-        ),
-      },
-      {
-        icon: '📊',
-        label: 'Track',
-        title: 'Track in Your Jobs Dashboard',
-        subtitle: 'Monitor every job — status, payments, and sub performance.',
-        duration: 5000,
-        visual: (
-          <div className="max-w-lg mx-auto space-y-3">
-            {/* Jobs dashboard mockup — mirrors our JobsDashboard */}
-            <div className="grid grid-cols-4 gap-2">
-              {[
-                { label: 'Total Jobs', value: '12', icon: '📋' },
-                { label: 'Active', value: '5', icon: '🔄' },
-                { label: 'Completed', value: '6', icon: '✅' },
-                { label: 'Revenue', value: '$4.2k', icon: '💰' },
-              ].map((s) => (
-                <div key={s.label} className="bg-white rounded-xl p-3 border border-stone-100 shadow-sm">
-                  <div className="text-[10px] text-stone-400 mb-1">{s.icon} {s.label}</div>
-                  <div className="text-lg font-extrabold text-stone-800">{s.value}</div>
-                </div>
-              ))}
-            </div>
-
-            <div className="bg-white rounded-xl border border-stone-100 shadow-sm overflow-hidden">
-              <table className="w-full text-[11px]">
-                <thead><tr className="border-b border-stone-100 text-stone-400 text-[10px] uppercase tracking-wider">
-                  <th className="px-3 py-2 text-left">Job</th>
-                  <th className="px-3 py-2 text-left">Sub</th>
-                  <th className="px-3 py-2 text-left">Deal</th>
-                  <th className="px-3 py-2 text-left">Status</th>
-                  <th className="px-3 py-2 text-left">Payment</th>
-                </tr></thead>
-                <tbody>
-                  {[
-                    { job: '🏠 Chimney Repair', loc: 'Cordova, TN', sub: 'Mike J.', deal: '20%', status: 'Accepted', statusColor: 'bg-blue-50 text-blue-700', payment: 'Pending', payColor: 'bg-stone-100 text-stone-500' },
-                    { job: '🚪 Garage Door', loc: 'Osprey, FL', sub: 'Sarah C.', deal: '$500', status: 'Completed', statusColor: 'bg-green-50 text-green-700', payment: 'Paid', payColor: 'bg-green-50 text-green-700' },
-                    { job: '🔧 Plumbing', loc: 'Miami, FL', sub: 'Carlos R.', deal: '15%', status: 'In Progress', statusColor: 'bg-amber-50 text-amber-700', payment: 'Partial', payColor: 'bg-amber-50 text-amber-700' },
-                  ].map((r) => (
-                    <tr key={r.job} className="border-b border-stone-50">
-                      <td className="px-3 py-2">
-                        <div className="font-medium text-stone-800">{r.job}</div>
-                        <div className="text-[9px] text-stone-400">{r.loc}</div>
-                      </td>
-                      <td className="px-3 py-2 text-stone-600">{r.sub}</td>
-                      <td className="px-3 py-2 font-mono text-stone-600">{r.deal}</td>
-                      <td className="px-3 py-2"><span className={`px-1.5 py-0.5 rounded text-[9px] font-bold ${r.statusColor}`}>{r.status}</span></td>
-                      <td className="px-3 py-2"><span className={`px-1.5 py-0.5 rounded text-[9px] font-bold ${r.payColor}`}>{r.payment}</span></td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        ),
-      },
-    ]
-
     return (
       <FeatureTeaser
-        steps={teaserSteps}
+        videoComponent={SubcontractorDemo}
+        durationInFrames={DEMO_DURATION_FRAMES}
+        fps={DEMO_FPS}
+        compositionWidth={DEMO_WIDTH}
+        compositionHeight={DEMO_HEIGHT}
         featureName="Manage Your Subcontractors"
         price={399}
         planName="Unlimited"
       >
+        {/* Blurred background mock data */}
         <div className="p-6 space-y-6">
           <div className="grid grid-cols-3 gap-4">
             {[
@@ -363,31 +153,6 @@ export default function Subcontractors() {
                 <div className="text-xs opacity-60">{s.label}</div>
               </div>
             ))}
-          </div>
-          <div className="bg-white rounded-2xl shadow-sm border border-stone-100 overflow-hidden">
-            <table className="w-full text-sm">
-              <thead><tr className="border-b border-stone-100 text-stone-400 text-xs">
-                <th className="px-4 py-3 text-left">Name</th>
-                <th className="px-4 py-3 text-left">Trade</th>
-                <th className="px-4 py-3 text-left">Active Jobs</th>
-                <th className="px-4 py-3 text-left">Status</th>
-              </tr></thead>
-              <tbody>
-                {[
-                  { name: 'Mike Johnson', trade: 'Plumbing', jobs: 3, status: 'Active' },
-                  { name: 'Sarah Chen', trade: 'Electrical', jobs: 2, status: 'Active' },
-                  { name: 'Carlos Rivera', trade: 'HVAC', jobs: 1, status: 'New' },
-                  { name: 'Tom Williams', trade: 'Roofing', jobs: 4, status: 'Active' },
-                ].map((r) => (
-                  <tr key={r.name} className="border-b border-stone-50">
-                    <td className="px-4 py-3 font-medium text-stone-800">{r.name}</td>
-                    <td className="px-4 py-3 text-stone-500">{r.trade}</td>
-                    <td className="px-4 py-3 text-stone-500">{r.jobs}</td>
-                    <td className="px-4 py-3"><span className="px-2 py-0.5 rounded-full bg-green-50 text-green-600 text-xs">{r.status}</span></td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
           </div>
         </div>
       </FeatureTeaser>
