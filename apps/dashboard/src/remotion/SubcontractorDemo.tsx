@@ -151,12 +151,12 @@ function Pipeline({ activeStep }: { activeStep: number }) {
               {isActive && (
                 <div style={{
                   position: 'absolute',
-                  top: -4,
+                  top: -5,
                   left: '50%',
-                  marginLeft: -24,
-                  width: 48,
-                  height: 48,
-                  borderRadius: 14,
+                  marginLeft: -30,
+                  width: 60,
+                  height: 60,
+                  borderRadius: 18,
                   border: '2px solid transparent',
                   borderTopColor: 'rgba(254,91,37,0.6)',
                   borderRightColor: 'rgba(254,91,37,0.3)',
@@ -167,9 +167,9 @@ function Pipeline({ activeStep }: { activeStep: number }) {
               {/* Icon circle */}
               <div
                 style={{
-                  width: 40,
-                  height: 40,
-                  borderRadius: 12,
+                  width: 50,
+                  height: 50,
+                  borderRadius: 16,
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -179,25 +179,25 @@ function Pipeline({ activeStep }: { activeStep: number }) {
                     ? 'rgba(254,91,37,0.15)'
                     : 'rgba(255,255,255,0.05)',
                   boxShadow: isActive
-                    ? `0 4px 20px rgba(254,91,37,${0.3 + glowPulse * 0.2}), inset 0 1px 0 rgba(255,255,255,0.2)`
+                    ? `0 6px 24px rgba(254,91,37,${0.35 + glowPulse * 0.2}), inset 0 1px 0 rgba(255,255,255,0.2)`
                     : isDone
-                    ? '0 2px 8px rgba(254,91,37,0.1)'
+                    ? '0 2px 10px rgba(254,91,37,0.12)'
                     : 'inset 0 0 0 1px rgba(255,255,255,0.06)',
                 }}
               >
                 <StepIcon
                   type={s.type}
                   color={isActive ? '#fff' : isDone ? '#fe5b25' : 'rgba(255,255,255,0.2)'}
-                  size={18}
+                  size={22}
                 />
               </div>
               {/* Label */}
               <span
                 style={{
-                  fontSize: 10,
-                  fontWeight: 600,
-                  letterSpacing: 0.5,
-                  color: isActive ? '#fff' : isDone ? 'rgba(255,255,255,0.5)' : 'rgba(255,255,255,0.18)',
+                  fontSize: 11,
+                  fontWeight: 700,
+                  letterSpacing: 0.8,
+                  color: isActive ? '#fff' : isDone ? 'rgba(255,255,255,0.55)' : 'rgba(255,255,255,0.18)',
                 }}
               >
                 {s.label}
@@ -205,7 +205,7 @@ function Pipeline({ activeStep }: { activeStep: number }) {
             </div>
             {/* Connector */}
             {i < steps.length - 1 && (
-              <div style={{ width: 40, height: 2, margin: '0 2px', marginBottom: 20, position: 'relative' }}>
+              <div style={{ width: 48, height: 2, margin: '0 4px', marginBottom: 24, position: 'relative' }}>
                 <div style={{ position: 'absolute', inset: 0, background: 'rgba(255,255,255,0.06)', borderRadius: 1 }} />
                 <div
                   style={{
@@ -236,14 +236,14 @@ function SceneTitle({ title, subtitle }: { title: string; subtitle: string }) {
     <div style={{ textAlign: 'center', padding: '0 60px', marginBottom: 20 }}>
       <h2
         style={{
-          background: 'linear-gradient(135deg, #ffffff 0%, #e0e0e0 50%, #ffffff 100%)',
+          background: 'linear-gradient(135deg, #ffffff 0%, #d0d0d0 50%, #ffffff 100%)',
           WebkitBackgroundClip: 'text',
           WebkitTextFillColor: 'transparent',
-          fontSize: 28,
+          fontSize: 32,
           fontWeight: 800,
           margin: 0,
-          letterSpacing: -0.8,
-          lineHeight: 1.2,
+          letterSpacing: -1,
+          lineHeight: 1.15,
           opacity: enter,
           transform: `translateY(${interpolate(enter, [0, 1], [12, 0])}px)`,
         }}
@@ -252,12 +252,12 @@ function SceneTitle({ title, subtitle }: { title: string; subtitle: string }) {
       </h2>
       <p
         style={{
-          color: 'rgba(255,255,255,0.35)',
-          fontSize: 13,
+          color: 'rgba(255,255,255,0.4)',
+          fontSize: 14,
           fontWeight: 400,
-          marginTop: 8,
+          marginTop: 10,
           lineHeight: 1.5,
-          letterSpacing: 0.2,
+          letterSpacing: 0.3,
           opacity: subtitleEnter,
           transform: `translateY(${interpolate(subtitleEnter, [0, 1], [8, 0])}px)`,
         }}
