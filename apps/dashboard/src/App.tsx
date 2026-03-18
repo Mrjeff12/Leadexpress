@@ -123,8 +123,8 @@ function AppShell() {
               <Route path="/" element={<RequireSubscription><RequireSetup><ContractorDashboard /></RequireSetup></RequireSubscription>} />
               <Route path="/leads" element={<RequireSubscription><RequireSetup><LeadsFeed /></RequireSetup></RequireSubscription>} />
               <Route path="/group-scan" element={<RequireSubscription><RequireSetup><ContractorGroupScan /></RequireSetup></RequireSubscription>} />
-              <Route path="/subcontractors" element={<RequireSubscription><RequireSetup><Subcontractors /></RequireSetup></RequireSubscription>} />
-              <Route path="/jobs" element={<RequireSubscription><RequireSetup><JobsDashboard /></RequireSetup></RequireSubscription>} />
+              <Route path="/subcontractors" element={<Subcontractors />} />
+              <Route path="/jobs" element={<JobsDashboard />} />
               <Route path="/profile" element={<Profile />} />
               <Route path="/subscription" element={<Subscription />} />
               <Route path="/telegram" element={<RequireSubscription><TelegramConnect /></RequireSubscription>} />
