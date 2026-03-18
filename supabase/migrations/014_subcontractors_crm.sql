@@ -62,46 +62,59 @@ CREATE POLICY job_orders_own ON public.job_orders
 
 -- 5. Public Access RPCs
 CREATE OR REPLACE FUNCTION get_job_order_by_token(token UUID)
-RETURNS TABLE (
-  id UUID,
-  lead_id UUID,
-  contractor_id UUID,
-  subcontractor_id UUID,
-  deal_type TEXT,
-  deal_value TEXT,
-  status TEXT,
-  created_at TIMESTAMPTZ,
-  updated_at TIMESTAMPTZ
-)
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path = public
-AS $$
-BEGIN
-  RETURN QUERY
-  SELECT 
-    jo.id, jo.lead_id, jo.contractor_id, jo.subcontractor_id, 
-    jo.deal_type, jo.deal_value, jo.status, jo.created_at, jo.updated_at
-  FROM public.job_orders jo
-  WHERE jo.access_token = token;
-END;
-$$;
-
-CREATE OR REPLACE FUNCTION update_job_order_status_by_token(token UUID, new_status TEXT)
-RETURNS BOOLEAN
+RETURNS JSON
 LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = public
 AS $$
 DECLARE
-  found_id UUID;
+  result JSON;
 BEGIN
-  UPDATE public.job_orders jo
+  SELECT json_build_object(
+    'id', jo.id,
+    'lead_id', jo.lead_id,
+    'contractor_id', jo.contractor_id,
+    'subcontractor_id', jo.subcontractor_id,
+    'deal_type', jo.deal_type,
+    'deal_value', jo.deal_value,
+    'status', jo.status,
+    'created_at', jo.created_at,
+    'updated_at', jo.updated_at,
+    'contractor_name', COALESCE(p.business_name, p.full_name, 'A contractor'),
+    'lead', json_build_object(
+      'city', l.city,
+      'zip_code', l.zip_code,
+      'urgency', l.urgency,
+      'summary', l.summary,
+      'description', l.description,
+      'sender_id', CASE WHEN jo.status = 'accepted' THEN l.sender_id ELSE NULL END
+    )
+  ) INTO result
+  FROM public.job_orders jo
+  JOIN public.leads l ON jo.lead_id = l.id
+  JOIN public.profiles p ON jo.contractor_id = p.id
+  WHERE jo.access_token = token;
+
+  RETURN result;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION update_job_order_status_by_token(token UUID, new_status TEXT)
+RETURNS JSON
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  result JSON;
+BEGIN
+  UPDATE public.job_orders
   SET status = new_status, responded_at = now()
-  WHERE jo.access_token = token
-  RETURNING jo.id INTO found_id;
+  WHERE access_token = token;
   
-  RETURN found_id IS NOT NULL;
+  SELECT get_job_order_by_token(token) INTO result;
+  
+  RETURN result;
 END;
 $$;
 

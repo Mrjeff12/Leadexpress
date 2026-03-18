@@ -29,7 +29,7 @@ type DealType = 'percentage' | 'fixed_price' | 'custom'
 
 export default function ForwardLeadModal({ lead, isOpen, onClose }: ForwardLeadModalProps) {
   const { user } = useAuth()
-  const { t, locale } = useI18n()
+  const { locale } = useI18n()
   
   const [subcontractors, setSubcontractors] = useState<Subcontractor[]>([])
   const [loadingSubs, setLoadingSubs] = useState(false)

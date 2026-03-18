@@ -14,6 +14,7 @@ import Profile from './pages/Profile'
 import Subscription from './pages/Subscription'
 import TelegramConnect from './pages/TelegramConnect'
 import ServiceSettings from './pages/ServiceSettings'
+import JobPortal from './pages/JobPortal'
 import { Globe } from 'lucide-react'
 
 /* ─── Auth guard ─── */
@@ -125,6 +126,7 @@ function App() {
             </button>
 
             <Routes>
+              <Route path="/portal/job/:token" element={<JobPortal />} />
               <Route path="/login" element={<Login />} />
               <Route path="/admin/*" element={
                 <RequireAuth><RequireAdmin><AdminLayout /></RequireAdmin></RequireAuth>

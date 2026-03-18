@@ -17,8 +17,7 @@ import {
   WifiOff,
   Sparkles,
   Pencil,
-  Send,
-  Lock
+  Send
 } from 'lucide-react'
 import CoverageMap from '../components/settings/CoverageMap'
 import ForwardLeadModal from '../components/ForwardLeadModal'
