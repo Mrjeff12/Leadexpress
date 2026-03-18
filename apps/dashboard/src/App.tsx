@@ -5,6 +5,7 @@ import { I18nContext, createTranslator, isRtl, type Locale } from './lib/i18n'
 import { Toaster } from './components/shadcn/ui/toaster'
 import { GlobalNotificationListener } from './components/GlobalNotificationListener'
 import Sidebar from './components/Sidebar'
+import ImpersonationBanner from './components/ImpersonationBanner'
 import AdminLayout from './components/AdminLayout'
 import Login from './pages/Login'
 import ContractorDashboard from './pages/ContractorDashboard'
@@ -52,16 +53,17 @@ function LoadingScreen() {
 
 /* ─── App Shell (authenticated pages — contractor only) ─── */
 function AppShell() {
-  const { isAdmin } = useAuth()
+  const { isAdmin, impersonatedUserId } = useAuth()
   const location = useLocation()
   const isFullBleed = location.pathname === '/'
 
-  if (isAdmin) return <Navigate to="/admin" replace />
+  if (isAdmin && !impersonatedUserId) return <Navigate to="/admin" replace />
 
   return (
     <div className="min-h-screen">
       <div className="le-bg" />
       <div className="le-grain" />
+      <ImpersonationBanner />
       <Sidebar />
       <main className="relative transition-all duration-300"
         style={{ paddingInlineStart: 240 }}>
