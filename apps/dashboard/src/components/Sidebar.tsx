@@ -12,6 +12,7 @@ import {
   Briefcase,
   Settings,
   CreditCard,
+  Lock,
 } from 'lucide-react'
 import { useState, useEffect } from 'react'
 
@@ -19,6 +20,7 @@ type NavItem = {
   label: string
   to: string
   icon: React.ComponentType<{ className?: string }>
+  locked?: boolean
 }
 
 export default function Sidebar() {
@@ -38,10 +40,8 @@ export default function Sidebar() {
     { label: t('nav.dashboard'), to: '/', icon: LayoutDashboard },
     { label: t('nav.leads'), to: '/leads', icon: Zap },
     { label: locale === 'he' ? 'קבוצות לסריקה' : 'Group Scan', to: '/group-scan', icon: Users },
-    ...(canManageSubs ? [
-      { label: t('nav.subcontractors'), to: '/subcontractors', icon: Users },
-      { label: locale === 'he' ? 'עבודות' : 'Jobs', to: '/jobs', icon: Briefcase },
-    ] : []),
+    { label: t('nav.subcontractors'), to: '/subcontractors', icon: Users, locked: !canManageSubs },
+    { label: locale === 'he' ? 'עבודות' : 'Jobs', to: '/jobs', icon: Briefcase, locked: !canManageSubs },
   ]
 
   const CollapseIcon = isRtl
@@ -71,17 +71,10 @@ export default function Sidebar() {
     >
       {/* Logo */}
       <div className={`flex items-center gap-3 py-6 border-b border-stone-100 ${collapsed ? 'px-4 justify-center' : 'px-5'}`}>
-        <div
-          className="w-9 h-9 rounded-xl flex items-center justify-center font-bold text-white text-[13px] shrink-0 shadow-sm"
-          style={{
-            background: 'linear-gradient(135deg, #fe5b25 0%, #e04d1c 100%)',
-          }}
-        >
-          LE
-        </div>
+        <img src="/icon.png" alt="MasterLeadFlow" className="w-9 h-9 rounded-xl shrink-0 shadow-sm" />
         {!collapsed && (
           <span className="text-[15px] font-bold tracking-tight text-stone-800">
-            Lead Express
+            MasterLeadFlow
           </span>
         )}
       </div>
@@ -104,12 +97,18 @@ export default function Sidebar() {
                 'sidebar-link',
                 isActive ? 'active' : '',
                 collapsed ? 'justify-center px-0' : '',
+                item.locked ? 'opacity-70' : '',
               ].join(' ')
             }}
             title={item.label}
           >
             <item.icon className="w-[18px] h-[18px] shrink-0" />
-            {!collapsed && <span className="truncate">{item.label}</span>}
+            {!collapsed && (
+              <span className="truncate flex items-center gap-1.5">
+                {item.label}
+                {item.locked && <Lock className="w-3 h-3 text-stone-400" />}
+              </span>
+            )}
           </NavLink>
         ))}
       </nav>
