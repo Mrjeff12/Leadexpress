@@ -1,77 +1,88 @@
-import { Fragment, useState } from 'react'
+import { Fragment, useState, useEffect } from 'react'
 import { useI18n } from '../../lib/i18n'
-import { CreditCard, Users, ChevronDown, ChevronUp, Search } from 'lucide-react'
+import { supabase } from '../../lib/supabase'
+import { CreditCard, Users, ChevronDown, ChevronUp, Search, Loader2, ExternalLink } from 'lucide-react'
 
-type PlanType = 'starter' | 'pro' | 'unlimited'
-type SubStatus = 'active' | 'past_due' | 'cancelled'
-type PaymentStatus = 'paid' | 'failed' | 'refunded'
+type PlanSlug = 'starter' | 'pro' | 'unlimited'
+type SubStatus = 'active' | 'past_due' | 'canceled' | 'trialing' | 'paused'
 
-interface Payment {
-  date: string
-  amount: number
-  status: PaymentStatus
-}
-
-interface Subscriber {
+interface SubscriberRow {
   id: string
   name: string
-  plan: PlanType
+  email: string
+  plan: PlanSlug
   status: SubStatus
   fee: number
   joined: string
-  payments: Payment[]
+  current_period_end: string | null
+  stripe_customer_id: string | null
 }
 
-const mockSubscribers: Subscriber[] = [
-  { id: '1', name: 'Carlos Mendez', plan: 'pro', status: 'active', fee: 149, joined: '2025-11-01', payments: [
-    { date: '2026-03-01', amount: 149, status: 'paid' },
-    { date: '2026-02-01', amount: 149, status: 'paid' },
-    { date: '2026-01-01', amount: 149, status: 'paid' },
-  ]},
-  { id: '2', name: 'Sarah Cohen', plan: 'unlimited', status: 'active', fee: 299, joined: '2025-09-15', payments: [
-    { date: '2026-03-01', amount: 299, status: 'paid' },
-    { date: '2026-02-01', amount: 299, status: 'paid' },
-  ]},
-  { id: '3', name: 'Mike Johnson', plan: 'starter', status: 'past_due', fee: 49, joined: '2026-01-10', payments: [
-    { date: '2026-03-01', amount: 49, status: 'failed' },
-    { date: '2026-02-01', amount: 49, status: 'paid' },
-  ]},
-  { id: '4', name: 'David Levy', plan: 'pro', status: 'cancelled', fee: 0, joined: '2025-12-01', payments: [
-    { date: '2026-02-01', amount: 149, status: 'refunded' },
-    { date: '2026-01-01', amount: 149, status: 'paid' },
-  ]},
-  { id: '5', name: 'Rachel Stern', plan: 'starter', status: 'active', fee: 49, joined: '2026-02-20', payments: [
-    { date: '2026-03-01', amount: 49, status: 'paid' },
-  ]},
-  { id: '6', name: 'Tom Baker', plan: 'pro', status: 'active', fee: 149, joined: '2025-10-05', payments: [
-    { date: '2026-03-01', amount: 149, status: 'paid' },
-    { date: '2026-02-01', amount: 149, status: 'paid' },
-  ]},
-]
-
-const statusBadgeClass: Record<SubStatus, string> = {
+const statusBadgeClass: Record<string, string> = {
   active: 'badge badge-green',
+  trialing: 'badge badge-blue',
   past_due: 'badge badge-orange',
-  cancelled: 'badge badge-red',
-}
-
-const paymentBadgeClass: Record<PaymentStatus, string> = {
-  paid: 'badge badge-green',
-  failed: 'badge badge-red',
-  refunded: 'badge badge-orange',
+  canceled: 'badge badge-red',
+  paused: 'badge badge-orange',
 }
 
 export default function Subscriptions() {
   const { locale } = useI18n()
   const he = locale === 'he'
 
+  const [subscribers, setSubscribers] = useState<SubscriberRow[]>([])
+  const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
-  const [planFilter, setPlanFilter] = useState<PlanType | 'all'>('all')
+  const [planFilter, setPlanFilter] = useState<PlanSlug | 'all'>('all')
   const [statusFilter, setStatusFilter] = useState<SubStatus | 'all'>('all')
   const [expandedRow, setExpandedRow] = useState<string | null>(null)
 
-  const planLabel = (plan: PlanType): string => {
-    const labels: Record<PlanType, { en: string; he: string }> = {
+  useEffect(() => {
+    async function load() {
+      const { data, error } = await supabase
+        .from('subscriptions')
+        .select(`
+          id,
+          status,
+          created_at,
+          current_period_end,
+          stripe_customer_id,
+          plans ( slug, name, price_cents ),
+          profiles ( full_name, id )
+        `)
+        .order('created_at', { ascending: false })
+
+      if (error) {
+        console.error('Failed to load subscriptions:', error)
+        setLoading(false)
+        return
+      }
+
+      const rows: SubscriberRow[] = (data || []).map((row: any) => {
+        const plan = row.plans as any
+        const profile = row.profiles as any
+        return {
+          id: row.id,
+          name: profile?.full_name || 'Unknown',
+          email: '',
+          plan: (plan?.slug || 'starter') as PlanSlug,
+          status: (row.status || 'active') as SubStatus,
+          fee: plan ? plan.price_cents / 100 : 0,
+          joined: row.created_at ? new Date(row.created_at).toISOString().split('T')[0] : '',
+          current_period_end: row.current_period_end,
+          stripe_customer_id: row.stripe_customer_id,
+        }
+      })
+
+      setSubscribers(rows)
+      setLoading(false)
+    }
+
+    load()
+  }, [])
+
+  const planLabel = (plan: PlanSlug): string => {
+    const labels: Record<PlanSlug, { en: string; he: string }> = {
       starter: { en: 'Starter', he: 'סטארטר' },
       pro: { en: 'Pro', he: 'פרו' },
       unlimited: { en: 'Unlimited', he: 'ללא הגבלה' },
@@ -82,39 +93,41 @@ export default function Subscriptions() {
   const statusLabel = (status: SubStatus): string => {
     const labels: Record<SubStatus, { en: string; he: string }> = {
       active: { en: 'Active', he: 'פעיל' },
+      trialing: { en: 'Trial', he: 'ניסיון' },
       past_due: { en: 'Past Due', he: 'באיחור' },
-      cancelled: { en: 'Cancelled', he: 'מבוטל' },
+      canceled: { en: 'Canceled', he: 'מבוטל' },
+      paused: { en: 'Paused', he: 'מושהה' },
     }
     return he ? labels[status].he : labels[status].en
   }
 
-  const paymentStatusLabel = (status: PaymentStatus): string => {
-    const labels: Record<PaymentStatus, { en: string; he: string }> = {
-      paid: { en: 'Paid', he: 'שולם' },
-      failed: { en: 'Failed', he: 'נכשל' },
-      refunded: { en: 'Refunded', he: 'הוחזר' },
-    }
-    return he ? labels[status].he : labels[status].en
-  }
-
-  const filtered = mockSubscribers.filter((s) => {
+  const filtered = subscribers.filter((s) => {
     if (planFilter !== 'all' && s.plan !== planFilter) return false
     if (statusFilter !== 'all' && s.status !== statusFilter) return false
     if (search && !s.name.toLowerCase().includes(search.toLowerCase())) return false
     return true
   })
 
-  const totalSubscribers = mockSubscribers.length
-  const starterCount = mockSubscribers.filter((s) => s.plan === 'starter').length
-  const proCount = mockSubscribers.filter((s) => s.plan === 'pro').length
-  const unlimitedCount = mockSubscribers.filter((s) => s.plan === 'unlimited').length
+  const totalSubscribers = subscribers.length
+  const activeCount = subscribers.filter((s) => s.status === 'active' || s.status === 'trialing').length
+  const starterCount = subscribers.filter((s) => s.plan === 'starter').length
+  const proCount = subscribers.filter((s) => s.plan === 'pro').length
+  const unlimitedCount = subscribers.filter((s) => s.plan === 'unlimited').length
 
   const kpis = [
     { label: he ? 'סה"כ מנויים' : 'Total Subscribers', value: totalSubscribers, icon: Users },
-    { label: he ? 'מסלול סטארטר' : 'Starter Plan', value: starterCount, icon: CreditCard },
+    { label: he ? 'פעילים' : 'Active', value: activeCount, icon: CreditCard },
     { label: he ? 'מסלול פרו' : 'Pro Plan', value: proCount, icon: CreditCard },
     { label: he ? 'מסלול ללא הגבלה' : 'Unlimited Plan', value: unlimitedCount, icon: CreditCard },
   ]
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="h-8 w-8 animate-spin" style={{ color: '#5a8a5e' }} />
+      </div>
+    )
+  }
 
   return (
     <div className="animate-fade-in space-y-8" style={{ fontFamily: 'Outfit, sans-serif' }}>
@@ -124,7 +137,7 @@ export default function Subscriptions() {
           {he ? 'מנויים וחיובים' : 'Subscriptions & Billing'}
         </h1>
         <p className="mt-1 text-sm" style={{ color: '#6b7c6e' }}>
-          {he ? 'ניהול מנויים ותשלומים' : 'Manage contractor plans and payments'}
+          {he ? 'נתונים אמיתיים מ-Stripe' : 'Live data from Stripe'}
         </p>
       </header>
 
@@ -150,7 +163,6 @@ export default function Subscriptions() {
 
       {/* Filters */}
       <div className="flex flex-wrap items-center gap-3">
-        {/* Search */}
         <div className="relative flex-1 min-w-[200px] max-w-xs">
           <Search className="absolute top-1/2 -translate-y-1/2 h-4 w-4" style={{ color: '#9ca89e', left: he ? 'auto' : '0.75rem', right: he ? '0.75rem' : 'auto' }} />
           <input
@@ -169,10 +181,9 @@ export default function Subscriptions() {
           />
         </div>
 
-        {/* Plan filter */}
         <select
           value={planFilter}
-          onChange={(e) => setPlanFilter(e.target.value as PlanType | 'all')}
+          onChange={(e) => setPlanFilter(e.target.value as PlanSlug | 'all')}
           className="rounded-xl border text-sm py-2 px-3"
           style={{ borderColor: '#e0e4e0', color: '#2d3a2e', fontFamily: 'Outfit, sans-serif' }}
         >
@@ -182,7 +193,6 @@ export default function Subscriptions() {
           <option value="unlimited">{he ? 'ללא הגבלה' : 'Unlimited'}</option>
         </select>
 
-        {/* Status filter */}
         <select
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value as SubStatus | 'all')}
@@ -191,8 +201,9 @@ export default function Subscriptions() {
         >
           <option value="all">{he ? 'כל הסטטוסים' : 'All Statuses'}</option>
           <option value="active">{he ? 'פעיל' : 'Active'}</option>
+          <option value="trialing">{he ? 'ניסיון' : 'Trial'}</option>
           <option value="past_due">{he ? 'באיחור' : 'Past Due'}</option>
-          <option value="cancelled">{he ? 'מבוטל' : 'Cancelled'}</option>
+          <option value="canceled">{he ? 'מבוטל' : 'Canceled'}</option>
         </select>
       </div>
 
@@ -215,7 +226,10 @@ export default function Subscriptions() {
                   {he ? 'תשלום חודשי' : 'Monthly Fee'}
                 </th>
                 <th className="text-left px-5 py-3 font-semibold text-xs uppercase tracking-wider" style={{ color: '#9ca89e' }}>
-                  {he ? 'תאריך הצטרפות' : 'Joined Date'}
+                  {he ? 'תאריך הצטרפות' : 'Joined'}
+                </th>
+                <th className="text-left px-5 py-3 font-semibold text-xs uppercase tracking-wider" style={{ color: '#9ca89e' }}>
+                  {he ? 'סיום תקופה' : 'Period End'}
                 </th>
                 <th className="px-5 py-3 w-10" />
               </tr>
@@ -235,13 +249,16 @@ export default function Subscriptions() {
                         <span className="badge badge-blue">{planLabel(sub.plan)}</span>
                       </td>
                       <td className="px-5 py-3.5">
-                        <span className={statusBadgeClass[sub.status]}>{statusLabel(sub.status)}</span>
+                        <span className={statusBadgeClass[sub.status] || 'badge'}>{statusLabel(sub.status)}</span>
                       </td>
                       <td className="px-5 py-3.5" style={{ color: '#2d3a2e' }}>
-                        ${sub.fee}
+                        ${sub.fee}/mo
                       </td>
                       <td className="px-5 py-3.5" style={{ color: '#6b7c6e' }}>
                         {sub.joined}
+                      </td>
+                      <td className="px-5 py-3.5" style={{ color: '#6b7c6e' }}>
+                        {sub.current_period_end ? new Date(sub.current_period_end).toLocaleDateString() : '—'}
                       </td>
                       <td className="px-5 py-3.5">
                         {isExpanded ? (
@@ -253,39 +270,31 @@ export default function Subscriptions() {
                     </tr>
                     {isExpanded && (
                       <tr>
-                        <td colSpan={6} className="px-5 py-4" style={{ backgroundColor: '#fafbfa' }}>
-                          <div className="ml-2">
-                            <p className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: '#9ca89e' }}>
-                              {he ? 'היסטוריית תשלומים' : 'Payment History'}
+                        <td colSpan={7} className="px-5 py-4" style={{ backgroundColor: '#fafbfa' }}>
+                          <div className="ml-2 space-y-2">
+                            <p className="text-xs" style={{ color: '#6b7c6e' }}>
+                              <strong>Stripe Customer:</strong>{' '}
+                              {sub.stripe_customer_id ? (
+                                <a
+                                  href={`https://dashboard.stripe.com/customers/${sub.stripe_customer_id}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="inline-flex items-center gap-1 underline"
+                                  style={{ color: '#5a8a5e' }}
+                                >
+                                  {sub.stripe_customer_id}
+                                  <ExternalLink className="h-3 w-3" />
+                                </a>
+                              ) : (
+                                <span style={{ color: '#9ca89e' }}>No Stripe customer</span>
+                              )}
                             </p>
-                            <table className="w-full text-sm">
-                              <thead>
-                                <tr style={{ borderBottom: '1px solid #e8eae8' }}>
-                                  <th className="text-left pb-2 text-xs font-medium" style={{ color: '#9ca89e' }}>
-                                    {he ? 'תאריך' : 'Date'}
-                                  </th>
-                                  <th className="text-left pb-2 text-xs font-medium" style={{ color: '#9ca89e' }}>
-                                    {he ? 'סכום' : 'Amount'}
-                                  </th>
-                                  <th className="text-left pb-2 text-xs font-medium" style={{ color: '#9ca89e' }}>
-                                    {he ? 'סטטוס' : 'Status'}
-                                  </th>
-                                </tr>
-                              </thead>
-                              <tbody>
-                                {sub.payments.map((p, idx) => (
-                                  <tr key={idx} style={{ borderBottom: '1px solid #f0f2f0' }}>
-                                    <td className="py-2" style={{ color: '#6b7c6e' }}>{p.date}</td>
-                                    <td className="py-2" style={{ color: '#2d3a2e' }}>${p.amount}</td>
-                                    <td className="py-2">
-                                      <span className={paymentBadgeClass[p.status]}>
-                                        {paymentStatusLabel(p.status)}
-                                      </span>
-                                    </td>
-                                  </tr>
-                                ))}
-                              </tbody>
-                            </table>
+                            <p className="text-xs" style={{ color: '#6b7c6e' }}>
+                              <strong>{he ? 'מסלול:' : 'Plan:'}</strong> {planLabel(sub.plan)} — ${sub.fee}/mo
+                            </p>
+                            <p className="text-xs" style={{ color: '#6b7c6e' }}>
+                              <strong>{he ? 'סטטוס:' : 'Status:'}</strong> {statusLabel(sub.status)}
+                            </p>
                           </div>
                         </td>
                       </tr>
@@ -295,8 +304,8 @@ export default function Subscriptions() {
               })}
               {filtered.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="px-5 py-12 text-center" style={{ color: '#9ca89e' }}>
-                    {he ? 'לא נמצאו תוצאות' : 'No results found'}
+                  <td colSpan={7} className="px-5 py-12 text-center" style={{ color: '#9ca89e' }}>
+                    {he ? 'לא נמצאו מנויים' : 'No subscribers found'}
                   </td>
                 </tr>
               )}
