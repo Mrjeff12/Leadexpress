@@ -14,8 +14,14 @@ import {
   ArrowRight,
   Loader2,
   AlertCircle,
+  Send as SendIcon,
+  BarChart3 as BarChart3Icon,
+  DollarSign as DollarIcon,
+  Zap as ZapIcon,
 } from 'lucide-react'
 import JobDetailPanel from '../components/JobDetailPanel'
+import { useSubscriptionAccess } from '../hooks/useSubscriptionAccess'
+import FeatureTeaser from '../components/FeatureTeaser'
 
 /* ───────────────── Types ───────────────── */
 
@@ -181,6 +187,121 @@ export default function JobsDashboard() {
   }, [fetchJobs])
 
   const refetch = () => fetchJobs(false)
+
+  const { canManageSubs } = useSubscriptionAccess()
+
+  if (!canManageSubs) {
+    const teaserSteps = [
+      {
+        icon: ZapIcon,
+        title: 'Forward Leads as Jobs',
+        description: 'Turn any lead into a job order and assign it to your subcontractor network.',
+        visual: (
+          <div className="bg-white/10 rounded-xl px-4 py-3 text-left border border-white/10">
+            <div className="text-xs text-white/40 mb-1">New Job Order</div>
+            <div className="text-sm font-semibold text-white">Garage Door Install — Osprey, FL</div>
+            <div className="text-xs text-white/50 mt-1">Assigned to: Mike Johnson</div>
+          </div>
+        ),
+      },
+      {
+        icon: BarChart3Icon,
+        title: 'Track Job Progress',
+        description: 'See every job from assignment to completion with real-time status updates.',
+        visual: (
+          <div className="flex gap-2">
+            {['Pending', 'In Progress', 'Completed'].map((s, i) => (
+              <div key={s} className={`px-3 py-1.5 rounded-lg text-xs font-medium ${
+                i === 2 ? 'bg-green-500/20 text-green-300' : i === 1 ? 'bg-blue-500/20 text-blue-300' : 'bg-white/10 text-white/50'
+              }`}>
+                {s}
+              </div>
+            ))}
+          </div>
+        ),
+      },
+      {
+        icon: DollarIcon,
+        title: 'Financial Tracking',
+        description: 'Monitor payments, revenue splits, and overdue invoices all in one place.',
+        visual: (
+          <div className="grid grid-cols-2 gap-2">
+            <div className="bg-white/10 rounded-lg px-3 py-2 border border-white/10">
+              <div className="text-lg font-bold text-green-400">$12.4k</div>
+              <div className="text-[10px] text-white/50">Total Revenue</div>
+            </div>
+            <div className="bg-white/10 rounded-lg px-3 py-2 border border-white/10">
+              <div className="text-lg font-bold text-blue-400">8</div>
+              <div className="text-[10px] text-white/50">Active Jobs</div>
+            </div>
+          </div>
+        ),
+      },
+      {
+        icon: SendIcon,
+        title: 'Sub Portal Access',
+        description: 'Subs get their own portal to view, accept, and update jobs — no app needed.',
+        visual: (
+          <div className="bg-white/10 rounded-xl px-4 py-3 border border-white/10 text-center">
+            <div className="text-sm font-semibold text-white mb-1">🔗 Subcontractor Portal</div>
+            <div className="text-xs text-white/50">One-click link via WhatsApp</div>
+          </div>
+        ),
+      },
+    ]
+
+    return (
+      <FeatureTeaser
+        steps={teaserSteps}
+        featureName="Jobs CRM Dashboard"
+        price={399}
+        planName="Unlimited"
+      >
+        <div className="p-6 space-y-6">
+          <div className="grid grid-cols-4 gap-4">
+            {[
+              { label: 'Active Jobs', value: '8', color: 'bg-blue-50 text-blue-600' },
+              { label: 'Completed', value: '24', color: 'bg-green-50 text-green-600' },
+              { label: 'Revenue', value: '$12,400', color: 'bg-orange-50 text-orange-600' },
+              { label: 'Overdue', value: '2', color: 'bg-red-50 text-red-600' },
+            ].map((s) => (
+              <div key={s.label} className={`rounded-2xl p-4 ${s.color}`}>
+                <div className="text-2xl font-bold">{s.value}</div>
+                <div className="text-xs opacity-60">{s.label}</div>
+              </div>
+            ))}
+          </div>
+          <div className="bg-white rounded-2xl shadow-sm border border-stone-100 overflow-hidden">
+            <table className="w-full text-sm">
+              <thead><tr className="border-b border-stone-100 text-stone-400 text-xs">
+                <th className="px-4 py-3 text-left">Job</th>
+                <th className="px-4 py-3 text-left">Sub</th>
+                <th className="px-4 py-3 text-left">Deal</th>
+                <th className="px-4 py-3 text-left">Status</th>
+              </tr></thead>
+              <tbody>
+                {[
+                  { job: 'Chimney Repair', sub: 'Mike Johnson', deal: '$500 fixed', status: 'Active' },
+                  { job: 'Garage Door', sub: 'Sarah Chen', deal: '20%', status: 'Pending' },
+                  { job: 'Lock Change', sub: 'Carlos Rivera', deal: '$200 fixed', status: 'Completed' },
+                  { job: 'HVAC Install', sub: 'Tom Williams', deal: '15%', status: 'Active' },
+                ].map((r) => (
+                  <tr key={r.job} className="border-b border-stone-50">
+                    <td className="px-4 py-3 font-medium text-stone-800">{r.job}</td>
+                    <td className="px-4 py-3 text-stone-500">{r.sub}</td>
+                    <td className="px-4 py-3 text-stone-500">{r.deal}</td>
+                    <td className="px-4 py-3"><span className={`px-2 py-0.5 rounded-full text-xs ${
+                      r.status === 'Completed' ? 'bg-green-50 text-green-600' : r.status === 'Pending' ? 'bg-yellow-50 text-yellow-600' : 'bg-blue-50 text-blue-600'
+                    }`}>{r.status}</span></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </FeatureTeaser>
+    )
+  }
 
   /* ── KPIs ── */
   const totalJobs = jobs.length
