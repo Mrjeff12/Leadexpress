@@ -68,7 +68,7 @@ export default function AdminGroupDetail() {
   const { locale } = useI18n()
   const he = locale === 'he'
 
-  const { info, funnel, activity, members, market, isLoading, isError } = useGroupDetail(id)
+  const { info, funnel, activity, members, market, trends, isLoading, isError } = useGroupDetail(id)
 
   const [tab, setTab] = useState<'overview' | 'members' | 'messages' | 'market'>('overview')
 
@@ -269,6 +269,55 @@ export default function AdminGroupDetail() {
               </ResponsiveContainer>
             </div>
           )}
+
+          {/* Seasonal Trends */}
+          {trends && trends.length > 0 && (() => {
+            const professions = [...new Set(trends.map(t => t.profession))].sort()
+            const months = [...new Set(trends.map(t => t.month))].sort()
+
+            if (months.length < 2) return null
+
+            const chartData = months.map(month => {
+              const row: Record<string, any> = { month: month.slice(5) }
+              professions.forEach(p => {
+                const entry = trends.find(t => t.month === month && t.profession === p)
+                row[p] = entry?.count || 0
+              })
+              return row
+            })
+
+            const colors = [
+              'hsl(220 60% 55%)', 'hsl(155 44% 45%)', 'hsl(0 60% 55%)',
+              'hsl(40 80% 50%)', 'hsl(280 60% 55%)', 'hsl(180 60% 40%)',
+            ]
+
+            return (
+              <div className="glass-panel p-5">
+                <h3 className="text-sm font-semibold mb-4" style={{ color: 'hsl(40 8% 10%)' }}>
+                  {he ? 'מגמות עונתיות' : 'Seasonal Trends'}
+                </h3>
+                <ResponsiveContainer width="100%" height={250}>
+                  <AreaChart data={chartData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(40 4% 90%)" />
+                    <XAxis dataKey="month" tick={{ fontSize: 11 }} />
+                    <YAxis tick={{ fontSize: 11 }} />
+                    <Tooltip />
+                    {professions.slice(0, 6).map((prof, i) => (
+                      <Area
+                        key={prof}
+                        type="monotone"
+                        dataKey={prof}
+                        stackId="1"
+                        stroke={colors[i % colors.length]}
+                        fill={colors[i % colors.length]}
+                        fillOpacity={0.3}
+                      />
+                    ))}
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+            )
+          })()}
         </div>
       )}
 
