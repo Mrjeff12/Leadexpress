@@ -1,12 +1,12 @@
 import { ArrowRight, MessageCircle } from 'lucide-react'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useLang } from '../i18n/LanguageContext'
 
 /**
  * OPTION A — Single phone showing the extraction process:
- * 1. WhatsApp group with noisy messages scrolling
- * 2. AI scans → one message highlights green
- * 3. That message "extracts" into a clean lead card
+ * 1. WhatsApp group with noisy messages scrolling in one by one
+ * 2. AI scans → scan line sweeps, lead message highlights + pulses
+ * 3. That message "extracts" into a large lead card with spring animation
  */
 
 const WhatsAppIcon = ({ className = '' }: { className?: string }) => (
@@ -195,23 +195,32 @@ export default function HeroOptionA() {
                           const showName = i === 0 || GROUP_MSGS[i - 1]?.name !== msg.name
                           const isScanning = phase === 'scan' && msg.isLead
                           const isExtracting = phase === 'extract' && msg.isLead
+                          const justAppeared = i === visibleMsgs - 1
 
                           return (
                             <div
                               key={i}
-                              className={`flex justify-start transition-all duration-500 ${
-                                isExtracting ? 'opacity-0 scale-90 -translate-y-2' : ''
-                              }`}
+                              className="flex justify-start"
+                              style={{
+                                animation: justAppeared ? 'msgSlideIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)' : undefined,
+                                opacity: isExtracting ? 0 : 1,
+                                transform: isExtracting ? 'scale(0.85) translateY(-8px)' : 'none',
+                                transition: isExtracting ? 'all 0.6s cubic-bezier(0.4, 0, 0.2, 1)' : 'none',
+                              }}
                             >
                               <div
-                                className={`relative rounded-md shadow-[0_1px_0.5px_rgba(0,0,0,0.13)] px-2 py-0.5 max-w-[82%] transition-all duration-500 ${
-                                  isScanning
-                                    ? 'bg-[#fe5b25]/20 border border-[#fe5b25] scale-105'
-                                    : 'bg-white'
-                                }`}
-                                style={{ borderTopLeftRadius: showName ? '2px' : '6px' }}
+                                className="relative rounded-md shadow-[0_1px_0.5px_rgba(0,0,0,0.13)] px-2 py-0.5 max-w-[82%]"
+                                style={{
+                                  borderTopLeftRadius: showName ? '2px' : '6px',
+                                  background: isScanning
+                                    ? 'linear-gradient(135deg, rgba(254,91,37,0.15), rgba(254,91,37,0.25))'
+                                    : 'white',
+                                  border: isScanning ? '1.5px solid #fe5b25' : '1px solid transparent',
+                                  transform: isScanning ? 'scale(1.06)' : 'scale(1)',
+                                  boxShadow: isScanning ? '0 4px 20px rgba(254,91,37,0.3), 0 0 0 2px rgba(254,91,37,0.1)' : '0 1px 0.5px rgba(0,0,0,0.13)',
+                                  transition: 'all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1)',
+                                }}
                               >
-                                {/* WhatsApp tail */}
                                 {showName && (
                                   <div className="absolute -left-[5px] top-0 w-0 h-0"
                                     style={{ borderTop: '0px solid transparent', borderRight: '5px solid white', borderBottom: '6px solid transparent' }}
@@ -226,10 +235,12 @@ export default function HeroOptionA() {
                                   <span className="text-[9px] text-[#303030] leading-snug">{msg.text}</span>
                                   <span className="text-[6px] text-[#8c8c8c] whitespace-nowrap flex-shrink-0">08:12</span>
                                 </div>
-                                {/* Scanning indicator */}
                                 {isScanning && (
-                                  <div className="absolute -right-1.5 -top-1.5 w-4 h-4 rounded-full bg-[#fe5b25] flex items-center justify-center animate-pulse shadow-lg shadow-[#fe5b25]/40">
-                                    <svg width="8" height="8" viewBox="0 0 24 24" fill="white"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg>
+                                  <div
+                                    className="absolute -right-2 -top-2 w-5 h-5 rounded-full bg-gradient-to-br from-[#fe5b25] to-[#e04d1c] flex items-center justify-center shadow-lg"
+                                    style={{ animation: 'pulseGlow 1s ease-in-out infinite', boxShadow: '0 0 12px rgba(254,91,37,0.6)' }}
+                                  >
+                                    <svg width="10" height="10" viewBox="0 0 24 24" fill="white"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg>
                                   </div>
                                 )}
                               </div>
@@ -237,15 +248,46 @@ export default function HeroOptionA() {
                           )
                         })}
 
-                        {/* Scanning overlay */}
+                        {/* Scan line that sweeps down */}
                         {phase === 'scan' && (
-                          <div className="absolute inset-x-0 bottom-3 flex justify-center">
-                            <div className="bg-[#fe5b25] text-white text-[8px] font-bold px-3 py-1.5 rounded-full shadow-lg animate-pulse flex items-center gap-1.5">
-                              <svg className="w-2.5 h-2.5 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M21 12a9 9 0 11-6.219-8.56" /></svg>
-                              AI scanning messages...
+                          <>
+                            <div
+                              className="absolute inset-x-0 h-[2px] pointer-events-none"
+                              style={{
+                                background: 'linear-gradient(90deg, transparent 0%, #fe5b25 30%, #fe5b25 70%, transparent 100%)',
+                                boxShadow: '0 0 12px 3px rgba(254,91,37,0.4)',
+                                animation: 'scanSweep 1.2s ease-in-out infinite',
+                              }}
+                            />
+                            <div className="absolute inset-x-0 bottom-3 flex justify-center">
+                              <div
+                                className="bg-gradient-to-r from-[#fe5b25] to-[#e04d1c] text-white text-[8px] font-bold px-3.5 py-1.5 rounded-full flex items-center gap-1.5"
+                                style={{ boxShadow: '0 4px 16px rgba(254,91,37,0.4)', animation: 'pulseGlow 1.5s ease-in-out infinite' }}
+                              >
+                                <svg className="w-2.5 h-2.5 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M21 12a9 9 0 11-6.219-8.56" /></svg>
+                                AI scanning messages...
+                              </div>
                             </div>
-                          </div>
+                          </>
                         )}
+
+                        {/* CSS animations */}
+                        <style>{`
+                          @keyframes msgSlideIn {
+                            from { opacity: 0; transform: translateY(12px) scale(0.9); }
+                            to { opacity: 1; transform: translateY(0) scale(1); }
+                          }
+                          @keyframes scanSweep {
+                            0% { top: 10%; opacity: 0; }
+                            20% { opacity: 1; }
+                            80% { opacity: 1; }
+                            100% { top: 85%; opacity: 0; }
+                          }
+                          @keyframes pulseGlow {
+                            0%, 100% { transform: scale(1); box-shadow: 0 0 12px rgba(254,91,37,0.4); }
+                            50% { transform: scale(1.05); box-shadow: 0 0 20px rgba(254,91,37,0.6); }
+                          }
+                        `}</style>
 
                         <div className="absolute bottom-0 inset-x-0 h-10 bg-gradient-to-t from-[#ECE5DD] to-transparent" />
                       </div>
@@ -271,44 +313,84 @@ export default function HeroOptionA() {
                 </div>
               </div>
 
-              {/* Extracted lead card — slides out from phone */}
+              {/* Extracted lead card — dramatic entrance from phone */}
               <div
-                className={`absolute -right-8 md:-right-36 top-1/3 z-20 transition-all duration-700 ${
+                className={`absolute -right-4 md:-right-32 top-[28%] z-20 transition-all ${
                   phase === 'extract'
-                    ? 'opacity-100 translate-x-0 scale-100'
-                    : 'opacity-0 -translate-x-8 scale-75'
+                    ? 'opacity-100 translate-x-0 scale-100 duration-[800ms]'
+                    : 'opacity-0 -translate-x-12 scale-[0.6] duration-500'
                 }`}
                 style={{ transitionTimingFunction: 'cubic-bezier(0.34, 1.56, 0.64, 1)' }}
               >
-                <div className="w-[180px] bg-gradient-to-br from-[#111b21] to-[#1f150d] rounded-xl border border-[#fe5b25]/30 shadow-[0_16px_48px_rgba(254,91,37,0.3)] overflow-hidden">
-                  <div className="h-[2px] bg-gradient-to-r from-transparent via-[#fe5b25] to-transparent animate-pulse" />
-                  <div className="px-2.5 pt-1.5 pb-1 flex items-center gap-1.5 border-b border-[#fe5b25]/10">
-                    <span className="text-xs">🎯</span>
+                <div
+                  className="w-[220px] bg-gradient-to-br from-[#0d1117] to-[#1a0f0a] rounded-2xl border border-[#fe5b25]/20 overflow-hidden"
+                  style={{
+                    boxShadow: phase === 'extract'
+                      ? '0 20px 60px rgba(254,91,37,0.35), 0 0 0 1px rgba(254,91,37,0.1), 0 0 40px rgba(254,91,37,0.15)'
+                      : 'none',
+                  }}
+                >
+                  {/* Animated top bar */}
+                  <div
+                    className="h-[3px]"
+                    style={{
+                      background: 'linear-gradient(90deg, transparent, #fe5b25, #ff8a5c, #fe5b25, transparent)',
+                      backgroundSize: '200% 100%',
+                      animation: phase === 'extract' ? 'shimmer 2s linear infinite' : 'none',
+                    }}
+                  />
+
+                  {/* Header */}
+                  <div className="px-3 pt-2.5 pb-2 flex items-center gap-2 border-b border-[#fe5b25]/10">
+                    <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-[#fe5b25] to-[#e04d1c] flex items-center justify-center">
+                      <span className="text-[11px]">🎯</span>
+                    </div>
                     <div>
-                      <div className="text-[10px] font-bold text-[#fe5b25]">Lead Found!</div>
-                      <div className="text-[7px] text-[#8696a0]">Matched to your profile</div>
+                      <div className="text-[11px] font-bold text-[#fe5b25]">Lead Found!</div>
+                      <div className="text-[8px] text-[#8696a0]">Matched to your profile</div>
                     </div>
                   </div>
-                  <div className="px-2.5 py-1.5 space-y-1">
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-[9px]">📍</span>
-                      <span className="text-[9px] text-[#e9edef]">Miami, FL 33101</span>
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-[9px]">🔧</span>
-                      <span className="text-[9px] text-[#e9edef]">Plumbing — Pipe leak</span>
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-[9px]">💰</span>
-                      <span className="text-[9px] text-[#fe5b25] font-bold">$300–500</span>
-                    </div>
+
+                  {/* Details */}
+                  <div className="px-3 py-2.5 space-y-2">
+                    {[
+                      { icon: '📍', label: 'Miami, FL 33101', color: '#e9edef' },
+                      { icon: '🔧', label: 'Plumbing — Pipe leak', color: '#e9edef' },
+                      { icon: '💰', label: '$300–500', color: '#fe5b25' },
+                    ].map((item, idx) => (
+                      <div
+                        key={idx}
+                        className="flex items-center gap-2"
+                        style={{
+                          animation: phase === 'extract' ? `msgSlideIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) ${0.3 + idx * 0.12}s both` : 'none',
+                        }}
+                      >
+                        <span className="text-[10px]">{item.icon}</span>
+                        <span className="text-[10px] font-medium" style={{ color: item.color }}>{item.label}</span>
+                      </div>
+                    ))}
                   </div>
-                  <div className="px-2.5 pb-1.5">
-                    <div className="bg-[#fe5b25] text-white text-center text-[8px] font-bold py-1.5 rounded-md">
+
+                  {/* CTA */}
+                  <div className="px-3 pb-3">
+                    <div
+                      className="bg-gradient-to-r from-[#fe5b25] to-[#e04d1c] text-white text-center text-[9px] font-bold py-2 rounded-lg"
+                      style={{
+                        boxShadow: '0 4px 12px rgba(254,91,37,0.3)',
+                        animation: phase === 'extract' ? 'pulseGlow 2s ease-in-out infinite 0.8s' : 'none',
+                      }}
+                    >
                       ✅ I'm interested
                     </div>
                   </div>
                 </div>
+
+                <style>{`
+                  @keyframes shimmer {
+                    0% { background-position: -200% 0; }
+                    100% { background-position: 200% 0; }
+                  }
+                `}</style>
               </div>
             </div>
           </div>
