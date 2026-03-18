@@ -229,7 +229,7 @@ export default function AdminGroups() {
           >
             <Activity
               className="w-5 h-5"
-              style={{ color: 'hsl(155 44% 30%)' }}
+              style={{ color: 'hsl(14 99% 57%)' }}
             />
           </div>
           <div>
@@ -423,7 +423,7 @@ export default function AdminGroups() {
                 )
                 const activityColor =
                   activityPct >= 70
-                    ? 'hsl(155 44% 45%)'
+                    ? 'hsl(14 80% 55%)'
                     : activityPct >= 30
                       ? 'hsl(40 80% 50%)'
                       : 'hsl(0 60% 55%)'

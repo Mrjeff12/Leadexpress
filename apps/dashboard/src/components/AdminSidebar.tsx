@@ -136,7 +136,7 @@ export default function AdminSidebar() {
     <div
       className="w-10 h-10 rounded-[12px] flex items-center justify-center font-bold text-white text-[14px] shrink-0 shadow-lg"
       style={{
-        background: 'linear-gradient(135deg, #007AFF 0%, #00C6FF 100%)',
+        background: 'linear-gradient(135deg, #fe5b25 0%, #ff8a5c 100%)',
       }}
     >
       LE

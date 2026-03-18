@@ -11,10 +11,10 @@
     --le-cream:   240 10% 99%;        /* #FBFBFD - Apple Off-White */
     --le-snow:    0 0% 100%;
     --le-sand:    220 8% 93%;
-    --le-forest:  210 100% 50%;       /* #007AFF - Apple Blue */
-    --le-green:   142 71% 45%;        /* Apple Success Green */
-    --le-mint:    142 71% 95%;
-    --le-leaf:    142 71% 98%;
+    --le-forest:  14 99% 57%;          /* #fe5b25 - Brand Orange */
+    --le-green:   14 99% 47%;          /* Brand Orange Dark */
+    --le-mint:    14 99% 95%;
+    --le-leaf:    14 99% 98%;
     --le-bark:    0 0% 0%;            /* Pure Black for text */
     --le-stone:   240 4% 45%;         /* Muted text */
     --le-mist:    240 4% 70%;
@@ -88,8 +88,8 @@
     z-index: -2;
     background: #FBFBFD;
     background-image: 
-      radial-gradient(at 0% 0%, rgba(0, 122, 255, 0.03) 0, transparent 50%), 
-      radial-gradient(at 100% 100%, rgba(0, 198, 255, 0.03) 0, transparent 50%);
+      radial-gradient(at 0% 0%, rgba(254, 91, 37, 0.03) 0, transparent 50%),
+      radial-gradient(at 100% 100%, rgba(255, 138, 92, 0.03) 0, transparent 50%);
   }
 
   .le-grain {
@@ -225,7 +225,7 @@
     letter-spacing: -0.01em;
   }
   .btn-primary:hover {
-    background: hsl(155 44% 26%);
+    background: hsl(14 99% 46%);
     transform: translateY(-1px);
     box-shadow: 0 4px 16px hsl(var(--le-forest) / 0.3);
   }
@@ -283,10 +283,10 @@
     transform: scale(1.1);
   }
   .sidebar-link.active {
-    background: linear-gradient(135deg, #007AFF 0%, #0051D1 100%);
+    background: linear-gradient(135deg, #fe5b25 0%, #e04d1c 100%);
     color: #fff;
     font-weight: 600;
-    box-shadow: 0 8px 20px rgba(0, 122, 255, 0.25);
+    box-shadow: 0 8px 20px rgba(254, 91, 37, 0.25);
   }
   .sidebar-link.active svg {
     color: #fff;

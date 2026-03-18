@@ -153,16 +153,16 @@ const STAGE_CONFIG: Record<PipelineStage, { label: string; labelHe: string; colo
   ai_parsing:      { label: 'AI Parsing...',  labelHe: 'ניתוח AI...',  color: 'hsl(262 60% 55%)', icon: Brain },
   ai_parsed:       { label: 'AI Parsed ✓',   labelHe: 'נותח ✓',       color: 'hsl(262 60% 45%)', icon: Brain },
   no_lead:         { label: 'Not a Lead',     labelHe: 'לא ליד',       color: 'hsl(0 40% 55%)',   icon: EyeOff },
-  lead_created:    { label: 'Lead Created',   labelHe: 'ליד נוצר',     color: 'hsl(155 44% 35%)', icon: Zap },
-  matched:         { label: 'Matched',        labelHe: 'שויך',         color: 'hsl(155 44% 30%)', icon: TrendingUp },
+  lead_created:    { label: 'Lead Created',   labelHe: 'ליד נוצר',     color: 'hsl(14 90% 52%)', icon: Zap },
+  matched:         { label: 'Matched',        labelHe: 'שויך',         color: 'hsl(14 99% 57%)', icon: TrendingUp },
   sent:            { label: 'Sent',           labelHe: 'נשלח',         color: 'hsl(199 70% 40%)', icon: ArrowRight },
-  claimed:         { label: 'Claimed!',       labelHe: 'נתפס!',        color: 'hsl(155 44% 25%)', icon: CheckCircle2 },
+  claimed:         { label: 'Claimed!',       labelHe: 'נתפס!',        color: 'hsl(14 99% 45%)', icon: CheckCircle2 },
   expired:         { label: 'Expired',        labelHe: 'פג תוקף',      color: 'hsl(0 30% 55%)',   icon: Clock },
 }
 
 const SENDER_BADGE: Record<string, { label: string; labelHe: string; color: string; bg: string }> = {
   seller:  { label: 'Seller',  labelHe: 'מוכר',   color: 'hsl(25 80% 40%)',  bg: 'hsl(25 95% 93%)' },
-  buyer:   { label: 'Buyer',   labelHe: 'קונה',    color: 'hsl(155 44% 30%)', bg: 'hsl(152 46% 90%)' },
+  buyer:   { label: 'Buyer',   labelHe: 'קונה',    color: 'hsl(14 99% 57%)', bg: 'hsl(14 99% 93%)' },
   bot:     { label: 'Bot',     labelHe: 'בוט',     color: 'hsl(262 60% 45%)', bg: 'hsl(262 80% 93%)' },
   admin:   { label: 'Admin',   labelHe: 'אדמין',   color: 'hsl(199 70% 35%)', bg: 'hsl(199 89% 93%)' },
   unknown: { label: 'Unknown', labelHe: 'לא ידוע', color: 'hsl(40 4% 55%)',   bg: 'hsl(35 25% 93%)' },
@@ -200,10 +200,10 @@ function DemoQR({ size = 180 }: { size?: number }) {
         const oy = isFinderTL ? 0 : isFinderTR ? 0 : cells - 7
         const lx = x - ox, ly = y - oy
         if (lx === 0 || lx === 6 || ly === 0 || ly === 6 || (lx >= 2 && lx <= 4 && ly >= 2 && ly <= 4)) {
-          rects.push(<rect key={`${x}-${y}`} x={x * cellSize} y={y * cellSize} width={cellSize} height={cellSize} fill="hsl(155 44% 30%)" />)
+          rects.push(<rect key={`${x}-${y}`} x={x * cellSize} y={y * cellSize} width={cellSize} height={cellSize} fill="hsl(14 99% 57%)" />)
         }
       } else if (rand() > 0.55) {
-        rects.push(<rect key={`${x}-${y}`} x={x * cellSize} y={y * cellSize} width={cellSize} height={cellSize} fill="hsl(155 44% 30%)" rx={1} />)
+        rects.push(<rect key={`${x}-${y}`} x={x * cellSize} y={y * cellSize} width={cellSize} height={cellSize} fill="hsl(14 99% 57%)" rx={1} />)
       }
     }
   }
@@ -375,10 +375,10 @@ export default function AdminWhatsApp() {
                     <DemoQR size={180} />
                   )}
                   <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="w-9 h-9 rounded-lg flex items-center justify-center font-bold text-white text-xs" style={{ background: 'hsl(155 44% 30%)' }}>LE</div>
+                    <div className="w-9 h-9 rounded-lg flex items-center justify-center font-bold text-white text-xs" style={{ background: 'hsl(14 99% 57%)' }}>LE</div>
                   </div>
                 </div>
-                <div className="flex items-center gap-2 text-sm" style={{ color: 'hsl(155 44% 30%)' }}>
+                <div className="flex items-center gap-2 text-sm" style={{ color: 'hsl(14 99% 57%)' }}>
                   <div className="animate-pulse w-2 h-2 rounded-full bg-[#2D6A4F]" />
                   {he ? 'ממתין לסריקה...' : 'Waiting for scan...'}
                 </div>
@@ -387,8 +387,8 @@ export default function AdminWhatsApp() {
             {status === 'connecting' && (
               <div className="flex flex-col items-center gap-4">
                 <div className="w-[180px] h-[180px] rounded-xl flex flex-col items-center justify-center gap-3" style={{ background: 'hsl(152 46% 90% / 0.5)' }}>
-                  <Loader2 className="w-10 h-10 animate-spin" style={{ color: 'hsl(155 44% 30%)' }} />
-                  <p className="text-sm font-medium" style={{ color: 'hsl(155 44% 30%)' }}>{he ? 'מתחבר...' : 'Connecting...'}</p>
+                  <Loader2 className="w-10 h-10 animate-spin" style={{ color: 'hsl(14 99% 57%)' }} />
+                  <p className="text-sm font-medium" style={{ color: 'hsl(14 99% 57%)' }}>{he ? 'מתחבר...' : 'Connecting...'}</p>
                 </div>
               </div>
             )}
@@ -455,7 +455,7 @@ export default function AdminWhatsApp() {
       <div className="grid grid-cols-4 gap-3 mb-3">
         {[
           { label: he ? 'הודעות היום' : 'Messages Today', value: totalMessages, icon: MessageSquare, color: 'hsl(40 4% 42%)' },
-          { label: he ? 'לידים היום' : 'Leads Today', value: totalLeadsToday, icon: Zap, color: 'hsl(155 44% 30%)' },
+          { label: he ? 'לידים היום' : 'Leads Today', value: totalLeadsToday, icon: Zap, color: 'hsl(14 99% 57%)' },
           { label: he ? 'חיסכון AI' : 'AI Savings', value: `${aiSavingsPct}%`, icon: Brain, color: 'hsl(262 60% 45%)' },
           { label: he ? 'חשבונות פעילים' : 'Active Accounts', value: `${connectedCount}/${accounts.length}`, icon: Smartphone, color: 'hsl(199 70% 40%)' },
         ].map(kpi => (
@@ -482,7 +482,7 @@ export default function AdminWhatsApp() {
               onClick={() => setSelectedAccountId(acc.id)}
               className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-medium shrink-0 transition-all"
               style={{
-                background: isSelected ? 'hsl(155 44% 30%)' : 'white',
+                background: isSelected ? 'hsl(14 99% 57%)' : 'white',
                 color: isSelected ? 'white' : 'hsl(40 8% 10%)',
                 border: isSelected ? 'none' : '1px solid rgba(0,0,0,0.06)',
                 boxShadow: isSelected ? '0 2px 8px hsl(155 44% 30% / 0.3)' : 'none',
@@ -491,7 +491,7 @@ export default function AdminWhatsApp() {
               <span>{region.emoji}</span>
               <span>{he ? region.labelHe : region.label}</span>
               <div className="w-1.5 h-1.5 rounded-full" style={{
-                background: acc.status === 'connected' ? (isSelected ? 'hsl(152 46% 75%)' : 'hsl(155 44% 40%)')
+                background: acc.status === 'connected' ? (isSelected ? 'hsl(14 90% 80%)' : 'hsl(14 85% 50%)')
                   : acc.status === 'blocked' ? 'hsl(0 60% 50%)'
                   : 'hsl(40 80% 50%)',
               }} />
@@ -525,8 +525,8 @@ export default function AdminWhatsApp() {
               </>
             ) : (he ? 'בחר חשבון' : 'Select account')}
           </h2>
-          <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-medium" style={{ background: 'hsl(152 46% 85% / 0.5)', color: 'hsl(155 44% 30%)' }}>
-            <div className="w-1.5 h-1.5 rounded-full animate-pulse-green" style={{ background: 'hsl(155 44% 40%)' }} />
+          <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-medium" style={{ background: 'hsl(152 46% 85% / 0.5)', color: 'hsl(14 99% 57%)' }}>
+            <div className="w-1.5 h-1.5 rounded-full animate-pulse-green" style={{ background: 'hsl(14 85% 50%)' }} />
             {he ? 'פעיל' : 'Live'}
           </div>
           {whatsappData.isFetchingAny && (
@@ -588,7 +588,7 @@ export default function AdminWhatsApp() {
                 <button
                   onClick={e => { e.stopPropagation(); toggleGroupMonitoring(group.id) }}
                   className="w-8 h-[18px] rounded-full relative shrink-0 transition-colors"
-                  style={{ background: group.isActive ? 'hsl(155 44% 40%)' : 'hsl(35 15% 82%)' }}
+                  style={{ background: group.isActive ? 'hsl(14 85% 50%)' : 'hsl(35 15% 82%)' }}
                 >
                   <div className="absolute top-[2px] w-[14px] h-[14px] rounded-full bg-white shadow-sm transition-all" style={{ left: group.isActive ? 'calc(100% - 16px)' : '2px' }} />
                 </button>
@@ -617,7 +617,7 @@ export default function AdminWhatsApp() {
                     <span className="text-[9px] px-1.5 py-0.5 rounded-full" style={{ background: 'hsl(25 95% 93%)', color: 'hsl(25 80% 40%)' }}>
                       {group.knownSellers}S
                     </span>
-                    <span className="text-[9px] px-1.5 py-0.5 rounded-full" style={{ background: 'hsl(152 46% 90%)', color: 'hsl(155 44% 30%)' }}>
+                    <span className="text-[9px] px-1.5 py-0.5 rounded-full" style={{ background: 'hsl(14 99% 93%)', color: 'hsl(14 99% 57%)' }}>
                       {group.knownBuyers}B
                     </span>
                   </div>
@@ -629,8 +629,8 @@ export default function AdminWhatsApp() {
           {/* Filter Stats */}
           <div className="p-3 border-t" style={{ borderColor: 'rgba(0,0,0,0.04)' }}>
             <div className="flex items-center gap-2">
-              <Shield className="w-3.5 h-3.5" style={{ color: 'hsl(155 44% 30%)' }} />
-              <span className="text-[10px] font-medium" style={{ color: 'hsl(155 44% 30%)' }}>
+              <Shield className="w-3.5 h-3.5" style={{ color: 'hsl(14 99% 57%)' }} />
+              <span className="text-[10px] font-medium" style={{ color: 'hsl(14 99% 57%)' }}>
                 {he ? 'Smart Filter פעיל' : 'Smart Filter Active'}
               </span>
             </div>
@@ -659,7 +659,7 @@ export default function AdminWhatsApp() {
                 onClick={() => setShowOnlyLeads(prev => !prev)}
                 className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[10px] font-medium transition-colors"
                 style={{
-                  background: showOnlyLeads ? 'hsl(155 44% 30%)' : 'hsl(35 25% 93%)',
+                  background: showOnlyLeads ? 'hsl(14 99% 57%)' : 'hsl(35 25% 93%)',
                   color: showOnlyLeads ? 'white' : 'hsl(40 4% 42%)',
                 }}
               >
@@ -723,7 +723,7 @@ export default function AdminWhatsApp() {
                         {he ? stageConf.labelHe : stageConf.label}
                       </span>
                       {msg.isLead && (
-                        <Zap className="w-3 h-3 ms-auto" style={{ color: 'hsl(155 44% 30%)' }} />
+                        <Zap className="w-3 h-3 ms-auto" style={{ color: 'hsl(14 99% 57%)' }} />
                       )}
                     </div>
                   )}
@@ -737,12 +737,12 @@ export default function AdminWhatsApp() {
         {/* ═══ PANEL 3: Live Pipeline Feed ═══ */}
         <div className="glass-panel flex flex-col min-h-0 overflow-hidden">
           <div className="px-4 py-3 border-b flex items-center gap-2" style={{ borderColor: 'rgba(0,0,0,0.04)' }}>
-            <Activity className="w-4 h-4" style={{ color: 'hsl(155 44% 30%)' }} />
+            <Activity className="w-4 h-4" style={{ color: 'hsl(14 99% 57%)' }} />
             <h2 className="text-sm font-semibold" style={{ color: 'hsl(40 8% 10%)' }}>
               {he ? 'פייפליין חי' : 'Live Pipeline'}
             </h2>
             <div className="ms-auto flex items-center gap-1">
-              <div className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: 'hsl(155 44% 40%)' }} />
+              <div className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: 'hsl(14 85% 50%)' }} />
               <span className="text-[10px]" style={{ color: 'hsl(40 4% 55%)' }}>
                 {he ? 'זמן אמת' : 'Real-time'}
               </span>
@@ -825,7 +825,7 @@ export default function AdminWhatsApp() {
               {[
                 { label: he ? 'נקלטו' : 'Received', value: pipeline.filter(e => e.stage === 'received').length, color: 'hsl(40 4% 55%)' },
                 { label: he ? 'סוננו' : 'Filtered', value: pipeline.filter(e => e.stage === 'quick_filtered' || e.stage === 'sender_filtered' || e.stage === 'no_lead').length, color: 'hsl(0 50% 55%)' },
-                { label: he ? 'לידים' : 'Leads', value: pipeline.filter(e => e.stage === 'lead_created' || e.stage === 'matched' || e.stage === 'sent' || e.stage === 'claimed').length, color: 'hsl(155 44% 30%)' },
+                { label: he ? 'לידים' : 'Leads', value: pipeline.filter(e => e.stage === 'lead_created' || e.stage === 'matched' || e.stage === 'sent' || e.stage === 'claimed').length, color: 'hsl(14 99% 57%)' },
               ].map(stat => (
                 <div key={stat.label} className="text-center">
                   <div className="text-base font-semibold" style={{ color: stat.color }}>{stat.value}</div>
@@ -840,9 +840,9 @@ export default function AdminWhatsApp() {
               if (filtered === 0 || total === 0) return null
               const pct = Math.round((filtered / total) * 100)
               return (
-                <div className="flex items-center gap-2 mt-1 px-2 py-1.5 rounded-lg" style={{ background: 'hsl(152 46% 93%)', border: '1px solid hsl(152 46% 85%)' }}>
-                  <Brain className="w-3.5 h-3.5" style={{ color: 'hsl(155 44% 30%)' }} />
-                  <span className="text-[10px] font-medium" style={{ color: 'hsl(155 44% 25%)' }}>
+                <div className="flex items-center gap-2 mt-1 px-2 py-1.5 rounded-lg" style={{ background: 'hsl(152 46% 93%)', border: '1px solid hsl(14 99% 90%)' }}>
+                  <Brain className="w-3.5 h-3.5" style={{ color: 'hsl(14 99% 57%)' }} />
+                  <span className="text-[10px] font-medium" style={{ color: 'hsl(14 99% 45%)' }}>
                     {he ? `חיסכון AI: ${pct}% סוננו לפני AI` : `AI savings: ${pct}% filtered before AI`}
                   </span>
                 </div>

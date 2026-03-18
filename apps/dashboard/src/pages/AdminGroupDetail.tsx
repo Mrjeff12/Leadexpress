@@ -34,13 +34,13 @@ const stageLabels: Record<string, { en: string; he: string; color: string }> = {
   quick_filtered: { en: 'Quick Filtered', he: 'סינון מהיר', color: 'hsl(40 4% 65%)' },
   sender_filtered: { en: 'Seller Filtered', he: 'שולח מוכר', color: 'hsl(0 60% 55%)' },
   no_lead: { en: 'Not a Lead', he: 'לא ליד', color: 'hsl(40 80% 50%)' },
-  lead_created: { en: 'Lead Created', he: 'ליד נוצר', color: 'hsl(155 44% 45%)' },
+  lead_created: { en: 'Lead Created', he: 'ליד נוצר', color: 'hsl(14 80% 55%)' },
 }
 
 /* ── Classification styles ────────────────────────────── */
 
 const classificationStyle: Record<string, { bg: string; text: string; label_en: string; label_he: string }> = {
-  buyer: { bg: 'hsl(152 46% 85% / 0.5)', text: 'hsl(155 44% 30%)', label_en: 'Buyer', label_he: 'קונה' },
+  buyer: { bg: 'hsl(152 46% 85% / 0.5)', text: 'hsl(14 99% 57%)', label_en: 'Buyer', label_he: 'קונה' },
   seller: { bg: 'hsl(0 80% 93% / 0.5)', text: 'hsl(0 60% 50%)', label_en: 'Seller', label_he: 'מוכר' },
   bot: { bg: 'hsl(40 4% 90%)', text: 'hsl(40 4% 42%)', label_en: 'Bot', label_he: 'בוט' },
   admin: { bg: 'hsl(220 60% 92% / 0.5)', text: 'hsl(220 60% 44%)', label_en: 'Admin', label_he: 'מנהל' },
@@ -215,7 +215,7 @@ export default function AdminGroupDetail() {
             <KpiCard icon={<ShieldAlert size={16} />} label={he ? 'מוכרים ידועים' : 'Known Sellers'} value={kpis.knownSellers.toLocaleString()} />
             <div className="glass-panel p-5">
               <div className="flex items-center gap-2 mb-2">
-                <MessageSquare className="w-4 h-4" style={{ color: 'hsl(155 44% 30%)' }} />
+                <MessageSquare className="w-4 h-4" style={{ color: 'hsl(14 99% 57%)' }} />
                 <span className="text-xs" style={{ color: 'hsl(40 4% 42%)' }}>
                   {he ? 'תגובות' : 'Responses'}
                 </span>
@@ -270,7 +270,7 @@ export default function AdminGroupDetail() {
                   <Area
                     type="monotone"
                     dataKey="leads"
-                    stroke="hsl(155 44% 45%)"
+                    stroke="hsl(14 80% 55%)"
                     fill="hsl(155 44% 45% / 0.25)"
                     name={he ? 'לידים' : 'Leads'}
                   />
@@ -296,7 +296,7 @@ export default function AdminGroupDetail() {
             })
 
             const colors = [
-              'hsl(220 60% 55%)', 'hsl(155 44% 45%)', 'hsl(0 60% 55%)',
+              'hsl(220 60% 55%)', 'hsl(14 80% 55%)', 'hsl(0 60% 55%)',
               'hsl(40 80% 50%)', 'hsl(280 60% 55%)', 'hsl(180 60% 40%)',
             ]
 
@@ -574,7 +574,7 @@ function MessagesTab({ waGroupId, he }: { waGroupId: string; he: boolean }) {
               <div className="mt-2">
                 <span
                   className="inline-block px-2 py-0.5 rounded-full text-xs font-medium"
-                  style={{ background: 'hsl(152 46% 85% / 0.5)', color: 'hsl(155 44% 30%)' }}
+                  style={{ background: 'hsl(152 46% 85% / 0.5)', color: 'hsl(14 99% 57%)' }}
                 >
                   {msg.profession || (he ? 'ליד' : 'Lead')}
                 </span>
@@ -810,7 +810,7 @@ function MarketIntelTab({ market, responses, he }: { market: MarketIntel | null 
               {responses.slice(0, 15).map((c) => (
                 <tr key={c.sender_id} className="border-b last:border-b-0" style={{ borderColor: 'hsl(40 4% 94%)' }}>
                   <td className="py-2 text-xs" style={{ color: 'hsl(40 8% 10%)' }}>{c.sender_id}</td>
-                  <td className="py-2 text-xs font-bold" style={{ color: 'hsl(155 44% 30%)' }}>{c.response_count}</td>
+                  <td className="py-2 text-xs font-bold" style={{ color: 'hsl(14 99% 57%)' }}>{c.response_count}</td>
                   <td className="py-2 text-xs" style={{ color: 'hsl(40 4% 42%)' }}>{relativeTime(c.last_response)}</td>
                 </tr>
               ))}

@@ -18,7 +18,7 @@ import {
 
 /* ── Design tokens ─────────────────────────────────────────────────── */
 const C = {
-  primary: '#007AFF', 
+  primary: '#fe5b25', 
   dark: '#1C1C1E', 
   cream: '#F2F2F7',
   border: 'rgba(0,0,0,0.04)', 
@@ -34,7 +34,7 @@ const C = {
 /* ── Stages ─────────────────────────────────────────────────────────── */
 const STAGES = [
   { key: 'prospect',        label: 'Prospect',        he: 'פרוספקט',     icon: CircleDot,     color: '#5856D6', bg: '#F2F2F7' },
-  { key: 'reached_out',     label: 'Reached Out',     he: 'יצרנו קשר',   icon: Phone,         color: '#007AFF', bg: '#F2F2F7' },
+  { key: 'reached_out',     label: 'Reached Out',     he: 'יצרנו קשר',   icon: Phone,         color: '#fe5b25', bg: '#F2F2F7' },
   { key: 'in_conversation', label: 'In Conversation', he: 'בשיחה',       icon: MessageCircle, color: '#AF52DE', bg: '#F2F2F7' },
   { key: 'demo_trial',      label: 'Demo / Trial',    he: 'הדגמה',       icon: Sparkles,      color: '#FF9500', bg: '#F2F2F7' },
   { key: 'paying',          label: 'Paying',          he: 'משלם',        icon: DollarSign,    color: '#34C759', bg: '#F2F2F7' },
@@ -211,11 +211,11 @@ export default function AdminInbox() {
           <div className="shrink-0 p-6 border-b border-black/[0.02]">
             <div className="space-y-4">
               <div className="relative group">
-                <Search className="w-4 h-4 absolute top-1/2 -translate-y-1/2 text-[#8E8E93] transition-colors group-focus-within:text-[#007AFF]" style={{ left: he ? 'auto' : 16, right: he ? 16 : 'auto' }} strokeWidth={2.5} />
+                <Search className="w-4 h-4 absolute top-1/2 -translate-y-1/2 text-[#8E8E93] transition-colors group-focus-within:text-[#fe5b25]" style={{ left: he ? 'auto' : 16, right: he ? 16 : 'auto' }} strokeWidth={2.5} />
                 <input
                   value={listSearch} onChange={e => setListSearch(e.target.value)}
                   placeholder={he ? 'חיפוש לקוח...' : 'Search clients...'}
-                  className="w-full h-11 rounded-2xl border-none text-[15px] outline-none transition-all bg-black/[0.03] focus:bg-white focus:ring-4 focus:ring-[#007AFF]/5 shadow-inner"
+                  className="w-full h-11 rounded-2xl border-none text-[15px] outline-none transition-all bg-black/[0.03] focus:bg-white focus:ring-4 focus:ring-[#fe5b25]/5 shadow-inner"
                   style={{ paddingLeft: he ? 16 : 44, paddingRight: he ? 44 : 16, color: C.dark }}
                 />
               </div>
@@ -261,12 +261,12 @@ export default function AdminInbox() {
                   className={`w-full flex items-center gap-4 p-4 text-left transition-all rounded-3xl relative overflow-hidden group ${isActive ? 'bg-white shadow-[0_8px_30px_rgba(0,0,0,0.06)] scale-[1.02]' : 'hover:bg-white/40 active:scale-[0.98]'}`}
                   style={{ direction: he ? 'rtl' : 'ltr' }}
                 >
-                  {isActive && <div className="absolute top-0 bottom-0 w-1.5 bg-[#007AFF] shadow-[0_0_10px_rgba(0,74,255,0.3)]" style={{ [he ? 'right' : 'left']: 0 }} />}
+                  {isActive && <div className="absolute top-0 bottom-0 w-1.5 bg-[#fe5b25] shadow-[0_0_10px_rgba(0,74,255,0.3)]" style={{ [he ? 'right' : 'left']: 0 }} />}
                   <Avatar src={p.profile_pic_url} name={pName(p)} waId={p.phone} size={48} />
                   <div className="flex-1 min-w-0 flex flex-col justify-center">
                     <div className="flex items-center justify-between mb-0.5">
                       <span className="text-[16px] font-semibold truncate text-[#1C1C1E]">{pName(p)}</span>
-                      <span className={`text-[10px] font-bold shrink-0 ml-2 uppercase tracking-tight ${isActive ? 'text-[#007AFF]' : 'text-[#8E8E93]'}`}>
+                      <span className={`text-[10px] font-bold shrink-0 ml-2 uppercase tracking-tight ${isActive ? 'text-[#fe5b25]' : 'text-[#8E8E93]'}`}>
                         {p.last_contact_at ? fmtDate(p.last_contact_at) : ''}
                       </span>
                     </div>
@@ -277,13 +277,13 @@ export default function AdminInbox() {
                       </div>
                       
                       {p.group_names && p.group_names.length > 0 && (
-                        <div className="flex items-center gap-1 min-w-0 bg-[#007AFF]/[0.05] px-2 py-0.5 rounded-lg" title={p.group_names.join(', ')}>
-                          <Users className="w-3 h-3 text-[#007AFF] shrink-0 opacity-70" />
-                          <span className="text-[11px] font-bold text-[#007AFF] truncate opacity-80">
+                        <div className="flex items-center gap-1 min-w-0 bg-[#fe5b25]/[0.05] px-2 py-0.5 rounded-lg" title={p.group_names.join(', ')}>
+                          <Users className="w-3 h-3 text-[#fe5b25] shrink-0 opacity-70" />
+                          <span className="text-[11px] font-bold text-[#fe5b25] truncate opacity-80">
                             {p.group_names[0]}
                           </span>
                           {p.group_names.length > 1 && (
-                            <span className="text-[10px] font-black text-[#007AFF] shrink-0 opacity-50">+{p.group_names.length - 1}</span>
+                            <span className="text-[10px] font-black text-[#fe5b25] shrink-0 opacity-50">+{p.group_names.length - 1}</span>
                           )}
                         </div>
                       )}
@@ -347,7 +347,7 @@ export default function AdminInbox() {
             ) : timeline.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-full text-center">
                 <div className="w-24 h-24 rounded-[40px] bg-white shadow-[0_15px_40px_rgba(0,0,0,0.04)] flex items-center justify-center mb-8">
-                  <MessageCircle className="w-10 h-10 text-[#007AFF]" strokeWidth={1.5} />
+                  <MessageCircle className="w-10 h-10 text-[#fe5b25]" strokeWidth={1.5} />
                 </div>
                 <p className="text-xl font-bold text-[#1C1C1E]">{he ? 'אין פעילות עדיין' : 'No activity yet'}</p>
                 <p className="text-[15px] font-medium text-[#8E8E93] mt-2 max-w-[280px]">{he ? 'שלח הודעה ראשונה כדי להתחיל שיחה עם הלקוח' : 'Send a message to start a conversation'}</p>
@@ -393,9 +393,9 @@ export default function AdminInbox() {
                     <div key={`msg-${msg.id}`}>
                       {showDateSep && <div className="flex justify-center my-8"><span className="text-[11px] font-black uppercase tracking-[0.2em] px-5 py-2 rounded-full bg-black/[0.04] text-[#8E8E93] shadow-sm">{fmtDate(msg.sent_at)}</span></div>}
                       <div className={`flex ${out ? 'justify-end' : 'justify-start'}`}>
-                        <div className={`max-w-[75%] rounded-[28px] px-6 py-4 shadow-sm relative group ${out ? (isTwilio ? 'bg-[#1C1C1E] text-white' : 'bg-[#007AFF] text-white') : 'bg-white text-[#1C1C1E] border border-black/[0.02]'}`} style={{ borderBottomRightRadius: out ? 6 : 28, borderBottomLeftRadius: out ? 28 : 6 }}>
+                        <div className={`max-w-[75%] rounded-[28px] px-6 py-4 shadow-sm relative group ${out ? (isTwilio ? 'bg-[#1C1C1E] text-white' : 'bg-[#fe5b25] text-white') : 'bg-white text-[#1C1C1E] border border-black/[0.02]'}`} style={{ borderBottomRightRadius: out ? 6 : 28, borderBottomLeftRadius: out ? 28 : 6 }}>
                           {/* Channel Badge */}
-                          <div className={`absolute -top-2 ${out ? '-left-2' : '-right-2'} w-6 h-6 rounded-full flex items-center justify-center shadow-sm border-2 border-[#F2F2F7] ${isTwilio ? 'bg-[#007AFF] text-white' : 'bg-[#34C759] text-white'}`}>
+                          <div className={`absolute -top-2 ${out ? '-left-2' : '-right-2'} w-6 h-6 rounded-full flex items-center justify-center shadow-sm border-2 border-[#F2F2F7] ${isTwilio ? 'bg-[#fe5b25] text-white' : 'bg-[#34C759] text-white'}`}>
                             {isTwilio ? <CheckCheck className="w-3 h-3" /> : <MessageCircle className="w-3 h-3" />}
                           </div>
                           
@@ -446,7 +446,7 @@ export default function AdminInbox() {
                 </button>
                 <button 
                   onClick={() => setSelectedChannel('twilio')}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12px] font-bold transition-all ${selectedChannel === 'twilio' ? 'bg-[#007AFF]/10 text-[#007AFF]' : 'bg-black/[0.03] text-[#8E8E93] hover:bg-black/[0.06]'}`}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12px] font-bold transition-all ${selectedChannel === 'twilio' ? 'bg-[#fe5b25]/10 text-[#fe5b25]' : 'bg-black/[0.03] text-[#8E8E93] hover:bg-black/[0.06]'}`}
                 >
                   <CheckCheck className="w-3.5 h-3.5" />
                   {he ? 'וואטסאפ רשמי (Twilio)' : 'Official WA'}
@@ -456,7 +456,7 @@ export default function AdminInbox() {
 
             {/* Composer */}
             <div className="px-8 py-4 flex items-end gap-4">
-              <button onClick={() => setShowQR(!showQR)} disabled={!prospect} className="w-12 h-12 rounded-2xl flex items-center justify-center bg-black/[0.03] hover:bg-black/[0.06] transition-colors shrink-0 disabled:opacity-50" style={{ color: showQR ? '#007AFF' : '#8E8E93' }}><Zap className="w-5 h-5" strokeWidth={2.5} /></button>
+              <button onClick={() => setShowQR(!showQR)} disabled={!prospect} className="w-12 h-12 rounded-2xl flex items-center justify-center bg-black/[0.03] hover:bg-black/[0.06] transition-colors shrink-0 disabled:opacity-50" style={{ color: showQR ? '#fe5b25' : '#8E8E93' }}><Zap className="w-5 h-5" strokeWidth={2.5} /></button>
               <textarea 
                 ref={inputRef} 
                 value={newMessage} 
@@ -467,12 +467,12 @@ export default function AdminInbox() {
                 }} 
                 onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); if (inputRef.current) { inputRef.current.style.height = 'auto'; } } }} 
                 placeholder={he ? 'הקלד הודעה...' : 'Write your message...'} 
-                className="flex-1 min-h-[48px] max-h-[150px] rounded-[24px] border-none px-6 py-3.5 text-[16px] font-medium outline-none transition-all bg-black/[0.03] focus:bg-white focus:ring-4 focus:ring-[#007AFF]/5 disabled:opacity-50 resize-none shadow-inner" 
+                className="flex-1 min-h-[48px] max-h-[150px] rounded-[24px] border-none px-6 py-3.5 text-[16px] font-medium outline-none transition-all bg-black/[0.03] focus:bg-white focus:ring-4 focus:ring-[#fe5b25]/5 disabled:opacity-50 resize-none shadow-inner" 
                 style={{ direction: he ? 'rtl' : 'ltr' }} 
                 disabled={sending || !prospect} 
                 rows={1}
               />
-              <button onClick={() => handleSend()} disabled={!newMessage.trim() || sending || !prospect} className="w-12 h-12 rounded-2xl flex items-center justify-center text-white transition-all shadow-lg hover:shadow-[#007AFF]/30 hover:scale-105 active:scale-95 disabled:opacity-20 disabled:hover:scale-100 shrink-0" style={{ background: newMessage.trim() ? '#1C1C1E' : '#D1D1D6' }}>
+              <button onClick={() => handleSend()} disabled={!newMessage.trim() || sending || !prospect} className="w-12 h-12 rounded-2xl flex items-center justify-center text-white transition-all shadow-lg hover:shadow-[#fe5b25]/30 hover:scale-105 active:scale-95 disabled:opacity-20 disabled:hover:scale-100 shrink-0" style={{ background: newMessage.trim() ? '#1C1C1E' : '#D1D1D6' }}>
                 {sending ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" style={{ marginLeft: he ? 0 : 2, marginRight: he ? 2 : 0 }} />}
               </button>
             </div>
@@ -565,7 +565,7 @@ export default function AdminInbox() {
                       </div>
                       {showFU ? (
                         <div className="space-y-4 bg-white p-5 rounded-3xl border border-black/[0.02] shadow-sm">
-                          <input type="date" value={fuDraft} onChange={e => setFuDraft(e.target.value)} className="w-full h-11 text-sm font-bold rounded-2xl border-none px-4 outline-none bg-black/[0.03] focus:bg-white focus:ring-4 focus:ring-[#007AFF]/5 transition-all" />
+                          <input type="date" value={fuDraft} onChange={e => setFuDraft(e.target.value)} className="w-full h-11 text-sm font-bold rounded-2xl border-none px-4 outline-none bg-black/[0.03] focus:bg-white focus:ring-4 focus:ring-[#fe5b25]/5 transition-all" />
                           <div className="flex gap-2">
                             {[1, 3, 7, 14].map(d => <button key={d} onClick={() => setFuDraft(new Date(Date.now() + d * 86400000).toISOString().split('T')[0])} className="flex-1 h-9 rounded-xl text-[12px] font-bold bg-black/[0.03] hover:bg-black/[0.06] transition-colors text-[#1C1C1E]">{d}d</button>)}
                           </div>
@@ -602,7 +602,7 @@ export default function AdminInbox() {
                           <Edit3 className="w-3.5 h-3.5 opacity-50" /> {he ? 'הערות' : 'Notes'}
                         </div>
                         {!editingNotes && (
-                          <button onClick={() => { setEditingNotes(true); setNoteDraft(prospect.notes) }} className="text-[11px] font-black text-[#007AFF] hover:underline uppercase tracking-widest">{he ? 'ערוך' : 'Edit'}</button>
+                          <button onClick={() => { setEditingNotes(true); setNoteDraft(prospect.notes) }} className="text-[11px] font-black text-[#fe5b25] hover:underline uppercase tracking-widest">{he ? 'ערוך' : 'Edit'}</button>
                         )}
                       </div>
                       
@@ -632,8 +632,8 @@ export default function AdminInbox() {
                         <div className="space-y-3">
                           {(prospect.group_names ?? []).map(g => (
                             <div key={g} className="flex items-center gap-4 p-4 rounded-3xl bg-white border border-black/[0.02] shadow-sm">
-                              <div className="w-10 h-10 rounded-2xl bg-[#007AFF]/[0.05] flex items-center justify-center shrink-0">
-                                <Users className="w-5 h-5 text-[#007AFF] opacity-70" />
+                              <div className="w-10 h-10 rounded-2xl bg-[#fe5b25]/[0.05] flex items-center justify-center shrink-0">
+                                <Users className="w-5 h-5 text-[#fe5b25] opacity-70" />
                               </div>
                               <span className="text-[15px] font-bold text-[#1C1C1E] leading-tight">{g}</span>
                             </div>

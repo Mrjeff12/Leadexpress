@@ -279,7 +279,7 @@ export default function AdminProspects() {
               onClick={() => setViewMode('kanban')}
               className="flex items-center justify-center w-9 h-9 transition-all"
               style={{
-                background: viewMode === 'kanban' ? 'hsl(155 44% 30%)' : 'transparent',
+                background: viewMode === 'kanban' ? 'hsl(14 99% 57%)' : 'transparent',
                 color: viewMode === 'kanban' ? 'white' : '#7c7f85',
               }}
               title={he ? 'תצוגת לוח' : 'Board view'}
@@ -290,7 +290,7 @@ export default function AdminProspects() {
               onClick={() => setViewMode('list')}
               className="flex items-center justify-center w-9 h-9 transition-all"
               style={{
-                background: viewMode === 'list' ? 'hsl(155 44% 30%)' : 'transparent',
+                background: viewMode === 'list' ? 'hsl(14 99% 57%)' : 'transparent',
                 color: viewMode === 'list' ? 'white' : '#7c7f85',
               }}
               title={he ? 'תצוגת רשימה' : 'List view'}
@@ -357,7 +357,7 @@ export default function AdminProspects() {
             style={{
               background: isImporting
                 ? 'hsl(155 20% 60%)'
-                : 'linear-gradient(135deg, hsl(155 44% 30%) 0%, hsl(155 50% 38%) 100%)',
+                : 'linear-gradient(135deg, hsl(14 99% 57%) 0%, hsl(14 90% 50%) 100%)',
               fontFamily: 'Outfit, sans-serif',
             }}
           >
@@ -421,9 +421,9 @@ export default function AdminProspects() {
           onClick={() => setStageFilter(null)}
           className="text-xs font-semibold px-3 py-1.5 rounded-full transition-all"
           style={{
-            background: stageFilter === null ? 'hsl(155 44% 30%)' : 'transparent',
-            color: stageFilter === null ? 'white' : 'hsl(155 44% 30%)',
-            border: `1.5px solid ${stageFilter === null ? 'hsl(155 44% 30%)' : 'hsl(155 44% 30% / 0.3)'}`,
+            background: stageFilter === null ? 'hsl(14 99% 57%)' : 'transparent',
+            color: stageFilter === null ? 'white' : 'hsl(14 99% 57%)',
+            border: `1.5px solid ${stageFilter === null ? 'hsl(14 99% 57%)' : 'hsl(155 44% 30% / 0.3)'}`,
             fontFamily: 'Outfit, sans-serif',
           }}
         >
@@ -615,11 +615,11 @@ export default function AdminProspects() {
                                 <span
                                   key={tag}
                                   className="text-[10px] font-medium flex items-center gap-1"
-                                  style={{ color: 'hsl(155 44% 30%)' }}
+                                  style={{ color: 'hsl(14 99% 57%)' }}
                                 >
                                   <span
                                     className="inline-block w-1.5 h-1.5 rounded-full flex-shrink-0"
-                                    style={{ background: 'hsl(155 44% 40%)' }}
+                                    style={{ background: 'hsl(14 85% 50%)' }}
                                   />
                                   {tag}
                                 </span>
@@ -660,7 +660,7 @@ export default function AdminProspects() {
                               className="w-8 h-8 rounded-full flex items-center justify-center transition-all hover:scale-110"
                               style={{
                                 background: 'hsl(155 40% 94%)',
-                                color: 'hsl(155 44% 30%)',
+                                color: 'hsl(14 99% 57%)',
                               }}
                               title={he ? 'הודעה' : 'Message'}
                             >
@@ -874,9 +874,9 @@ export default function AdminProspects() {
                         <span
                           key={tag}
                           className="text-[10px] font-medium flex items-center gap-1 truncate"
-                          style={{ color: 'hsl(155 44% 30%)' }}
+                          style={{ color: 'hsl(14 99% 57%)' }}
                         >
-                          <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: 'hsl(155 44% 40%)' }} />
+                          <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: 'hsl(14 85% 50%)' }} />
                           {tag}
                         </span>
                       ))}

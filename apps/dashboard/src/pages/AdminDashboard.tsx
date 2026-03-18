@@ -258,7 +258,7 @@ export default function AdminDashboard() {
           value={kpis.totalLeads}
           sub={he ? 'מנותחים ע"י AI' : 'AI-parsed leads'}
           trend={{ value: 12, label: '+12%' }}
-          color="#007AFF"
+          color="#fe5b25"
           chartData={demoDataUp}
         />
         <KpiCard
@@ -343,7 +343,7 @@ export default function AdminDashboard() {
               icon: UserPlus,
               message: he ? '3 קבלנים חדשים השבוע' : '3 new contractors this week',
               link: '/admin/contractors',
-              color: '#007AFF',
+              color: '#fe5b25',
             },
           ].map((alert) => {
             const AlertIcon = alert.icon
@@ -548,7 +548,7 @@ function KpiCard({
   value,
   sub,
   trend,
-  color = '#007AFF',
+  color = '#fe5b25',
   chartData = [],
 }: {
   icon: React.ElementType

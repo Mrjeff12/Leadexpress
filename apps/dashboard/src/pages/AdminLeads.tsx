@@ -327,7 +327,7 @@ export default function AdminLeads() {
           label={he ? 'סה"כ לידים' : 'Total Leads'}
           value={baseFilteredLeads.length}
           sub={he ? 'מנותחים ע"י AI' : 'Across all channels'}
-          color="#007AFF"
+          color="#fe5b25"
           chartData={chartDataAll.all}
         />
         <KpiCard
@@ -701,7 +701,7 @@ function KpiCard({
   value,
   sub,
   trend,
-  color = '#007AFF',
+  color = '#fe5b25',
   chartData = [],
   active,
   onClick,

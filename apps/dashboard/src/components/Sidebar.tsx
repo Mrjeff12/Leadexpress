@@ -67,7 +67,7 @@ export default function Sidebar() {
         <div
           className="w-9 h-9 rounded-xl flex items-center justify-center font-bold text-white text-[13px] shrink-0 shadow-sm"
           style={{
-            background: 'linear-gradient(135deg, hsl(155 44% 30%) 0%, hsl(155 50% 38%) 100%)',
+            background: 'linear-gradient(135deg, #fe5b25 0%, #e04d1c 100%)',
           }}
         >
           LE

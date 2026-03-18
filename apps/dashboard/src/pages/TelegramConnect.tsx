@@ -73,9 +73,9 @@ export default function TelegramConnect() {
         <div className="glass-panel p-8 text-center">
           <div
             className="w-20 h-20 rounded-2xl mx-auto mb-5 flex items-center justify-center"
-            style={{ background: 'hsl(152 46% 85%)' }}
+            style={{ background: 'hsl(14 99% 90%)' }}
           >
-            <CheckCircle2 className="w-10 h-10" style={{ color: 'hsl(155 44% 30%)' }} />
+            <CheckCircle2 className="w-10 h-10" style={{ color: 'hsl(14 99% 57%)' }} />
           </div>
           <h2 className="text-lg font-semibold mb-2" style={{ color: 'hsl(40 8% 10%)' }}>
             {isRtl ? 'טלגרם מחובר!' : 'Telegram Connected!'}
@@ -88,7 +88,7 @@ export default function TelegramConnect() {
 
           <div
             className="inline-flex items-center gap-2 rounded-xl px-4 py-2 text-xs"
-            style={{ background: 'hsl(152 46% 85% / 0.3)', color: 'hsl(155 44% 30%)' }}
+            style={{ background: 'hsl(152 46% 85% / 0.3)', color: 'hsl(14 99% 57%)' }}
           >
             <Send className="w-3.5 h-3.5" />
             Chat ID: {profile?.telegram_chat_id}
@@ -148,7 +148,7 @@ export default function TelegramConnect() {
                 <div key={i} className="flex items-start gap-3.5">
                   <div
                     className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
-                    style={{ background: 'hsl(155 44% 30%)', color: 'white' }}
+                    style={{ background: 'hsl(14 99% 57%)', color: 'white' }}
                   >
                     {item.icon}
                   </div>
@@ -223,14 +223,14 @@ export default function TelegramConnect() {
                 >
                   <code
                     className="flex-1 truncate text-xs"
-                    style={{ color: 'hsl(155 44% 30%)' }}
+                    style={{ color: 'hsl(14 99% 57%)' }}
                   >
                     {telegramUrl}
                   </code>
                   <button
                     onClick={copyLink}
                     className="shrink-0 p-1.5 rounded-lg hover:bg-white/50 transition"
-                    style={{ color: 'hsl(155 44% 30%)' }}
+                    style={{ color: 'hsl(14 99% 57%)' }}
                   >
                     {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
                   </button>

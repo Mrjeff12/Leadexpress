@@ -21,7 +21,7 @@ const colorPresets = [
   'hsl(190 70% 45%)',
   'hsl(45 90% 50%)',
   'hsl(340 75% 55%)',
-  'hsl(155 44% 30%)',
+  'hsl(14 99% 57%)',
 ]
 
 export default function Professions() {

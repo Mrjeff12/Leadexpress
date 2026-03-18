@@ -43,7 +43,7 @@ function LoadingScreen() {
       <div className="le-grain" />
       <div className="flex flex-col items-center gap-3 animate-fade-in">
         <div className="w-10 h-10 rounded-xl flex items-center justify-center font-bold text-white text-sm"
-          style={{ background: 'hsl(155 44% 30%)' }}>
+          style={{ background: 'hsl(14 99% 57%)' }}>
           LE
         </div>
         <div className="text-sm" style={{ color: 'hsl(40 4% 42%)' }}>Loading...</div>

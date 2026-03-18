@@ -164,7 +164,7 @@ export default function AdminContractors() {
           {
             label: isRtl ? 'פעילים' : 'Active',
             value: activeCount,
-            icon: <CheckCircle2 className="w-4 h-4" style={{ color: 'hsl(155 44% 30%)' }} />,
+            icon: <CheckCircle2 className="w-4 h-4" style={{ color: 'hsl(14 99% 57%)' }} />,
           },
           {
             label: isRtl ? 'טלגרם מחובר' : 'Telegram Connected',
@@ -290,8 +290,8 @@ export default function AdminContractors() {
                     <td className="px-4 py-3">
                       {c.profiles?.telegram_chat_id ? (
                         <div className="flex items-center gap-1.5">
-                          <CheckCircle2 className="w-4 h-4" style={{ color: 'hsl(155 44% 30%)' }} />
-                          <span className="text-xs" style={{ color: 'hsl(155 44% 30%)' }}>
+                          <CheckCircle2 className="w-4 h-4" style={{ color: 'hsl(14 99% 57%)' }} />
+                          <span className="text-xs" style={{ color: 'hsl(14 99% 57%)' }}>
                             {isRtl ? 'מחובר' : 'Connected'}
                           </span>
                         </div>
@@ -333,7 +333,7 @@ export default function AdminContractors() {
                             onClick={() => generateQr(c)}
                             className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all hover:scale-[1.02]"
                             style={{
-                              background: 'hsl(155 44% 30%)',
+                              background: 'hsl(14 99% 57%)',
                               color: 'white',
                             }}
                           >
@@ -425,14 +425,14 @@ export default function AdminContractors() {
             >
               <code
                 className="flex-1 truncate text-xs"
-                style={{ color: 'hsl(155 44% 30%)' }}
+                style={{ color: 'hsl(14 99% 57%)' }}
               >
                 {qrModal.url}
               </code>
               <button
                 onClick={copyLink}
                 className="shrink-0 p-1.5 rounded-lg hover:bg-white/50 transition"
-                style={{ color: 'hsl(155 44% 30%)' }}
+                style={{ color: 'hsl(14 99% 57%)' }}
               >
                 {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
               </button>
@@ -457,7 +457,7 @@ export default function AdminContractors() {
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-medium transition-all hover:scale-[1.01]"
-                style={{ background: 'hsl(155 44% 30%)', color: 'white' }}
+                style={{ background: 'hsl(14 99% 57%)', color: 'white' }}
               >
                 <ExternalLink className="w-4 h-4" />
                 {isRtl ? 'פתח בטלגרם' : 'Open in TG'}
