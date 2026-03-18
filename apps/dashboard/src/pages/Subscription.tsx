@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import { useI18n } from '../lib/i18n'
 import { useSubscriptionBilling } from '../hooks/useSubscriptionBilling'
 import { useSearchParams } from 'react-router-dom'
 import {
@@ -76,7 +75,6 @@ function formatCents(cents: number, currency = 'usd'): string {
 
 /* ─── Component ─── */
 export default function Subscription() {
-  const { t } = useI18n()
   const [searchParams] = useSearchParams()
   const [billingInterval, setBillingInterval] = useState<'monthly' | 'yearly'>('monthly')
 
