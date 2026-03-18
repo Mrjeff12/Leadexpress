@@ -8,7 +8,6 @@ import {
   Easing,
 } from 'remotion'
 import { TransitionSeries, springTiming } from '@remotion/transitions'
-import { slide } from '@remotion/transitions/slide'
 import { fade } from '@remotion/transitions/fade'
 
 /* ─────────────────── Config ─────────────────── */
@@ -727,7 +726,7 @@ export const SubcontractorDemo: React.FC = () => {
         <SceneLead />
       </TransitionSeries.Sequence>
       <TransitionSeries.Transition
-        presentation={slide({ direction: 'from-right' })}
+        presentation={fade()}
         timing={springTiming({ config: { damping: 200 }, durationInFrames: TRANSITION_DURATION })}
       />
       <TransitionSeries.Sequence durationInFrames={SCENE_DURATION}>
@@ -741,7 +740,7 @@ export const SubcontractorDemo: React.FC = () => {
         <SceneWhatsApp />
       </TransitionSeries.Sequence>
       <TransitionSeries.Transition
-        presentation={slide({ direction: 'from-left' })}
+        presentation={fade()}
         timing={springTiming({ config: { damping: 200 }, durationInFrames: TRANSITION_DURATION })}
       />
       <TransitionSeries.Sequence durationInFrames={SCENE_DURATION}>
