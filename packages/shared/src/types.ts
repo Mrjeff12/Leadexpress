@@ -33,6 +33,8 @@ export interface Plan {
   max_professions: number // -1 = unlimited
   max_zip_codes: number   // -1 = unlimited
   stripe_price_id: string | null
+  stripe_product_id: string | null
+  stripe_yearly_price_id: string | null
   is_active: boolean
   created_at: string
 }

@@ -9,13 +9,14 @@ import ImpersonationBanner from './components/ImpersonationBanner'
 import AdminLayout from './components/AdminLayout'
 import Login from './pages/Login'
 import ContractorDashboard from './pages/ContractorDashboard'
+import ContractorGroupScan from './pages/ContractorGroupScan'
 import LeadsFeed from './pages/LeadsFeed'
 import Subcontractors from './pages/Subcontractors'
 import Profile from './pages/Profile'
 import Subscription from './pages/Subscription'
 import TelegramConnect from './pages/TelegramConnect'
-import ServiceSettings from './pages/ServiceSettings'
 import JobPortal from './pages/JobPortal'
+import RequireSubscription from './components/Paywall'
 import { Globe } from 'lucide-react'
 
 /* ─── Auth guard ─── */
@@ -65,30 +66,51 @@ function AppShell() {
       <div className="le-grain" />
       <ImpersonationBanner />
       <Sidebar />
-      <main className="relative transition-all duration-300"
-        style={{ paddingInlineStart: 240 }}>
+      <main className="relative contractor-main-content">
         {isFullBleed ? (
           <div className="h-screen">
             <Routes>
-              <Route path="/" element={<ContractorDashboard />} />
+              <Route path="/" element={<RequireSubscription><ContractorDashboard /></RequireSubscription>} />
             </Routes>
           </div>
         ) : (
           <div className="max-w-6xl mx-auto px-6 py-8">
             <Routes>
-              <Route path="/" element={<ContractorDashboard />} />
-              <Route path="/leads" element={<LeadsFeed />} />
-              <Route path="/subcontractors" element={<Subcontractors />} />
+              <Route path="/" element={<RequireSubscription><ContractorDashboard /></RequireSubscription>} />
+              <Route path="/leads" element={<RequireSubscription><LeadsFeed /></RequireSubscription>} />
+              <Route path="/group-scan" element={<RequireSubscription><ContractorGroupScan /></RequireSubscription>} />
+              <Route path="/subcontractors" element={<RequireSubscription><Subcontractors /></RequireSubscription>} />
               <Route path="/profile" element={<Profile />} />
               <Route path="/subscription" element={<Subscription />} />
-              <Route path="/telegram" element={<TelegramConnect />} />
-              <Route path="/settings" element={<ServiceSettings />} />
+              <Route path="/telegram" element={<RequireSubscription><TelegramConnect /></RequireSubscription>} />
+              <Route path="/settings" element={<Navigate to="/" replace />} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </div>
         )}
       </main>
     </div>
+  )
+}
+
+/* ─── Global language toggle (hidden on login page which has its own) ─── */
+function GlobalLangToggle({ locale, rtl, onToggle }: { locale: string; rtl: boolean; onToggle: () => void }) {
+  const location = useLocation()
+  if (location.pathname === '/login') return null
+  return (
+    <button
+      onClick={onToggle}
+      className="fixed top-4 z-50 flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-xs font-medium bg-white/80 backdrop-blur shadow-sm hover:bg-white transition-all"
+      style={{
+        borderColor: 'hsl(35 15% 88%)',
+        color: 'hsl(40 4% 42%)',
+        right: rtl ? 'auto' : '16px',
+        left: rtl ? '16px' : 'auto',
+      }}
+    >
+      <Globe className="w-3.5 h-3.5" />
+      {locale === 'en' ? 'עב' : 'EN'}
+    </button>
   )
 }
 
@@ -112,20 +134,7 @@ function App() {
       <div dir={rtl ? 'rtl' : 'ltr'}>
         <AuthProvider>
           <BrowserRouter>
-            {/* Language toggle — always visible */}
-            <button
-              onClick={() => handleSetLocale(locale === 'en' ? 'he' : 'en')}
-              className="fixed top-4 z-50 flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-xs font-medium bg-white/80 backdrop-blur shadow-sm hover:bg-white transition-all"
-              style={{
-                borderColor: 'hsl(35 15% 88%)',
-                color: 'hsl(40 4% 42%)',
-                right: rtl ? 'auto' : '16px',
-                left: rtl ? '16px' : 'auto',
-              }}
-            >
-              <Globe className="w-3.5 h-3.5" />
-              {locale === 'en' ? 'עב' : 'EN'}
-            </button>
+            <GlobalLangToggle locale={locale} rtl={rtl} onToggle={() => handleSetLocale(locale === 'en' ? 'he' : 'en')} />
 
             <Routes>
               <Route path="/portal/job/:token" element={<JobPortal />} />
