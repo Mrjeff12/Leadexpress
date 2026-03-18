@@ -2,11 +2,14 @@ import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-route
 import { useState, useCallback, type ReactNode } from 'react'
 import { AuthProvider, useAuth } from './lib/auth'
 import { I18nContext, createTranslator, isRtl, type Locale } from './lib/i18n'
+import { Toaster } from './components/shadcn/ui/toaster'
+import { GlobalNotificationListener } from './components/GlobalNotificationListener'
 import Sidebar from './components/Sidebar'
 import AdminLayout from './components/AdminLayout'
 import Login from './pages/Login'
 import ContractorDashboard from './pages/ContractorDashboard'
 import LeadsFeed from './pages/LeadsFeed'
+import Subcontractors from './pages/Subcontractors'
 import Profile from './pages/Profile'
 import Subscription from './pages/Subscription'
 import TelegramConnect from './pages/TelegramConnect'
@@ -72,6 +75,7 @@ function AppShell() {
             <Routes>
               <Route path="/" element={<ContractorDashboard />} />
               <Route path="/leads" element={<LeadsFeed />} />
+              <Route path="/subcontractors" element={<Subcontractors />} />
               <Route path="/profile" element={<Profile />} />
               <Route path="/subscription" element={<Subscription />} />
               <Route path="/telegram" element={<TelegramConnect />} />
@@ -127,6 +131,8 @@ function App() {
               } />
               <Route path="/*" element={<RequireAuth><AppShell /></RequireAuth>} />
             </Routes>
+            <Toaster />
+            <GlobalNotificationListener />
           </BrowserRouter>
         </AuthProvider>
       </div>

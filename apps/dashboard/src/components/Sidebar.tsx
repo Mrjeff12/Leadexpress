@@ -11,6 +11,7 @@ import {
   LogOut,
   ChevronLeft,
   ChevronRight,
+  Users,
 } from 'lucide-react'
 import { useState } from 'react'
 
@@ -30,6 +31,7 @@ export default function Sidebar() {
   const contractorNav: NavItem[] = [
     { label: t('nav.dashboard'), to: '/', icon: LayoutDashboard },
     { label: t('nav.leads'), to: '/leads', icon: Zap },
+    { label: t('nav.subcontractors'), to: '/subcontractors', icon: Users },
     { label: t('nav.profile'), to: '/profile', icon: User },
     { label: t('nav.subscription'), to: '/subscription', icon: CreditCard },
     { label: t('nav.telegram'), to: '/telegram', icon: Send },
