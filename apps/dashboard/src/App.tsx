@@ -4,6 +4,7 @@ import { AuthProvider, useAuth } from './lib/auth'
 import { I18nContext, createTranslator, isRtl, type Locale } from './lib/i18n'
 import { Toaster } from './components/shadcn/ui/toaster'
 import { GlobalNotificationListener } from './components/GlobalNotificationListener'
+import ErrorBoundary from './components/ErrorBoundary'
 import Sidebar from './components/Sidebar'
 import ImpersonationBanner from './components/ImpersonationBanner'
 import AdminLayout from './components/AdminLayout'
@@ -175,26 +176,28 @@ function App() {
   const rtl = isRtl(locale)
 
   return (
-    <I18nContext.Provider value={{ locale, setLocale: handleSetLocale, t }}>
-      <div dir={rtl ? 'rtl' : 'ltr'}>
-        <AuthProvider>
-          <BrowserRouter>
-            <GlobalLangToggle locale={locale} rtl={rtl} onToggle={() => handleSetLocale(locale === 'en' ? 'he' : 'en')} />
+    <ErrorBoundary>
+      <I18nContext.Provider value={{ locale, setLocale: handleSetLocale, t }}>
+        <div dir={rtl ? 'rtl' : 'ltr'}>
+          <AuthProvider>
+            <BrowserRouter>
+              <GlobalLangToggle locale={locale} rtl={rtl} onToggle={() => handleSetLocale(locale === 'en' ? 'he' : 'en')} />
 
-            <Routes>
-              <Route path="/portal/job/:token" element={<JobPortal />} />
-              <Route path="/login" element={<Login />} />
-              <Route path="/admin/*" element={
-                <RequireAuth><RequireAdmin><AdminLayout /></RequireAdmin></RequireAuth>
-              } />
-              <Route path="/*" element={<RequireAuth><AppShell /></RequireAuth>} />
-            </Routes>
-            <Toaster />
-            <GlobalNotificationListener />
-          </BrowserRouter>
-        </AuthProvider>
-      </div>
-    </I18nContext.Provider>
+              <Routes>
+                <Route path="/portal/job/:token" element={<JobPortal />} />
+                <Route path="/login" element={<Login />} />
+                <Route path="/admin/*" element={
+                  <RequireAuth><RequireAdmin><AdminLayout /></RequireAdmin></RequireAuth>
+                } />
+                <Route path="/*" element={<RequireAuth><AppShell /></RequireAuth>} />
+              </Routes>
+              <Toaster />
+              <GlobalNotificationListener />
+            </BrowserRouter>
+          </AuthProvider>
+        </div>
+      </I18nContext.Provider>
+    </ErrorBoundary>
   )
 }
 

@@ -1,6 +1,7 @@
 import { NavLink, useLocation } from 'react-router-dom'
 import { useAuth } from '../lib/auth'
 import { useI18n } from '../lib/i18n'
+import { useSubscriptionAccess } from '../hooks/useSubscriptionAccess'
 import {
   LayoutDashboard,
   Zap,
@@ -23,6 +24,7 @@ type NavItem = {
 export default function Sidebar() {
   const { signOut, profile } = useAuth()
   const { t, locale } = useI18n()
+  const { canManageSubs } = useSubscriptionAccess()
   const location = useLocation()
   const [collapsed, setCollapsed] = useState(false)
   const isRtl = locale === 'he'
@@ -36,8 +38,10 @@ export default function Sidebar() {
     { label: t('nav.dashboard'), to: '/', icon: LayoutDashboard },
     { label: t('nav.leads'), to: '/leads', icon: Zap },
     { label: locale === 'he' ? 'קבוצות לסריקה' : 'Group Scan', to: '/group-scan', icon: Users },
-    { label: t('nav.subcontractors'), to: '/subcontractors', icon: Users },
-    { label: locale === 'he' ? 'עבודות' : 'Jobs', to: '/jobs', icon: Briefcase },
+    ...(canManageSubs ? [
+      { label: t('nav.subcontractors'), to: '/subcontractors', icon: Users },
+      { label: locale === 'he' ? 'עבודות' : 'Jobs', to: '/jobs', icon: Briefcase },
+    ] : []),
   ]
 
   const CollapseIcon = isRtl

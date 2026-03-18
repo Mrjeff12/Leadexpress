@@ -1,7 +1,15 @@
 import { createClient } from '@supabase/supabase-js'
 
-const url = import.meta.env.VITE_SUPABASE_URL || 'https://placeholder.supabase.co'
-const key = import.meta.env.VITE_SUPABASE_ANON_KEY || 'placeholder-key'
+const url = import.meta.env.VITE_SUPABASE_URL
+const key = import.meta.env.VITE_SUPABASE_ANON_KEY
+
+if (!url || !key) {
+  throw new Error(
+    '[LeadExpress] Missing Supabase environment variables.\n' +
+    'Please set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in your .env file.\n' +
+    'See .env.example for reference.'
+  )
+}
 
 export const supabase = createClient(url, key, {
   auth: {

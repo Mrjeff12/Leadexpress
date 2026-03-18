@@ -18,6 +18,8 @@ import {
   Search,
   Loader2,
   Send,
+  MessageCircle,
+  Phone,
   Wrench,
   Thermometer,
   Key,
@@ -41,6 +43,7 @@ import {
   Bath,
   Waves,
   Truck,
+  Settings,
 } from 'lucide-react'
 
 /* ── Types ─────────────────────────────────────────────────────────── */
@@ -102,13 +105,16 @@ function timeAgo(d: string, he: boolean) {
 
 /* ── Component ─────────────────────────────────────────────────────── */
 export default function LeadsFeed() {
-  const { user } = useAuth()
+  const { user, effectiveUserId } = useAuth()
   const { locale } = useI18n()
   const he = locale === 'he'
 
   const [leads, setLeads] = useState<Lead[]>([])
   const [senderNames, setSenderNames] = useState<Record<string, string>>({})
+  const [contactCounts, setContactCounts] = useState<Record<string, number>>({})
   const [loading, setLoading] = useState(true)
+  const [contractorProfessions, setContractorProfessions] = useState<string[] | null>(null)
+  const [contractorZips, setContractorZips] = useState<string[] | null>(null)
   const [filterProfs, setFilterProfs] = useState<string[]>([])
   const [isProfOpen, setIsProfOpen] = useState(false)
   const profRef = useRef<HTMLDivElement>(null)
@@ -126,6 +132,37 @@ export default function LeadsFeed() {
   const [forwardLead, setForwardLead] = useState<Lead | null>(null)
   const [showUpsell, setShowUpsell] = useState(false)
 
+  /** Open WhatsApp chat with the lead's advertiser (group poster) */
+  async function contactAdvertiser(lead: Lead) {
+    if (!lead.sender_id) return
+    // sender_id is like "972501234567@c.us" — strip the @c.us suffix
+    const phone = lead.sender_id.replace(/@.*$/, '')
+    const name = senderNames[lead.sender_id] || ''
+    const location = [lead.city, lead.zip_code].filter(Boolean).join(', ')
+    const prof = lead.profession
+    const summary = lead.parsed_summary || lead.raw_message?.slice(0, 100) || ''
+
+    const greeting = name
+      ? (he ? `היי ${name},` : `Hi ${name},`)
+      : (he ? 'היי,' : 'Hi,')
+
+    const message = he
+      ? `${greeting} ראיתי שפרסמת בקשה ל${PROF[prof]?.he || prof}${location ? ' ב' + location : ''}.\n${summary}\nאשמח לעזור! אפשר לדבר?`
+      : `${greeting} I saw your post looking for ${PROF[prof]?.label || prof}${location ? ' in ' + location : ''}.\n${summary}\nI'd love to help! Can we talk?`
+
+    // Log the contact event (fire-and-forget) and update local count
+    if (user) {
+      supabase.from('lead_contact_events').insert({
+        lead_id: lead.id,
+        user_id: user.id,
+      }).then(({ error }) => { if (error) console.error('Failed to log contact event:', error) })
+      setContactCounts(prev => ({ ...prev, [lead.id]: (prev[lead.id] || 0) + 1 }))
+    }
+
+    const waUrl = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`
+    window.open(waUrl, '_blank')
+  }
+
   // Click outside for custom dropdowns
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -140,16 +177,40 @@ export default function LeadsFeed() {
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
-  // Fetch leads
+  // Fetch contractor settings then leads filtered by professions + zip codes
   useEffect(() => {
     async function fetchLeads() {
-      if (!user) return
-      
-      const { data, error } = await supabase
+      if (!user || !effectiveUserId) return
+
+      // 1. Load contractor's professions & zip_codes
+      const { data: contractor } = await supabase
+        .from('contractors')
+        .select('professions, zip_codes')
+        .eq('user_id', effectiveUserId)
+        .maybeSingle()
+
+      const professions: string[] = contractor?.professions ?? []
+      const zipCodes: string[] = contractor?.zip_codes ?? []
+      setContractorProfessions(professions)
+      setContractorZips(zipCodes)
+
+      // 2. If contractor hasn't configured professions or zips, show empty
+      if (professions.length === 0 || zipCodes.length === 0) {
+        setLeads([])
+        setLoading(false)
+        return
+      }
+
+      // 3. Fetch leads filtered by contractor's professions AND zip codes
+      let query = supabase
         .from('leads')
         .select('id, profession, parsed_summary, raw_message, city, zip_code, urgency, budget_range, sender_id, created_at, groups ( name )')
+        .in('profession', professions)
+        .in('zip_code', zipCodes)
         .order('created_at', { ascending: false })
         .limit(200)
+
+      const { data, error } = await query
 
       if (!error && data) {
         const leadsData = data.map((row: any) => ({
@@ -165,7 +226,7 @@ export default function LeadsFeed() {
             .from('group_members')
             .select('wa_sender_id, display_name')
             .in('wa_sender_id', senderIds)
-          
+
           if (members) {
             const nameMap: Record<string, string> = {}
             members.forEach(m => {
@@ -174,11 +235,28 @@ export default function LeadsFeed() {
             setSenderNames(nameMap)
           }
         }
+
+        // Fetch contact counts per lead
+        const leadIds = leadsData.map((l: any) => l.id)
+        if (leadIds.length > 0) {
+          const { data: events } = await supabase
+            .from('lead_contact_events')
+            .select('lead_id')
+            .in('lead_id', leadIds)
+
+          if (events) {
+            const counts: Record<string, number> = {}
+            events.forEach((e: any) => {
+              counts[e.lead_id] = (counts[e.lead_id] || 0) + 1
+            })
+            setContactCounts(counts)
+          }
+        }
       }
       setLoading(false)
     }
     fetchLeads()
-  }, [user])
+  }, [user, effectiveUserId])
 
   // Base filter (applies search, profession, and date - but NOT urgency)
   const baseFilteredLeads = useMemo(() => {
@@ -560,20 +638,25 @@ export default function LeadsFeed() {
                       </div>
                     </div>
 
+                    {contactCounts[lead.id] > 0 && (
+                      <div className="flex items-center justify-end gap-1.5 text-stone-400">
+                        <Phone className="w-3 h-3" />
+                        <span className="text-[10px] font-bold">
+                          {contactCounts[lead.id]} {he ? 'פניות' : 'contacted'}
+                        </span>
+                      </div>
+                    )}
+
                     <div className="mt-auto">
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
-                          if (canManageSubs) {
-                            setForwardLead(lead)
-                          } else {
-                            setShowUpsell(true)
-                          }
+                          contactAdvertiser(lead)
                         }}
-                        className="flex items-center justify-center gap-2 bg-black text-white h-10 rounded-xl font-bold text-xs hover:bg-stone-800 transition-all w-full"
+                        className="flex items-center justify-center gap-2 bg-[#25D366] text-white h-10 rounded-xl font-bold text-xs hover:bg-[#1da851] transition-all w-full"
                       >
-                        <Send className="w-3.5 h-3.5" />
-                        {he ? 'העבר ליד' : 'Forward Lead'}
+                        <MessageCircle className="w-3.5 h-3.5" />
+                        {he ? 'פנה למפרסם' : 'Contact Advertiser'}
                       </button>
                     </div>
                   </div>
@@ -610,19 +693,15 @@ export default function LeadsFeed() {
                         </div>
 
                         <div className="flex items-center gap-3">
-                          <button 
+                          <button
                             onClick={(e) => {
                               e.stopPropagation();
-                              if (canManageSubs) {
-                                setForwardLead(lead)
-                              } else {
-                                setShowUpsell(true)
-                              }
+                              contactAdvertiser(lead)
                             }}
-                            className="flex-1 flex items-center justify-center gap-2 bg-black text-white h-12 rounded-2xl font-bold text-sm hover:bg-stone-800 transition-all"
+                            className="flex-1 flex items-center justify-center gap-2 bg-[#25D366] text-white h-12 rounded-2xl font-bold text-sm hover:bg-[#1da851] transition-all"
                           >
-                            <Send className="w-4 h-4" />
-                            {he ? 'העבר ליד' : 'Forward Lead'}
+                            <MessageCircle className="w-4 h-4" />
+                            {he ? 'פנה למפרסם' : 'Contact Advertiser'}
                           </button>
                         </div>
                       </div>
@@ -635,8 +714,25 @@ export default function LeadsFeed() {
         </div>
       )}
 
-      {/* ── Empty ── */}
-      {!loading && filtered.length === 0 && (
+      {/* ── Empty: missing contractor settings ── */}
+      {!loading && (contractorProfessions !== null && contractorProfessions.length === 0 || contractorZips !== null && contractorZips.length === 0) && (
+        <div className="glass-panel py-32 flex flex-col items-center gap-6 border-none shadow-xl">
+          <div className="w-20 h-20 rounded-[24px] bg-black/[0.03] flex items-center justify-center">
+            <Settings className="w-8 h-8 text-stone-300" strokeWidth={1.5} />
+          </div>
+          <div className="text-center">
+            <h3 className="text-xl font-light text-black mb-1">
+              {he ? 'הגדר מקצועות ואזורי שירות' : 'Set up your professions & service areas'}
+            </h3>
+            <p className="text-sm text-stone-400 font-medium uppercase tracking-widest">
+              {he ? 'עבור לפרופיל כדי להגדיר מקצועות ומיקודים' : 'Go to Profile to configure your professions and ZIP codes'}
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* ── Empty: no matching leads ── */}
+      {!loading && filtered.length === 0 && contractorProfessions !== null && contractorProfessions.length > 0 && contractorZips !== null && contractorZips.length > 0 && (
         <div className="glass-panel py-32 flex flex-col items-center gap-6 border-none shadow-xl">
           <div className="w-20 h-20 rounded-[24px] bg-black/[0.03] flex items-center justify-center">
             <Search className="w-8 h-8 text-stone-300" strokeWidth={1.5} />

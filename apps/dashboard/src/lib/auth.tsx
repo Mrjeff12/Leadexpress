@@ -33,41 +33,6 @@ interface AuthContextValue extends AuthState {
 
 const AuthContext = createContext<AuthContextValue | null>(null)
 
-/* ─── Demo / Dev mode ─── */
-const IS_DEV = !import.meta.env.VITE_SUPABASE_URL
-
-const DEMO_ACCOUNTS: Record<string, { password: string; profile: Profile }> = {
-  'admin@leadexpress.com': {
-    password: 'admin123',
-    profile: {
-      id: 'demo-admin-001',
-      full_name: 'Jeff (Admin)',
-      role: 'admin',
-      telegram_chat_id: 123456789,
-    },
-  },
-  'contractor@leadexpress.com': {
-    password: 'contractor123',
-    profile: {
-      id: 'demo-contractor-001',
-      full_name: 'Carlos Mendez',
-      role: 'contractor',
-      telegram_chat_id: 987654321,
-    },
-  },
-}
-
-function makeFakeUser(email: string, id: string): User {
-  return {
-    id,
-    email,
-    app_metadata: {},
-    user_metadata: {},
-    aud: 'authenticated',
-    created_at: new Date().toISOString(),
-  } as User
-}
-
 const IMPERSONATE_KEY = 'leadexpress_impersonate'
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -82,7 +47,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   })
 
   async function fetchProfile(userId: string): Promise<Profile | null> {
-    if (IS_DEV) return null
     const { data, error } = await supabase
       .from('profiles')
       .select('id, full_name, role, telegram_chat_id')
@@ -113,27 +77,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   useEffect(() => {
-    if (IS_DEV) {
-      // In dev mode, auto-login unless explicitly signed out
-      const savedEmail = localStorage.getItem('le-demo-email')
-      if (!savedEmail) {
-        setState(prev => ({ ...prev, loading: false }))
-        return
-      }
-      const acct = DEMO_ACCOUNTS[savedEmail] ?? DEMO_ACCOUNTS['admin@leadexpress.com']
-      setState({
-        user: makeFakeUser(savedEmail, acct.profile.id),
-        session: null,
-        profile: acct.profile,
-        loading: false,
-        isAdmin: acct.profile.role === 'admin',
-        impersonatedUserId: null,
-        impersonatedProfile: null,
-      })
-      return
-    }
-
-    // Production: use Supabase auth
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       const user = session?.user ?? null
       let profile: Profile | null = null
@@ -172,50 +115,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const signIn = async (email: string, password: string) => {
-    if (IS_DEV) {
-      const acct = DEMO_ACCOUNTS[email]
-      if (!acct || acct.password !== password) {
-        return { error: 'Invalid email or password' }
-      }
-      localStorage.setItem('le-demo-email', email)
-      setState({
-        user: makeFakeUser(email, acct.profile.id),
-        session: null,
-        profile: acct.profile,
-        loading: false,
-        isAdmin: acct.profile.role === 'admin',
-        impersonatedUserId: null,
-        impersonatedProfile: null,
-      })
-      return { error: null }
-    }
-
     const { error } = await supabase.auth.signInWithPassword({ email, password })
     return { error: error?.message ?? null }
   }
 
   const signUp = async (email: string, password: string, name: string) => {
-    if (IS_DEV) {
-      // In dev mode, create a contractor account on-the-fly
-      const profile: Profile = {
-        id: `demo-${Date.now()}`,
-        full_name: name,
-        role: 'contractor',
-        telegram_chat_id: null,
-      }
-      localStorage.setItem('le-demo-email', email)
-      setState({
-        user: makeFakeUser(email, profile.id),
-        session: null,
-        profile,
-        loading: false,
-        isAdmin: false,
-        impersonatedUserId: null,
-        impersonatedProfile: null,
-      })
-      return { error: null }
-    }
-
     const { error } = await supabase.auth.signUp({
       email,
       password,
@@ -226,19 +130,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signOut = async () => {
     localStorage.removeItem(IMPERSONATE_KEY)
-    if (IS_DEV) {
-      localStorage.removeItem('le-demo-email')
-      setState({
-        user: null,
-        session: null,
-        profile: null,
-        loading: false,
-        isAdmin: false,
-        impersonatedUserId: null,
-        impersonatedProfile: null,
-      })
-      return
-    }
     await supabase.auth.signOut()
   }
 
