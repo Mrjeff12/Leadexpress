@@ -84,16 +84,32 @@ function Particles({ count = 30 }: { count?: number }) {
   )
 }
 
+/* ─────────────────── SVG Step Icons (premium, no emoji) ─────────────────── */
+function StepIcon({ type, color = '#fff', size = 20 }: { type: string; color?: string; size?: number }) {
+  const paths: Record<string, string> = {
+    lead: 'M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z', // mail
+    sub: 'M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z', // person
+    send: 'M20.01 15.38c-1.23 0-2.42-.2-3.53-.56a.977.977 0 00-1.01.24l-1.57 1.97c-2.83-1.35-5.48-3.9-6.89-6.83l1.95-1.66c.27-.28.35-.67.24-1.02-.37-1.11-.56-2.3-.56-3.53 0-.54-.45-.99-.99-.99H4.19C3.65 3 3 3.24 3 3.99 3 13.28 10.73 21 20.01 21c.71 0 .99-.63.99-1.18v-3.45c0-.54-.45-.99-.99-.99z', // phone
+    deal: 'M16.5 3c-1.74 0-3.41.81-4.5 2.09C10.91 3.81 9.24 3 7.5 3 4.42 3 2 5.42 2 8.5c0 3.78 3.4 6.86 8.55 11.54L12 21.35l1.45-1.32C18.6 15.36 22 12.28 22 8.5 22 5.42 19.58 3 16.5 3z', // heart/deal
+    track: 'M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z', // chart
+  }
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <path d={paths[type] || paths.lead} fill={color} />
+    </svg>
+  )
+}
+
 /* ─────────────────── Pipeline bar (shared across scenes) ─────────────────── */
 function Pipeline({ activeStep }: { activeStep: number }) {
   const frame = useCurrentFrame()
   const { fps } = useVideoConfig()
   const steps = [
-    { icon: '📨', label: 'LEAD' },
-    { icon: '👤', label: 'SUB' },
-    { icon: '💬', label: 'SEND' },
-    { icon: '🤝', label: 'DEAL' },
-    { icon: '📊', label: 'TRACK' },
+    { type: 'lead', label: 'Lead' },
+    { type: 'sub', label: 'Sub' },
+    { type: 'send', label: 'Send' },
+    { type: 'deal', label: 'Deal' },
+    { type: 'track', label: 'Track' },
   ]
 
   const barEnter = spring({ frame, fps, delay: 3, config: { damping: 15, stiffness: 120 } })
@@ -104,19 +120,20 @@ function Pipeline({ activeStep }: { activeStep: number }) {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        gap: 4,
-        padding: '16px 0 20px',
+        gap: 0,
+        padding: '20px 40px 24px',
         opacity: barEnter,
-        transform: `translateY(${interpolate(barEnter, [0, 1], [-20, 0])}px)`,
+        transform: `translateY(${interpolate(barEnter, [0, 1], [-15, 0])}px)`,
       }}
     >
       {steps.map((s, i) => {
         const isActive = i === activeStep
         const isDone = i < activeStep
         const activeScale = isActive
-          ? spring({ frame, fps, delay: 8, config: { damping: 10, stiffness: 200 }, from: 0.85, to: 1.12 })
+          ? spring({ frame, fps, delay: 8, config: { damping: 10, stiffness: 200 }, from: 0.9, to: 1.08 })
           : 1
-        const glowPulse = isActive ? Math.sin(frame * 0.12) * 0.3 + 0.7 : 0
+        const glowPulse = isActive ? Math.sin(frame * 0.1) * 0.15 + 0.85 : 0
+        const ringRotate = isActive ? frame * 0.8 : 0
 
         return (
           <div key={i} style={{ display: 'flex', alignItems: 'center' }}>
@@ -125,36 +142,70 @@ function Pipeline({ activeStep }: { activeStep: number }) {
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center',
-                gap: 3,
-                padding: '7px 12px',
-                borderRadius: 12,
-                background: isActive
-                  ? 'linear-gradient(135deg, #fe5b25, #e04d1c)'
-                  : isDone
-                  ? 'rgba(255,255,255,0.12)'
-                  : 'rgba(255,255,255,0.04)',
+                gap: 6,
                 transform: `scale(${activeScale})`,
-                boxShadow: isActive
-                  ? `0 6px 20px rgba(254,91,37,${0.3 + glowPulse * 0.2})`
-                  : 'none',
-                minWidth: 56,
-                border: isActive ? 'none' : '1px solid rgba(255,255,255,0.06)',
+                position: 'relative',
               }}
             >
-              <span style={{ fontSize: 16 }}>{s.icon}</span>
+              {/* Animated ring for active step */}
+              {isActive && (
+                <div style={{
+                  position: 'absolute',
+                  top: -4,
+                  left: '50%',
+                  marginLeft: -24,
+                  width: 48,
+                  height: 48,
+                  borderRadius: 14,
+                  border: '2px solid transparent',
+                  borderTopColor: 'rgba(254,91,37,0.6)',
+                  borderRightColor: 'rgba(254,91,37,0.3)',
+                  transform: `rotate(${ringRotate}deg)`,
+                  pointerEvents: 'none',
+                }} />
+              )}
+              {/* Icon circle */}
+              <div
+                style={{
+                  width: 40,
+                  height: 40,
+                  borderRadius: 12,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  background: isActive
+                    ? 'linear-gradient(135deg, #fe5b25, #e04d1c)'
+                    : isDone
+                    ? 'rgba(254,91,37,0.15)'
+                    : 'rgba(255,255,255,0.05)',
+                  boxShadow: isActive
+                    ? `0 4px 20px rgba(254,91,37,${0.3 + glowPulse * 0.2}), inset 0 1px 0 rgba(255,255,255,0.2)`
+                    : isDone
+                    ? '0 2px 8px rgba(254,91,37,0.1)'
+                    : 'inset 0 0 0 1px rgba(255,255,255,0.06)',
+                }}
+              >
+                <StepIcon
+                  type={s.type}
+                  color={isActive ? '#fff' : isDone ? '#fe5b25' : 'rgba(255,255,255,0.2)'}
+                  size={18}
+                />
+              </div>
+              {/* Label */}
               <span
                 style={{
-                  fontSize: 8,
-                  fontWeight: 800,
-                  letterSpacing: 1,
-                  color: isActive ? '#fff' : isDone ? 'rgba(255,255,255,0.5)' : 'rgba(255,255,255,0.2)',
+                  fontSize: 10,
+                  fontWeight: 600,
+                  letterSpacing: 0.5,
+                  color: isActive ? '#fff' : isDone ? 'rgba(255,255,255,0.5)' : 'rgba(255,255,255,0.18)',
                 }}
               >
                 {s.label}
               </span>
             </div>
+            {/* Connector */}
             {i < steps.length - 1 && (
-              <div style={{ position: 'relative', width: 16, height: 2 }}>
+              <div style={{ width: 40, height: 2, margin: '0 2px', marginBottom: 20, position: 'relative' }}>
                 <div style={{ position: 'absolute', inset: 0, background: 'rgba(255,255,255,0.06)', borderRadius: 1 }} />
                 <div
                   style={{
@@ -162,10 +213,9 @@ function Pipeline({ activeStep }: { activeStep: number }) {
                     top: 0,
                     left: 0,
                     height: '100%',
-                    width: isDone ? '100%' : isActive ? '50%' : '0%',
+                    width: isDone ? '100%' : isActive ? '40%' : '0%',
                     background: 'linear-gradient(90deg, #fe5b25, #ff8a5c)',
                     borderRadius: 1,
-                    transition: 'width 0.3s',
                   }}
                 />
               </div>
@@ -177,33 +227,39 @@ function Pipeline({ activeStep }: { activeStep: number }) {
   )
 }
 
-/* ─────────────────── Scene Title ─────────────────── */
+/* ─────────────────── Scene Title (premium typography) ─────────────────── */
 function SceneTitle({ title, subtitle }: { title: string; subtitle: string }) {
   const enter = useEnter(5)
   const subtitleEnter = useEnter(12)
 
   return (
-    <div style={{ textAlign: 'center', padding: '0 40px', marginBottom: 16 }}>
+    <div style={{ textAlign: 'center', padding: '0 60px', marginBottom: 20 }}>
       <h2
         style={{
-          color: '#fff',
-          fontSize: 26,
+          background: 'linear-gradient(135deg, #ffffff 0%, #e0e0e0 50%, #ffffff 100%)',
+          WebkitBackgroundClip: 'text',
+          WebkitTextFillColor: 'transparent',
+          fontSize: 28,
           fontWeight: 800,
           margin: 0,
-          letterSpacing: -0.5,
+          letterSpacing: -0.8,
+          lineHeight: 1.2,
           opacity: enter,
-          transform: `translateY(${interpolate(enter, [0, 1], [15, 0])}px)`,
+          transform: `translateY(${interpolate(enter, [0, 1], [12, 0])}px)`,
         }}
       >
         {title}
       </h2>
       <p
         style={{
-          color: 'rgba(255,255,255,0.45)',
+          color: 'rgba(255,255,255,0.35)',
           fontSize: 13,
-          marginTop: 6,
+          fontWeight: 400,
+          marginTop: 8,
+          lineHeight: 1.5,
+          letterSpacing: 0.2,
           opacity: subtitleEnter,
-          transform: `translateY(${interpolate(subtitleEnter, [0, 1], [10, 0])}px)`,
+          transform: `translateY(${interpolate(subtitleEnter, [0, 1], [8, 0])}px)`,
         }}
       >
         {subtitle}
