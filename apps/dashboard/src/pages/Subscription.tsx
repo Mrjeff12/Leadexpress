@@ -41,7 +41,7 @@ const PLAN_CONFIG: Record<string, {
     icon: Star,
     badge: 'Most Popular',
     features: ['All professions', 'Up to 25 zip codes', 'Priority support', 'Morning digest', 'Advanced analytics'],
-    gradient: 'from-emerald-600 to-emerald-700',
+    gradient: 'from-[#fe5b25] to-[#e04d1c]',
     iconBg: 'bg-white/20 text-white',
     accentColor: 'emerald',
   },
@@ -99,7 +99,7 @@ export default function Subscription() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <div className="animate-spin h-8 w-8 rounded-full border-2 border-emerald-500 border-t-transparent" />
+        <div className="animate-spin h-8 w-8 rounded-full border-2 border-[#fe5b25] border-t-transparent" />
       </div>
     )
   }
@@ -146,9 +146,9 @@ export default function Subscription() {
 
       {/* ─── Success / Canceled Banners ─── */}
       {showSuccess && (
-        <div className="rounded-2xl p-4 bg-emerald-50 border border-emerald-100 flex items-center gap-3">
-          <CheckCircle2 className="h-5 w-5 text-emerald-600 shrink-0" />
-          <p className="text-sm font-medium text-emerald-800">Payment successful! Your subscription is now active.</p>
+        <div className="rounded-2xl p-4 bg-[#fff4ef] border border-[#fee8df] flex items-center gap-3">
+          <CheckCircle2 className="h-5 w-5 text-[#fe5b25] shrink-0" />
+          <p className="text-sm font-medium text-[#c43d10]">Payment successful! Your subscription is now active.</p>
         </div>
       )}
       {showCanceled && (
@@ -211,7 +211,7 @@ export default function Subscription() {
             }`}
           >
             Annual
-            <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">
+            <span className="text-[10px] font-bold text-[#fe5b25] bg-[#fff4ef] px-2 py-0.5 rounded-full">
               -17%
             </span>
           </button>
@@ -238,7 +238,7 @@ export default function Subscription() {
                 dark
                   ? `bg-gradient-to-br ${config.gradient} text-white shadow-xl`
                   : 'bg-white border border-zinc-200/60 shadow-sm hover:shadow-lg',
-                isCurrent ? 'ring-2 ring-emerald-400 ring-offset-2' : '',
+                isCurrent ? 'ring-2 ring-[#fe5b25] ring-offset-2' : '',
                 plan.slug === 'pro' ? 'md:scale-[1.03]' : '',
               ].join(' ')}
             >
@@ -247,8 +247,8 @@ export default function Subscription() {
                 <div className="absolute -top-3 left-1/2 -translate-x-1/2">
                   <span className={`inline-flex items-center gap-1 rounded-full px-3.5 py-1 text-[11px] font-bold shadow-md ${
                     isCurrent
-                      ? 'bg-emerald-500 text-white ring-2 ring-emerald-300 ring-offset-1'
-                      : dark ? 'bg-white text-emerald-700' : 'bg-emerald-500 text-white'
+                      ? 'bg-[#fe5b25] text-white ring-2 ring-[#ff8a5c] ring-offset-1'
+                      : dark ? 'bg-white text-[#e04d1c]' : 'bg-[#fe5b25] text-white'
                   }`}>
                     {isCurrent ? <CheckCircle2 className="h-3 w-3" /> : <Sparkles className="h-3 w-3" />}
                     {isCurrent ? 'Your Current Plan' : config.badge}
@@ -265,7 +265,7 @@ export default function Subscription() {
                   <h3 className={`text-lg font-bold ${dark ? 'text-white' : 'text-zinc-900'}`}>{plan.name}</h3>
                   {isCurrent && (
                     <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
-                      dark ? 'bg-white/20 text-white' : 'bg-emerald-100 text-emerald-700'
+                      dark ? 'bg-white/20 text-white' : 'bg-[#fee8df] text-[#e04d1c]'
                     }`}>
                       Current Plan
                     </span>
@@ -294,9 +294,9 @@ export default function Subscription() {
                 {config.features.map((feature) => (
                   <li key={feature} className={`flex items-center gap-2.5 text-sm ${dark ? 'text-white/85' : 'text-zinc-600'}`}>
                     <div className={`h-4.5 w-4.5 rounded-full flex items-center justify-center shrink-0 ${
-                      dark ? 'bg-white/20' : 'bg-emerald-100'
+                      dark ? 'bg-white/20' : 'bg-[#fee8df]'
                     }`}>
-                      <Check className={`h-3 w-3 ${dark ? 'text-white' : 'text-emerald-600'}`} />
+                      <Check className={`h-3 w-3 ${dark ? 'text-white' : 'text-[#fe5b25]'}`} />
                     </div>
                     {feature}
                   </li>
@@ -346,58 +346,66 @@ export default function Subscription() {
       {/* ─── Billing & Invoices Section ─── */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
         {/* Billing Management Card */}
-        <div className="rounded-2xl bg-white border border-zinc-200/60 p-6 shadow-sm">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="h-10 w-10 rounded-xl bg-zinc-100 text-zinc-600 flex items-center justify-center">
-              <CreditCard className="h-5 w-5" />
-            </div>
-            <div>
-              <h3 className="text-sm font-bold text-zinc-900">Billing</h3>
-              <p className="text-xs text-zinc-400">
-                {hasStripeSubscription ? 'Payment method & subscription' : 'Subscribe to manage billing'}
-              </p>
+        <div className="rounded-2xl overflow-hidden shadow-lg border border-[#fe5b25]/10">
+          <div className="bg-gradient-to-br from-[#fe5b25] to-[#e04d1c] p-6 text-white relative">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/2" />
+            <div className="absolute bottom-0 left-0 w-20 h-20 bg-white/5 rounded-full translate-y-1/2 -translate-x-1/2" />
+            <div className="relative">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="h-10 w-10 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center">
+                  <CreditCard className="h-5 w-5 text-white" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold">Billing</h3>
+                  <p className="text-xs text-white/60">
+                    {hasStripeSubscription ? 'Payment method & subscription' : 'Subscribe to manage billing'}
+                  </p>
+                </div>
+              </div>
+
+              {isActive && subscription?.plan && (
+                <div className="rounded-xl bg-white/10 backdrop-blur-sm p-4 mb-4 border border-white/10">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-[10px] text-white/50 uppercase tracking-wider font-bold">Current Plan</p>
+                      <p className="text-xl font-extrabold mt-0.5">{subscription.plan.name}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-3xl font-extrabold tracking-tight">${subscription.plan.price_cents / 100}</p>
+                      <p className="text-xs text-white/50">/month</p>
+                    </div>
+                  </div>
+                  {subscription.current_period_end && (
+                    <p className="text-xs text-white/40 mt-3 pt-3 border-t border-white/10">
+                      Next billing: {new Date(subscription.current_period_end).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+                    </p>
+                  )}
+                </div>
+              )}
             </div>
           </div>
 
-          {isActive && subscription?.plan && (
-            <div className="rounded-xl bg-zinc-50 p-4 mb-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs text-zinc-400 uppercase tracking-wider font-medium">Current Plan</p>
-                  <p className="text-lg font-bold text-zinc-900 mt-0.5">{subscription.plan.name}</p>
-                </div>
-                <div className="text-right">
-                  <p className="text-xl font-bold text-zinc-900">${subscription.plan.price_cents / 100}</p>
-                  <p className="text-xs text-zinc-400">/month</p>
-                </div>
-              </div>
-              {subscription.current_period_end && (
-                <p className="text-xs text-zinc-400 mt-2 pt-2 border-t border-zinc-200/60">
-                  Next billing: {new Date(subscription.current_period_end).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
-                </p>
+          <div className="bg-white p-4">
+            <button
+              type="button"
+              disabled={!hasStripeSubscription || actionLoading}
+              onClick={openPortal}
+              className={`w-full py-3 rounded-xl text-sm font-semibold flex items-center justify-center gap-2 transition-all ${
+                hasStripeSubscription
+                  ? 'bg-zinc-900 text-white hover:bg-zinc-800 shadow-md'
+                  : 'border border-zinc-100 text-zinc-300 cursor-not-allowed'
+              }`}
+            >
+              {actionLoading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <>
+                  Manage Billing
+                  <ExternalLink className="h-3.5 w-3.5" />
+                </>
               )}
-            </div>
-          )}
-
-          <button
-            type="button"
-            disabled={!hasStripeSubscription || actionLoading}
-            onClick={openPortal}
-            className={`w-full py-3 rounded-xl text-sm font-semibold flex items-center justify-center gap-2 transition-all ${
-              hasStripeSubscription
-                ? 'border border-zinc-200 text-zinc-700 hover:bg-zinc-50'
-                : 'border border-zinc-100 text-zinc-300 cursor-not-allowed'
-            }`}
-          >
-            {actionLoading ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <>
-                Manage Billing
-                <ExternalLink className="h-3.5 w-3.5" />
-              </>
-            )}
-          </button>
+            </button>
+          </div>
         </div>
 
         {/* Invoice History Card */}
@@ -430,7 +438,7 @@ export default function Subscription() {
                     </span>
                     <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full ${
                       inv.status === 'paid'
-                        ? 'bg-emerald-50 text-emerald-600'
+                        ? 'bg-[#fff4ef] text-[#fe5b25]'
                         : 'bg-amber-50 text-amber-600'
                     }`}>
                       {inv.status}
