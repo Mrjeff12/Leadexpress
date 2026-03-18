@@ -41,6 +41,12 @@ export interface MemberRow {
   manual_override: boolean
 }
 
+export interface TrendMonth {
+  month: string        // "2026-01"
+  profession: string
+  count: number
+}
+
 export interface MarketIntel {
   professions: { name: string; count: number; pct: number }[]
   regions: { name: string; count: number; pct: number }[]
@@ -191,6 +197,36 @@ async function fetchMarketIntel(groupId: string): Promise<MarketIntel> {
   return { professions, regions, urgency, repeatRequesters }
 }
 
+async function fetchTrends(groupId: string): Promise<TrendMonth[]> {
+  const twelveMonthsAgo = new Date()
+  twelveMonthsAgo.setMonth(twelveMonthsAgo.getMonth() - 12)
+
+  const { data } = await supabase
+    .from('leads')
+    .select('profession, created_at')
+    .eq('group_id', groupId)
+    .gte('created_at', twelveMonthsAgo.toISOString())
+
+  if (!data || data.length === 0) return []
+
+  const map: Record<string, Record<string, number>> = {}
+  data.forEach((l: any) => {
+    const month = l.created_at.slice(0, 7)
+    const prof = l.profession || 'other'
+    if (!map[month]) map[month] = {}
+    map[month][prof] = (map[month][prof] || 0) + 1
+  })
+
+  const result: TrendMonth[] = []
+  Object.entries(map).forEach(([month, profs]) => {
+    Object.entries(profs).forEach(([profession, count]) => {
+      result.push({ month, profession, count })
+    })
+  })
+
+  return result.sort((a, b) => a.month.localeCompare(b.month))
+}
+
 /* ── Hook ──────────────────────────────────────────────── */
 
 export function useGroupDetail(groupId: string | undefined) {
@@ -227,6 +263,13 @@ export function useGroupDetail(groupId: string | undefined) {
     staleTime: 60_000,
   })
 
+  const trendsQuery = useQuery({
+    queryKey: [...baseKey, 'trends'],
+    queryFn: () => fetchTrends(groupId!),
+    enabled: !!groupId,
+    staleTime: 120_000,
+  })
+
   // Realtime for pipeline events + members
   useEffect(() => {
     if (!groupId) return
@@ -259,6 +302,7 @@ export function useGroupDetail(groupId: string | undefined) {
     activity: activityQuery.data,
     members: membersQuery.data,
     market: marketQuery.data,
+    trends: trendsQuery.data,
     isLoading: infoQuery.isLoading,
     isError: infoQuery.isError,
   }
