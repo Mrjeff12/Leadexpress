@@ -97,7 +97,11 @@ interface GreenNotification {
     messageData?: {
       typeMessage: string;
       textMessageData?: { textMessage: string };
-      extendedTextMessageData?: { text: string };
+      extendedTextMessageData?: {
+        text: string;
+        stanzaId?: string;
+        quotedMessage?: { textMessage?: string };
+      };
     };
     stateInstance?: string;
   };
@@ -250,6 +254,10 @@ async function processNotification(notif: GreenNotification): Promise<void> {
     body.messageData?.textMessageData?.textMessage ??
     body.messageData?.extendedTextMessageData?.text;
 
+  // Extract reply/quote context from Green API
+  const quotedMessageId = body.messageData?.extendedTextMessageData?.stanzaId ?? null;
+  const quotedText = body.messageData?.extendedTextMessageData?.quotedMessage?.textMessage ?? null;
+
   if (!text) return; // skip media-only messages
 
   const messageId = body.idMessage ?? `green-${Date.now()}`;
@@ -282,6 +290,8 @@ async function processNotification(notif: GreenNotification): Promise<void> {
     senderName,
     text,
     timestamp: body.timestamp,
+    quotedMessageId,
+    quotedText,
   });
 
   if (filterResult.action === 'skip') {
@@ -315,6 +325,8 @@ async function processNotification(notif: GreenNotification): Promise<void> {
     senderId,
     timestamp: body.timestamp,
     accountId: config.whatsapp.accountId,
+    quotedMessageId,
+    quotedText,
   };
 
   try {

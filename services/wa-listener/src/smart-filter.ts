@@ -19,6 +19,8 @@ export interface MessageContext {
   senderName: string;
   text: string;
   timestamp: number;
+  quotedMessageId: string | null;
+  quotedText: string | null;
 }
 
 // ── Stage 1: Quick Filter ────────────────────────────────────────────────────
@@ -28,8 +30,36 @@ const BOT_PATTERNS = /^(ברוכים הבאים|Welcome|הקבוצה נוצרה|
 const MEDIA_ONLY_PATTERN = /^(📷|🎵|🎥|📎|📄|🎤)?\s*$/;
 const EMOJI_ONLY = /^[\p{Emoji}\s]+$/u;
 
-export function quickFilter(text: string): FilterResult | null {
-  // Too short
+const RESPONSE_PATTERNS = [
+  /^k\??$/i,
+  /^(yes|yeah|yep|yea)\b/i,
+  /^interested\b/i,
+  /^i.?ll take/i,
+  /^dm\b|^pm\b/i,
+  /^(how much|price|cost)\b/i,
+  /^(available|free)\b/i,
+  /^(send|sent)\b/i,
+  /^mine\b/i,
+  /^(אני לוקח|אני רוצה|מעוניין|שלי)/i,
+];
+
+export function isResponsePattern(text: string): boolean {
+  const trimmed = text.trim();
+  return RESPONSE_PATTERNS.some(p => p.test(trimmed));
+}
+
+export function quickFilter(text: string, ctx?: { quotedMessageId?: string | null }): FilterResult | null {
+  // Replies to other messages bypass length check — let AI classify
+  if (ctx?.quotedMessageId) {
+    return null;
+  }
+
+  // Response patterns bypass length check
+  if (isResponsePattern(text)) {
+    return null;
+  }
+
+  // Too short (only for non-replies, non-response-patterns)
   if (text.length < MIN_TEXT_LENGTH) {
     return { action: 'skip', stage: 'quick_filtered', reason: 'too_short' };
   }
@@ -310,7 +340,7 @@ export function patternMatch(text: string): FilterResult {
 // ── Main filter pipeline ─────────────────────────────────────────────────────
 export async function runSmartFilter(ctx: MessageContext): Promise<FilterResult> {
   // Stage 1: Quick filter
-  const quickResult = quickFilter(ctx.text);
+  const quickResult = quickFilter(ctx.text, { quotedMessageId: ctx.quotedMessageId });
   if (quickResult) {
     logger.debug({ messageId: ctx.messageId, ...quickResult }, 'Quick filter applied');
     return quickResult;

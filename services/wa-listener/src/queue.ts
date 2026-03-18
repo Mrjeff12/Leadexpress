@@ -10,6 +10,8 @@ export interface RawMessageJob {
   senderId?: string;
   timestamp: number;
   accountId: string;
+  quotedMessageId?: string | null;
+  quotedText?: string | null;
 }
 
 let queue: Queue<RawMessageJob> | null = null;
