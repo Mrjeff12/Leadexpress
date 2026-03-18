@@ -1,68 +1,100 @@
-import { MapPin, Filter, Bell, ArrowRight } from 'lucide-react'
+import { ArrowRight } from 'lucide-react'
+import { Player } from '@remotion/player'
 import { useLang } from '../i18n/LanguageContext'
-
-const steps = [
-  { icon: MapPin, color: '#fe5b25', bg: 'from-[#fe5b25]/10 to-[#fe5b25]/5' },
-  { icon: Filter, color: '#3b82f6', bg: 'from-blue-500/10 to-blue-500/5' },
-  { icon: Bell, color: '#f59e0b', bg: 'from-amber-500/10 to-amber-500/5' },
-]
+import {
+  HowItWorksDemo,
+  HOW_IT_WORKS_DURATION,
+  HOW_IT_WORKS_FPS,
+  HOW_IT_WORKS_WIDTH,
+  HOW_IT_WORKS_HEIGHT,
+} from '../remotion/HowItWorksDemo'
 
 export default function WorkflowSection() {
-  const { t, lang } = useLang()
+  const { lang } = useLang()
+  const he = lang === 'he'
 
   return (
     <section id="features" className="py-16 md:py-24 bg-white">
-      <div className="max-w-5xl mx-auto px-6">
+      <div className="max-w-7xl mx-auto px-6">
         {/* Header */}
-        <div className="text-center mb-12 md:mb-16">
+        <div className="text-center mb-12">
           <p className="text-[#fe5b25] text-[11px] font-semibold tracking-widest uppercase mb-3">
-            {lang === 'he' ? 'איך זה עובד' : 'How It Works'}
+            {he ? 'איך זה עובד' : 'How It Works'}
           </p>
-          <h2 className="text-2xl md:text-4xl font-medium text-dark mb-3">{t.workflow.title}</h2>
-          <p className="text-dark/40 max-w-md mx-auto text-sm">{t.workflow.subtitle}</p>
+          <h2 className="text-3xl md:text-4xl font-bold text-dark tracking-tight mb-3">
+            {he ? 'איך זה עובד' : 'How It Works'}
+          </h2>
+          <p className="text-gray-subtle/60 max-w-lg mx-auto">
+            {he ? 'הגדר תוך 2 דקות. התחל לקבל לידים היום.' : 'Set up in 2 minutes. Start getting leads today.'}
+          </p>
         </div>
 
-        {/* Steps — horizontal on desktop, vertical on mobile */}
-        <div className="relative">
-          {/* Connecting line — desktop */}
-          <div className="hidden md:block absolute top-10 left-[16%] right-[16%] h-[2px] bg-gradient-to-r from-[#fe5b25]/20 via-blue-500/20 to-amber-500/20" />
+        {/* Two-column: Animation + Steps */}
+        <div className="grid lg:grid-cols-2 gap-12 items-center">
+          {/* Remotion Animation */}
+          <div className="rounded-2xl overflow-hidden shadow-xl border border-stone-100">
+            <Player
+              component={HowItWorksDemo}
+              durationInFrames={HOW_IT_WORKS_DURATION}
+              fps={HOW_IT_WORKS_FPS}
+              compositionWidth={HOW_IT_WORKS_WIDTH}
+              compositionHeight={HOW_IT_WORKS_HEIGHT}
+              style={{ width: '100%' }}
+              autoPlay
+              loop
+              controls={false}
+            />
+          </div>
 
-          <div className="grid md:grid-cols-3 gap-8 md:gap-6">
-            {t.workflow.cards.map((card, i) => {
-              const step = steps[i]
-              const Icon = step.icon
-              return (
-                <div key={i} className="relative flex flex-col items-center text-center group">
-                  {/* Step number + icon */}
-                  <div className="relative mb-5">
-                    <div
-                      className={`w-20 h-20 rounded-2xl bg-gradient-to-br ${step.bg} flex items-center justify-center transition-transform duration-300 group-hover:scale-105 group-hover:shadow-lg`}
-                      style={{ boxShadow: `0 8px 30px ${step.color}15` }}
-                    >
-                      <Icon size={28} style={{ color: step.color }} strokeWidth={1.8} />
-                    </div>
-                    {/* Step badge */}
-                    <div
-                      className="absolute -top-2 -right-2 w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-bold shadow-md"
-                      style={{ backgroundColor: step.color }}
-                    >
-                      {i + 1}
-                    </div>
-                  </div>
-
-                  {/* Arrow between steps — mobile only */}
-                  {i < 2 && (
-                    <div className="md:hidden flex justify-center -mt-2 mb-3">
-                      <ArrowRight size={16} className="text-dark/15 rotate-90" />
-                    </div>
-                  )}
-
-                  {/* Text */}
-                  <h3 className="text-lg font-semibold text-dark mb-2">{card.title}</h3>
-                  <p className="text-dark/40 text-sm leading-relaxed max-w-[260px]">{card.desc}</p>
+          {/* Steps text */}
+          <div className="space-y-8">
+            {[
+              {
+                num: '1',
+                title: he ? 'ספר לנו מה אתה עושה' : 'Tell Us What You Do',
+                desc: he
+                  ? 'הגדר את המקצוע שלך (אינסטלציה, חשמל, מיזוג...) ואת האזורים שבהם אתה עובד. זה הכל.'
+                  : 'Set your trade (HVAC, plumbing, electrical...) and the areas you work in. That\'s it.',
+                color: '#fe5b25',
+              },
+              {
+                num: '2',
+                title: he ? 'אנחנו מנטרים 24/7' : 'We Monitor 24/7',
+                desc: he
+                  ? 'ה-AI שלנו קורא כל הודעה בקבוצות WhatsApp — שלך ושלנו — ומחלץ בקשות עבודה אמיתיות.'
+                  : 'Our AI reads every message in WhatsApp groups — yours and ours — and extracts real job requests.',
+                color: '#3b82f6',
+              },
+              {
+                num: '3',
+                title: he ? 'קבל לידים בWhatsApp' : 'Get Leads on WhatsApp',
+                desc: he
+                  ? 'עבודות תואמות נשלחות ישירות לWhatsApp שלך. מעוניין? אנחנו מחברים אותך למפרסם המקורי.'
+                  : 'Matching jobs are sent directly to your WhatsApp. Interested? We connect you to the original poster.',
+                color: '#f59e0b',
+              },
+            ].map((step, i) => (
+              <div key={i} className="flex gap-4">
+                <div
+                  className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 text-white font-bold text-sm"
+                  style={{ background: step.color }}
+                >
+                  {step.num}
                 </div>
-              )
-            })}
+                <div>
+                  <h3 className="text-lg font-bold text-dark mb-1">{step.title}</h3>
+                  <p className="text-sm text-gray-subtle/60 leading-relaxed">{step.desc}</p>
+                </div>
+              </div>
+            ))}
+
+            <a
+              href="#pricing"
+              className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-dark text-white font-bold text-sm hover:bg-dark/90 transition-all mt-2"
+            >
+              {he ? 'התחל עכשיו' : 'Start Getting Leads'}
+              <ArrowRight className="w-4 h-4" />
+            </a>
           </div>
         </div>
       </div>
