@@ -74,9 +74,9 @@ function Pipeline({ progress }: { progress: number }) {
         return (
           <div key={i} style={{ display: 'flex', alignItems: 'center' }}>
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5, position: 'relative', transform: isActive ? 'scale(1.08)' : 'scale(1)' }}>
-              {isActive && <div style={{ position: 'absolute', top: -4, left: '50%', marginLeft: -28, width: 56, height: 56, borderRadius: 16, border: '2px solid transparent', borderTopColor: 'rgba(254,91,37,0.6)', borderRightColor: 'rgba(254,91,37,0.25)', transform: `rotate(${ring}deg)`, pointerEvents: 'none' }} />}
-              <div style={{ width: 48, height: 48, borderRadius: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', background: isActive ? 'linear-gradient(135deg,#fe5b25,#e04d1c)' : isDone ? 'rgba(254,91,37,0.15)' : 'rgba(255,255,255,0.04)', boxShadow: isActive ? `0 5px 20px rgba(254,91,37,${0.3 + pulse * 0.15})` : isDone ? '0 2px 8px rgba(254,91,37,0.08)' : 'inset 0 0 0 1px rgba(255,255,255,0.05)' }}>
-                <svg width={20} height={20} viewBox="0 0 24 24"><path d={icon} fill={isActive ? '#fff' : isDone ? '#fe5b25' : 'rgba(255,255,255,0.18)'} /></svg>
+              {isActive && <div style={{ position: 'absolute', top: -4, left: '50%', marginLeft: -32, width: 64, height: 64, borderRadius: 18, border: '2px solid transparent', borderTopColor: 'rgba(254,91,37,0.6)', borderRightColor: 'rgba(254,91,37,0.25)', transform: `rotate(${ring}deg)`, pointerEvents: 'none' }} />}
+              <div style={{ width: 56, height: 56, borderRadius: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', background: isActive ? 'linear-gradient(135deg,#fe5b25,#e04d1c)' : isDone ? 'rgba(254,91,37,0.15)' : 'rgba(255,255,255,0.04)', boxShadow: isActive ? `0 5px 20px rgba(254,91,37,${0.3 + pulse * 0.15})` : isDone ? '0 2px 8px rgba(254,91,37,0.08)' : 'inset 0 0 0 1px rgba(255,255,255,0.05)' }}>
+                <svg width={24} height={24} viewBox="0 0 24 24"><path d={icon} fill={isActive ? '#fff' : isDone ? '#fe5b25' : 'rgba(255,255,255,0.18)'} /></svg>
               </div>
               <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: 0.6, color: isActive ? '#fff' : isDone ? 'rgba(255,255,255,0.5)' : 'rgba(255,255,255,0.15)' }}>{labels[i]}</span>
             </div>
@@ -96,7 +96,7 @@ function Pipeline({ progress }: { progress: number }) {
 /* ─── UI Components ─── */
 function LeadCard({ scale = 1, x = 0, y = 0, opacity = 1, rotate = 0 }: { scale?: number; x?: number; y?: number; opacity?: number; rotate?: number }) {
   return (
-    <div style={{ transform: `perspective(800px) scale(${scale}) translate(${x}px,${y}px) rotateX(${rotate}deg)`, opacity, background: '#fff', borderRadius: 18, overflow: 'hidden', width: 360, boxShadow: '0 20px 60px rgba(0,0,0,0.4)' }}>
+    <div style={{ transform: `perspective(800px) scale(${scale}) translate(${x}px,${y}px) rotateX(${rotate}deg)`, opacity, background: '#fff', borderRadius: 20, overflow: 'hidden', width: 420, boxShadow: '0 20px 60px rgba(0,0,0,0.4)' }}>
       <div style={{ display: 'flex' }}>
         <div style={{ width: 85, padding: '14px 10px', background: 'rgba(0,0,0,0.02)', borderRight: '1px solid rgba(0,0,0,0.04)', display: 'flex', flexDirection: 'column', gap: 4 }}>
           <span style={{ fontSize: 11, fontWeight: 800, color: '#FF3B30' }}>🔥 Hot</span>
@@ -256,7 +256,7 @@ export const SubcontractorDemo: React.FC = () => {
 
         {/* Title */}
         <div style={{ textAlign: 'center', marginBottom: 12, padding: '0 60px' }}>
-          <h2 style={{ background: 'linear-gradient(135deg,#fff 0%,#d0d0d0 50%,#fff 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', fontSize: 28, fontWeight: 800, margin: 0, letterSpacing: -0.8 }}>{title}</h2>
+          <h2 style={{ background: 'linear-gradient(135deg,#fff 0%,#d0d0d0 50%,#fff 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', fontSize: 34, fontWeight: 800, margin: 0, letterSpacing: -1 }}>{title}</h2>
           <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: 12, marginTop: 6 }}>{sub}</p>
         </div>
 
@@ -307,5 +307,5 @@ export const SubcontractorDemo: React.FC = () => {
 
 export const DEMO_DURATION_FRAMES = P_END
 export const DEMO_FPS = FPS
-export const DEMO_WIDTH = 960
-export const DEMO_HEIGHT = 600
+export const DEMO_WIDTH = 1280
+export const DEMO_HEIGHT = 720

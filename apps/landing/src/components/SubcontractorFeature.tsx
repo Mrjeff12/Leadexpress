@@ -72,47 +72,43 @@ export default function SubcontractorFeature() {
           </p>
         </div>
 
-        {/* Two-column: Video + Features */}
-        <div className="grid lg:grid-cols-5 gap-12 items-center">
-          {/* Video — 3 columns */}
-          <div className="lg:col-span-3 rounded-2xl overflow-hidden" style={{ boxShadow: '0 30px 80px rgba(0,0,0,0.5)' }}>
-            <Player
-              component={SubcontractorDemo}
-              durationInFrames={DEMO_DURATION_FRAMES}
-              fps={DEMO_FPS}
-              compositionWidth={DEMO_WIDTH}
-              compositionHeight={DEMO_HEIGHT}
-              style={{ width: '100%' }}
-              autoPlay
-              loop
-              controls={false}
-            />
-          </div>
+        {/* Video — full width, bigger */}
+        <div className="rounded-2xl overflow-hidden mb-16" style={{ boxShadow: '0 30px 80px rgba(0,0,0,0.5)' }}>
+          <Player
+            component={SubcontractorDemo}
+            durationInFrames={DEMO_DURATION_FRAMES}
+            fps={DEMO_FPS}
+            compositionWidth={DEMO_WIDTH}
+            compositionHeight={DEMO_HEIGHT}
+            style={{ width: '100%' }}
+            autoPlay
+            loop
+            controls={false}
+          />
+        </div>
 
-          {/* Features list — 2 columns */}
-          <div className="lg:col-span-2 space-y-6">
-            {features.map((f, i) => (
-              <div key={i} className="flex gap-4">
-                <div className="w-11 h-11 rounded-xl bg-[#fe5b25]/10 border border-[#fe5b25]/15 flex items-center justify-center shrink-0">
-                  <f.icon className="w-5 h-5 text-[#fe5b25]" />
-                </div>
-                <div>
-                  <h3 className="text-white font-bold text-sm mb-1">{f.title}</h3>
-                  <p className="text-white/35 text-sm leading-relaxed">{f.desc}</p>
-                </div>
+        {/* Features grid — 4 columns below */}
+        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          {features.map((f, i) => (
+            <div key={i} className="flex flex-col items-center text-center gap-3 p-5 rounded-2xl bg-white/[0.04] border border-white/[0.06]">
+              <div className="w-12 h-12 rounded-xl bg-[#fe5b25]/10 border border-[#fe5b25]/15 flex items-center justify-center">
+                <f.icon className="w-5 h-5 text-[#fe5b25]" />
               </div>
-            ))}
-
-            <div className="pt-4">
-              <a
-                href="#pricing"
-                className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-[#fe5b25] text-white font-bold text-sm hover:bg-[#e04d1c] transition-all shadow-lg shadow-orange-600/20"
-              >
-                {he ? 'התחל עכשיו' : 'Get Started'}
-                <ArrowRight className="w-4 h-4" />
-              </a>
+              <h3 className="text-white font-bold text-sm">{f.title}</h3>
+              <p className="text-white/35 text-xs leading-relaxed">{f.desc}</p>
             </div>
-          </div>
+          ))}
+        </div>
+
+        {/* CTA centered */}
+        <div className="flex justify-center mt-10">
+          <a
+            href="#pricing"
+            className="inline-flex items-center gap-2 px-8 py-3.5 rounded-xl bg-[#fe5b25] text-white font-bold text-sm hover:bg-[#e04d1c] transition-all shadow-lg shadow-orange-600/20"
+          >
+            {he ? 'התחל עכשיו' : 'Get Started'}
+            <ArrowRight className="w-4 h-4" />
+          </a>
         </div>
       </div>
     </section>
