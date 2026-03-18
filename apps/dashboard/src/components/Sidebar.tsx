@@ -4,13 +4,12 @@ import { useI18n } from '../lib/i18n'
 import {
   LayoutDashboard,
   Zap,
-  User,
-  CreditCard,
-  Send,
   LogOut,
   ChevronLeft,
   ChevronRight,
   Users,
+  Settings,
+  CreditCard,
 } from 'lucide-react'
 import { useState, useEffect } from 'react'
 
@@ -21,7 +20,7 @@ type NavItem = {
 }
 
 export default function Sidebar() {
-  const { signOut } = useAuth()
+  const { signOut, profile } = useAuth()
   const { t, locale } = useI18n()
   const location = useLocation()
   const [collapsed, setCollapsed] = useState(false)
@@ -37,14 +36,16 @@ export default function Sidebar() {
     { label: t('nav.leads'), to: '/leads', icon: Zap },
     { label: locale === 'he' ? 'קבוצות לסריקה' : 'Group Scan', to: '/group-scan', icon: Users },
     { label: t('nav.subcontractors'), to: '/subcontractors', icon: Users },
-    { label: t('nav.profile'), to: '/profile', icon: User },
-    { label: t('nav.subscription'), to: '/subscription', icon: CreditCard },
-    { label: t('nav.telegram'), to: '/telegram', icon: Send },
   ]
 
   const CollapseIcon = isRtl
     ? (collapsed ? ChevronLeft : ChevronRight)
     : (collapsed ? ChevronRight : ChevronLeft)
+
+  const userName = profile?.full_name || 'Contractor'
+  const initials = userName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
+
+  const isProfileActive = location.pathname === '/profile' || location.pathname === '/subscription' || location.pathname === '/telegram'
 
   return (
     <aside
@@ -105,15 +106,75 @@ export default function Sidebar() {
             {!collapsed && <span className="truncate">{item.label}</span>}
           </NavLink>
         ))}
-
       </nav>
 
-      {/* Footer */}
-      <div className="px-3 py-4 border-t border-stone-100 space-y-0.5">
+      {/* Footer — Profile + Account */}
+      <div className="px-3 py-3 border-t border-stone-100 space-y-1">
+        {/* Profile Card */}
+        <NavLink
+          to="/profile"
+          className={[
+            'flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200',
+            isProfileActive
+              ? 'bg-gradient-to-r from-[#fe5b25] to-[#e04d1c] text-white shadow-md'
+              : 'hover:bg-stone-50',
+            collapsed ? 'justify-center px-2' : '',
+          ].join(' ')}
+        >
+          <div
+            className={`w-8 h-8 rounded-lg flex items-center justify-center text-[11px] font-bold shrink-0 ${
+              isProfileActive ? 'bg-white/20 text-white' : 'bg-[#fee8df] text-[#e04d1c]'
+            }`}
+          >
+            {initials}
+          </div>
+          {!collapsed && (
+            <div className="flex-1 min-w-0">
+              <p className={`text-[13px] font-semibold truncate ${isProfileActive ? 'text-white' : 'text-stone-800'}`}>
+                {userName}
+              </p>
+              <p className={`text-[10px] truncate ${isProfileActive ? 'text-white/60' : 'text-stone-400'}`}>
+                {locale === 'he' ? 'הגדרות חשבון' : 'Account Settings'}
+              </p>
+            </div>
+          )}
+        </NavLink>
+
+        {/* Quick links under profile */}
+        {!collapsed && (
+          <div className="flex gap-1 px-1">
+            <NavLink
+              to="/subscription"
+              className={() => {
+                const active = location.pathname === '/subscription'
+                return `flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-[11px] font-medium transition-all ${
+                  active ? 'bg-[#fff4ef] text-[#fe5b25]' : 'text-stone-400 hover:text-stone-600 hover:bg-stone-50'
+                }`
+              }}
+            >
+              <CreditCard className="w-3.5 h-3.5" />
+              {locale === 'he' ? 'תשלומים' : 'Billing'}
+            </NavLink>
+            <NavLink
+              to="/profile"
+              className={() => {
+                const active = location.pathname === '/profile'
+                return `flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-[11px] font-medium transition-all ${
+                  active ? 'bg-[#fff4ef] text-[#fe5b25]' : 'text-stone-400 hover:text-stone-600 hover:bg-stone-50'
+                }`
+              }}
+            >
+              <Settings className="w-3.5 h-3.5" />
+              {locale === 'he' ? 'הגדרות' : 'Settings'}
+            </NavLink>
+          </div>
+        )}
+
+        {/* Logout */}
         <button
           onClick={signOut}
           className={[
-            'sidebar-link w-full hover:text-red-500',
+            'sidebar-link w-full hover:text-red-500 mt-1',
             collapsed ? 'justify-center px-0' : '',
           ].join(' ')}
         >
@@ -122,7 +183,7 @@ export default function Sidebar() {
         </button>
       </div>
 
-      {/* Collapse toggle — refined floating button */}
+      {/* Collapse toggle */}
       <button
         onClick={() => setCollapsed(!collapsed)}
         className="absolute top-[76px] -end-3 w-6 h-6 rounded-full flex items-center justify-center

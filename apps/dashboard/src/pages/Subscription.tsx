@@ -346,66 +346,58 @@ export default function Subscription() {
       {/* ─── Billing & Invoices Section ─── */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
         {/* Billing Management Card */}
-        <div className="rounded-2xl overflow-hidden shadow-lg border border-[#fe5b25]/10">
-          <div className="bg-gradient-to-br from-[#fe5b25] to-[#e04d1c] p-6 text-white relative">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/2" />
-            <div className="absolute bottom-0 left-0 w-20 h-20 bg-white/5 rounded-full translate-y-1/2 -translate-x-1/2" />
-            <div className="relative">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="h-10 w-10 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center">
-                  <CreditCard className="h-5 w-5 text-white" />
-                </div>
-                <div>
-                  <h3 className="text-sm font-bold">Billing</h3>
-                  <p className="text-xs text-white/60">
-                    {hasStripeSubscription ? 'Payment method & subscription' : 'Subscribe to manage billing'}
-                  </p>
-                </div>
-              </div>
-
-              {isActive && subscription?.plan && (
-                <div className="rounded-xl bg-white/10 backdrop-blur-sm p-4 mb-4 border border-white/10">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-[10px] text-white/50 uppercase tracking-wider font-bold">Current Plan</p>
-                      <p className="text-xl font-extrabold mt-0.5">{subscription.plan.name}</p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-3xl font-extrabold tracking-tight">${subscription.plan.price_cents / 100}</p>
-                      <p className="text-xs text-white/50">/month</p>
-                    </div>
-                  </div>
-                  {subscription.current_period_end && (
-                    <p className="text-xs text-white/40 mt-3 pt-3 border-t border-white/10">
-                      Next billing: {new Date(subscription.current_period_end).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
-                    </p>
-                  )}
-                </div>
-              )}
+        <div className="rounded-2xl bg-white border border-zinc-200/60 p-6 shadow-sm">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="h-10 w-10 rounded-xl bg-[#fff4ef] text-[#fe5b25] flex items-center justify-center">
+              <CreditCard className="h-5 w-5" />
+            </div>
+            <div>
+              <h3 className="text-sm font-bold text-zinc-900">Billing</h3>
+              <p className="text-xs text-zinc-400">
+                {hasStripeSubscription ? 'Payment method & subscription' : 'Subscribe to manage billing'}
+              </p>
             </div>
           </div>
 
-          <div className="bg-white p-4">
-            <button
-              type="button"
-              disabled={!hasStripeSubscription || actionLoading}
-              onClick={openPortal}
-              className={`w-full py-3 rounded-xl text-sm font-semibold flex items-center justify-center gap-2 transition-all ${
-                hasStripeSubscription
-                  ? 'bg-zinc-900 text-white hover:bg-zinc-800 shadow-md'
-                  : 'border border-zinc-100 text-zinc-300 cursor-not-allowed'
-              }`}
-            >
-              {actionLoading ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <>
-                  Manage Billing
-                  <ExternalLink className="h-3.5 w-3.5" />
-                </>
+          {isActive && subscription?.plan && (
+            <div className="rounded-xl bg-zinc-50 p-4 mb-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-[10px] text-[#fe5b25] uppercase tracking-wider font-bold">Current Plan</p>
+                  <p className="text-lg font-bold text-zinc-900 mt-0.5">{subscription.plan.name}</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-xl font-bold text-zinc-900">${subscription.plan.price_cents / 100}</p>
+                  <p className="text-xs text-zinc-400">/month</p>
+                </div>
+              </div>
+              {subscription.current_period_end && (
+                <p className="text-xs text-zinc-400 mt-2 pt-2 border-t border-zinc-200/60">
+                  Next billing: {new Date(subscription.current_period_end).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+                </p>
               )}
-            </button>
-          </div>
+            </div>
+          )}
+
+          <button
+            type="button"
+            disabled={!hasStripeSubscription || actionLoading}
+            onClick={openPortal}
+            className={`w-full py-3 rounded-xl text-sm font-semibold flex items-center justify-center gap-2 transition-all ${
+              hasStripeSubscription
+                ? 'bg-[#fe5b25] text-white hover:bg-[#e04d1c] shadow-md shadow-[#fe5b25]/20'
+                : 'border border-zinc-100 text-zinc-300 cursor-not-allowed'
+            }`}
+          >
+            {actionLoading ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <>
+                Manage Billing
+                <ExternalLink className="h-3.5 w-3.5" />
+              </>
+            )}
+          </button>
         </div>
 
         {/* Invoice History Card */}
