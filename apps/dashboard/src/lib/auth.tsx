@@ -17,6 +17,8 @@ interface AuthState {
   profile: Profile | null
   loading: boolean
   isAdmin: boolean
+  impersonatedUserId: string | null
+  impersonatedProfile: Profile | null
 }
 
 interface AuthContextValue extends AuthState {
@@ -24,6 +26,9 @@ interface AuthContextValue extends AuthState {
   signUp: (email: string, password: string, name: string) => Promise<{ error: string | null }>
   signOut: () => Promise<void>
   refreshProfile: () => Promise<void>
+  impersonate: (userId: string) => Promise<void>
+  stopImpersonating: () => void
+  effectiveUserId: string | undefined
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null)
@@ -63,6 +68,8 @@ function makeFakeUser(email: string, id: string): User {
   } as User
 }
 
+const IMPERSONATE_KEY = 'leadexpress_impersonate'
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<AuthState>({
     user: null,
@@ -70,6 +77,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     profile: null,
     loading: true,
     isAdmin: false,
+    impersonatedUserId: null,
+    impersonatedProfile: null,
   })
 
   async function fetchProfile(userId: string): Promise<Profile | null> {
@@ -108,6 +117,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         profile: acct.profile,
         loading: false,
         isAdmin: acct.profile.role === 'admin',
+        impersonatedUserId: null,
+        impersonatedProfile: null,
       })
       return
     }
@@ -124,6 +135,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         profile,
         loading: false,
         isAdmin: profile?.role === 'admin',
+        impersonatedUserId: null,
+        impersonatedProfile: null,
       })
     })
 
@@ -139,6 +152,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           profile,
           loading: false,
           isAdmin: profile?.role === 'admin',
+          impersonatedUserId: null,
+          impersonatedProfile: null,
         })
       }
     )
@@ -159,6 +174,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         profile: acct.profile,
         loading: false,
         isAdmin: acct.profile.role === 'admin',
+        impersonatedUserId: null,
+        impersonatedProfile: null,
       })
       return { error: null }
     }
@@ -183,6 +200,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         profile,
         loading: false,
         isAdmin: false,
+        impersonatedUserId: null,
+        impersonatedProfile: null,
       })
       return { error: null }
     }
@@ -196,6 +215,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   const signOut = async () => {
+    localStorage.removeItem(IMPERSONATE_KEY)
     if (IS_DEV) {
       localStorage.removeItem('le-demo-email')
       setState({
@@ -204,14 +224,47 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         profile: null,
         loading: false,
         isAdmin: false,
+        impersonatedUserId: null,
+        impersonatedProfile: null,
       })
       return
     }
     await supabase.auth.signOut()
   }
 
+  const impersonate = async (userId: string) => {
+    if (!state.isAdmin) throw new Error('Only admins can impersonate users')
+    const profile = await fetchProfile(userId)
+    if (!profile) throw new Error('Could not fetch profile for user')
+    localStorage.setItem(IMPERSONATE_KEY, userId)
+    setState((prev) => ({
+      ...prev,
+      impersonatedUserId: userId,
+      impersonatedProfile: profile,
+    }))
+  }
+
+  const stopImpersonating = () => {
+    localStorage.removeItem(IMPERSONATE_KEY)
+    setState((prev) => ({
+      ...prev,
+      impersonatedUserId: null,
+      impersonatedProfile: null,
+    }))
+  }
+
+  useEffect(() => {
+    if (!state.isAdmin || state.loading) return
+    const savedId = localStorage.getItem(IMPERSONATE_KEY)
+    if (savedId && !state.impersonatedUserId) {
+      impersonate(savedId).catch(() => localStorage.removeItem(IMPERSONATE_KEY))
+    }
+  }, [state.isAdmin, state.loading])
+
+  const effectiveUserId = state.impersonatedUserId || state.user?.id
+
   return (
-    <AuthContext.Provider value={{ ...state, signIn, signUp, signOut, refreshProfile }}>
+    <AuthContext.Provider value={{ ...state, signIn, signUp, signOut, refreshProfile, impersonate, stopImpersonating, effectiveUserId }}>
       {children}
     </AuthContext.Provider>
   )
