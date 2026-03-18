@@ -10,6 +10,7 @@ import {
   Zap,
   CalendarDays,
   Hash,
+  Phone,
   Clock,
   MapPin,
   ChevronRight,
@@ -143,12 +144,15 @@ export default function ContractorDashboard() {
     save: saveSettings,
     saving,
     saved,
+    planLimits,
   } = useContractorSettings()
 
   const [leads, setLeads] = useState<Lead[]>([])
+  const [contactedCount, setContactedCount] = useState(0)
   const [telegramConnected, setTelegramConnected] = useState(true)
   const [forwardLead, setForwardLead] = useState<Lead | null>(null)
   const [showUpsell, setShowUpsell] = useState(false)
+  const [upsellContext, setUpsellContext] = useState<'zones' | 'professions' | 'subs'>('subs')
   const [newZip, setNewZip] = useState('')
   const [showProfPicker, setShowProfPicker] = useState(false)
   const [showScheduleEditor, setShowScheduleEditor] = useState(false)
@@ -181,6 +185,12 @@ export default function ContractorDashboard() {
   }, [])
 
   const handleToggleProfession = (id: ProfessionId) => {
+    // If adding (not removing) and at limit → upsell
+    if (!selectedProfs.includes(id) && planLimits.maxProfessions > 0 && selectedProfs.length >= planLimits.maxProfessions) {
+      setUpsellContext('professions')
+      setShowUpsell(true)
+      return
+    }
     toggleProfession(id)
     debouncedSave()
   }
@@ -198,6 +208,12 @@ export default function ContractorDashboard() {
   const handleAddZip = (e: React.FormEvent) => {
     e.preventDefault()
     if (!newZip.trim()) return
+    // Check if at plan limit before trying
+    if (planLimits.maxZipCodes > 0 && zipCodes.length >= planLimits.maxZipCodes) {
+      setUpsellContext('zones')
+      setShowUpsell(true)
+      return
+    }
     const added = addZipCode(newZip)
     if (added) {
       setNewZip('')
@@ -220,11 +236,17 @@ export default function ContractorDashboard() {
     let cancelled = false
 
     async function fetchData() {
-      const { data: leadsData } = await supabase
+      let query = supabase
         .from('leads')
         .select('id, profession, parsed_summary, raw_message, city, zip_code, urgency, budget_range, sender_id, created_at, groups ( name )')
         .order('created_at', { ascending: false })
-        .limit(10)
+        .limit(50)
+
+      // Apply same filters as My Leads page so counts stay in sync
+      if (selectedProfs.length > 0) query = query.in('profession', selectedProfs)
+      if (zipCodes.length > 0) query = query.in('zip_code', zipCodes)
+
+      const { data: leadsData } = await query
 
       if (leadsData && !cancelled) {
         setLeads(leadsData.map((row: any) => ({
@@ -242,11 +264,21 @@ export default function ContractorDashboard() {
       if (profData && !cancelled) {
         setTelegramConnected(!!profData.telegram_chat_id)
       }
+
+      // Fetch how many leads this user contacted
+      const { count } = await supabase
+        .from('lead_contact_events')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', effectiveUserId)
+
+      if (!cancelled && count !== null) {
+        setContactedCount(count)
+      }
     }
 
     fetchData()
     return () => { cancelled = true }
-  }, [effectiveUserId])
+  }, [effectiveUserId, selectedProfs, zipCodes])
 
   /* ── KPIs ── */
   const now = new Date()
@@ -290,9 +322,19 @@ export default function ContractorDashboard() {
       <div className="fixed inset-0 z-0">
         <CoverageMap
           zipCodes={zipCodes}
-          onAddZip={(zip) => { addZipCode(zip); debouncedSave() }}
+          onAddZip={(zip) => {
+            if (planLimits.maxZipCodes > 0 && zipCodes.length >= planLimits.maxZipCodes) {
+              setUpsellContext('zones'); setShowUpsell(true); return
+            }
+            addZipCode(zip); debouncedSave()
+          }}
           onRemoveZip={(zip) => { removeZipCode(zip); debouncedSave() }}
-          onBatchAddZips={(zips) => { addZipCodes(zips); debouncedSave() }}
+          onBatchAddZips={(zips) => {
+            if (planLimits.maxZipCodes > 0 && zipCodes.length >= planLimits.maxZipCodes) {
+              setUpsellContext('zones'); setShowUpsell(true); return
+            }
+            addZipCodes(zips); debouncedSave()
+          }}
         />
       </div>
 
@@ -330,11 +372,12 @@ export default function ContractorDashboard() {
         </div>
 
         {/* KPI Strip */}
-        <div className="grid grid-cols-3 gap-2 mb-5">
+        <div className="grid grid-cols-4 gap-2 mb-5">
           {[
             { value: leadsToday, label: locale === 'he' ? 'היום' : 'Today', icon: Zap, gradient: 'from-amber-400 to-orange-500' },
             { value: leadsWeek, label: locale === 'he' ? 'השבוע' : 'Week', icon: CalendarDays, gradient: 'from-blue-400 to-indigo-500' },
             { value: leadsTotal, label: locale === 'he' ? 'סה"כ' : 'Total', icon: Hash, gradient: 'from-violet-400 to-purple-500' },
+            { value: contactedCount, label: locale === 'he' ? 'פניות' : 'Contacted', icon: Phone, gradient: 'from-emerald-400 to-green-500' },
           ].map((kpi) => (
             <div key={kpi.label} className="rounded-2xl bg-white/60 border border-white/80 p-3 text-center">
               <div className={`w-7 h-7 rounded-xl bg-gradient-to-br ${kpi.gradient} flex items-center justify-center mx-auto mb-1.5`}>
@@ -386,9 +429,20 @@ export default function ContractorDashboard() {
         {/* ── Professions (inline picker) ── */}
         <div className="mb-5 relative" ref={profPickerRef}>
           <div className="flex items-center justify-between mb-3">
-            <p className="text-[11px] font-bold text-stone-400 uppercase tracking-[0.12em]">
-              {locale === 'he' ? 'המקצועות שלי' : 'My Services'}
-            </p>
+            <div className="flex items-center gap-2">
+              <p className="text-[11px] font-bold text-stone-400 uppercase tracking-[0.12em]">
+                {locale === 'he' ? 'המקצועות שלי' : 'My Services'}
+              </p>
+              {planLimits.maxProfessions > 0 && (
+                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                  selectedProfs.length >= planLimits.maxProfessions
+                    ? 'bg-[#fff4ef] text-[#e04d1c]'
+                    : 'bg-stone-100 text-stone-500'
+                }`}>
+                  {selectedProfs.length}/{planLimits.maxProfessions}
+                </span>
+              )}
+            </div>
             <button
               onClick={() => setShowProfPicker(!showProfPicker)}
               className="flex items-center gap-1 px-2 py-1 rounded-lg bg-[#fff4ef] text-[#e04d1c] text-[10px] font-bold hover:bg-[#fee8df] transition-colors"
@@ -467,8 +521,12 @@ export default function ContractorDashboard() {
             <p className="text-[11px] font-bold text-stone-400 uppercase tracking-[0.12em]">
               {locale === 'he' ? 'אזורי שירות' : 'Service Areas'}
             </p>
-            <span className="text-[10px] font-bold bg-stone-100 text-stone-500 px-2 py-0.5 rounded-full">
-              {zipCodes.length} {locale === 'he' ? 'אזורים' : 'zones'}
+            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+              planLimits.maxZipCodes > 0 && zipCodes.length >= planLimits.maxZipCodes
+                ? 'bg-[#fff4ef] text-[#e04d1c]'
+                : 'bg-stone-100 text-stone-500'
+            }`}>
+              {zipCodes.length}{planLimits.maxZipCodes > 0 ? `/${planLimits.maxZipCodes}` : ''} {locale === 'he' ? 'אזורים' : 'zones'}
             </span>
           </div>
 
@@ -718,9 +776,30 @@ export default function ContractorDashboard() {
       />
 
       {/* Upsell Modal */}
-      <UpsellModal 
-        isOpen={showUpsell} 
-        onClose={() => setShowUpsell(false)} 
+      <UpsellModal
+        isOpen={showUpsell}
+        onClose={() => setShowUpsell(false)}
+        title={
+          upsellContext === 'zones'
+            ? { en: 'Need more zones?', he: 'צריך עוד אזורים?' }
+            : upsellContext === 'professions'
+            ? { en: 'Need more trades?', he: 'צריך עוד מקצועות?' }
+            : undefined
+        }
+        message={
+          upsellContext === 'zones'
+            ? { en: 'You\'ve reached your plan\'s zone limit. Upgrade to cover more service areas and get more leads.', he: 'הגעת למגבלת האזורים בתוכנית שלך. שדרג כדי לכסות עוד אזורי שירות ולקבל עוד לידים.' }
+            : upsellContext === 'professions'
+            ? { en: 'You\'ve reached your plan\'s profession limit. Upgrade to add more trades and get more leads.', he: 'הגעת למגבלת המקצועות בתוכנית שלך. שדרג כדי להוסיף עוד מקצועות ולקבל עוד לידים.' }
+            : undefined
+        }
+        featureHighlight={
+          upsellContext === 'zones'
+            ? `${zipCodes.length}/${planLimits.maxZipCodes} zones used`
+            : upsellContext === 'professions'
+            ? `${selectedProfs.length}/${planLimits.maxProfessions} trades used`
+            : undefined
+        }
       />
     </div>
   )
