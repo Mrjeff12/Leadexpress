@@ -2,7 +2,10 @@ import { useState, useEffect } from 'react'
 import { useAuth } from '../lib/auth'
 import { useI18n } from '../lib/i18n'
 import { supabase } from '../lib/supabase'
-import { Search, Filter, Zap, MapPin, Clock, DollarSign } from 'lucide-react'
+import { Search, Filter, Zap, MapPin, Clock, DollarSign, Send, Lock } from 'lucide-react'
+import ForwardLeadModal from '../components/ForwardLeadModal'
+import UpsellModal from '../components/UpsellModal'
+import { useSubscriptionAccess } from '../hooks/useSubscriptionAccess'
 
 const PROF_CONFIG: Record<string, { emoji: string; label: { en: string; he: string }; cssClass: string }> = {
   hvac:             { emoji: '❄️', label: { en: 'HVAC', he: 'מזגנים' },               cssClass: 'lead-card--hvac' },
@@ -50,10 +53,15 @@ export default function LeadsFeed() {
   const [filterProf, setFilterProf] = useState<string>('all')
   const [filterUrgency, setFilterUrgency] = useState<string>('all')
   const [search, setSearch] = useState('')
+  
+  const { canManageSubs } = useSubscriptionAccess()
+  const [forwardLead, setForwardLead] = useState<Lead | null>(null)
+  const [showUpsell, setShowUpsell] = useState(false)
 
   useEffect(() => {
     async function fetchLeads() {
       if (!user) return
+      
       // Fetch leads that were sent to this contractor
       const { data, error } = await supabase
         .from('leads')
@@ -213,12 +221,42 @@ export default function LeadsFeed() {
                       </span>
                     </div>
                   </div>
+                  
+                  {/* Actions */}
+                  <div className="flex flex-col items-end gap-2 shrink-0">
+                    <button
+                      onClick={() => {
+                        if (canManageSubs) {
+                          setForwardLead(lead)
+                        } else {
+                          setShowUpsell(true)
+                        }
+                      }}
+                      className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-stone-200 rounded-lg text-xs font-medium text-stone-600 hover:bg-stone-50 hover:text-stone-900 transition-colors shadow-sm"
+                    >
+                      <Send className="w-3.5 h-3.5" />
+                      {locale === 'he' ? 'העבר' : 'Forward'}
+                    </button>
+                  </div>
                 </div>
               </div>
             )
           })}
         </div>
       )}
+
+      {/* Forward Lead Modal */}
+      <ForwardLeadModal
+        lead={forwardLead}
+        isOpen={!!forwardLead}
+        onClose={() => setForwardLead(null)}
+      />
+
+      {/* Upsell Modal */}
+      <UpsellModal 
+        isOpen={showUpsell} 
+        onClose={() => setShowUpsell(false)} 
+      />
     </div>
   )
 }

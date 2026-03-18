@@ -18,8 +18,12 @@ import {
   Sparkles,
   Pencil,
   Send,
+  Lock
 } from 'lucide-react'
 import CoverageMap from '../components/settings/CoverageMap'
+import ForwardLeadModal from '../components/ForwardLeadModal'
+import UpsellModal from '../components/UpsellModal'
+import { useSubscriptionAccess } from '../hooks/useSubscriptionAccess'
 
 /* ───────────────────── Types ───────────────────── */
 
@@ -127,7 +131,10 @@ export default function ContractorDashboard() {
 
   const [leads, setLeads] = useState<Lead[]>([])
   const [telegramConnected, setTelegramConnected] = useState(true)
-  const [planName, setPlanName] = useState('Starter')
+  const [forwardLead, setForwardLead] = useState<Lead | null>(null)
+  const [showUpsell, setShowUpsell] = useState(false)
+  
+  const { planName, canManageSubs } = useSubscriptionAccess()
 
   const displayName = profile?.full_name ?? 'Contractor'
   const firstName = displayName.split(' ')[0]
@@ -149,17 +156,6 @@ export default function ContractorDashboard() {
           ...row,
           group_name: row.groups?.name ?? null,
         })))
-      }
-
-      const { data: subData } = await supabase
-        .from('subscriptions')
-        .select('status, plans ( name )')
-        .eq('user_id', profile!.id)
-        .maybeSingle()
-
-      if (subData && !cancelled) {
-        const fetchedPlan = (subData.plans as any)?.name as string | undefined
-        if (fetchedPlan) setPlanName(fetchedPlan)
       }
 
       const { data: profData } = await supabase
@@ -411,17 +407,34 @@ export default function ContractorDashboard() {
                       {lead.raw_message}
                     </p>
                   )}
-                  <div className="flex items-center gap-2 text-[9px] text-stone-400">
-                    {lead.group_name && (
-                      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-600 font-semibold truncate max-w-[120px]">
-                        💬 {lead.group_name}
-                      </span>
-                    )}
-                    {lead.sender_id && (
-                      <span className="text-stone-400 truncate max-w-[100px]">
-                        {formatSender(lead.sender_id)}
-                      </span>
-                    )}
+                  <div className="flex items-center justify-between text-[9px] text-stone-400">
+                    <div className="flex items-center gap-2">
+                      {lead.group_name && (
+                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-600 font-semibold truncate max-w-[120px]">
+                          💬 {lead.group_name}
+                        </span>
+                      )}
+                      {lead.sender_id && (
+                        <span className="text-stone-400 truncate max-w-[100px]">
+                          {formatSender(lead.sender_id)}
+                        </span>
+                      )}
+                    </div>
+                    
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        if (canManageSubs) {
+                          setForwardLead(lead)
+                        } else {
+                          setShowUpsell(true)
+                        }
+                      }}
+                      className="p-1.5 rounded-lg bg-white border border-stone-200 text-stone-500 hover:text-emerald-600 hover:border-emerald-200 hover:bg-emerald-50 transition-colors"
+                      title={locale === 'he' ? 'העבר לקבלן משנה' : 'Forward to Subcontractor'}
+                    >
+                      <Send size={12} />
+                    </button>
                   </div>
                 </div>
               </div>
@@ -446,6 +459,19 @@ export default function ContractorDashboard() {
           {zipCodes.length} {locale === 'he' ? 'אזורים' : 'zones'}
         </span>
       </div>
+
+      {/* Forward Lead Modal */}
+      <ForwardLeadModal
+        lead={forwardLead}
+        isOpen={!!forwardLead}
+        onClose={() => setForwardLead(null)}
+      />
+
+      {/* Upsell Modal */}
+      <UpsellModal 
+        isOpen={showUpsell} 
+        onClose={() => setShowUpsell(false)} 
+      />
     </div>
   )
 }
