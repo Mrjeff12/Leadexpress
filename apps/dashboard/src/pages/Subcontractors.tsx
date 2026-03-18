@@ -3,7 +3,9 @@ import { useAuth } from '../lib/auth'
 import { useI18n } from '../lib/i18n'
 import { supabase } from '../lib/supabase'
 import { PROFESSIONS } from '../lib/professions'
-import { Plus, Search, User, Phone, Briefcase, Trash2, Edit2, ArrowRight, Clock, CheckCircle2, XCircle, Send } from 'lucide-react'
+import { Plus, Search, User, Phone, Briefcase, Trash2, Edit2, ArrowRight, Clock, CheckCircle2, XCircle, Send as SendIcon, BarChart3, DollarSign, Zap as ZapIcon } from 'lucide-react'
+import { useSubscriptionAccess } from '../hooks/useSubscriptionAccess'
+import FeatureTeaser from '../components/FeatureTeaser'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/shadcn/ui/dialog'
 import { Button } from '../components/shadcn/ui/button'
 import { Input } from '../components/shadcn/ui/input'
@@ -122,6 +124,117 @@ export default function Subcontractors() {
   useEffect(() => {
     fetchSubs()
   }, [effectiveUserId])
+
+  const { canManageSubs } = useSubscriptionAccess()
+
+  if (!canManageSubs) {
+    const teaserSteps = [
+      {
+        icon: ZapIcon,
+        title: 'A Lead Comes In',
+        description: "You receive a lead you can't handle yourself — but someone in your network can.",
+        visual: (
+          <div className="bg-white/10 rounded-xl px-4 py-3 text-left border border-white/10">
+            <div className="text-xs text-white/40 mb-1">New Lead</div>
+            <div className="text-sm font-semibold text-white">Chimney Repair — Miami, FL</div>
+            <div className="text-xs text-white/50 mt-1">1766 Black Bear Circle, 38016</div>
+          </div>
+        ),
+      },
+      {
+        icon: SendIcon,
+        title: 'Forward to Your Sub',
+        description: 'Send the lead to a trusted subcontractor via WhatsApp with one click.',
+        visual: (
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-green-500/20 flex items-center justify-center">
+              <span className="text-lg">💬</span>
+            </div>
+            <div className="bg-green-500/20 rounded-xl px-3 py-2 text-left border border-green-500/20">
+              <div className="text-xs text-green-300">WhatsApp Message Sent</div>
+              <div className="text-xs text-white/60 mt-0.5">Hey Mike, got a chimney job in Miami...</div>
+            </div>
+          </div>
+        ),
+      },
+      {
+        icon: BarChart3,
+        title: 'Track Every Deal',
+        description: 'Monitor job status, sub responses, and deal progress in real-time.',
+        visual: (
+          <div className="flex gap-2">
+            {['Pending', 'Accepted', 'Completed'].map((s, i) => (
+              <div key={s} className={`px-3 py-1.5 rounded-lg text-xs font-medium ${
+                i === 2 ? 'bg-green-500/20 text-green-300' : i === 1 ? 'bg-blue-500/20 text-blue-300' : 'bg-white/10 text-white/50'
+              }`}>
+                {s}
+              </div>
+            ))}
+          </div>
+        ),
+      },
+      {
+        icon: DollarSign,
+        title: 'Set Your Terms',
+        description: 'Choose percentage splits or fixed prices — you control the deal.',
+        visual: (
+          <div className="bg-white/10 rounded-xl px-4 py-3 border border-white/10 text-center">
+            <div className="text-2xl font-black text-green-400">$200</div>
+            <div className="text-xs text-white/50 mt-1">Your earnings on this deal</div>
+          </div>
+        ),
+      },
+    ]
+
+    return (
+      <FeatureTeaser
+        steps={teaserSteps}
+        featureName="Manage Your Subcontractors"
+        price={399}
+        planName="Unlimited"
+      >
+        <div className="p-6 space-y-6">
+          <div className="grid grid-cols-3 gap-4">
+            {[
+              { label: 'Active Subs', value: '4', color: 'bg-blue-50 text-blue-600' },
+              { label: 'Jobs This Month', value: '12', color: 'bg-green-50 text-green-600' },
+              { label: 'Revenue Shared', value: '$8,400', color: 'bg-orange-50 text-orange-600' },
+            ].map((s) => (
+              <div key={s.label} className={`rounded-2xl p-4 ${s.color}`}>
+                <div className="text-2xl font-bold">{s.value}</div>
+                <div className="text-xs opacity-60">{s.label}</div>
+              </div>
+            ))}
+          </div>
+          <div className="bg-white rounded-2xl shadow-sm border border-stone-100 overflow-hidden">
+            <table className="w-full text-sm">
+              <thead><tr className="border-b border-stone-100 text-stone-400 text-xs">
+                <th className="px-4 py-3 text-left">Name</th>
+                <th className="px-4 py-3 text-left">Trade</th>
+                <th className="px-4 py-3 text-left">Active Jobs</th>
+                <th className="px-4 py-3 text-left">Status</th>
+              </tr></thead>
+              <tbody>
+                {[
+                  { name: 'Mike Johnson', trade: 'Plumbing', jobs: 3, status: 'Active' },
+                  { name: 'Sarah Chen', trade: 'Electrical', jobs: 2, status: 'Active' },
+                  { name: 'Carlos Rivera', trade: 'HVAC', jobs: 1, status: 'New' },
+                  { name: 'Tom Williams', trade: 'Roofing', jobs: 4, status: 'Active' },
+                ].map((r) => (
+                  <tr key={r.name} className="border-b border-stone-50">
+                    <td className="px-4 py-3 font-medium text-stone-800">{r.name}</td>
+                    <td className="px-4 py-3 text-stone-500">{r.trade}</td>
+                    <td className="px-4 py-3 text-stone-500">{r.jobs}</td>
+                    <td className="px-4 py-3"><span className="px-2 py-0.5 rounded-full bg-green-50 text-green-600 text-xs">{r.status}</span></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </FeatureTeaser>
+    )
+  }
 
   const filteredSubs = subs.filter((sub) => {
     if (!search) return true
@@ -359,7 +472,7 @@ export default function Subcontractors() {
       {forwardedJobs.length > 0 && (
         <section className="space-y-3">
           <div className="flex items-center gap-2">
-            <Send className="w-4 h-4 text-[#e04d1c]" />
+            <SendIcon className="w-4 h-4 text-[#e04d1c]" />
             <h2 className="text-sm font-semibold text-stone-800">
               {locale === 'he' ? 'עבודות שהועברו' : 'Forwarded Jobs'}
             </h2>
