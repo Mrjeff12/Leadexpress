@@ -238,18 +238,20 @@ export default function Subscription() {
                 dark
                   ? `bg-gradient-to-br ${config.gradient} text-white shadow-xl`
                   : 'bg-white border border-zinc-200/60 shadow-sm hover:shadow-lg',
-                isCurrent && !dark ? 'ring-2 ring-emerald-400' : '',
+                isCurrent ? 'ring-2 ring-emerald-400 ring-offset-2' : '',
                 plan.slug === 'pro' ? 'md:scale-[1.03]' : '',
               ].join(' ')}
             >
               {/* Badge */}
-              {config.badge && (
+              {(config.badge || isCurrent) && (
                 <div className="absolute -top-3 left-1/2 -translate-x-1/2">
                   <span className={`inline-flex items-center gap-1 rounded-full px-3.5 py-1 text-[11px] font-bold shadow-md ${
-                    dark ? 'bg-white text-emerald-700' : 'bg-emerald-500 text-white'
+                    isCurrent
+                      ? 'bg-emerald-500 text-white ring-2 ring-emerald-300 ring-offset-1'
+                      : dark ? 'bg-white text-emerald-700' : 'bg-emerald-500 text-white'
                   }`}>
-                    <Sparkles className="h-3 w-3" />
-                    {config.badge}
+                    {isCurrent ? <CheckCircle2 className="h-3 w-3" /> : <Sparkles className="h-3 w-3" />}
+                    {isCurrent ? 'Your Current Plan' : config.badge}
                   </span>
                 </div>
               )}
