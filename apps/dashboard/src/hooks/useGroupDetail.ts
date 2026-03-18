@@ -134,7 +134,7 @@ async function fetchMembers(groupId: string): Promise<MemberRow[]> {
 async function fetchMarketIntel(groupId: string): Promise<MarketIntel> {
   const { data, error } = await supabase
     .from('leads')
-    .select('profession, state, urgency, wa_sender_id, sender_name, created_at')
+    .select('profession, state, urgency, sender_id, created_at')
     .eq('group_id', groupId)
   if (error) throw error
 
@@ -174,10 +174,10 @@ async function fetchMarketIntel(groupId: string): Promise<MarketIntel> {
   // Repeat requesters (sender with >= 2 leads)
   const senderBuckets: Record<string, { display_name: string | null; professions: Set<string>; count: number; last: string }> = {}
   for (const r of rows) {
-    const sid = r.wa_sender_id
+    const sid = r.sender_id
     if (!sid) continue
     if (!senderBuckets[sid]) {
-      senderBuckets[sid] = { display_name: r.sender_name, professions: new Set(), count: 0, last: r.created_at }
+      senderBuckets[sid] = { display_name: null, professions: new Set(), count: 0, last: r.created_at }
     }
     senderBuckets[sid].count++
     if (r.profession) senderBuckets[sid].professions.add(r.profession)
