@@ -307,5 +307,5 @@ export const SubcontractorDemo: React.FC = () => {
 
 export const DEMO_DURATION_FRAMES = P_END
 export const DEMO_FPS = FPS
-export const DEMO_WIDTH = 1280
-export const DEMO_HEIGHT = 720
+export const DEMO_WIDTH = 800
+export const DEMO_HEIGHT = 500
