@@ -1,9 +1,9 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useAuth } from '../lib/auth'
 import { useI18n } from '../lib/i18n'
 import { supabase } from '../lib/supabase'
 import { useContractorSettings } from '../hooks/useContractorSettings'
-import { PROFESSIONS } from '../lib/professions'
+import { PROFESSIONS, type ProfessionId } from '../lib/professions'
 import { DAY_KEYS, DAY_LABELS, type WorkingHours, type DayKey } from '../lib/working-hours'
 import { Link } from 'react-router-dom'
 import {
@@ -13,11 +13,15 @@ import {
   Clock,
   MapPin,
   ChevronRight,
+  ChevronDown,
   Wifi,
   WifiOff,
   Sparkles,
-  Pencil,
-  Send
+  Check,
+  CheckCircle2,
+  Send,
+  X,
+  SlidersHorizontal,
 } from 'lucide-react'
 import CoverageMap from '../components/settings/CoverageMap'
 import ForwardLeadModal from '../components/ForwardLeadModal'
@@ -126,14 +130,85 @@ function compactSchedule(hours: WorkingHours, locale: string): string {
 export default function ContractorDashboard() {
   const { profile, effectiveUserId, impersonatedProfile } = useAuth()
   const { locale, t } = useI18n()
-  const { professions: selectedProfs, zipCodes, workingHours, loading: settingsLoading } = useContractorSettings()
+  const {
+    professions: selectedProfs,
+    zipCodes,
+    workingHours,
+    loading: settingsLoading,
+    addZipCode,
+    addZipCodes,
+    removeZipCode,
+    toggleProfession,
+    setWorkingHours,
+    save: saveSettings,
+    saving,
+    saved,
+  } = useContractorSettings()
 
   const [leads, setLeads] = useState<Lead[]>([])
   const [telegramConnected, setTelegramConnected] = useState(true)
   const [forwardLead, setForwardLead] = useState<Lead | null>(null)
   const [showUpsell, setShowUpsell] = useState(false)
+  const [newZip, setNewZip] = useState('')
+  const [showProfPicker, setShowProfPicker] = useState(false)
+  const [showScheduleEditor, setShowScheduleEditor] = useState(false)
+  const profPickerRef = useRef<HTMLDivElement>(null)
+  const scheduleRef = useRef<HTMLDivElement>(null)
   
   const { planName, canManageSubs } = useSubscriptionAccess()
+
+  // Close dropdowns on outside click
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (profPickerRef.current && !profPickerRef.current.contains(e.target as Node)) {
+        setShowProfPicker(false)
+      }
+      if (scheduleRef.current && !scheduleRef.current.contains(e.target as Node)) {
+        setShowScheduleEditor(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
+
+  // Debounced auto-save — use ref so the timeout always calls the latest save function
+  const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
+  const saveRef = useRef(saveSettings)
+  saveRef.current = saveSettings
+  const debouncedSave = useCallback(() => {
+    clearTimeout(saveTimeoutRef.current)
+    saveTimeoutRef.current = setTimeout(() => saveRef.current(), 600)
+  }, [])
+
+  const handleToggleProfession = (id: ProfessionId) => {
+    toggleProfession(id)
+    debouncedSave()
+  }
+
+  const handleToggleDay = (day: DayKey) => {
+    setWorkingHours((prev: WorkingHours) => ({ ...prev, [day]: { ...prev[day], enabled: !prev[day].enabled } }))
+    debouncedSave()
+  }
+
+  const handleSetTime = (day: DayKey, field: 'start' | 'end', value: string) => {
+    setWorkingHours((prev: WorkingHours) => ({ ...prev, [day]: { ...prev[day], [field]: value } }))
+    debouncedSave()
+  }
+
+  const handleAddZip = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!newZip.trim()) return
+    const added = addZipCode(newZip)
+    if (added) {
+      setNewZip('')
+      debouncedSave()
+    }
+  }
+
+  const handleRemoveZip = (zip: string) => {
+    removeZipCode(zip)
+    debouncedSave()
+  }
 
   const activeProfile = impersonatedProfile || profile
   const displayName = activeProfile?.full_name ?? 'Contractor'
@@ -211,21 +286,29 @@ export default function ContractorDashboard() {
   return (
     <div className="relative" style={{ height: '100vh', minHeight: 600 }}>
 
-      {/* ════════ FULL-PAGE MAP (background) ════════ */}
-      <div className="absolute inset-0 z-0">
-        <CoverageMap zipCodes={zipCodes} />
+      {/* ════════ FULL-SCREEN MAP (covers entire viewport, behind sidebar) ════════ */}
+      <div className="fixed inset-0 z-0">
+        <CoverageMap
+          zipCodes={zipCodes}
+          onAddZip={(zip) => { addZipCode(zip); debouncedSave() }}
+          onRemoveZip={(zip) => { removeZipCode(zip); debouncedSave() }}
+          onBatchAddZips={(zips) => { addZipCodes(zips); debouncedSave() }}
+        />
       </div>
 
-      {/* Subtle vignette for panel readability */}
-      <div className="absolute inset-0 z-[1] pointer-events-none"
+      {/* Soft vignette for panel readability */}
+      <div className="fixed inset-0 z-[1] pointer-events-none"
         style={{
-          background: 'linear-gradient(135deg, rgba(255,255,255,0.5) 0%, transparent 40%, transparent 60%, rgba(255,255,255,0.3) 100%)',
+          background: `
+            linear-gradient(to right, rgba(255,255,255,0.45) 0%, rgba(255,255,255,0.15) 30%, transparent 50%),
+            linear-gradient(to bottom, rgba(255,255,255,0.2) 0%, transparent 30%, transparent 70%, rgba(255,255,255,0.25) 100%)
+          `,
         }}
       />
 
       {/* ════════ LEFT FLOATING PANEL (Profile + KPIs + Professions + Schedule) ════════ */}
       <div
-        className="floating-panel p-6 animate-fade-in"
+        className="floating-panel p-6 animate-fade-in no-scrollbar"
         style={{ top: 24, left: 24, width: 340, maxHeight: 'calc(100vh - 80px)', overflowY: 'auto' }}
       >
         {/* Greeting */}
@@ -265,78 +348,256 @@ export default function ContractorDashboard() {
           ))}
         </div>
 
-        {/* Divider */}
-        <div className="h-px bg-stone-200/60 mb-4" />
-
-        {/* Professions Showcase */}
-        <div className="mb-4">
-          <p className="text-[11px] font-semibold text-stone-400 uppercase tracking-[0.1em] mb-2.5">
-            {locale === 'he' ? 'מקצועות' : 'My Services'}
-          </p>
-          <div className="grid grid-cols-4 gap-1.5">
-            {PROFESSIONS.map((prof) => {
-              const active = selectedProfs.includes(prof.id)
-              return (
-                <div
-                  key={prof.id}
-                  className={[
-                    'flex flex-col items-center gap-1 rounded-2xl py-2.5 px-1 text-center transition-all duration-200',
-                    active
-                      ? 'bg-emerald-50/80 ring-1.5 ring-emerald-200 shadow-sm'
-                      : 'opacity-25',
-                  ].join(' ')}
-                  title={locale === 'he' ? prof.he : prof.en}
-                >
-                  <span className="text-lg leading-none">{prof.emoji}</span>
-                  <span className="text-[9px] font-semibold text-stone-600 truncate w-full leading-tight">
-                    {locale === 'he' ? prof.he : prof.en}
-                  </span>
-                </div>
-              )
-            })}
-          </div>
-        </div>
-
-        {/* Divider */}
-        <div className="h-px bg-stone-200/60 mb-4" />
-
-        {/* Schedule Compact */}
-        <div className="mb-3">
-          <p className="text-[11px] font-semibold text-stone-400 uppercase tracking-[0.1em] mb-2">
-            {locale === 'he' ? 'שעות עבודה' : 'Schedule'}
-          </p>
-          <div className="flex items-center gap-1.5 flex-wrap">
-            {DAY_KEYS.map((day) => {
-              const s = workingHours[day]
-              return (
-                <span
-                  key={day}
-                  className={[
-                    'inline-flex items-center px-2 py-1 rounded-lg text-[10px] font-semibold transition-all',
-                    s.enabled
-                      ? 'bg-emerald-50 text-emerald-700 border border-emerald-100'
-                      : 'bg-stone-50 text-stone-300 border border-stone-100',
-                  ].join(' ')}
-                  title={s.enabled ? `${s.start}–${s.end}` : 'Off'}
-                >
-                  {locale === 'he' ? DAY_LABELS[day].he.charAt(0) : DAY_LABELS[day].en.slice(0, 2)}
+        {/* ═══ Lead Filter Preferences Header ═══ */}
+        <div className="rounded-2xl bg-gradient-to-r from-emerald-50/80 to-green-50/60 border border-emerald-100/60 p-3.5 mb-5">
+          <div className="flex items-center justify-between mb-1">
+            <div className="flex items-center gap-2">
+              <div className="w-6 h-6 rounded-lg bg-emerald-500/10 flex items-center justify-center">
+                <SlidersHorizontal className="w-3.5 h-3.5 text-emerald-600" />
+              </div>
+              <span className="text-[12px] font-extrabold text-stone-800">
+                {locale === 'he' ? 'הגדרות פילטר לידים' : 'Lead Preferences'}
+              </span>
+            </div>
+            {saving && (
+              <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-50 border border-amber-100">
+                <div className="w-2.5 h-2.5 rounded-full border-2 border-amber-500 border-t-transparent animate-spin" />
+                <span className="text-[9px] font-bold text-amber-600">
+                  {locale === 'he' ? 'שומר...' : 'Saving...'}
                 </span>
-              )
-            })}
+              </div>
+            )}
+            {saved && !saving && (
+              <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-50 border border-emerald-200 animate-fade-in">
+                <CheckCircle2 className="w-3 h-3 text-emerald-500" strokeWidth={2.5} />
+                <span className="text-[9px] font-bold text-emerald-600">
+                  {locale === 'he' ? 'נשמר' : 'Saved'}
+                </span>
+              </div>
+            )}
           </div>
-          <p className="text-[10px] text-stone-400 mt-1.5">
-            {compactSchedule(workingHours, locale)}
+          <p className="text-[10px] text-stone-400 font-medium leading-relaxed">
+            {locale === 'he'
+              ? 'לידים שתואמים לפילטרים האלו יישלחו אליך אוטומטית'
+              : 'Leads matching these filters will be sent to you automatically'}
           </p>
         </div>
 
-        {/* Edit link */}
-        <Link
-          to="/settings"
-          className="flex items-center gap-1.5 text-[11px] font-semibold text-emerald-600 hover:text-emerald-700 transition-colors mt-2"
-        >
-          <Pencil className="w-3 h-3" />
-          {locale === 'he' ? 'ערוך הגדרות' : 'Edit settings'}
-        </Link>
+        {/* ── Professions (inline picker) ── */}
+        <div className="mb-5 relative" ref={profPickerRef}>
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-[11px] font-bold text-stone-400 uppercase tracking-[0.12em]">
+              {locale === 'he' ? 'המקצועות שלי' : 'My Services'}
+            </p>
+            <button
+              onClick={() => setShowProfPicker(!showProfPicker)}
+              className="flex items-center gap-1 px-2 py-1 rounded-lg bg-emerald-50 text-emerald-600 text-[10px] font-bold hover:bg-emerald-100 transition-colors"
+            >
+              {showProfPicker ? <X className="w-3 h-3" /> : <span className="text-sm leading-none">+</span>}
+              {!showProfPicker && (locale === 'he' ? 'ערוך' : 'Edit')}
+            </button>
+          </div>
+          
+          <div className="flex flex-wrap gap-1.5">
+            {selectedProfs.length > 0 ? (
+              selectedProfs.map((profId) => {
+                const prof = profLookup[profId]
+                if (!prof) return null
+                return (
+                  <button
+                    key={profId}
+                    onClick={() => handleToggleProfession(profId)}
+                    className="group flex items-center gap-1.5 bg-white/80 border border-emerald-100 rounded-xl py-1.5 px-2.5 shadow-sm hover:border-red-200 hover:bg-red-50/50 transition-all"
+                  >
+                    <span className="text-sm">{prof.emoji}</span>
+                    <span className="text-[10px] font-bold text-stone-700 group-hover:text-red-500 transition-colors">
+                      {locale === 'he' ? prof.he : prof.en}
+                    </span>
+                    <X className="w-3 h-3 text-stone-300 group-hover:text-red-400 transition-colors" />
+                  </button>
+                )
+              })
+            ) : (
+              <button
+                onClick={() => setShowProfPicker(true)}
+                className="text-[11px] text-emerald-500 font-bold hover:underline"
+              >
+                {locale === 'he' ? '+ בחר מקצועות' : '+ Choose professions'}
+              </button>
+            )}
+          </div>
+
+          {/* Profession Picker Dropdown */}
+          {showProfPicker && (
+            <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl shadow-xl border border-black/5 z-50 overflow-hidden animate-scale-in">
+              <div className="max-h-[240px] overflow-y-auto p-2 space-y-0.5 no-scrollbar">
+                {PROFESSIONS.map((prof) => {
+                  const active = selectedProfs.includes(prof.id)
+                  return (
+                    <button
+                      key={prof.id}
+                      onClick={() => handleToggleProfession(prof.id)}
+                      className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-left transition-all ${
+                        active ? 'bg-emerald-50 text-emerald-800' : 'text-stone-600 hover:bg-stone-50'
+                      }`}
+                    >
+                      <div className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 transition-colors ${
+                        active ? 'bg-emerald-500 border-emerald-500' : 'border-stone-300'
+                      }`}>
+                        {active && <Check className="w-3 h-3 text-white" strokeWidth={3} />}
+                      </div>
+                      <span className="text-sm">{prof.emoji}</span>
+                      <span className="text-[11px] font-bold flex-1 truncate">
+                        {locale === 'he' ? prof.he : prof.en}
+                      </span>
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Divider */}
+        <div className="h-px bg-stone-200/40 mb-5" />
+
+        {/* ── Service Areas (ZIP quick add/remove) ── */}
+        <div className="mb-5">
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-[11px] font-bold text-stone-400 uppercase tracking-[0.12em]">
+              {locale === 'he' ? 'אזורי שירות' : 'Service Areas'}
+            </p>
+            <span className="text-[10px] font-bold bg-stone-100 text-stone-500 px-2 py-0.5 rounded-full">
+              {zipCodes.length} {locale === 'he' ? 'אזורים' : 'zones'}
+            </span>
+          </div>
+
+          <form onSubmit={handleAddZip} className="relative mb-3">
+            <input
+              type="text"
+              value={newZip}
+              onChange={(e) => setNewZip(e.target.value)}
+              placeholder={locale === 'he' ? 'הוסף ZIP Code...' : 'Add ZIP Code...'}
+              className="w-full bg-white/50 border border-stone-100 rounded-xl px-3 py-2 text-xs font-bold focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500/50 transition-all"
+            />
+            <button
+              type="submit"
+              disabled={saving || !newZip.trim()}
+              className="absolute right-1.5 top-1.5 w-6 h-6 rounded-lg bg-emerald-500 text-white flex items-center justify-center hover:bg-emerald-600 disabled:opacity-50 transition-colors"
+            >
+              <span className="text-lg leading-none">+</span>
+            </button>
+          </form>
+
+          <div className="flex flex-wrap gap-1.5 max-h-[80px] overflow-y-auto no-scrollbar">
+            {zipCodes.map((zip) => (
+              <span key={zip} className="group inline-flex items-center gap-1 px-2 py-1 bg-white/40 border border-stone-100 rounded-lg text-[10px] font-mono font-bold text-stone-500">
+                {zip}
+                <button
+                  onClick={() => handleRemoveZip(zip)}
+                  className="w-3.5 h-3.5 rounded-full bg-stone-200/80 text-stone-400 flex items-center justify-center hover:bg-red-500 hover:text-white transition-all opacity-0 group-hover:opacity-100"
+                >
+                  <X className="w-2 h-2" />
+                </button>
+              </span>
+            ))}
+          </div>
+        </div>
+
+        {/* Divider */}
+        <div className="h-px bg-stone-200/40 mb-5" />
+
+        {/* ── Business Hours (inline editor) ── */}
+        <div className="mb-2" ref={scheduleRef}>
+          <button
+            onClick={() => setShowScheduleEditor(!showScheduleEditor)}
+            className="flex items-center justify-between w-full mb-3 group"
+          >
+            <p className="text-[11px] font-bold text-stone-400 uppercase tracking-[0.12em]">
+              {locale === 'he' ? 'שעות פעילות' : 'Business Hours'}
+            </p>
+            <ChevronDown className={`w-3.5 h-3.5 text-stone-400 transition-transform ${showScheduleEditor ? 'rotate-180' : ''}`} />
+          </button>
+
+          {!showScheduleEditor ? (
+            /* Compact summary view */
+            <div
+              onClick={() => setShowScheduleEditor(true)}
+              className="bg-white/40 rounded-2xl p-3 border border-stone-100 cursor-pointer hover:bg-white/60 transition-all"
+            >
+              <div className="flex items-center gap-2 mb-2">
+                <Clock className="w-3.5 h-3.5 text-emerald-500" />
+                <span className="text-[11px] font-bold text-stone-700">
+                  {compactSchedule(workingHours, locale)}
+                </span>
+              </div>
+              <div className="flex gap-1">
+                {DAY_KEYS.map((day) => (
+                  <div
+                    key={day}
+                    className={`flex-1 h-1.5 rounded-full ${workingHours[day].enabled ? 'bg-emerald-400' : 'bg-stone-200'}`}
+                    title={locale === 'he' ? DAY_LABELS[day].he : DAY_LABELS[day].en}
+                  />
+                ))}
+              </div>
+            </div>
+          ) : (
+            /* Full inline schedule editor */
+            <div className="space-y-1.5 animate-scale-in">
+              {DAY_KEYS.map((day) => {
+                const schedule = workingHours[day]
+                const label = locale === 'he' ? DAY_LABELS[day].he : DAY_LABELS[day].en.slice(0, 3)
+                return (
+                  <div
+                    key={day}
+                    className={`flex items-center gap-2 rounded-xl px-2.5 py-2 transition-all ${
+                      schedule.enabled ? 'bg-white/80 border border-stone-100' : 'bg-stone-50/50 border border-transparent opacity-60'
+                    }`}
+                  >
+                    <button
+                      onClick={() => handleToggleDay(day)}
+                      className={`relative w-8 h-4 rounded-full transition-colors shrink-0 ${
+                        schedule.enabled ? 'bg-emerald-500' : 'bg-stone-300'
+                      }`}
+                    >
+                      <span className={`absolute top-0.5 w-3 h-3 rounded-full bg-white shadow transition-transform ${
+                        schedule.enabled ? 'translate-x-4' : 'translate-x-0.5'
+                      }`} />
+                    </button>
+                    <span className="text-[11px] font-bold text-stone-700 w-10">{label}</span>
+                    {schedule.enabled ? (
+                      <div className="flex items-center gap-1 ml-auto">
+                        <input
+                          type="time"
+                          value={schedule.start}
+                          onChange={(e) => handleSetTime(day, 'start', e.target.value)}
+                          className="rounded-lg border border-stone-200 px-1.5 py-0.5 text-[10px] font-bold text-stone-700 outline-none focus:border-emerald-400 w-[72px] bg-transparent"
+                        />
+                        <span className="text-[10px] text-stone-400">–</span>
+                        <input
+                          type="time"
+                          value={schedule.end}
+                          onChange={(e) => handleSetTime(day, 'end', e.target.value)}
+                          className="rounded-lg border border-stone-200 px-1.5 py-0.5 text-[10px] font-bold text-stone-700 outline-none focus:border-emerald-400 w-[72px] bg-transparent"
+                        />
+                      </div>
+                    ) : (
+                      <span className="ml-auto text-[10px] text-stone-400 italic">
+                        {locale === 'he' ? 'סגור' : 'Off'}
+                      </span>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* Divider */}
+        <div className="h-px bg-stone-200/40 mb-5" />
+
+        {/* Spacer for panel bottom padding */}
+        <div className="h-2" />
       </div>
 
       {/* ════════ BOTTOM-RIGHT FLOATING PANEL (Recent Leads) ════════ */}
@@ -447,17 +708,6 @@ export default function ContractorDashboard() {
             </div>
           )}
         </div>
-      </div>
-
-      {/* ════════ TOP-RIGHT: ZIP Count Badge ════════ */}
-      <div
-        className="floating-panel px-4 py-2.5 animate-fade-in flex items-center gap-2"
-        style={{ top: 24, right: 24, animationDelay: '200ms' }}
-      >
-        <MapPin className="w-3.5 h-3.5 text-emerald-600" />
-        <span className="text-[12px] font-semibold text-stone-700">
-          {zipCodes.length} {locale === 'he' ? 'אזורים' : 'zones'}
-        </span>
       </div>
 
       {/* Forward Lead Modal */}

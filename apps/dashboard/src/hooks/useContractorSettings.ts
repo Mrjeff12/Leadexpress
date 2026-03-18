@@ -13,6 +13,7 @@ interface UseContractorSettingsReturn {
   saved: boolean
   toggleProfession: (id: ProfessionId) => void
   addZipCode: (zip: string) => boolean
+  addZipCodes: (zips: string[]) => void
   removeZipCode: (zip: string) => void
   setWorkingHours: React.Dispatch<React.SetStateAction<WorkingHours>>
   save: () => Promise<void>
@@ -63,6 +64,16 @@ export function useContractorSettings(): UseContractorSettingsReturn {
     return true
   }, [zipCodes])
 
+  const addZipCodes = useCallback((zips: string[]): void => {
+    setZipCodes((prev) => {
+      const newZips = zips
+        .map((z) => z.trim().replace(/\D/g, ''))
+        .filter((z) => z && !prev.includes(z))
+      return newZips.length > 0 ? [...prev, ...newZips] : prev
+    })
+    setSaved(false)
+  }, [])
+
   const removeZipCode = useCallback((zip: string) => {
     setZipCodes((prev) => prev.filter((z) => z !== zip))
     setSaved(false)
@@ -100,7 +111,7 @@ export function useContractorSettings(): UseContractorSettingsReturn {
   return {
     professions, zipCodes, workingHours,
     loading, saving, saved,
-    toggleProfession, addZipCode, removeZipCode,
+    toggleProfession, addZipCode, addZipCodes, removeZipCode,
     setWorkingHours, save,
   }
 }

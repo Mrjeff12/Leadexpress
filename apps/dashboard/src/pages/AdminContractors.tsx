@@ -30,11 +30,11 @@ interface Contractor {
     full_name: string | null
     telegram_chat_id: number | null
     phone: string | null
+    subscriptions: {
+      status: string
+      plans: { name: string }
+    }[]
   }
-  subscriptions: {
-    status: string
-    plans: { name: string }
-  } | null
 }
 
 const PROF_EMOJI: Record<string, string> = {
@@ -75,12 +75,14 @@ export default function AdminContractors() {
       .from('contractors')
       .select(`
         user_id, professions, zip_codes, is_active,
-        profiles!inner(full_name, telegram_chat_id, phone),
-        subscriptions(status, plans(name))
+        profiles!inner(full_name, telegram_chat_id, phone, subscriptions(status, plans(name)))
       `)
       .order('created_at', { ascending: false })
 
-    if (!error && data) {
+    if (error) {
+      console.error('[AdminContractors] fetch error:', error.message)
+    }
+    if (data) {
       setContractors(data as unknown as Contractor[])
     }
     setLoading(false)
@@ -259,7 +261,7 @@ export default function AdminContractors() {
                     </td>
                     <td className="px-4 py-3">
                       <span className="badge badge-green text-xs">
-                        {c.subscriptions?.plans?.name ?? 'None'}
+                        {c.profiles?.subscriptions?.[0]?.plans?.name ?? 'None'}
                       </span>
                     </td>
                     <td className="px-4 py-3">

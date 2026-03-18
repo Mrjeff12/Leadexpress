@@ -46,12 +46,22 @@ export const config = {
     apiToken: requireEnv('GREEN_API_TOKEN'),
   },
 
+  twilio: {
+    accountSid: process.env.TWILIO_ACCOUNT_SID ?? '',
+    authToken: process.env.TWILIO_AUTH_TOKEN ?? '',
+    whatsappFrom: process.env.TWILIO_WA_FROM ?? '',
+  },
+
   whatsapp: {
     accountId: process.env.WA_ACCOUNT_ID ?? 'default',
   },
 
   queue: {
     name: 'raw-messages',
+  },
+
+  features: {
+    enableAutoJoinQueue: process.env.ENABLE_AUTO_JOIN_QUEUE === 'true',
   },
 
   health: {

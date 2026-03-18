@@ -1,7 +1,7 @@
-import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useI18n } from '../lib/i18n'
-import { supabase } from '../lib/supabase'
+import { useAdminProspectsData, type ProspectRecord } from '../hooks/useAdminProspectsData'
 import {
   Search,
   Loader2,
@@ -22,22 +22,7 @@ import {
 } from 'lucide-react'
 
 /* ── Types ──────────────────────────────────────────────────────────── */
-interface Prospect {
-  id: string
-  wa_id: string
-  phone: string
-  display_name: string | null
-  profile_pic_url: string | null
-  profession_tags: string[]
-  group_ids: string[]
-  stage: string
-  notes: string
-  last_contact_at: string | null
-  next_followup_at: string | null
-  created_at: string
-  updated_at: string
-  group_names?: string[]
-}
+type Prospect = ProspectRecord
 
 /* ── Pipeline stages config ─────────────────────────────────────────── */
 const STAGES = [
@@ -142,10 +127,7 @@ export default function AdminProspects() {
   const he = locale === 'he'
   const nav = useNavigate()
 
-  const [prospects, setProspects] = useState<Prospect[]>([])
-  const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
-  const [importing, setImporting] = useState(false)
   const [dragProspectId, setDragProspectId] = useState<string | null>(null)
   const [dragOverStage, setDragOverStage] = useState<string | null>(null)
   const [expandedStages, setExpandedStages] = useState<Set<string>>(new Set())
@@ -153,108 +135,23 @@ export default function AdminProspects() {
   const [stageFilter, setStageFilter] = useState<string | null>(null)
   const [listStageDropdown, setListStageDropdown] = useState<string | null>(null)
 
-  /* ── Fetch ────────────────────────────────────────────────────────── */
-  const fetchProspects = useCallback(async () => {
-    // Supabase defaults to 1000 rows — fetch all with pagination
-    let all: Prospect[] = []
-    let from = 0
-    const pageSize = 1000
-
-    while (true) {
-      const { data, error } = await supabase
-        .from('prospect_with_groups')
-        .select('*')
-        .is('archived_at', null)
-        .order('updated_at', { ascending: false })
-        .range(from, from + pageSize - 1)
-
-      if (error || !data || data.length === 0) break
-      all = all.concat(data as Prospect[])
-      if (data.length < pageSize) break
-      from += pageSize
-    }
-
-    setProspects(all)
-    setLoading(false)
-  }, [])
-
-  useEffect(() => {
-    fetchProspects()
-
-    const channel = supabase
-      .channel('prospects-rt')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'prospects' }, () => {
-        fetchProspects()
-      })
-      .subscribe()
-
-    return () => { supabase.removeChannel(channel) }
-  }, [fetchProspects])
+  const {
+    prospects,
+    isLoading: loading,
+    isFetching,
+    changeStage: updateProspectStage,
+    importFromGroups: runImportFromGroups,
+    isImporting,
+  } = useAdminProspectsData()
 
   /* ── Stage change ─────────────────────────────────────────────────── */
   async function changeStage(prospectId: string, newStage: string) {
-    const prospect = prospects.find(p => p.id === prospectId)
-    if (!prospect || prospect.stage === newStage) return
-
-    const oldStage = prospect.stage
-
-    // Optimistic update
-    setProspects(prev => prev.map(p =>
-      p.id === prospectId ? { ...p, stage: newStage, updated_at: new Date().toISOString() } : p
-    ))
-
-    await supabase
-      .from('prospects')
-      .update({ stage: newStage })
-      .eq('id', prospectId)
-
-    await supabase.from('prospect_events').insert({
-      prospect_id: prospectId,
-      event_type: 'stage_change',
-      old_value: oldStage,
-      new_value: newStage,
-    })
+    await updateProspectStage(prospectId, newStage)
   }
 
   /* ── Import group members ─────────────────────────────────────────── */
   async function importFromGroups() {
-    setImporting(true)
-    try {
-      const { data: groups } = await supabase
-        .from('groups')
-        .select('id, wa_group_id, name')
-        .eq('status', 'active')
-
-      if (!groups?.length) return
-
-      const listenerUrl = import.meta.env.VITE_WA_LISTENER_URL || 'http://localhost:3001'
-
-      let totalImported = 0
-      for (const group of groups) {
-        try {
-          const res = await fetch(`${listenerUrl}/api/prospects/import`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              group_id: group.id,
-              wa_group_id: group.wa_group_id,
-            }),
-          })
-          if (res.ok) {
-            const result = await res.json()
-            totalImported += result.imported ?? 0
-          }
-        } catch {
-          // Continue with next group
-        }
-      }
-
-      if (totalImported > 0) {
-        await fetchProspects()
-      }
-    } finally {
-      setImporting(false)
-    }
+    await runImportFromGroups()
   }
 
   /* ── Drag & Drop handlers ─────────────────────────────────────────── */
@@ -365,6 +262,11 @@ export default function AdminProspects() {
           <p className="text-sm mt-1" style={{ color: '#7c7f85' }}>
             {he ? `${prospects.length} טכנאים בצנרת` : `${prospects.length} technicians in pipeline`}
           </p>
+          {isFetching && (
+            <p className="text-xs mt-1" style={{ color: '#b0b3b8' }}>
+              {he ? 'מתעדכן...' : 'Refreshing...'}
+            </p>
+          )}
         </div>
 
         <div className="flex items-center gap-3">
@@ -450,16 +352,16 @@ export default function AdminProspects() {
           {/* Import button */}
           <button
             onClick={importFromGroups}
-            disabled={importing}
+            disabled={isImporting}
             className="flex items-center gap-2 h-9 px-4 rounded-xl text-sm font-medium text-white transition-all hover:shadow-md active:scale-[0.97]"
             style={{
-              background: importing
+              background: isImporting
                 ? 'hsl(155 20% 60%)'
                 : 'linear-gradient(135deg, hsl(155 44% 30%) 0%, hsl(155 50% 38%) 100%)',
               fontFamily: 'Outfit, sans-serif',
             }}
           >
-            {importing ? <Loader2 className="w-4 h-4 animate-spin" /> : <UserPlus className="w-4 h-4" />}
+            {isImporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <UserPlus className="w-4 h-4" />}
             {he ? 'ייבא מקבוצות' : 'Import from Groups'}
           </button>
         </div>

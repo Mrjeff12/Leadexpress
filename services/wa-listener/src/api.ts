@@ -269,11 +269,12 @@ function readBody(req: http.IncomingMessage): Promise<string> {
 async function handleSendProspectMessage(req: http.IncomingMessage, res: http.ServerResponse): Promise<void> {
   try {
     const raw = await readBody(req);
-    const { prospect_id, wa_id, text, wa_account_id } = JSON.parse(raw) as {
+    const { prospect_id, wa_id, text, wa_account_id, channel = 'green_api' } = JSON.parse(raw) as {
       prospect_id: string;
       wa_id: string;
       text: string;
       wa_account_id?: string;
+      channel?: 'green_api' | 'twilio';
     };
 
     if (!wa_id || !text) {
@@ -281,55 +282,93 @@ async function handleSendProspectMessage(req: http.IncomingMessage, res: http.Se
       return;
     }
 
-    // Determine which GREEN-API account to use
-    let sendApiUrl = apiUrl;
-    let sendIdInstance = idInstance;
-    let sendApiToken = apiToken;
+    let messageId: string | null = null;
 
-    if (wa_account_id) {
-      const { data: account } = await supabase
-        .from('wa_accounts')
-        .select('green_api_url, green_api_id, green_api_token')
-        .eq('id', wa_account_id)
-        .single();
+    if (channel === 'twilio') {
+      // Send via Twilio
+      const twilioUrl = `https://api.twilio.com/2010-04-01/Accounts/${config.twilio.accountSid}/Messages.json`;
+      const auth = 'Basic ' + Buffer.from(`${config.twilio.accountSid}:${config.twilio.authToken}`).toString('base64');
+      
+      // Convert wa_id (e.g. 972542922277@c.us) to E.164 format (+972542922277)
+      const toPhone = `+${wa_id.split('@')[0]}`;
+      
+      const data = new URLSearchParams({
+        To: `whatsapp:${toPhone}`,
+        From: config.twilio.whatsappFrom,
+        Body: text
+      }).toString();
 
-      if (account) {
-        sendApiUrl = account.green_api_url;
-        sendIdInstance = account.green_api_id;
-        sendApiToken = account.green_api_token;
+      const sendRes = await fetch(twilioUrl, {
+        method: 'POST',
+        headers: {
+          'Authorization': auth,
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: data,
+      });
+
+      if (!sendRes.ok) {
+        const errText = await sendRes.text();
+        logger.error({ status: sendRes.status, body: errText }, 'Twilio sendMessage failed');
+        jsonResponse(res, 502, { error: 'Failed to send message via Twilio' });
+        return;
       }
+
+      const sendResult = await sendRes.json() as { sid?: string };
+      messageId = sendResult.sid ?? null;
+
+    } else {
+      // Send via GREEN-API
+      let sendApiUrl = apiUrl;
+      let sendIdInstance = idInstance;
+      let sendApiToken = apiToken;
+
+      if (wa_account_id) {
+        const { data: account } = await supabase
+          .from('wa_accounts')
+          .select('green_api_url, green_api_id, green_api_token')
+          .eq('id', wa_account_id)
+          .single();
+
+        if (account) {
+          sendApiUrl = account.green_api_url;
+          sendIdInstance = account.green_api_id;
+          sendApiToken = account.green_api_token;
+        }
+      }
+
+      const sendUrl = `${sendApiUrl}/waInstance${sendIdInstance}/sendMessage/${sendApiToken}`;
+      const sendRes = await fetch(sendUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          chatId: wa_id,
+          message: text,
+        }),
+      });
+
+      if (!sendRes.ok) {
+        const errText = await sendRes.text();
+        logger.error({ status: sendRes.status, body: errText }, 'GREEN-API sendMessage failed');
+        jsonResponse(res, 502, { error: 'Failed to send message via GREEN-API' });
+        return;
+      }
+
+      const sendResult = await sendRes.json() as { idMessage?: string };
+      messageId = sendResult.idMessage ?? null;
     }
-
-    // Call GREEN-API sendMessage
-    const sendUrl = `${sendApiUrl}/waInstance${sendIdInstance}/sendMessage/${sendApiToken}`;
-    const sendRes = await fetch(sendUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        chatId: wa_id,
-        message: text,
-      }),
-    });
-
-    if (!sendRes.ok) {
-      const errText = await sendRes.text();
-      logger.error({ status: sendRes.status, body: errText }, 'GREEN-API sendMessage failed');
-      jsonResponse(res, 502, { error: 'Failed to send message via GREEN-API' });
-      return;
-    }
-
-    const sendResult = await sendRes.json() as { idMessage?: string };
 
     // Save to prospect_messages
     const { data: msg, error: insertErr } = await supabase
       .from('prospect_messages')
       .insert({
         prospect_id,
-        wa_account_id: wa_account_id ?? null,
+        wa_account_id: channel === 'green_api' ? (wa_account_id ?? null) : null,
+        channel,
         direction: 'outgoing',
         message_type: 'text',
         content: text,
-        wa_message_id: sendResult.idMessage ?? null,
+        wa_message_id: messageId,
         sent_at: new Date().toISOString(),
       })
       .select()
@@ -344,7 +383,7 @@ async function handleSendProspectMessage(req: http.IncomingMessage, res: http.Se
       prospect_id,
       event_type: 'message_sent',
       new_value: text.substring(0, 100),
-      detail: { wa_message_id: sendResult.idMessage },
+      detail: { wa_message_id: messageId },
     });
 
     // Update last_contact_at
@@ -355,8 +394,8 @@ async function handleSendProspectMessage(req: http.IncomingMessage, res: http.Se
 
     jsonResponse(res, 200, {
       success: true,
-      message_id: msg?.id,
-      wa_message_id: sendResult.idMessage,
+      message_id: msg?.[0]?.id,
+      wa_message_id: messageId,
     });
   } catch (err) {
     logger.error({ err }, 'Error in handleSendProspectMessage');
@@ -533,6 +572,300 @@ async function handleGetAvatar(res: http.ServerResponse, waId: string): Promise<
   }
 }
 
+import { getJoinQueue } from './queue.js';
+
+// ── Group Scan Endpoints ───────────────────────────────────────────────────
+
+const rateLimits = new Map<string, { count: number; resetAt: number }>();
+
+function checkRateLimit(contractorId: string): boolean {
+  const now = Date.now();
+  let limit = rateLimits.get(contractorId);
+  if (!limit || limit.resetAt < now) {
+    limit = { count: 0, resetAt: now + 60000 }; // 1 minute window
+  }
+  if (limit.count >= 5) {
+    return false; // Max 5 links per minute
+  }
+  limit.count++;
+  rateLimits.set(contractorId, limit);
+  return true;
+}
+
+function normalizeInviteLink(rawLink: string): { normalized: string; code: string | null } {
+  const trimmed = rawLink.trim();
+  const match = trimmed.match(/chat\.whatsapp\.com\/([a-zA-Z0-9]+)/);
+  if (match) {
+    return {
+      normalized: `https://chat.whatsapp.com/${match[1]}`,
+      code: match[1],
+    };
+  }
+  return {
+    normalized: trimmed,
+    code: null,
+  };
+}
+
+/** POST /api/group-scan/contractor-links — Contractor adds a link */
+async function handlePostContractorLink(req: http.IncomingMessage, res: http.ServerResponse, user?: any): Promise<void> {
+  try {
+    const raw = await readBody(req);
+    const { invite_link, contractor_id } = JSON.parse(raw) as { invite_link: string; contractor_id: string };
+
+    if (!invite_link || !contractor_id) {
+      jsonResponse(res, 400, { error: 'invite_link and contractor_id are required' });
+      return;
+    }
+
+    // Role enforcement
+    if (user && user.role !== 'admin' && user.id !== contractor_id) {
+      jsonResponse(res, 403, { error: 'Forbidden: Cannot add link for another contractor' });
+      return;
+    }
+
+    if (!checkRateLimit(contractor_id)) {
+      jsonResponse(res, 429, { error: 'Too many requests. Please try again later.' });
+      return;
+    }
+
+    const { normalized, code } = normalizeInviteLink(invite_link);
+    if (!code) {
+      jsonResponse(res, 400, { error: 'Invalid WhatsApp invite link' });
+      return;
+    }
+
+    const { data, error } = await supabase
+      .from('contractor_group_scan_requests')
+      .insert({
+        contractor_id,
+        invite_link_raw: invite_link,
+        invite_link_normalized: normalized,
+        invite_code: code,
+        status: 'pending',
+        join_method: config.features.enableAutoJoinQueue ? 'auto' : 'manual',
+        created_by: contractor_id,
+        updated_by: contractor_id,
+      })
+      .select()
+      .single();
+
+    if (error) {
+      logger.error({ err: error }, 'Failed to insert contractor group scan request');
+      jsonResponse(res, 500, { error: 'Failed to save request' });
+      return;
+    }
+
+    if (config.features.enableAutoJoinQueue) {
+      const jq = getJoinQueue();
+      if (jq) {
+        await jq.add('join-group', { id: data.id, code, source: 'contractor' });
+      }
+    }
+
+    jsonResponse(res, 200, data);
+  } catch (err) {
+    logger.error({ err }, 'Error in handlePostContractorLink');
+    jsonResponse(res, 500, { error: 'Internal server error' });
+  }
+}
+
+/** GET /api/group-scan/contractor-links — Contractor views their links */
+async function handleGetContractorLinks(req: http.IncomingMessage, res: http.ServerResponse, user?: any, port: number = 3001): Promise<void> {
+  try {
+    const url = new URL(req.url ?? '/', `http://localhost:${port}`);
+    const contractorId = url.searchParams.get('contractor_id');
+
+    if (!contractorId) {
+      jsonResponse(res, 400, { error: 'contractor_id is required' });
+      return;
+    }
+
+    // Role enforcement
+    if (user && user.role !== 'admin' && user.id !== contractorId) {
+      jsonResponse(res, 403, { error: 'Forbidden: Cannot view links for another contractor' });
+      return;
+    }
+
+    // Get contractor's own requests
+    const { data: ownRequests, error: ownErr } = await supabase
+      .from('contractor_group_scan_requests')
+      .select('*')
+      .eq('contractor_id', contractorId)
+      .order('created_at', { ascending: false });
+
+    if (ownErr) {
+      logger.error({ err: ownErr }, 'Failed to fetch contractor group scan requests');
+      jsonResponse(res, 500, { error: 'Failed to fetch requests' });
+      return;
+    }
+
+    // Get admin groups (masked view)
+    const { data: adminGroups, error: adminErr } = await supabase
+      .from('contractor_admin_group_scan_view')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (adminErr) {
+      logger.error({ err: adminErr }, 'Failed to fetch admin group scan requests for contractor');
+      jsonResponse(res, 500, { error: 'Failed to fetch admin requests' });
+      return;
+    }
+
+    jsonResponse(res, 200, {
+      own: ownRequests ?? [],
+      admin: adminGroups ?? [],
+    });
+  } catch (err) {
+    logger.error({ err }, 'Error in handleGetContractorLinks');
+    jsonResponse(res, 500, { error: 'Internal server error' });
+  }
+}
+
+/** GET /api/group-scan/admin-board — Admin views all links */
+async function handleGetAdminBoard(res: http.ServerResponse, user?: any): Promise<void> {
+  try {
+    // Role enforcement
+    if (user && user.role !== 'admin') {
+      jsonResponse(res, 403, { error: 'Forbidden: Admin access required' });
+      return;
+    }
+    const { data, error } = await supabase
+      .from('group_scan_queue_view')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      logger.error({ err: error }, 'Failed to fetch admin board group scan requests');
+      jsonResponse(res, 500, { error: 'Failed to fetch requests' });
+      return;
+    }
+
+    jsonResponse(res, 200, data ?? []);
+  } catch (err) {
+    logger.error({ err }, 'Error in handleGetAdminBoard');
+    jsonResponse(res, 500, { error: 'Internal server error' });
+  }
+}
+
+/** POST /api/group-scan/admin-links — Admin adds a link */
+async function handlePostAdminLink(req: http.IncomingMessage, res: http.ServerResponse, user?: any): Promise<void> {
+  try {
+    const raw = await readBody(req);
+    const { invite_link, admin_id, group_name, member_count } = JSON.parse(raw) as { 
+      invite_link: string; 
+      admin_id: string;
+      group_name?: string;
+      member_count?: number;
+    };
+
+    if (!invite_link || !admin_id) {
+      jsonResponse(res, 400, { error: 'invite_link and admin_id are required' });
+      return;
+    }
+
+    // Role enforcement
+    if (user && user.role !== 'admin') {
+      jsonResponse(res, 403, { error: 'Forbidden: Admin access required' });
+      return;
+    }
+
+    const { normalized, code } = normalizeInviteLink(invite_link);
+    if (!code) {
+      jsonResponse(res, 400, { error: 'Invalid WhatsApp invite link' });
+      return;
+    }
+
+    const { data, error } = await supabase
+      .from('admin_group_scan_entries')
+      .insert({
+        invite_link_raw: invite_link,
+        invite_link_normalized: normalized,
+        invite_code: code,
+        status: 'pending',
+        join_method: config.features.enableAutoJoinQueue ? 'auto' : 'manual',
+        group_name: group_name ?? null,
+        member_count: member_count ?? null,
+        created_by: admin_id,
+        updated_by: admin_id,
+      })
+      .select()
+      .single();
+
+    if (error) {
+      logger.error({ err: error }, 'Failed to insert admin group scan request');
+      jsonResponse(res, 500, { error: 'Failed to save request' });
+      return;
+    }
+
+    if (config.features.enableAutoJoinQueue) {
+      const jq = getJoinQueue();
+      if (jq) {
+        await jq.add('join-group', { id: data.id, code, source: 'admin' });
+      }
+    }
+
+    jsonResponse(res, 200, data);
+  } catch (err) {
+    logger.error({ err }, 'Error in handlePostAdminLink');
+    jsonResponse(res, 500, { error: 'Internal server error' });
+  }
+}
+
+/** PATCH /api/group-scan/:id/status — Update status */
+async function handlePatchGroupScanStatus(req: http.IncomingMessage, res: http.ServerResponse, id: string, user?: any): Promise<void> {
+  try {
+    const raw = await readBody(req);
+    const { status, source, updated_by, last_error } = JSON.parse(raw) as { 
+      status: string; 
+      source: 'contractor' | 'admin';
+      updated_by: string;
+      last_error?: string;
+    };
+
+    if (!status || !source || !updated_by) {
+      jsonResponse(res, 400, { error: 'status, source, and updated_by are required' });
+      return;
+    }
+
+    // Role enforcement
+    if (user && user.role !== 'admin') {
+      jsonResponse(res, 403, { error: 'Forbidden: Admin access required' });
+      return;
+    }
+
+    const validStatuses = ['pending', 'joined', 'failed', 'blocked_private', 'archived'];
+    if (!validStatuses.includes(status)) {
+      jsonResponse(res, 400, { error: 'Invalid status' });
+      return;
+    }
+
+    const table = source === 'contractor' ? 'contractor_group_scan_requests' : 'admin_group_scan_entries';
+
+    const { data, error } = await supabase
+      .from(table)
+      .update({ 
+        status, 
+        updated_by,
+        ...(last_error !== undefined ? { last_error } : {})
+      })
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) {
+      logger.error({ err: error }, `Failed to update status in ${table}`);
+      jsonResponse(res, 500, { error: 'Failed to update status' });
+      return;
+    }
+
+    jsonResponse(res, 200, data);
+  } catch (err) {
+    logger.error({ err }, 'Error in handlePatchGroupScanStatus');
+    jsonResponse(res, 500, { error: 'Internal server error' });
+  }
+}
+
 // ── HTTP Server ──────────────────────────────────────────────────────────────
 let server: http.Server | null = null;
 
@@ -540,21 +873,39 @@ let server: http.Server | null = null;
 const API_SECRET = process.env.WA_LISTENER_API_SECRET;
 const IS_PRODUCTION = process.env.NODE_ENV === 'production';
 
-function isAuthorized(req: http.IncomingMessage): boolean {
-  // Health endpoint is always open (for load balancers / k8s probes)
+async function isAuthorized(req: http.IncomingMessage): Promise<{ authorized: boolean; user?: any }> {
   const url = req.url ?? '/';
-  if (url === '/api/health' || url.startsWith('/api/health?')) return true;
-
-  if (!API_SECRET) {
-    if (IS_PRODUCTION) {
-      logger.error('WA_LISTENER_API_SECRET not set in production — denying request');
-      return false;
-    }
-    return true;
-  }
+  if (url === '/api/health' || url.startsWith('/api/health?')) return { authorized: true };
 
   const authHeader = req.headers['authorization'] ?? '';
-  return authHeader === `Bearer ${API_SECRET}`;
+  const token = authHeader.replace('Bearer ', '').trim();
+
+  if (!token) {
+    if (!API_SECRET && !IS_PRODUCTION) return { authorized: true };
+    return { authorized: false };
+  }
+
+  // Check if it's the API secret
+  if (API_SECRET && token === API_SECRET) {
+    return { authorized: true, user: { id: 'admin', role: 'admin' } };
+  }
+
+  // Check if it's a valid Supabase JWT
+  try {
+    const { data: { user }, error } = await supabase.auth.getUser(token);
+    if (user && !error) {
+      // Also get the user's role from profiles
+      const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single();
+      if (profile) {
+        user.role = profile.role;
+      }
+      return { authorized: true, user };
+    }
+  } catch (err) {
+    // Ignore error and fall through
+  }
+
+  return { authorized: false };
 }
 
 export async function startAPI(port = 3001): Promise<void> {
@@ -585,10 +936,12 @@ export async function startAPI(port = 3001): Promise<void> {
     }
 
     // Auth check
-    if (!isAuthorized(req)) {
+    const authResult = await isAuthorized(req);
+    if (!authResult.authorized) {
       jsonResponse(res, 401, { error: 'Unauthorized' });
       return;
     }
+    const user = authResult.user;
 
     const url = new URL(req.url ?? '/', `http://localhost:${port}`);
     const pathname = url.pathname;
@@ -597,6 +950,39 @@ export async function startAPI(port = 3001): Promise<void> {
       // GET /api/status
       if (pathname === '/api/status' && req.method === 'GET') {
         jsonResponse(res, 200, getStatus());
+        return;
+      }
+
+      // GET /api/accounts
+      if (pathname === '/api/accounts' && req.method === 'GET') {
+        // Return both Green API and Twilio API accounts
+        const accounts = [
+          {
+            id: 'acc-green',
+            label: 'Green API (Personal)',
+            region: 'green',
+            phone: connectedPhone || 'Connecting...',
+            status: currentStatus,
+            groupCount: 0,
+            leadsToday: 0,
+            messagesTotal: 0,
+            qr: currentQR,
+            connectedSince: connectedSince,
+          },
+          {
+            id: 'acc-twilio',
+            label: 'Twilio API (Official)',
+            region: 'twilio',
+            phone: config.twilio.whatsappFrom || 'Not configured',
+            status: config.twilio.accountSid ? 'connected' : 'disconnected',
+            groupCount: 0,
+            leadsToday: 0,
+            messagesTotal: 0,
+            qr: null,
+            connectedSince: new Date().toISOString(),
+          }
+        ];
+        jsonResponse(res, 200, accounts);
         return;
       }
 
@@ -649,6 +1035,37 @@ export async function startAPI(port = 3001): Promise<void> {
       const avatarMatch = pathname.match(/^\/api\/prospects\/([^/]+)\/avatar$/);
       if (avatarMatch && req.method === 'GET') {
         await handleGetAvatar(res, avatarMatch[1]);
+        return;
+      }
+
+      // POST /api/group-scan/contractor-links
+      if (pathname === '/api/group-scan/contractor-links' && req.method === 'POST') {
+        await handlePostContractorLink(req, res, user);
+        return;
+      }
+
+      // GET /api/group-scan/contractor-links
+      if (pathname === '/api/group-scan/contractor-links' && req.method === 'GET') {
+        await handleGetContractorLinks(req, res, user, port);
+        return;
+      }
+
+      // GET /api/group-scan/admin-board
+      if (pathname === '/api/group-scan/admin-board' && req.method === 'GET') {
+        await handleGetAdminBoard(res, user);
+        return;
+      }
+
+      // POST /api/group-scan/admin-links
+      if (pathname === '/api/group-scan/admin-links' && req.method === 'POST') {
+        await handlePostAdminLink(req, res, user);
+        return;
+      }
+
+      // PATCH /api/group-scan/:id/status
+      const groupScanStatusMatch = pathname.match(/^\/api\/group-scan\/([^/]+)\/status$/);
+      if (groupScanStatusMatch && req.method === 'PATCH') {
+        await handlePatchGroupScanStatus(req, res, groupScanStatusMatch[1], user);
         return;
       }
 

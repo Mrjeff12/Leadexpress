@@ -3,6 +3,8 @@ import Navbar from './components/Navbar'
 import Hero from './components/HeroOptionA'
 import LogoStrip from './components/LogoStrip'
 import ChaosToOrderSection from './components/ChaosToOrderSection'
+import ContractorsShowcase from './components/ContractorsShowcase'
+import PipelineSection from './components/PipelineSection'
 import MapSection from './components/MapSection'
 import WorkflowSection from './components/WorkflowSection'
 import FeaturesSection from './components/FeaturesSection'
@@ -21,8 +23,10 @@ export default function App() {
         <Navbar />
         <Hero />
         {/* <LogoStrip /> */}
-        <ChaosToOrderSection />
+        {/* <ChaosToOrderSection /> */}
+        <ContractorsShowcase />
         <WorkflowSection />
+        {/* <PipelineSection /> */}
         <MapSection />
         <FeaturesSection />
         {/* <FeatureGrid /> */}

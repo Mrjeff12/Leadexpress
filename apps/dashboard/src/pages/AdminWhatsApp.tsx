@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { supabase } from '../lib/supabase'
 import { useI18n } from '../lib/i18n'
+import { useAdminWhatsAppData } from '../hooks/useAdminWhatsAppData'
 import {
   Smartphone,
   QrCode,
@@ -23,6 +23,7 @@ import {
   TrendingUp,
   Shield,
   Plus,
+  Users,
 } from 'lucide-react'
 
 // ── Types ──────────────────────────────────────────────────────────────────────
@@ -93,13 +94,14 @@ const REGION_CONFIG: Record<string, { emoji: string; label: string; labelHe: str
   'us-tx': { emoji: '🤠', label: 'Texas', labelHe: 'טקסס' },
   'us-ca': { emoji: '☀️', label: 'California', labelHe: 'קליפורניה' },
   'il':    { emoji: '🇮🇱', label: 'Israel', labelHe: 'ישראל' },
+  'twilio': { emoji: '💬', label: 'Twilio API', labelHe: 'Twilio רשמי' },
+  'green': { emoji: '🟢', label: 'Green API', labelHe: 'Green API אישי' },
 }
 
 // ── Demo data ──────────────────────────────────────────────────────────────────
 const DEMO_ACCOUNTS: WAAccount[] = [
-  { id: 'acc-fl', label: 'Florida Home Services', region: 'us-fl', phone: '+1 (305) 555-0199', status: 'connected', groupCount: 4, leadsToday: 8, messagesTotal: 342, qr: null, connectedSince: new Date(Date.now() - 86_400_000 * 3).toISOString() },
-  { id: 'acc-ny', label: 'NY Locksmiths', region: 'us-ny', phone: '+1 (212) 555-0177', status: 'connected', groupCount: 3, leadsToday: 5, messagesTotal: 187, qr: null, connectedSince: new Date(Date.now() - 86_400_000 * 7).toISOString() },
-  { id: 'acc-tx', label: 'Texas Expansion', region: 'us-tx', phone: null, status: 'disconnected', groupCount: 0, leadsToday: 0, messagesTotal: 0, qr: null, connectedSince: null },
+  { id: 'acc-fl', label: 'Green API (Personal)', region: 'green', phone: '+1 (305) 555-0199', status: 'connected', groupCount: 4, leadsToday: 8, messagesTotal: 342, qr: null, connectedSince: new Date(Date.now() - 86_400_000 * 3).toISOString() },
+  { id: 'acc-twilio', label: 'Twilio API (Official)', region: 'twilio', phone: '+1 (862) 358-2898', status: 'connected', groupCount: 0, leadsToday: 5, messagesTotal: 187, qr: null, connectedSince: new Date(Date.now() - 86_400_000 * 7).toISOString() },
 ]
 const DEMO_GROUPS: WAGroup[] = [
   { id: 'g1', name: 'Miami Home Services 🏠', messageCount: 342, isActive: true, lastMessageAt: new Date(Date.now() - 120_000).toISOString(), totalMembers: 187, knownSellers: 23, knownBuyers: 41, category: 'hvac' },
@@ -241,50 +243,21 @@ export default function AdminWhatsApp() {
   const [showOnlyLeads, setShowOnlyLeads] = useState(false)
 
   const messagesEndRef = useRef<HTMLDivElement>(null)
-  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
-  const status = IS_DEV ? demoStep : connState.status
+  const whatsappData = useAdminWhatsAppData({
+    listenerUrl: WA_API,
+    enabled: !IS_DEV,
+    selectedGroupId,
+  })
+  const status = IS_DEV ? demoStep : whatsappData.connState.status
 
-  // ── Production polling ─────────────────────────────────────────────────────
+  // ── Sync React Query data into local UI state ───────────────────────────
   useEffect(() => {
     if (IS_DEV) return
-    async function poll() {
-      try {
-        const res = await fetch(`${WA_API}/api/status`)
-        if (res.ok) {
-          const data = await res.json()
-          setConnState(data)
-        }
-      } catch {
-        setConnState(prev => ({ ...prev, status: 'disconnected' }))
-      }
-    }
-    poll()
-    pollRef.current = setInterval(poll, 3000)
-    return () => { if (pollRef.current) clearInterval(pollRef.current) }
-  }, [IS_DEV, WA_API])
-
-  // ── Helper: fetch groups from API ─────────────────────────────────────────
-  const fetchGroups = useCallback(() => {
-    if (IS_DEV || status !== 'connected') return
-    fetch(`${WA_API}/api/groups`).then(r => r.json()).then(d => Array.isArray(d) && setGroups(d)).catch(() => {})
-  }, [IS_DEV, WA_API, status])
-
-  // ── Helper: fetch messages for selected group ───────────────────────────
-  const fetchMessages = useCallback(() => {
-    if (IS_DEV || !selectedGroupId || status !== 'connected') return
-    fetch(`${WA_API}/api/messages/${selectedGroupId}?limit=50`)
-      .then(r => r.json()).then(d => Array.isArray(d) && setMessages(d)).catch(() => {})
-  }, [IS_DEV, WA_API, selectedGroupId, status])
-
-  // ── Helper: fetch pipeline events ───────────────────────────────────────
-  const fetchPipeline = useCallback(() => {
-    if (IS_DEV || status !== 'connected') return
-    fetch(`${WA_API}/api/pipeline?limit=50`).then(r => r.json()).then(d => Array.isArray(d) && setPipeline(d)).catch(() => {})
-  }, [IS_DEV, WA_API, status])
+    setConnState(whatsappData.connState)
+  }, [IS_DEV, whatsappData.connState])
 
   // ── Load accounts + groups when connected ──────────────────────────────────
   useEffect(() => {
-    if (status !== 'connected') { setGroups([]); setAccounts([]); return }
     if (IS_DEV) {
       setAccounts(DEMO_ACCOUNTS)
       setGroups(DEMO_GROUPS)
@@ -293,49 +266,36 @@ export default function AdminWhatsApp() {
       if (!selectedGroupId) setSelectedGroupId('g1')
       return
     }
-    fetch(`${WA_API}/api/accounts`).then(r => r.json()).then(d => Array.isArray(d) && setAccounts(d)).catch(() => {})
-    fetchGroups()
-    fetchPipeline()
-  }, [status, IS_DEV, WA_API, fetchGroups, fetchPipeline])
+    
+    // Always set accounts if available (so we can see Twilio even if Green API disconnected)
+    if (whatsappData.accounts) {
+      setAccounts(whatsappData.accounts)
+      if (!selectedAccountId && whatsappData.accounts.length > 0) {
+        setSelectedAccountId(whatsappData.accounts[0].id)
+      }
+    }
+
+    if (status !== 'connected' && accounts.length === 0) { setGroups([]); return }
+    
+    setPipeline(whatsappData.pipeline as PipelineEvent[])
+    setGroups((prev) => {
+      const previousActiveById = new Map(prev.map((g) => [g.id, g.isActive]))
+      return (whatsappData.groups as WAGroup[]).map((g) => ({
+        ...g,
+        isActive: previousActiveById.get(g.id) ?? g.isActive,
+      }))
+    })
+  }, [status, IS_DEV, whatsappData.accounts, whatsappData.groups, whatsappData.pipeline])
 
   // ── Load messages when group selected ──────────────────────────────────────
   useEffect(() => {
-    if (!selectedGroupId || status !== 'connected') { setMessages([]); return }
+    if (!selectedGroupId || (status !== 'connected' && accounts.length === 0)) { setMessages([]); return }
     if (IS_DEV) {
       setMessages(DEMO_MESSAGES[selectedGroupId] ?? [])
       return
     }
-    fetchMessages()
-  }, [selectedGroupId, status, IS_DEV, fetchMessages])
-
-  // ── Realtime: Supabase subscription on pipeline_events ──────────────────
-  useEffect(() => {
-    if (IS_DEV || status !== 'connected') return
-
-    const channel = supabase
-      .channel('pipeline-realtime')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'pipeline_events' }, () => {
-        fetchPipeline()
-        fetchGroups()
-        fetchMessages()
-      })
-      .subscribe()
-
-    return () => { supabase.removeChannel(channel) }
-  }, [IS_DEV, status, fetchPipeline, fetchGroups, fetchMessages])
-
-  // ── Polling: refresh messages every 10s, groups+pipeline every 15s ──────
-  useEffect(() => {
-    if (IS_DEV || status !== 'connected') return
-
-    const msgInterval = setInterval(fetchMessages, 10_000)
-    const grpInterval = setInterval(() => { fetchGroups(); fetchPipeline() }, 15_000)
-
-    return () => {
-      clearInterval(msgInterval)
-      clearInterval(grpInterval)
-    }
-  }, [IS_DEV, status, fetchMessages, fetchGroups, fetchPipeline])
+    setMessages(whatsappData.messages as WAMessage[])
+  }, [selectedGroupId, status, accounts.length, IS_DEV, whatsappData.messages])
 
   // ── Auto-scroll messages ───────────────────────────────────────────────────
   useEffect(() => {
@@ -378,9 +338,9 @@ export default function AdminWhatsApp() {
   const filteredMessages = showOnlyLeads ? messages.filter(m => m.isLead) : messages
 
   // ═════════════════════════════════════════════════════════════════════════════
-  // NOT CONNECTED — Show QR / connection UI
+  // NOT CONNECTED — Show QR / connection UI (Only if no accounts are connected at all)
   // ═════════════════════════════════════════════════════════════════════════════
-  if (status !== 'connected') {
+  if (status !== 'connected' && accounts.length === 0) {
     return (
       <div className="animate-fade-in space-y-6">
         <div>
@@ -536,7 +496,7 @@ export default function AdminWhatsApp() {
                   : 'hsl(40 80% 50%)',
               }} />
               {acc.status === 'connected' && (
-                <span style={{ opacity: 0.7 }}>{acc.groupCount}g · {acc.leadsToday}L</span>
+                <span style={{ opacity: 0.7 }}>{acc.phone}</span>
               )}
             </button>
           )
@@ -548,6 +508,11 @@ export default function AdminWhatsApp() {
           <Plus className="w-3 h-3" />
           {he ? 'חשבון חדש' : 'Add Account'}
         </button>
+        <div className="flex-1" />
+        <a href="/admin/group-scan" className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium shrink-0 transition-all bg-emerald-50 text-emerald-600 hover:bg-emerald-100">
+          <Users className="w-3.5 h-3.5" />
+          {he ? 'בקשות סריקת קבוצות' : 'Group Scan Requests'}
+        </a>
       </div>
 
       {/* ── Header Row ───────────────────────────────────────────────────────── */}
@@ -556,7 +521,7 @@ export default function AdminWhatsApp() {
           <h2 className="text-sm font-semibold" style={{ color: 'hsl(40 8% 10%)' }}>
             {selectedAccount ? (
               <>
-                {REGION_CONFIG[selectedAccount.region]?.emoji} {selectedAccount.label}
+                {REGION_CONFIG[selectedAccount.region]?.emoji} {he ? REGION_CONFIG[selectedAccount.region]?.labelHe : REGION_CONFIG[selectedAccount.region]?.label}
               </>
             ) : (he ? 'בחר חשבון' : 'Select account')}
           </h2>
@@ -564,6 +529,12 @@ export default function AdminWhatsApp() {
             <div className="w-1.5 h-1.5 rounded-full animate-pulse-green" style={{ background: 'hsl(155 44% 40%)' }} />
             {he ? 'פעיל' : 'Live'}
           </div>
+          {whatsappData.isFetchingAny && (
+            <div className="flex items-center gap-1.5 text-[10px]" style={{ color: 'hsl(40 4% 55%)' }}>
+              <Loader2 className="w-3 h-3 animate-spin" />
+              {he ? 'מתעדכן' : 'Refreshing'}
+            </div>
+          )}
           {selectedAccount?.phone && (
             <span className="text-[10px]" style={{ color: 'hsl(40 4% 55%)' }}>{selectedAccount.phone}</span>
           )}

@@ -116,7 +116,7 @@ export async function matchLead(
       { leadId: lead.id, profession: lead.profession, zip: lead.zip_code },
       'No matching contractors found',
     );
-    await updateLeadStatus(lead.id, 'new', 0);
+    await updateLeadStatus(lead.id, 'new', 0, []);
     return 0;
   }
 
@@ -185,7 +185,10 @@ export async function matchLead(
   }
 
   const totalSent = telegramJobs.length + waJobs.length;
-  await updateLeadStatus(lead.id, 'sent', totalSent);
+  
+  // Update lead status and save the matched contractors to lock in access
+  const matchedContractorIds = capped.map(c => c.user_id);
+  await updateLeadStatus(lead.id, 'sent', totalSent, matchedContractorIds);
 
   const durationMs = Math.round(performance.now() - start);
   log.info(
@@ -209,10 +212,15 @@ async function updateLeadStatus(
   leadId: string,
   status: string,
   sentToCount: number,
+  matchedContractors: string[],
 ): Promise<void> {
   const { error } = await supabase
     .from('leads')
-    .update({ status, sent_to_count: sentToCount })
+    .update({ 
+      status, 
+      sent_to_count: sentToCount,
+      matched_contractors: matchedContractors 
+    })
     .eq('id', leadId);
 
   if (error) {

@@ -1,0 +1,684 @@
+import { useState, useEffect, useRef, useMemo } from 'react'
+import { useI18n } from '../lib/i18n'
+import { supabase } from '../lib/supabase'
+import {
+  useProspectDetailData,
+  type Prospect,
+  type Message,
+  type ProspectEvent,
+  type ProspectListItem,
+} from '../hooks/useProspectDetailData'
+import {
+  ArrowRight, Phone, MessageCircle, Send, Loader2,
+  ChevronDown, Check, CheckCheck, CircleDot, Sparkles, DollarSign,
+  XCircle, PhoneCall, Edit3, Calendar, X, Plus,
+  AlertTriangle, Zap, Copy,
+  Search, Inbox, Users
+} from 'lucide-react'
+
+/* ── Design tokens ─────────────────────────────────────────────────── */
+const C = {
+  primary: '#007AFF', 
+  dark: '#1C1C1E', 
+  cream: '#F2F2F7',
+  border: 'rgba(0,0,0,0.04)', 
+  gray: '#3A3A3C', 
+  muted: '#8E8E93',
+  wa: '#34C759', 
+  waDark: '#248A3D', 
+  bg: '#F2F2F7',
+  glass: 'rgba(255, 255, 255, 0.7)',
+  card: '#FFFFFF',
+}
+
+/* ── Stages ─────────────────────────────────────────────────────────── */
+const STAGES = [
+  { key: 'prospect',        label: 'Prospect',        he: 'פרוספקט',     icon: CircleDot,     color: '#5856D6', bg: '#F2F2F7' },
+  { key: 'reached_out',     label: 'Reached Out',     he: 'יצרנו קשר',   icon: Phone,         color: '#007AFF', bg: '#F2F2F7' },
+  { key: 'in_conversation', label: 'In Conversation', he: 'בשיחה',       icon: MessageCircle, color: '#AF52DE', bg: '#F2F2F7' },
+  { key: 'demo_trial',      label: 'Demo / Trial',    he: 'הדגמה',       icon: Sparkles,      color: '#FF9500', bg: '#F2F2F7' },
+  { key: 'paying',          label: 'Paying',          he: 'משלם',        icon: DollarSign,    color: '#34C759', bg: '#F2F2F7' },
+  { key: 'churned',         label: 'Churned',         he: 'נטש',         icon: XCircle,       color: '#FF3B30', bg: '#F2F2F7' },
+] as const
+const getStage = (k: string) => STAGES.find(s => s.key === k) ?? STAGES[0]
+
+const QUICK_REPLIES = [
+  { key: 'intro', label: 'Intro', he_label: 'היכרות', en: 'Hi! I\'m from Lead Express. We help contractors get more jobs. Interested?', he: 'שלום! אני מ-Lead Express. מעוניין בשיחה קצרה?' },
+  { key: 'followup', label: 'Follow-up', he_label: 'מעקב', en: 'Hey! Following up on my last message.', he: 'היי! עוקב אחרי ההודעה האחרונה.' },
+  { key: 'demo', label: 'Demo', he_label: 'הדגמה', en: 'Want to try our platform for free?', he: 'רוצה לנסות בחינם?' },
+  { key: 'price', label: 'Pricing', he_label: 'מחירון', en: 'Plans start at $29/mo. Want details?', he: 'מתחילים ב-$29 לחודש. מעוניין?' },
+]
+
+/* ── Helpers ────────────────────────────────────────────────────────── */
+const hue = (s: string) => { let h = 0; for (let i = 0; i < s.length; i++) h = s.charCodeAt(i) + ((h << 5) - h); return ((h % 360) + 360) % 360 }
+const fmtTime = (d: string) => new Date(d).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+const fmtDate = (d: string) => new Date(d).toLocaleDateString([], { month: 'short', day: 'numeric' })
+const fmtFull = (d: string) => new Date(d).toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' })
+const fuSt = (d: string | null): 'overdue' | 'today' | 'upcoming' | null => { if (!d) return null; const x = (new Date(d).getTime() - Date.now()) / 86400000; return x < 0 ? 'overdue' : x < 1 ? 'today' : 'upcoming' }
+const relD = (d: string, he: boolean) => { const x = Math.ceil((new Date(d).getTime() - Date.now()) / 86400000); if (x < -1) return he ? `לפני ${Math.abs(x)} ימים` : `${Math.abs(x)}d ago`; if (x === -1) return he ? 'אתמול' : 'Yesterday'; if (x === 0) return he ? 'היום' : 'Today'; if (x === 1) return he ? 'מחר' : 'Tomorrow'; return he ? `בעוד ${x} ימים` : `In ${x}d` }
+
+function evLabel(t: string, he: boolean) {
+  const m: Record<string, [string, string]> = { stage_change: ['Stage changed', 'שלב שונה'], note_added: ['Note added', 'הערה נוספה'], message_sent: ['Message sent', 'הודעה נשלחה'], message_received: ['Message received', 'הודעה נתקבלה'], call_logged: ['Call logged', 'שיחה'], imported: ['Imported', 'יובא'], followup_set: ['Follow-up set', 'תזכורת'], name_changed: ['Name changed', 'שם עודכן'], payment: ['Payment', 'תשלום'] }
+  return m[t] ? (he ? m[t][1] : m[t][0]) : t
+}
+
+/** Merge messages + events into unified timeline */
+type TimelineItem = { type: 'msg'; data: Message; ts: number } | { type: 'event'; data: ProspectEvent; ts: number }
+function buildTimeline(msgs: Message[], evts: ProspectEvent[]): TimelineItem[] {
+  const items: TimelineItem[] = [
+    ...msgs.map(m => ({ type: 'msg' as const, data: m, ts: new Date(m.sent_at).getTime() })),
+    ...evts.map(e => ({ type: 'event' as const, data: e, ts: new Date(e.created_at).getTime() })),
+  ]
+  items.sort((a, b) => a.ts - b.ts)
+  return items
+}
+
+/* ══════════════════════════════════════════════════════════════════════ */
+export default function AdminInbox() {
+  const { locale } = useI18n()
+  const he = locale === 'he'
+
+  /* ── State ──────────────────────────────────────────────────────── */
+  const [selectedId, setSelectedId] = useState<string | undefined>(undefined)
+  const [newMessage, setNewMessage] = useState('')
+  const [selectedChannel, setSelectedChannel] = useState<'green_api' | 'twilio'>('green_api')
+  const [sending, setSending] = useState(false)
+  const [editingNotes, setEditingNotes] = useState(false)
+  const [noteDraft, setNoteDraft] = useState('')
+  const [stageMenuOpen, setStageMenuOpen] = useState(false)
+  const [editingName, setEditingName] = useState(false)
+  const [nameDraft, setNameDraft] = useState('')
+  const [showFU, setShowFU] = useState(false)
+  const [fuDraft, setFuDraft] = useState('')
+  const [showQR, setShowQR] = useState(false)
+  const [copied, setCopied] = useState(false)
+  const [rightTab, setRightTab] = useState<'crm' | 'info'>('crm')
+
+  // Prospect list
+  const [listSearch, setListSearch] = useState('')
+  const [filterStage, setFilterStage] = useState<string>('all')
+
+  const {
+    prospect,
+    messages,
+    events,
+    prospectList,
+    isListLoading: listLoading,
+    isDetailLoading: loading,
+    refetchDetail,
+  } = useProspectDetailData(selectedId)
+
+  const chatEnd = useRef<HTMLDivElement>(null)
+  const inputRef = useRef<HTMLTextAreaElement>(null)
+
+  useEffect(() => { setTimeout(() => chatEnd.current?.scrollIntoView({ behavior: 'smooth' }), 100) }, [messages, selectedId])
+
+  /* ── Merged timeline ────────────────────────────────────────────── */
+  const timeline = useMemo(() => buildTimeline(messages, events), [messages, events])
+
+  /* ── Filtered list ──────────────────────────────────────────────── */
+  const filteredList = useMemo(() => {
+    let list = prospectList
+    if (filterStage !== 'all') {
+      list = list.filter(p => p.stage === filterStage)
+    }
+    if (!listSearch.trim()) return list
+    const q = listSearch.toLowerCase()
+    return list.filter(p => (p.display_name ?? '').toLowerCase().includes(q) || p.phone.includes(q) || p.profession_tags.some(t => t.toLowerCase().includes(q)))
+  }, [prospectList, listSearch, filterStage])
+
+  // Select first prospect if none selected and list loads
+  useEffect(() => {
+    if (!selectedId && filteredList.length > 0 && !listLoading) {
+      setSelectedId(filteredList[0].id)
+    }
+  }, [filteredList, listLoading, selectedId])
+
+  /* ── Actions ────────────────────────────────────────────────────── */
+  async function handleSend(text?: string) {
+    const t = text ?? newMessage; if (!t.trim() || !prospect || sending) return; setSending(true)
+    try { const url = import.meta.env.VITE_WA_LISTENER_URL || 'http://localhost:3001'; const r = await fetch(`${url}/api/prospects/send`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prospect_id: prospect.id, wa_id: prospect.wa_id, text: t.trim(), wa_account_id: prospect.assigned_wa_account_id, channel: selectedChannel }) }); if (r.ok) { setNewMessage(''); setShowQR(false); if (inputRef.current) { inputRef.current.style.height = 'auto'; inputRef.current.focus(); } if (prospect.stage === 'prospect') await changeStage('reached_out') } } finally { setSending(false) }
+  }
+  async function changeStage(ns: string) { if (!prospect || prospect.stage === ns) return; const old = prospect.stage; setStageMenuOpen(false); await supabase.from('prospects').update({ stage: ns }).eq('id', prospect.id); await supabase.from('prospect_events').insert({ prospect_id: prospect.id, event_type: 'stage_change', old_value: old, new_value: ns }); await refetchDetail() }
+  async function saveNotes() { if (!prospect) return; await supabase.from('prospects').update({ notes: noteDraft }).eq('id', prospect.id); await supabase.from('prospect_events').insert({ prospect_id: prospect.id, event_type: 'note_added', new_value: noteDraft.substring(0, 100) }); setEditingNotes(false); await refetchDetail() }
+  async function saveName() { if (!prospect) return; const n = nameDraft.trim() || null; await supabase.from('prospects').update({ display_name: n }).eq('id', prospect.id); setEditingName(false); await refetchDetail() }
+  async function saveFU() { if (!prospect) return; const v = fuDraft || null; await supabase.from('prospects').update({ next_followup_at: v }).eq('id', prospect.id); setShowFU(false); await refetchDetail() }
+  async function clearFU() { if (!prospect) return; await supabase.from('prospects').update({ next_followup_at: null }).eq('id', prospect.id); setShowFU(false); await refetchDetail() }
+  function copyPhone() { if (!prospect) return; navigator.clipboard.writeText(prospect.phone); setCopied(true); setTimeout(() => setCopied(false), 2000) }
+
+  const stg = prospect ? getStage(prospect.stage) : STAGES[0]
+  const fs = prospect ? fuSt(prospect.next_followup_at) : null
+  const pName = (p: Prospect | ProspectListItem) => p.display_name || p.phone
+
+  const Avatar = ({ src, name, waId, size = 36 }: { src?: string | null; name: string; waId: string; size?: number }) => {
+    const h = hue(waId)
+    if (src) return <img src={src} alt="" className="rounded-full object-cover shrink-0 shadow-sm border border-black/[0.05]" style={{ width: size, height: size }} />
+    return (
+      <div className="rounded-full flex items-center justify-center font-bold text-white shrink-0 shadow-sm" style={{ width: size, height: size, fontSize: size * 0.35, background: `linear-gradient(135deg, hsl(${h} 50% 50%), hsl(${h + 30} 45% 45%))` }}>
+        {name[0]?.toUpperCase() ?? '?'}
+      </div>
+    )
+  }
+
+  /* ── Render ─────────────────────────────────────────────────────── */
+  const stageCounts = useMemo(() => {
+    const counts: Record<string, number> = {}
+    for (const s of STAGES) counts[s.key] = 0
+    for (const p of prospectList) {
+      if (counts[p.stage] !== undefined) counts[p.stage]++
+    }
+    return counts
+  }, [prospectList])
+
+  return (
+    <div
+      className="animate-fade-in flex flex-col h-full w-full absolute inset-0 overflow-hidden"
+      style={{
+        fontFamily: 'Outfit, sans-serif',
+        background: C.bg,
+      }}
+    >
+      {/* ═══ TOP KPI BAR ═══ */}
+      <div className="shrink-0 bg-white/60 backdrop-blur-2xl border-b border-black/[0.03] px-8 py-5 flex items-center justify-between z-20 relative">
+        <div className="flex flex-col">
+          <h1 className="text-2xl font-semibold tracking-tight text-[#1C1C1E]">{he ? 'חדר מלחמה' : 'War Room'}</h1>
+          <div className="flex items-center gap-2 mt-1">
+            <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+            <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-[#8E8E93]">{he ? 'מרכז שליטה ובקרה' : 'Command Center'}</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-3 overflow-x-auto no-scrollbar pb-1">
+          {STAGES.map(s => (
+            <div key={s.key} className="flex items-center gap-4 px-5 py-2.5 rounded-[20px] bg-white/40 border border-black/[0.02] shadow-[0_2px_10px_rgba(0,0,0,0.02)] shrink-0 transition-all hover:bg-white/60">
+              <div className="w-9 h-9 rounded-xl flex items-center justify-center shadow-sm" style={{ background: 'white', color: s.color }}>
+                <s.icon className="w-4.5 h-4.5" strokeWidth={2.2} />
+              </div>
+              <div className="flex flex-col">
+                <span className="text-[10px] font-bold uppercase tracking-widest text-[#8E8E93]">{he ? s.he : s.label}</span>
+                <span className="text-xl font-semibold text-[#1C1C1E] leading-none mt-1">{stageCounts[s.key] || 0}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* ═══ MAIN GRID ═══ */}
+      <div className="flex-1 grid grid-cols-[360px_1fr_340px] relative z-10 overflow-hidden">
+        
+        {/* ═══ LEFT: Prospect List (Apple Glass Style) ═══════════════════════════════════════ */}
+        <div className="flex flex-col relative z-10 h-full overflow-hidden" style={{ borderRight: `1px solid ${C.border}`, background: 'rgba(255,255,255,0.4)', backdropFilter: 'blur(30px)' }}>
+          {/* Header */}
+          <div className="shrink-0 p-6 border-b border-black/[0.02]">
+            <div className="space-y-4">
+              <div className="relative group">
+                <Search className="w-4 h-4 absolute top-1/2 -translate-y-1/2 text-[#8E8E93] transition-colors group-focus-within:text-[#007AFF]" style={{ left: he ? 'auto' : 16, right: he ? 16 : 'auto' }} strokeWidth={2.5} />
+                <input
+                  value={listSearch} onChange={e => setListSearch(e.target.value)}
+                  placeholder={he ? 'חיפוש לקוח...' : 'Search clients...'}
+                  className="w-full h-11 rounded-2xl border-none text-[15px] outline-none transition-all bg-black/[0.03] focus:bg-white focus:ring-4 focus:ring-[#007AFF]/5 shadow-inner"
+                  style={{ paddingLeft: he ? 16 : 44, paddingRight: he ? 44 : 16, color: C.dark }}
+                />
+              </div>
+              
+              <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
+                <button 
+                  onClick={() => setFilterStage('all')}
+                  className={`shrink-0 px-4 py-2 rounded-xl text-[11px] font-bold uppercase tracking-wider transition-all shadow-sm ${filterStage === 'all' ? 'bg-[#1C1C1E] text-white' : 'bg-white text-[#8E8E93] hover:bg-white/80'}`}
+                >
+                  {he ? 'הכל' : 'All'}
+                </button>
+                {STAGES.map(s => (
+                  <button 
+                    key={s.key}
+                    onClick={() => setFilterStage(s.key)}
+                    className={`shrink-0 px-4 py-2 rounded-xl text-[11px] font-bold uppercase tracking-wider transition-all border shadow-sm`}
+                    style={{
+                      background: filterStage === s.key ? 'white' : 'white/40',
+                      color: filterStage === s.key ? s.color : '#8E8E93',
+                      borderColor: filterStage === s.key ? s.color + '40' : 'transparent'
+                    }}
+                  >
+                    {he ? s.he : s.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* List */}
+          <div className="flex-1 overflow-y-auto p-3 space-y-2 scrollbar-hide">
+            {listLoading ? (
+              <div className="flex items-center justify-center py-12"><Loader2 className="w-5 h-5 animate-spin text-[#8E8E93]" /></div>
+            ) : filteredList.length === 0 ? (
+              <div className="text-center py-12 text-[13px] font-medium text-[#8E8E93]">{he ? 'לא נמצאו תוצאות' : 'No results'}</div>
+            ) : filteredList.map((p, idx) => {
+              const isActive = p.id === selectedId
+              const s = getStage(p.stage)
+              return (
+                <button
+                  key={`${p.id}-${idx}`}
+                  onClick={() => setSelectedId(p.id)}
+                  className={`w-full flex items-center gap-4 p-4 text-left transition-all rounded-3xl relative overflow-hidden group ${isActive ? 'bg-white shadow-[0_8px_30px_rgba(0,0,0,0.06)] scale-[1.02]' : 'hover:bg-white/40 active:scale-[0.98]'}`}
+                  style={{ direction: he ? 'rtl' : 'ltr' }}
+                >
+                  {isActive && <div className="absolute top-0 bottom-0 w-1.5 bg-[#007AFF] shadow-[0_0_10px_rgba(0,74,255,0.3)]" style={{ [he ? 'right' : 'left']: 0 }} />}
+                  <Avatar src={p.profile_pic_url} name={pName(p)} waId={p.phone} size={48} />
+                  <div className="flex-1 min-w-0 flex flex-col justify-center">
+                    <div className="flex items-center justify-between mb-0.5">
+                      <span className="text-[16px] font-semibold truncate text-[#1C1C1E]">{pName(p)}</span>
+                      <span className={`text-[10px] font-bold shrink-0 ml-2 uppercase tracking-tight ${isActive ? 'text-[#007AFF]' : 'text-[#8E8E93]'}`}>
+                        {p.last_contact_at ? fmtDate(p.last_contact_at) : ''}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2 mt-0.5">
+                      <div className="flex items-center gap-1.5 bg-black/[0.03] px-2 py-0.5 rounded-lg">
+                        <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: s.color }} />
+                        <span className="text-[11px] font-bold uppercase tracking-tight text-[#8E8E93]">{he ? s.he : s.label}</span>
+                      </div>
+                      
+                      {p.group_names && p.group_names.length > 0 && (
+                        <div className="flex items-center gap-1 min-w-0 bg-[#007AFF]/[0.05] px-2 py-0.5 rounded-lg" title={p.group_names.join(', ')}>
+                          <Users className="w-3 h-3 text-[#007AFF] shrink-0 opacity-70" />
+                          <span className="text-[11px] font-bold text-[#007AFF] truncate opacity-80">
+                            {p.group_names[0]}
+                          </span>
+                          {p.group_names.length > 1 && (
+                            <span className="text-[10px] font-black text-[#007AFF] shrink-0 opacity-50">+{p.group_names.length - 1}</span>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </button>
+              )
+            })}
+          </div>
+        </div>
+
+        {/* ═══ CENTER: Merged Chat + Timeline ════════════════════════════ */}
+        <div className="flex flex-col relative z-0 shadow-[0_0_50px_rgba(0,0,0,0.05)] h-full overflow-hidden" style={{ background: 'white' }}>
+          {/* Header */}
+          {prospect ? (
+            <div className="shrink-0 flex items-center gap-5 px-8 h-[80px] border-b border-black/[0.02] bg-white/80 backdrop-blur-xl z-10">
+              <div className="relative">
+                <Avatar src={prospect.profile_pic_url} name={pName(prospect)} waId={prospect.wa_id || prospect.phone} size={48} />
+                <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-[#34C759] border-2 border-white shadow-sm" />
+              </div>
+              <div className="flex-1 min-w-0">
+                {editingName ? (
+                  <div className="flex items-center gap-2">
+                    <input value={nameDraft} onChange={e => setNameDraft(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') saveName(); if (e.key === 'Escape') setEditingName(false) }} className="text-lg font-bold border-b-2 outline-none bg-transparent" style={{ color: C.dark, borderColor: C.primary, width: 240 }} autoFocus />
+                    <button onClick={saveName} className="p-2 rounded-xl bg-[#34C759]/10 hover:bg-[#34C759]/20 transition-colors"><Check className="w-4 h-4 text-[#34C759]" strokeWidth={3} /></button>
+                    <button onClick={() => setEditingName(false)} className="p-2 rounded-xl bg-[#FF3B30]/10 hover:bg-[#FF3B30]/20 transition-colors"><X className="w-4 h-4 text-[#FF3B30]" strokeWidth={3} /></button>
+                  </div>
+                ) : (
+                  <h2 className="text-[19px] font-bold tracking-tight cursor-pointer transition-opacity hover:opacity-60" style={{ color: C.dark }} onClick={() => { setEditingName(true); setNameDraft(prospect.display_name ?? '') }}>
+                    {pName(prospect)}
+                  </h2>
+                )}
+                <div className="flex items-center gap-2 mt-0.5">
+                  <span className="text-[12px] font-bold text-[#8E8E93] tracking-tight">{prospect.phone}</span>
+                  <span className="text-[10px] font-black text-[#34C759] uppercase tracking-widest bg-[#34C759]/10 px-1.5 py-0.5 rounded-md">{he ? 'מחובר' : 'Online'}</span>
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <a href={`tel:${prospect.phone}`} className="w-11 h-11 rounded-2xl flex items-center justify-center bg-black/[0.03] hover:bg-black/[0.06] transition-all active:scale-90" style={{ color: C.dark }}><Phone className="w-5 h-5" strokeWidth={2} /></a>
+                <button onClick={copyPhone} className="w-11 h-11 rounded-2xl flex items-center justify-center bg-black/[0.03] hover:bg-black/[0.06] transition-all active:scale-90" style={{ color: copied ? '#34C759' : C.dark }}>{copied ? <Check className="w-5 h-5" strokeWidth={3} /> : <Copy className="w-5 h-5" strokeWidth={2} />}</button>
+              </div>
+            </div>
+          ) : (
+            <div className="shrink-0 flex items-center px-8 h-[80px] border-b border-black/[0.02] bg-white">
+              <span className="text-[15px] font-bold text-[#8E8E93] uppercase tracking-widest">{he ? 'בחר לקוח מהרשימה' : 'Select a client'}</span>
+            </div>
+          )}
+
+          {/* Chat + Timeline merged — fills all remaining space */}
+          <div className="flex-1 overflow-y-auto px-8 py-8 space-y-6 scrollbar-hide" style={{ background: '#F2F2F7' }}>
+            {loading ? (
+              <div className="flex items-center justify-center h-full"><Loader2 className="w-8 h-8 animate-spin text-[#8E8E93]" /></div>
+            ) : !prospect ? (
+              <div className="flex flex-col items-center justify-center h-full text-center">
+                <div className="w-24 h-24 rounded-[40px] bg-white shadow-[0_15px_40px_rgba(0,0,0,0.04)] flex items-center justify-center mb-8">
+                  <Inbox className="w-10 h-10 text-[#D1D1D6]" strokeWidth={1.5} />
+                </div>
+                <p className="text-xl font-bold text-[#1C1C1E]">{he ? 'אין שיחה נבחרת' : 'No conversation selected'}</p>
+                <p className="text-[15px] font-medium text-[#8E8E93] mt-2">{he ? 'בחר פרוספקט כדי להתחיל בניהול' : 'Select a prospect to start managing'}</p>
+              </div>
+            ) : timeline.length === 0 ? (
+              <div className="flex flex-col items-center justify-center h-full text-center">
+                <div className="w-24 h-24 rounded-[40px] bg-white shadow-[0_15px_40px_rgba(0,0,0,0.04)] flex items-center justify-center mb-8">
+                  <MessageCircle className="w-10 h-10 text-[#007AFF]" strokeWidth={1.5} />
+                </div>
+                <p className="text-xl font-bold text-[#1C1C1E]">{he ? 'אין פעילות עדיין' : 'No activity yet'}</p>
+                <p className="text-[15px] font-medium text-[#8E8E93] mt-2 max-w-[280px]">{he ? 'שלח הודעה ראשונה כדי להתחיל שיחה עם הלקוח' : 'Send a message to start a conversation'}</p>
+              </div>
+            ) : (
+              <>
+                {timeline.map((item, i) => {
+                  const prevItem = i > 0 ? timeline[i - 1] : null
+                  const showDateSep = !prevItem || fmtDate(new Date(item.ts).toISOString()) !== fmtDate(new Date(prevItem.ts).toISOString())
+
+                  if (item.type === 'event') {
+                    const ev = item.data
+                    if (['message_sent', 'message_received'].includes(ev.event_type)) return null
+
+                    return (
+                      <div key={`ev-${ev.id}`}>
+                        {showDateSep && <div className="flex justify-center my-8"><span className="text-[11px] font-black uppercase tracking-[0.2em] px-5 py-2 rounded-full bg-black/[0.04] text-[#8E8E93] shadow-sm">{fmtDate(new Date(item.ts).toISOString())}</span></div>}
+                        <div className="flex justify-center my-4">
+                          <div className="flex items-center gap-3 px-5 py-2.5 rounded-2xl text-[12px] font-bold shadow-sm border border-black/[0.02] bg-white">
+                            {ev.event_type === 'stage_change' ? (
+                              <>
+                                <span className="opacity-50">{he ? getStage(ev.old_value ?? '').he : getStage(ev.old_value ?? '').label}</span>
+                                <ArrowRight className="w-3.5 h-3.5 opacity-30" />
+                                <span style={{ color: getStage(ev.new_value ?? '').color }}>{he ? getStage(ev.new_value ?? '').he : getStage(ev.new_value ?? '').label}</span>
+                              </>
+                            ) : (
+                              <span className="text-[#1C1C1E]">
+                                {evLabel(ev.event_type, he)}
+                                {ev.new_value && ev.event_type !== 'stage_change' && <span className="font-medium text-[#8E8E93]"> — {ev.new_value.substring(0, 40)}</span>}
+                              </span>
+                            )}
+                            <span className="text-[10px] font-black opacity-30 ml-1">{fmtTime(ev.created_at)}</span>
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  }
+
+                  const msg = item.data
+                  const out = msg.direction === 'outgoing'
+                  const isTwilio = msg.channel === 'twilio'
+                  return (
+                    <div key={`msg-${msg.id}`}>
+                      {showDateSep && <div className="flex justify-center my-8"><span className="text-[11px] font-black uppercase tracking-[0.2em] px-5 py-2 rounded-full bg-black/[0.04] text-[#8E8E93] shadow-sm">{fmtDate(msg.sent_at)}</span></div>}
+                      <div className={`flex ${out ? 'justify-end' : 'justify-start'}`}>
+                        <div className={`max-w-[75%] rounded-[28px] px-6 py-4 shadow-sm relative group ${out ? (isTwilio ? 'bg-[#1C1C1E] text-white' : 'bg-[#007AFF] text-white') : 'bg-white text-[#1C1C1E] border border-black/[0.02]'}`} style={{ borderBottomRightRadius: out ? 6 : 28, borderBottomLeftRadius: out ? 28 : 6 }}>
+                          {/* Channel Badge */}
+                          <div className={`absolute -top-2 ${out ? '-left-2' : '-right-2'} w-6 h-6 rounded-full flex items-center justify-center shadow-sm border-2 border-[#F2F2F7] ${isTwilio ? 'bg-[#007AFF] text-white' : 'bg-[#34C759] text-white'}`}>
+                            {isTwilio ? <CheckCheck className="w-3 h-3" /> : <MessageCircle className="w-3 h-3" />}
+                          </div>
+                          
+                          <p className="text-[16px] leading-[1.5] whitespace-pre-wrap font-medium text-start" style={{ direction: /[\u0590-\u05FF\u0600-\u06FF]/.test(msg.content) ? 'rtl' : 'ltr' }}>{msg.content}</p>
+                          <div className={`flex items-center gap-2 mt-2 ${out ? 'justify-end opacity-80' : 'justify-start opacity-40'}`}>
+                            <span className="text-[10px] font-bold uppercase tracking-tighter">{fmtTime(msg.sent_at)}</span>
+                            {out && (msg.read_at ? <CheckCheck className="w-3.5 h-3.5 text-white" /> : msg.delivered_at ? <CheckCheck className="w-3.5 h-3.5 text-white/60" /> : <Check className="w-3.5 h-3.5 text-white/60" />)}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })}
+                <div ref={chatEnd} />
+              </>
+            )}
+          </div>
+
+          {/* Quick replies */}
+          {showQR && prospect && (
+            <div className="shrink-0 border-t border-black/[0.02] px-8 py-6 bg-white/90 backdrop-blur-xl absolute bottom-[88px] left-0 right-0 z-20 shadow-[0_-20px_50px_rgba(0,0,0,0.05)]">
+              <div className="flex items-center justify-between mb-4">
+                <span className="text-[11px] font-black uppercase tracking-[0.2em] text-[#8E8E93]">{he ? 'תבניות מהירות' : 'Quick Templates'}</span>
+                <button onClick={() => setShowQR(false)} className="p-2 rounded-xl bg-black/[0.03] hover:bg-black/[0.06] transition-colors"><X className="w-4 h-4 text-[#1C1C1E]" /></button>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                {QUICK_REPLIES.map(qr => (
+                  <button key={qr.key} onClick={() => { setNewMessage(he ? qr.he : qr.en); setShowQR(false); inputRef.current?.focus() }} className="text-start px-5 py-4 rounded-[24px] bg-white border border-black/[0.02] shadow-sm hover:shadow-md hover:scale-[1.02] active:scale-[0.98] transition-all">
+                    <span className="font-bold block mb-1 text-[#1C1C1E] text-[15px]">{he ? qr.he_label : qr.label}</span>
+                    <span className="line-clamp-1 text-[13px] text-[#8E8E93] font-medium">{he ? qr.he : qr.en}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Input Area */}
+          <div className="shrink-0 border-t border-black/[0.02] bg-white z-30 flex flex-col">
+            {/* Channel Selector */}
+            {prospect && (
+              <div className="flex items-center gap-2 px-8 pt-4 pb-1">
+                <button 
+                  onClick={() => setSelectedChannel('green_api')}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12px] font-bold transition-all ${selectedChannel === 'green_api' ? 'bg-[#34C759]/10 text-[#248A3D]' : 'bg-black/[0.03] text-[#8E8E93] hover:bg-black/[0.06]'}`}
+                >
+                  <MessageCircle className="w-3.5 h-3.5" />
+                  {he ? 'וואטסאפ אישי (Green API)' : 'Personal WA'}
+                </button>
+                <button 
+                  onClick={() => setSelectedChannel('twilio')}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12px] font-bold transition-all ${selectedChannel === 'twilio' ? 'bg-[#007AFF]/10 text-[#007AFF]' : 'bg-black/[0.03] text-[#8E8E93] hover:bg-black/[0.06]'}`}
+                >
+                  <CheckCheck className="w-3.5 h-3.5" />
+                  {he ? 'וואטסאפ רשמי (Twilio)' : 'Official WA'}
+                </button>
+              </div>
+            )}
+
+            {/* Composer */}
+            <div className="px-8 py-4 flex items-end gap-4">
+              <button onClick={() => setShowQR(!showQR)} disabled={!prospect} className="w-12 h-12 rounded-2xl flex items-center justify-center bg-black/[0.03] hover:bg-black/[0.06] transition-colors shrink-0 disabled:opacity-50" style={{ color: showQR ? '#007AFF' : '#8E8E93' }}><Zap className="w-5 h-5" strokeWidth={2.5} /></button>
+              <textarea 
+                ref={inputRef} 
+                value={newMessage} 
+                onChange={e => {
+                  setNewMessage(e.target.value);
+                  e.target.style.height = 'auto';
+                  e.target.style.height = Math.min(e.target.scrollHeight, 150) + 'px';
+                }} 
+                onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); if (inputRef.current) { inputRef.current.style.height = 'auto'; } } }} 
+                placeholder={he ? 'הקלד הודעה...' : 'Write your message...'} 
+                className="flex-1 min-h-[48px] max-h-[150px] rounded-[24px] border-none px-6 py-3.5 text-[16px] font-medium outline-none transition-all bg-black/[0.03] focus:bg-white focus:ring-4 focus:ring-[#007AFF]/5 disabled:opacity-50 resize-none shadow-inner" 
+                style={{ direction: he ? 'rtl' : 'ltr' }} 
+                disabled={sending || !prospect} 
+                rows={1}
+              />
+              <button onClick={() => handleSend()} disabled={!newMessage.trim() || sending || !prospect} className="w-12 h-12 rounded-2xl flex items-center justify-center text-white transition-all shadow-lg hover:shadow-[#007AFF]/30 hover:scale-105 active:scale-95 disabled:opacity-20 disabled:hover:scale-100 shrink-0" style={{ background: newMessage.trim() ? '#1C1C1E' : '#D1D1D6' }}>
+                {sending ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" style={{ marginLeft: he ? 0 : 2, marginRight: he ? 2 : 0 }} />}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* ═══ RIGHT: Lead Card (Apple Glass Style) ══════════════════════════════════════════ */}
+        <div className="flex flex-col relative z-10 h-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.4)', backdropFilter: 'blur(30px)', borderLeft: `1px solid ${C.border}` }}>
+          {loading || !prospect ? (
+            <div className="flex items-center justify-center flex-1"><Loader2 className="w-6 h-6 animate-spin text-[#8E8E93]" /></div>
+          ) : (
+            <div className="flex flex-col h-full">
+              
+              {/* Profile Header (Fixed) */}
+              <div className="shrink-0 p-8 pb-6 border-b border-black/[0.02] bg-white/40">
+                <div className="flex items-start gap-5 mb-6">
+                  <div className="relative">
+                    <Avatar src={prospect.profile_pic_url} name={pName(prospect)} waId={prospect.wa_id || prospect.phone} size={64} />
+                    <div className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full border-2 border-white flex items-center justify-center shadow-sm" style={{ background: stg.color }}>
+                      <stg.icon className="w-3.5 h-3.5 text-white" />
+                    </div>
+                  </div>
+                  <div className="flex-1 min-w-0 pt-1">
+                    {editingName ? (
+                      <div className="flex items-center gap-2 mb-1">
+                        <input value={nameDraft} onChange={e => setNameDraft(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') saveName(); if (e.key === 'Escape') setEditingName(false) }} className="w-full text-lg font-bold border-b-2 outline-none bg-transparent" style={{ color: C.dark, borderColor: C.primary }} autoFocus />
+                        <button onClick={saveName} className="p-1.5 rounded-lg bg-[#34C759]/10"><Check className="w-4 h-4 text-[#34C759]" /></button>
+                      </div>
+                    ) : (
+                      <h3 className="text-[20px] font-bold tracking-tight truncate cursor-pointer hover:opacity-60 transition-opacity" style={{ color: C.dark }} onClick={() => { setEditingName(true); setNameDraft(prospect.display_name ?? '') }}>
+                        {prospect.display_name || <span className="text-[#8E8E93] italic font-medium">{he ? 'הוסף שם...' : 'Add name...'}</span>}
+                      </h3>
+                    )}
+                    <div className="flex items-center gap-2 mt-1">
+                      <p className="text-[14px] font-bold text-[#8E8E93] tracking-tight">{prospect.phone}</p>
+                    </div>
+                    
+                    {/* Compact Actions */}
+                    <div className="flex items-center gap-2 mt-4">
+                      <a href={`tel:${prospect.phone}`} className="flex items-center justify-center w-9 h-9 rounded-xl bg-black/[0.03] hover:bg-black/[0.06] transition-all" title="Call"><PhoneCall className="w-4 h-4 text-[#1C1C1E]" /></a>
+                      <a href={`https://wa.me/${prospect.phone.replace(/[^0-9]/g, '')}`} target="_blank" rel="noreferrer" className="flex items-center justify-center w-9 h-9 rounded-xl bg-[#34C759]/10 hover:bg-[#34C759]/20 transition-all" title="WhatsApp"><MessageCircle className="w-4 h-4 text-[#34C759]" /></a>
+                      <button onClick={copyPhone} className="flex items-center justify-center w-9 h-9 rounded-xl bg-black/[0.03] hover:bg-black/[0.06] transition-all" title="Copy Phone">{copied ? <Check className="w-4 h-4 text-[#34C759]" /> : <Copy className="w-4 h-4 text-[#1C1C1E]" />}</button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Stage Selector */}
+                <div className="relative w-full">
+                  <button onClick={() => setStageMenuOpen(!stageMenuOpen)} className="flex items-center justify-between w-full h-11 px-5 rounded-2xl text-[14px] font-bold border border-black/[0.02] transition-all hover:shadow-sm bg-white shadow-sm" style={{ color: stg.color }}>
+                    <div className="flex items-center gap-3">
+                      <stg.icon className="w-4.5 h-4.5" /> {he ? stg.he : stg.label}
+                    </div>
+                    <ChevronDown className={`w-4 h-4 transition-transform ${stageMenuOpen ? 'rotate-180' : ''}`} />
+                  </button>
+                  {stageMenuOpen && (
+                    <>
+                      <div className="fixed inset-0 z-40" onClick={() => setStageMenuOpen(false)} />
+                      <div className="absolute top-full mt-2 z-50 w-full rounded-2xl border border-black/[0.02] shadow-2xl overflow-hidden bg-white p-1.5">
+                        {STAGES.map(s => (
+                          <button key={s.key} onClick={() => changeStage(s.key)} className="flex items-center gap-3 w-full px-4 py-3 text-[14px] font-bold rounded-xl hover:bg-black/[0.03] transition-colors" style={{ color: prospect.stage === s.key ? s.color : C.gray }}>
+                            <div className="w-2.5 h-2.5 rounded-full" style={{ background: s.color }} />
+                            {he ? s.he : s.label}
+                            {prospect.stage === s.key && <Check className="w-4 h-4" style={{ marginInlineStart: 'auto', color: s.color }} />}
+                          </button>
+                        ))}
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
+
+              {/* Tabs Header */}
+              <div className="shrink-0 flex px-8 border-b border-black/[0.02] bg-white/20">
+                <button onClick={() => setRightTab('crm')} className={`pb-4 pt-5 px-2 text-[13px] font-black uppercase tracking-widest border-b-2 transition-colors ${he ? 'ml-8' : 'mr-8'} ${rightTab === 'crm' ? 'border-[#1C1C1E] text-[#1C1C1E]' : 'border-transparent text-[#8E8E93] hover:text-[#1C1C1E]'}`}>
+                  {he ? 'ניהול (CRM)' : 'CRM'}
+                </button>
+                <button onClick={() => setRightTab('info')} className={`pb-4 pt-5 px-2 text-[13px] font-black uppercase tracking-widest border-b-2 transition-colors ${rightTab === 'info' ? 'border-[#1C1C1E] text-[#1C1C1E]' : 'border-transparent text-[#8E8E93] hover:text-[#1C1C1E]'}`}>
+                  {he ? 'מידע נוסף' : 'Info'}
+                </button>
+              </div>
+
+              {/* Tabs Content */}
+              <div className="flex-1 overflow-y-auto p-8 scrollbar-hide">
+                {rightTab === 'crm' ? (
+                  <div className="flex flex-col h-full space-y-8">
+                    {/* Follow-up */}
+                    <div className="shrink-0">
+                      <div className="text-[11px] font-black uppercase tracking-[0.15em] mb-3 text-[#8E8E93] flex items-center gap-2">
+                        <Calendar className="w-3.5 h-3.5 opacity-50" /> {he ? 'תזכורת מעקב' : 'Follow-up'}
+                      </div>
+                      {showFU ? (
+                        <div className="space-y-4 bg-white p-5 rounded-3xl border border-black/[0.02] shadow-sm">
+                          <input type="date" value={fuDraft} onChange={e => setFuDraft(e.target.value)} className="w-full h-11 text-sm font-bold rounded-2xl border-none px-4 outline-none bg-black/[0.03] focus:bg-white focus:ring-4 focus:ring-[#007AFF]/5 transition-all" />
+                          <div className="flex gap-2">
+                            {[1, 3, 7, 14].map(d => <button key={d} onClick={() => setFuDraft(new Date(Date.now() + d * 86400000).toISOString().split('T')[0])} className="flex-1 h-9 rounded-xl text-[12px] font-bold bg-black/[0.03] hover:bg-black/[0.06] transition-colors text-[#1C1C1E]">{d}d</button>)}
+                          </div>
+                          <div className="flex gap-2 pt-1">
+                            <button onClick={saveFU} className="flex-1 h-10 rounded-2xl text-sm font-bold text-white bg-[#1C1C1E] hover:bg-black transition-colors">{he ? 'שמור' : 'Set'}</button>
+                            {prospect.next_followup_at && <button onClick={clearFU} className="h-10 px-4 rounded-2xl text-sm font-bold text-[#FF3B30] bg-[#FF3B30]/10 hover:bg-[#FF3B30]/20 transition-colors">{he ? 'נקה' : 'Clear'}</button>}
+                            <button onClick={() => setShowFU(false)} className="h-10 w-10 flex items-center justify-center rounded-2xl bg-black/[0.03] hover:bg-black/[0.06] transition-colors"><X className="w-4 h-4 text-[#1C1C1E]" /></button>
+                          </div>
+                        </div>
+                      ) : prospect.next_followup_at ? (
+                        <button onClick={() => { setShowFU(true); setFuDraft(prospect.next_followup_at!.split('T')[0]) }} className="flex items-center justify-between w-full p-4 rounded-3xl text-sm font-bold transition-all hover:shadow-md bg-white border border-black/[0.02] shadow-sm">
+                          <div className="flex items-center gap-4">
+                            <div className="w-10 h-10 rounded-2xl flex items-center justify-center shadow-sm" style={{ background: fs === 'overdue' ? '#FF3B30' : fs === 'today' ? '#FF9500' : '#34C759', color: 'white' }}>
+                              {fs === 'overdue' ? <AlertTriangle className="w-5 h-5" /> : <Calendar className="w-5 h-5" />}
+                            </div>
+                            <div className="flex flex-col items-start">
+                              <span className="text-[15px]" style={{ color: fs === 'overdue' ? '#FF3B30' : fs === 'today' ? '#FF9500' : '#34C759' }}>{relD(prospect.next_followup_at, he)}</span>
+                              <span className="text-[11px] font-bold opacity-40 uppercase tracking-widest">{fmtFull(prospect.next_followup_at)}</span>
+                            </div>
+                          </div>
+                          <Edit3 className="w-4 h-4 opacity-20" />
+                        </button>
+                      ) : (
+                        <button onClick={() => { setShowFU(true); setFuDraft(new Date(Date.now() + 86400000).toISOString().split('T')[0]) }} className="w-full flex items-center justify-center gap-3 h-14 rounded-3xl border-2 border-dashed border-black/[0.05] text-[14px] font-bold hover:bg-black/[0.02] transition-all text-[#8E8E93] hover:text-[#1C1C1E]">
+                          <Plus className="w-4 h-4 opacity-50" /> {he ? 'הגדר תזכורת' : 'Set follow-up'}
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Notes */}
+                    <div className="flex flex-col flex-1 min-h-[250px]">
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="text-[11px] font-black uppercase tracking-[0.15em] text-[#8E8E93] flex items-center gap-2">
+                          <Edit3 className="w-3.5 h-3.5 opacity-50" /> {he ? 'הערות' : 'Notes'}
+                        </div>
+                        {!editingNotes && (
+                          <button onClick={() => { setEditingNotes(true); setNoteDraft(prospect.notes) }} className="text-[11px] font-black text-[#007AFF] hover:underline uppercase tracking-widest">{he ? 'ערוך' : 'Edit'}</button>
+                        )}
+                      </div>
+                      
+                      {editingNotes ? (
+                        <div className="flex flex-col flex-1 bg-white rounded-3xl border border-black/[0.02] shadow-sm overflow-hidden">
+                          <textarea value={noteDraft} onChange={e => setNoteDraft(e.target.value)} className="flex-1 w-full p-5 text-[15px] font-medium outline-none resize-none bg-transparent leading-relaxed" style={{ color: C.dark }} autoFocus placeholder={he ? 'הקלד הערות כאן...' : 'Type notes here...'} />
+                          <div className="flex gap-2 p-4 bg-black/[0.02] border-t border-black/[0.02]">
+                            <button onClick={saveNotes} className="flex-1 h-11 rounded-2xl text-sm font-bold text-white bg-[#1C1C1E] hover:bg-black transition-colors">{he ? 'שמור' : 'Save'}</button>
+                            <button onClick={() => setEditingNotes(false)} className="px-5 h-11 rounded-2xl text-sm font-bold bg-black/[0.03] hover:bg-black/[0.06] transition-colors">{he ? 'ביטול' : 'Cancel'}</button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="flex-1 p-5 rounded-3xl bg-white border border-black/[0.02] shadow-sm cursor-pointer hover:shadow-md transition-all overflow-y-auto" onClick={() => { setEditingNotes(true); setNoteDraft(prospect.notes) }}>
+                          <p className="text-[15px] whitespace-pre-wrap leading-relaxed font-medium" style={{ color: prospect.notes ? C.dark : '#D1D1D6' }}>
+                            {prospect.notes || (he ? 'אין הערות עדיין. לחץ להוספה.' : 'No notes yet. Click to add.')}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-8">
+                    {/* Groups */}
+                    <div>
+                      <span className="text-[11px] font-black uppercase tracking-[0.15em] text-[#8E8E93] block mb-3">{he ? 'קבוצות מקור' : 'Source Groups'}</span>
+                      {(prospect.group_names ?? []).length > 0 ? (
+                        <div className="space-y-3">
+                          {(prospect.group_names ?? []).map(g => (
+                            <div key={g} className="flex items-center gap-4 p-4 rounded-3xl bg-white border border-black/[0.02] shadow-sm">
+                              <div className="w-10 h-10 rounded-2xl bg-[#007AFF]/[0.05] flex items-center justify-center shrink-0">
+                                <Users className="w-5 h-5 text-[#007AFF] opacity-70" />
+                              </div>
+                              <span className="text-[15px] font-bold text-[#1C1C1E] leading-tight">{g}</span>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="text-[15px] font-medium text-[#D1D1D6] italic">{he ? 'לא משויך לקבוצות' : 'No groups'}</div>
+                      )}
+                    </div>
+
+                    {/* Tags */}
+                    <div>
+                      <span className="text-[11px] font-black uppercase tracking-[0.15em] text-[#8E8E93] block mb-3">{he ? 'תחומי עיסוק' : 'Professions'}</span>
+                      {prospect.profession_tags.length > 0 ? (
+                        <div className="flex flex-wrap gap-2">
+                          {prospect.profession_tags.map(t => (
+                            <span key={t} className="px-4 py-2 rounded-2xl text-[12px] font-bold bg-white border border-black/[0.02] shadow-sm text-[#1C1C1E]">{t}</span>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="text-[15px] font-medium text-[#D1D1D6] italic">{he ? 'אין תגיות' : 'No tags'}</div>
+                      )}
+                    </div>
+
+                    {/* Dates */}
+                    <div>
+                      <span className="text-[11px] font-black uppercase tracking-[0.15em] text-[#8E8E93] block mb-3">{he ? 'היסטוריה' : 'History'}</span>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="p-4 rounded-3xl bg-white border border-black/[0.02] shadow-sm">
+                          <span className="text-[10px] font-black uppercase tracking-widest text-[#8E8E93] block mb-1">{he ? 'נוצר במערכת' : 'Created'}</span>
+                          <span className="text-[14px] font-bold text-[#1C1C1E]">{fmtFull(prospect.created_at)}</span>
+                        </div>
+                        <div className="p-4 rounded-3xl bg-white border border-black/[0.02] shadow-sm">
+                          <span className="text-[10px] font-black uppercase tracking-widest text-[#8E8E93] block mb-1">{he ? 'קשר אחרון' : 'Last Contact'}</span>
+                          <span className="text-[14px] font-bold text-[#1C1C1E]">{prospect.last_contact_at ? fmtFull(prospect.last_contact_at) : '-'}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}

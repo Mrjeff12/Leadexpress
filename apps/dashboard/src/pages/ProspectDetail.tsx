@@ -1,7 +1,14 @@
-import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useI18n } from '../lib/i18n'
 import { supabase } from '../lib/supabase'
+import {
+  useProspectDetailData,
+  type Prospect,
+  type Message,
+  type ProspectEvent,
+  type ProspectListItem,
+} from '../hooks/useProspectDetailData'
 import {
   ArrowRight, Phone, MessageCircle, Send, Clock, Loader2,
   ChevronDown, Check, CheckCheck, CircleDot, Sparkles, DollarSign,
@@ -16,12 +23,6 @@ const C = {
   border: '#efeff1', gray: '#3b3b3b', muted: '#9ca3af',
   wa: '#25D366', waDark: '#075E54', bg: '#f8f9fb',
 }
-
-/* ── Types ──────────────────────────────────────────────────────────── */
-interface Prospect { id: string; wa_id: string; phone: string; display_name: string | null; profile_pic_url: string | null; profession_tags: string[]; group_ids: string[]; stage: string; assigned_wa_account_id: string | null; notes: string; last_contact_at: string | null; next_followup_at: string | null; created_at: string; updated_at: string; group_names?: string[] }
-interface Message { id: string; prospect_id: string; wa_account_id: string | null; direction: 'outgoing' | 'incoming'; message_type: string; content: string; wa_message_id: string | null; sent_at: string; delivered_at: string | null; read_at: string | null }
-interface ProspectEvent { id: string; event_type: string; old_value: string | null; new_value: string | null; detail: Record<string, unknown>; created_at: string }
-interface ProspectListItem { id: string; phone: string; display_name: string | null; stage: string; profession_tags: string[]; updated_at: string; last_contact_at: string | null; profile_pic_url: string | null }
 
 /* ── Stages ─────────────────────────────────────────────────────────── */
 const STAGES = [
@@ -74,10 +75,6 @@ export default function ProspectDetail() {
   const he = locale === 'he'
 
   /* ── State ──────────────────────────────────────────────────────── */
-  const [prospect, setProspect] = useState<Prospect | null>(null)
-  const [messages, setMessages] = useState<Message[]>([])
-  const [events, setEvents] = useState<ProspectEvent[]>([])
-  const [loading, setLoading] = useState(true)
   const [newMessage, setNewMessage] = useState('')
   const [sending, setSending] = useState(false)
   const [editingNotes, setEditingNotes] = useState(false)
@@ -91,54 +88,19 @@ export default function ProspectDetail() {
   const [copied, setCopied] = useState(false)
 
   // Prospect list
-  const [prospectList, setProspectList] = useState<ProspectListItem[]>([])
   const [listSearch, setListSearch] = useState('')
-  const [listLoading, setListLoading] = useState(true)
+  const {
+    prospect,
+    messages,
+    events,
+    prospectList,
+    isListLoading: listLoading,
+    isDetailLoading: loading,
+    refetchDetail,
+  } = useProspectDetailData(id)
 
   const chatEnd = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
-
-  /* ── Fetch prospect list ────────────────────────────────────────── */
-  useEffect(() => {
-    async function fetchList() {
-      const pages: ProspectListItem[] = []
-      let from = 0
-      const size = 500
-      while (true) {
-        const { data } = await supabase.from('prospects').select('id,phone,display_name,stage,profession_tags,updated_at,last_contact_at,profile_pic_url').is('archived_at', null).order('updated_at', { ascending: false }).range(from, from + size - 1)
-        if (!data || data.length === 0) break
-        pages.push(...(data as ProspectListItem[]))
-        if (data.length < size) break
-        from += size
-      }
-      const unique = Array.from(new Map(pages.map(p => [p.id, p])).values())
-      setProspectList(unique)
-      setListLoading(false)
-    }
-    fetchList()
-  }, [])
-
-  /* ── Fetch prospect detail ──────────────────────────────────────── */
-  const fetchAll = useCallback(async () => {
-    if (!id) return
-    const [pR, mR, eR] = await Promise.all([
-      supabase.from('prospect_with_groups').select('*').eq('id', id).single(),
-      supabase.from('prospect_messages').select('*').eq('prospect_id', id).order('sent_at', { ascending: true }),
-      supabase.from('prospect_events').select('*').eq('prospect_id', id).order('created_at', { ascending: true }).limit(100),
-    ])
-    if (pR.data) setProspect(pR.data as Prospect)
-    if (mR.data) setMessages(mR.data as Message[])
-    if (eR.data) setEvents(eR.data as ProspectEvent[])
-    setLoading(false)
-  }, [id])
-
-  useEffect(() => {
-    setLoading(true)
-    fetchAll()
-    const mc = supabase.channel(`pm-${id}`).on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'prospect_messages', filter: `prospect_id=eq.${id}` }, p => setMessages(prev => [...prev, p.new as Message])).subscribe()
-    const pc = supabase.channel(`p-${id}`).on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'prospects', filter: `id=eq.${id}` }, () => fetchAll()).subscribe()
-    return () => { supabase.removeChannel(mc); supabase.removeChannel(pc) }
-  }, [id, fetchAll])
 
   useEffect(() => { setTimeout(() => chatEnd.current?.scrollIntoView({ behavior: 'smooth' }), 100) }, [messages, id])
 
@@ -157,11 +119,11 @@ export default function ProspectDetail() {
     const t = text ?? newMessage; if (!t.trim() || !prospect || sending) return; setSending(true)
     try { const url = import.meta.env.VITE_WA_LISTENER_URL || 'http://localhost:3001'; const r = await fetch(`${url}/api/prospects/send`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prospect_id: prospect.id, wa_id: prospect.wa_id, text: t.trim(), wa_account_id: prospect.assigned_wa_account_id }) }); if (r.ok) { setNewMessage(''); setShowQR(false); inputRef.current?.focus(); if (prospect.stage === 'prospect') await changeStage('reached_out') } } finally { setSending(false) }
   }
-  async function changeStage(ns: string) { if (!prospect || prospect.stage === ns) return; const old = prospect.stage; setProspect(p => p ? { ...p, stage: ns } : p); setStageMenuOpen(false); await supabase.from('prospects').update({ stage: ns }).eq('id', prospect.id); await supabase.from('prospect_events').insert({ prospect_id: prospect.id, event_type: 'stage_change', old_value: old, new_value: ns }); fetchAll() }
-  async function saveNotes() { if (!prospect) return; await supabase.from('prospects').update({ notes: noteDraft }).eq('id', prospect.id); await supabase.from('prospect_events').insert({ prospect_id: prospect.id, event_type: 'note_added', new_value: noteDraft.substring(0, 100) }); setProspect(p => p ? { ...p, notes: noteDraft } : p); setEditingNotes(false) }
-  async function saveName() { if (!prospect) return; const n = nameDraft.trim() || null; await supabase.from('prospects').update({ display_name: n }).eq('id', prospect.id); setProspect(p => p ? { ...p, display_name: n } : p); setEditingName(false) }
-  async function saveFU() { if (!prospect) return; const v = fuDraft || null; await supabase.from('prospects').update({ next_followup_at: v }).eq('id', prospect.id); setProspect(p => p ? { ...p, next_followup_at: v } : p); setShowFU(false) }
-  async function clearFU() { if (!prospect) return; await supabase.from('prospects').update({ next_followup_at: null }).eq('id', prospect.id); setProspect(p => p ? { ...p, next_followup_at: null } : p); setShowFU(false) }
+  async function changeStage(ns: string) { if (!prospect || prospect.stage === ns) return; const old = prospect.stage; setStageMenuOpen(false); await supabase.from('prospects').update({ stage: ns }).eq('id', prospect.id); await supabase.from('prospect_events').insert({ prospect_id: prospect.id, event_type: 'stage_change', old_value: old, new_value: ns }); await refetchDetail() }
+  async function saveNotes() { if (!prospect) return; await supabase.from('prospects').update({ notes: noteDraft }).eq('id', prospect.id); await supabase.from('prospect_events').insert({ prospect_id: prospect.id, event_type: 'note_added', new_value: noteDraft.substring(0, 100) }); setEditingNotes(false); await refetchDetail() }
+  async function saveName() { if (!prospect) return; const n = nameDraft.trim() || null; await supabase.from('prospects').update({ display_name: n }).eq('id', prospect.id); setEditingName(false); await refetchDetail() }
+  async function saveFU() { if (!prospect) return; const v = fuDraft || null; await supabase.from('prospects').update({ next_followup_at: v }).eq('id', prospect.id); setShowFU(false); await refetchDetail() }
+  async function clearFU() { if (!prospect) return; await supabase.from('prospects').update({ next_followup_at: null }).eq('id', prospect.id); setShowFU(false); await refetchDetail() }
   function copyPhone() { if (!prospect) return; navigator.clipboard.writeText(prospect.phone); setCopied(true); setTimeout(() => setCopied(false), 2000) }
 
   const nxtStg = () => { if (!prospect) return null; const i = STAGES.findIndex(s => s.key === prospect.stage); return i >= 0 && i < STAGES.length - 1 ? STAGES[i + 1] : null }

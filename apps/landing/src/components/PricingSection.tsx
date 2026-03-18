@@ -5,7 +5,7 @@ export default function PricingSection() {
   const { t } = useLang()
 
   return (
-    <section id="pricing" className="section-padding bg-cream-dark">
+    <section id="pricing" className="section-padding bg-cream">
       <div className="max-w-7xl mx-auto px-6">
         <div className="text-center mb-16">
           <h2 className="text-3xl md:text-5xl font-medium mb-4">{t.pricing.title}</h2>

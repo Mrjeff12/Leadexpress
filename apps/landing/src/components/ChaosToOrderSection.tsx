@@ -68,7 +68,7 @@ export default function ChaosToOrderSection() {
   const isExtracted = phase === 'extract' || phase === 'done'
 
   return (
-    <section className="section-padding bg-cream-dark overflow-hidden">
+    <section className="section-padding bg-cream overflow-hidden">
       <div className="max-w-7xl mx-auto px-6">
         {/* Header */}
         <div className="text-center mb-12 md:mb-16">
@@ -228,21 +228,21 @@ export default function ChaosToOrderSection() {
           {/* Arrow between phone and card */}
           <div className={`transition-all duration-700 ${isExtracted ? 'opacity-100 scale-100' : 'opacity-0 scale-75'}`}>
             <div className="md:hidden flex flex-col items-center gap-1">
-              <div className="w-10 h-10 rounded-full bg-[#25D366] flex items-center justify-center shadow-lg shadow-[#25D366]/30">
+              <div className="w-10 h-10 rounded-full bg-[#fe5b25] flex items-center justify-center shadow-lg shadow-[#fe5b25]/30">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M12 5v14M5 12l7 7 7-7" />
                 </svg>
               </div>
-              <span className="text-[9px] text-[#25D366] font-semibold">
+              <span className="text-[9px] text-[#fe5b25] font-semibold">
                 {isHe ? 'חילוץ הליד' : 'Lead extracted'}
               </span>
             </div>
             <div className="hidden md:flex flex-col items-center gap-1">
               <svg width="80" height="40" viewBox="0 0 80 40">
-                <path d="M0,20 C30,20 50,20 70,20" fill="none" stroke="#25D366" strokeWidth="2" strokeDasharray="6 4" className={isExtracted ? 'lead-dash-animate' : ''} />
-                <polygon points="68,14 78,20 68,26" fill="#25D366" />
+                <path d="M0,20 C30,20 50,20 70,20" fill="none" stroke="#fe5b25" strokeWidth="2" strokeDasharray="6 4" className={isExtracted ? 'lead-dash-animate' : ''} />
+                <polygon points="68,14 78,20 68,26" fill="#fe5b25" />
               </svg>
-              <span className="text-[9px] text-[#25D366] font-semibold">
+              <span className="text-[9px] text-[#fe5b25] font-semibold">
                 {isHe ? 'חילוץ הליד' : 'Lead extracted'}
               </span>
             </div>
@@ -258,30 +258,30 @@ export default function ChaosToOrderSection() {
             style={{ transitionTimingFunction: 'cubic-bezier(0.34, 1.56, 0.64, 1)' }}
           >
             {/* Glow */}
-            <div className={`absolute -inset-8 bg-[#25D366]/15 rounded-3xl blur-3xl transition-opacity duration-700 ${isExtracted ? 'opacity-100' : 'opacity-0'}`} />
+            <div className={`absolute -inset-8 bg-[#fe5b25]/15 rounded-3xl blur-3xl transition-opacity duration-700 ${isExtracted ? 'opacity-100' : 'opacity-0'}`} />
 
             {/* After label */}
             <div className={`text-center mb-3 transition-all duration-500 ${isExtracted ? 'opacity-100' : 'opacity-0'}`}>
-              <span className="inline-flex items-center gap-1.5 text-[10px] font-semibold px-3 py-1 rounded-full bg-[#25D366] text-white">
+              <span className="inline-flex items-center gap-1.5 text-[10px] font-semibold px-3 py-1 rounded-full bg-[#fe5b25] text-white">
                 ✓ {isHe ? 'אחרי — Lead Express' : 'After — Lead Express'}
               </span>
             </div>
 
             {/* Card */}
-            <div className="relative w-[270px] md:w-[300px] bg-gradient-to-br from-[#111b21] to-[#0d1f17] rounded-2xl border border-[#25D366]/30 shadow-[0_20px_60px_rgba(37,211,102,0.2)] overflow-hidden">
-              <div className={`h-[2px] bg-gradient-to-r from-transparent via-[#25D366] to-transparent ${isExtracted ? 'lead-shimmer' : ''}`} />
+            <div className="relative w-[270px] md:w-[300px] bg-gradient-to-br from-[#111b21] to-[#0d1f17] rounded-2xl border border-[#fe5b25]/30 shadow-[0_20px_60px_rgba(254,91,37,0.2)] overflow-hidden">
+              <div className={`h-[2px] bg-gradient-to-r from-transparent via-[#fe5b25] to-transparent ${isExtracted ? 'lead-shimmer' : ''}`} />
 
-              <div className="px-4 pt-3 pb-2 flex items-center gap-2.5 border-b border-[#25D366]/10">
-                <div className="w-9 h-9 rounded-full bg-[#25D366]/20 flex items-center justify-center">
+              <div className="px-4 pt-3 pb-2 flex items-center gap-2.5 border-b border-[#fe5b25]/10">
+                <div className="w-9 h-9 rounded-full bg-[#fe5b25]/20 flex items-center justify-center">
                   <span className="text-base">🎯</span>
                 </div>
                 <div className="flex-1">
-                  <div className="text-[12px] font-bold text-[#25D366]">
+                  <div className="text-[12px] font-bold text-[#fe5b25]">
                     {isHe ? 'ליד בלעדי עבורך!' : 'Exclusive Lead For You!'}
                   </div>
                   <div className="text-[9px] text-[#8696a0]">Lead Express</div>
                 </div>
-                <div className={`w-2.5 h-2.5 rounded-full bg-[#25D366] ${isExtracted ? 'animate-pulse' : ''}`} />
+                <div className={`w-2.5 h-2.5 rounded-full bg-[#fe5b25] ${isExtracted ? 'animate-pulse' : ''}`} />
               </div>
 
               <div className="px-4 py-3 space-y-2.5">
@@ -303,21 +303,21 @@ export default function ChaosToOrderSection() {
                   <span className="text-sm mt-0.5">💰</span>
                   <div>
                     <div className="text-[9px] text-[#8696a0]">{isHe ? 'תקציב משוער' : 'Est. Budget'}</div>
-                    <div className="text-[13px] text-[#25D366] font-bold">$300–500</div>
+                    <div className="text-[13px] text-[#fe5b25] font-bold">$300–500</div>
                   </div>
                 </div>
               </div>
 
               <div className="px-4 pb-3">
-                <div className={`bg-[#25D366] text-white text-center text-[11px] font-bold py-2.5 rounded-xl transition-all duration-500 ${
-                  phase === 'done' ? 'shadow-[0_0_20px_rgba(37,211,102,0.4)]' : ''
+                <div className={`bg-[#fe5b25] text-white text-center text-[11px] font-bold py-2.5 rounded-xl transition-all duration-500 ${
+                  phase === 'done' ? 'shadow-[0_0_20px_rgba(254,91,37,0.4)]' : ''
                 }`}>
                   {isHe ? '✅ אני זמין — תשלחו לי פרטים' : '✅ I\'m available — Send details'}
                 </div>
               </div>
 
-              <div className="bg-[#25D366]/5 border-t border-[#25D366]/10 px-4 py-2 text-center">
-                <div className="text-[8px] text-[#25D366]/80">
+              <div className="bg-[#fe5b25]/5 border-t border-[#fe5b25]/10 px-4 py-2 text-center">
+                <div className="text-[8px] text-[#fe5b25]/80">
                   🔒 {isHe ? 'רק אתה קיבלת את הליד הזה' : 'Only you received this lead'}
                 </div>
               </div>
@@ -329,7 +329,7 @@ export default function ChaosToOrderSection() {
                 ? ['🎯 ליד בלעדי', '📍 מותאם לאזור שלך', '⚡ אפס תחרות']
                 : ['🎯 Exclusive lead', '📍 Matched to your area', '⚡ Zero competition']
               ).map((label, i) => (
-                <span key={i} className="text-[9px] text-[#25D366]/80 bg-[#25D366]/5 border border-[#25D366]/10 rounded-full px-2 py-0.5">{label}</span>
+                <span key={i} className="text-[9px] text-[#fe5b25]/80 bg-[#fe5b25]/5 border border-[#fe5b25]/10 rounded-full px-2 py-0.5">{label}</span>
               ))}
             </div>
           </div>

@@ -15,6 +15,35 @@ export interface RawMessageJob {
 }
 
 let queue: Queue<RawMessageJob> | null = null;
+let joinQueue: Queue<any> | null = null;
+
+export function getJoinQueue(): Queue<any> | null {
+  if (!config.features.enableAutoJoinQueue) {
+    return null;
+  }
+  if (!joinQueue) {
+    joinQueue = new Queue('group-join-jobs', {
+      connection: {
+        host: config.redis.host,
+        port: config.redis.port,
+        password: config.redis.password,
+        maxRetriesPerRequest: null,
+        ...((config.redis as any).tls ? { tls: {} } : {}),
+      },
+      defaultJobOptions: {
+        removeOnComplete: { count: 100 },
+        removeOnFail: { count: 500 },
+        attempts: 3,
+        backoff: { type: 'exponential', delay: 5000 },
+      },
+    });
+    joinQueue.on('error', (err) => {
+      logger.error({ err }, 'Join Queue error');
+    });
+    logger.info('BullMQ join-queue producer initialized');
+  }
+  return joinQueue;
+}
 
 export function getQueue(): Queue<RawMessageJob> {
   if (!queue) {

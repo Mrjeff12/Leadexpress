@@ -42,6 +42,10 @@ export default function ForwardLeadModal({ lead, isOpen, onClose }: ForwardLeadM
 
   useEffect(() => {
     if (isOpen && effectiveUserId) {
+      setSelectedSubId('')
+      setDealValue('')
+      setDealType('percentage')
+      setError(null)
       fetchSubcontractors()
     }
   }, [isOpen, effectiveUserId])
@@ -109,9 +113,15 @@ export default function ForwardLeadModal({ lead, isOpen, onClose }: ForwardLeadM
         : `Hey ${sub.full_name}, I have a job for you in ${locationStr}.\nTerms: ${dealValue} (${dealType === 'percentage' ? '%' : dealType === 'fixed_price' ? '$' : 'custom'}).\nClick here to view details and approve:\n${portalUrl}`
         
       let formattedPhone = sub.phone.replace(/\D/g, '')
+      // Israeli local numbers: 0XX → 972XX
       if (formattedPhone.startsWith('0')) {
         formattedPhone = '972' + formattedPhone.slice(1)
       }
+      // US numbers without country code: 10 digits → 1XXXXXXXXXX
+      else if (formattedPhone.length === 10) {
+        formattedPhone = '1' + formattedPhone
+      }
+      // Already has country code (starts with 1, 972, etc.) — use as-is
       
       const waUrl = `https://wa.me/${formattedPhone}?text=${encodeURIComponent(message)}`
       

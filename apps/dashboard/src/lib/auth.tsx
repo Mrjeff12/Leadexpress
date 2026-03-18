@@ -89,7 +89,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .eq('id', userId)
       .maybeSingle()
 
-    if (error || !data) return null
+    if (error) {
+      console.error('[Auth] fetchProfile error:', error.message)
+      return null
+    }
+    if (!data) {
+      console.warn('[Auth] fetchProfile: no profile found for', userId)
+      return null
+    }
     return data as Profile
   }
 
@@ -107,10 +114,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (IS_DEV) {
-      // In dev mode, auto-login as admin (no login screen needed)
-      const savedEmail = localStorage.getItem('le-demo-email') || 'admin@leadexpress.com'
+      // In dev mode, auto-login unless explicitly signed out
+      const savedEmail = localStorage.getItem('le-demo-email')
+      if (!savedEmail) {
+        setState(prev => ({ ...prev, loading: false }))
+        return
+      }
       const acct = DEMO_ACCOUNTS[savedEmail] ?? DEMO_ACCOUNTS['admin@leadexpress.com']
-      localStorage.setItem('le-demo-email', savedEmail)
       setState({
         user: makeFakeUser(savedEmail, acct.profile.id),
         session: null,

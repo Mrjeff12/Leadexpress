@@ -3,7 +3,13 @@ import { MapPin, Filter, Zap } from 'lucide-react'
 import { useLang } from '../i18n/LanguageContext'
 import USMap from './USMap'
 
-const ACTIVE_STATES = ['FL', 'TX', 'CA', 'NY', 'IL', 'AZ', 'GA', 'NC', 'OH', 'PA', 'NJ', 'VA', 'WA', 'CO', 'TN', 'MA']
+const ALL_STATES = [
+  'AL','AK','AZ','AR','CA','CO','CT','DE','FL','GA',
+  'HI','ID','IL','IN','IA','KS','KY','LA','ME','MD',
+  'MA','MI','MN','MS','MO','MT','NE','NV','NH','NJ',
+  'NM','NY','NC','ND','OH','OK','OR','PA','RI','SC',
+  'SD','TN','TX','UT','VT','VA','WA','WV','WI','WY','DC'
+]
 const HIGHLIGHT_STATES = ['FL', 'TX', 'CA']
 
 const DEMO_LEADS = [
@@ -46,30 +52,30 @@ export default function MapSection() {
   const stateStyles: Record<string, { fill: string; opacity?: number }> = {}
 
   if (step === 0) {
-    ACTIVE_STATES.forEach(s => { stateStyles[s] = { fill: '#25D366', opacity: 0.4 } })
+    ALL_STATES.forEach(s => { stateStyles[s] = { fill: '#fe5b25', opacity: 0.4 } })
   } else if (step === 1) {
-    ACTIVE_STATES.forEach(s => { stateStyles[s] = { fill: '#25D366', opacity: 0.15 } })
-    HIGHLIGHT_STATES.forEach(s => { stateStyles[s] = { fill: '#25D366', opacity: 0.8 } })
+    ALL_STATES.forEach(s => { stateStyles[s] = { fill: '#fe5b25', opacity: 0.15 } })
+    HIGHLIGHT_STATES.forEach(s => { stateStyles[s] = { fill: '#fe5b25', opacity: 0.8 } })
   } else {
-    ACTIVE_STATES.forEach(s => { stateStyles[s] = { fill: '#25D366', opacity: 0.1 } })
-    stateStyles['FL'] = { fill: '#25D366', opacity: 1 }
+    ALL_STATES.forEach(s => { stateStyles[s] = { fill: '#fe5b25', opacity: 0.1 } })
+    stateStyles['FL'] = { fill: '#fe5b25', opacity: 1 }
   }
 
   const filterSteps = lang === 'he' ? FILTER_STEPS_HE : FILTER_STEPS_EN
   const matchedLeads = step === 2 ? DEMO_LEADS.filter(l => l.state === 'FL') : []
 
   return (
-    <section className="section-padding bg-white overflow-hidden">
+    <section className="section-padding bg-cream overflow-hidden">
       <div className="max-w-7xl mx-auto px-6">
         {/* Header */}
         <div className="text-center mb-16">
           <h2 className="text-3xl md:text-5xl font-medium mb-4">
-            {lang === 'he' ? 'לידים לפי מיקום. בדיוק איפה שאתה עובד.' : 'Leads by location. Right where you work.'}
+            {lang === 'he' ? 'לידים בכל ארה״ב. בדיוק איפה שאתה עובד.' : 'Leads across all 50 states. Right where you work.'}
           </h2>
           <p className="text-gray-subtle/70 max-w-2xl mx-auto">
             {lang === 'he'
-              ? 'בחר מדינה, עיר או מיקוד — וקבל רק לידים מהאזור שלך. בלי רעש, בלי תחרות.'
-              : 'Choose a state, city, or zip code — and get only leads from your area. No noise, no competition.'}
+              ? 'אנחנו פעילים בכל 50 המדינות. בחר מדינה, עיר או מיקוד — וקבל רק לידים מהאזור שלך.'
+              : 'We cover all 50 states. Choose a state, city, or zip code — and get only leads from your area.'}
           </p>
         </div>
 
@@ -84,7 +90,7 @@ export default function MapSection() {
                   onClick={() => setStep(i)}
                   className={`flex items-center gap-2 px-4 py-2 rounded-full text-xs font-medium transition-all duration-500 ${
                     step === i
-                      ? 'bg-[#25D366] text-white shadow-lg shadow-[#25D366]/25 scale-105'
+                      ? 'bg-[#fe5b25] text-white shadow-lg shadow-[#fe5b25]/25 scale-105'
                       : 'bg-dark/5 text-dark/50 hover:bg-dark/10'
                   }`}
                 >
@@ -128,7 +134,7 @@ export default function MapSection() {
 
               {/* Glow effect on active region */}
               {step === 2 && (
-                <div className="absolute top-[65%] left-[72%] w-32 h-32 bg-[#25D366]/20 rounded-full blur-3xl animate-pulse" />
+                <div className="absolute top-[65%] left-[72%] w-32 h-32 bg-[#fe5b25]/20 rounded-full blur-3xl animate-pulse" />
               )}
             </div>
           </div>
@@ -138,8 +144,8 @@ export default function MapSection() {
             <div className="bg-cream rounded-2xl p-6 border border-dark/5 min-h-[320px]">
               {/* Feed header */}
               <div className="flex items-center gap-3 mb-5 pb-4 border-b border-dark/5">
-                <div className="w-8 h-8 rounded-lg bg-[#25D366]/10 flex items-center justify-center">
-                  <Zap size={16} className="text-[#25D366]" />
+                <div className="w-8 h-8 rounded-lg bg-[#fe5b25]/10 flex items-center justify-center">
+                  <Zap size={16} className="text-[#fe5b25]" />
                 </div>
                 <div>
                   <div className="text-sm font-semibold">
@@ -158,7 +164,7 @@ export default function MapSection() {
                 <div className="space-y-3">
                   {[0, 1, 2].map(i => (
                     <div key={i} className="flex items-center gap-3 p-3 rounded-xl bg-white/60 border border-dark/5">
-                      <div className={`w-2 h-2 rounded-full ${step === 0 ? 'bg-dark/20' : 'bg-[#25D366]/40'} transition-colors duration-500`} />
+                      <div className={`w-2 h-2 rounded-full ${step === 0 ? 'bg-dark/20' : 'bg-[#fe5b25]/40'} transition-colors duration-500`} />
                       <div className="flex-1">
                         <div className="h-3 bg-dark/10 rounded w-3/4 mb-1.5" />
                         <div className="h-2 bg-dark/5 rounded w-1/2" />
@@ -180,7 +186,7 @@ export default function MapSection() {
                     >
                       <div className="flex items-start justify-between mb-1">
                         <div className="flex items-center gap-2">
-                          <div className="w-2 h-2 rounded-full bg-[#25D366]" />
+                          <div className="w-2 h-2 rounded-full bg-[#fe5b25]" />
                           <span className="text-xs font-semibold">{lang === 'he' ? lead.tradeHe : lead.trade}</span>
                         </div>
                         <span className="text-[10px] text-primary font-semibold">{lead.est}</span>
@@ -192,7 +198,7 @@ export default function MapSection() {
                   ))}
                   {visibleLeads >= matchedLeads.length && (
                     <div className="text-center pt-2">
-                      <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#25D366]">
+                      <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#fe5b25]">
                         <Zap size={12} />
                         {lang === 'he' ? 'תגיב ראשון, תסגור את העבודה!' : 'Respond first, close the deal!'}
                       </span>

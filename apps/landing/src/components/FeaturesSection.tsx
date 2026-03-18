@@ -5,7 +5,7 @@ export default function FeaturesSection() {
   const { t, lang } = useLang()
 
   return (
-    <section className="section-padding bg-white">
+    <section className="section-padding bg-cream">
       <div className="max-w-7xl mx-auto px-6 space-y-24">
         {/* Feature 1: Chat / No more group chaos */}
         <div className="grid md:grid-cols-2 gap-12 items-center">

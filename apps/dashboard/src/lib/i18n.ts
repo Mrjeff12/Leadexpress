@@ -44,6 +44,11 @@ const translations = {
     'auth.no_account': "Don't have an account?",
     'auth.has_account': 'Already have an account?',
     'auth.tagline': 'Smart leads, delivered to your Telegram.',
+    'auth.welcomeBack': 'Welcome back',
+    'auth.createAccount': 'Create your account',
+    'auth.loginSubtitle': 'Sign in to manage your leads and grow your business.',
+    'auth.signupSubtitle': 'Start receiving qualified leads in your area today.',
+    'auth.forgotPassword': 'Forgot password?',
     'auth.error.invalid': 'Invalid email or password',
 
     // Dashboard
@@ -153,6 +158,11 @@ const translations = {
     'auth.no_account': 'אין לך חשבון?',
     'auth.has_account': 'יש לך חשבון?',
     'auth.tagline': 'לידים חכמים, ישירות לטלגרם.',
+    'auth.welcomeBack': 'ברוך הבא',
+    'auth.createAccount': 'צור חשבון חדש',
+    'auth.loginSubtitle': 'התחבר כדי לנהל את הלידים שלך ולהצמיח את העסק.',
+    'auth.signupSubtitle': 'התחל לקבל לידים איכותיים באזור שלך היום.',
+    'auth.forgotPassword': 'שכחת סיסמה?',
     'auth.error.invalid': 'אימייל או סיסמה שגויים',
 
     // Dashboard

@@ -7,13 +7,12 @@ import {
   User,
   CreditCard,
   Send,
-  Settings,
   LogOut,
   ChevronLeft,
   ChevronRight,
   Users,
 } from 'lucide-react'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 
 type NavItem = {
   label: string
@@ -28,9 +27,15 @@ export default function Sidebar() {
   const [collapsed, setCollapsed] = useState(false)
   const isRtl = locale === 'he'
 
+  useEffect(() => {
+    if (collapsed) document.body.classList.add('contractor-sidebar-collapsed')
+    else document.body.classList.remove('contractor-sidebar-collapsed')
+  }, [collapsed])
+
   const contractorNav: NavItem[] = [
     { label: t('nav.dashboard'), to: '/', icon: LayoutDashboard },
     { label: t('nav.leads'), to: '/leads', icon: Zap },
+    { label: locale === 'he' ? 'קבוצות לסריקה' : 'Group Scan', to: '/group-scan', icon: Users },
     { label: t('nav.subcontractors'), to: '/subcontractors', icon: Users },
     { label: t('nav.profile'), to: '/profile', icon: User },
     { label: t('nav.subscription'), to: '/subscription', icon: CreditCard },
@@ -105,17 +110,6 @@ export default function Sidebar() {
 
       {/* Footer */}
       <div className="px-3 py-4 border-t border-stone-100 space-y-0.5">
-        <NavLink
-          to="/settings"
-          className={() => [
-            'sidebar-link',
-            location.pathname === '/settings' ? 'active' : '',
-            collapsed ? 'justify-center px-0' : '',
-          ].join(' ')}
-        >
-          <Settings className="w-[18px] h-[18px] shrink-0" />
-          {!collapsed && <span className="truncate">{t('nav.settings')}</span>}
-        </NavLink>
         <button
           onClick={signOut}
           className={[

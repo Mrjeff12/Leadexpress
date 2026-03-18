@@ -9,6 +9,7 @@ import AdminWhatsApp from '../pages/AdminWhatsApp'
 import AdminLeads from '../pages/AdminLeads'
 import AdminProspects from '../pages/AdminProspects'
 import ProspectDetail from '../pages/ProspectDetail'
+import AdminGroupScanQueue from '../pages/AdminGroupScanQueue'
 
 // Import new admin pages
 import MessageTemplates from '../pages/admin/MessageTemplates'
@@ -46,6 +47,7 @@ export default function AdminLayout() {
             <Route path="/whatsapp" element={<AdminWhatsApp />} />
             <Route path="/groups" element={<AdminGroups />} />
             <Route path="/groups/:id" element={<AdminGroupDetail />} />
+            <Route path="/group-scan" element={<AdminGroupScanQueue />} />
             <Route path="/message-templates" element={<MessageTemplates />} />
             <Route path="/subscriptions" element={<Subscriptions />} />
             <Route path="/revenue" element={<Revenue />} />

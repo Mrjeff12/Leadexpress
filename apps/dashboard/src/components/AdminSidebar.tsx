@@ -75,6 +75,7 @@ export default function AdminSidebar() {
       items: [
         { label: he ? 'WhatsApp' : 'WhatsApp', to: '/admin/whatsapp', icon: Smartphone },
         { label: he ? 'קבוצות' : 'Groups', to: '/admin/groups', icon: BarChart3 },
+        { label: he ? 'בקשות קבוצות' : 'Group Scan', to: '/admin/group-scan', icon: Users },
         { label: he ? 'תבניות הודעה' : 'Templates', to: '/admin/message-templates', icon: MessageSquareText },
       ],
     },

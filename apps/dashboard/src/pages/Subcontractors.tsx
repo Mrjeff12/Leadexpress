@@ -18,6 +18,10 @@ interface Subcontractor {
   created_at: string
 }
 
+interface JobStats {
+  [subId: string]: { active: number; completed: number }
+}
+
 export default function Subcontractors() {
   const { effectiveUserId } = useAuth()
   const { locale } = useI18n()
@@ -26,6 +30,7 @@ export default function Subcontractors() {
   const [subs, setSubs] = useState<Subcontractor[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
+  const [jobStats, setJobStats] = useState<JobStats>({})
 
   // Modal state
   const [isOpen, setIsOpen] = useState(false)
@@ -42,14 +47,33 @@ export default function Subcontractors() {
     if (!effectiveUserId) return
     if (showLoading) setLoading(true)
     try {
-      const { data, error } = await supabase
-        .from('subcontractors')
-        .select('*')
-        .eq('contractor_id', effectiveUserId)
-        .order('created_at', { ascending: false })
+      const [subsRes, jobsRes] = await Promise.all([
+        supabase
+          .from('subcontractors')
+          .select('*')
+          .eq('contractor_id', effectiveUserId)
+          .order('created_at', { ascending: false }),
+        supabase
+          .from('job_orders')
+          .select('subcontractor_id, status')
+          .eq('contractor_id', effectiveUserId)
+          .not('subcontractor_id', 'is', null),
+      ])
 
-      if (error) throw error
-      if (data) setSubs(data)
+      if (subsRes.error) throw subsRes.error
+      if (subsRes.data) setSubs(subsRes.data)
+
+      // Build stats map
+      if (jobsRes.data) {
+        const stats: JobStats = {}
+        for (const jo of jobsRes.data) {
+          if (!jo.subcontractor_id) continue
+          if (!stats[jo.subcontractor_id]) stats[jo.subcontractor_id] = { active: 0, completed: 0 }
+          if (jo.status === 'accepted' || jo.status === 'pending') stats[jo.subcontractor_id].active++
+          if (jo.status === 'completed') stats[jo.subcontractor_id].completed++
+        }
+        setJobStats(stats)
+      }
     } catch (err: unknown) {
       toast({ title: 'Error', description: 'Failed to load subcontractors', variant: 'destructive' })
     } finally {
@@ -274,12 +298,12 @@ export default function Subcontractors() {
 
               <div className="mt-4 pt-3 border-t border-stone-100 flex items-center justify-between text-xs text-stone-500">
                 <div className="flex items-center gap-1">
-                  <span className="font-medium text-stone-700">0</span>
+                  <span className="font-medium text-stone-700">{jobStats[sub.id]?.active || 0}</span>
                   {locale === 'he' ? 'עבודות פעילות' : 'Active Jobs'}
                 </div>
                 <div className="flex items-center gap-1">
-                  <span className="font-medium text-stone-700">$0</span>
-                  {locale === 'he' ? 'סה״כ הושג' : 'Total Earned'}
+                  <span className="font-medium text-stone-700">{jobStats[sub.id]?.completed || 0}</span>
+                  {locale === 'he' ? 'הושלמו' : 'Completed'}
                 </div>
               </div>
 

@@ -35,7 +35,7 @@ export default function UpsellModal({ isOpen, onClose }: UpsellModalProps) {
           <button
             onClick={() => {
               onClose()
-              window.location.href = '/settings'
+              window.location.href = '/subscription'
             }}
             className="px-4 py-2 text-sm font-medium text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl transition-colors"
           >

@@ -1,83 +1,69 @@
-import { MapPin, Filter, Bell } from 'lucide-react'
+import { MapPin, Filter, Bell, ArrowRight } from 'lucide-react'
 import { useLang } from '../i18n/LanguageContext'
 
-const icons = [MapPin, Filter, Bell]
-const iconColors = ['bg-primary/10 text-primary', 'bg-blue-100 text-blue-600', 'bg-amber-100 text-amber-600']
+const steps = [
+  { icon: MapPin, color: '#fe5b25', bg: 'from-[#fe5b25]/10 to-[#fe5b25]/5' },
+  { icon: Filter, color: '#3b82f6', bg: 'from-blue-500/10 to-blue-500/5' },
+  { icon: Bell, color: '#f59e0b', bg: 'from-amber-500/10 to-amber-500/5' },
+]
 
 export default function WorkflowSection() {
   const { t, lang } = useLang()
 
   return (
-    <section id="features" className="section-padding">
-      <div className="max-w-7xl mx-auto px-6">
-        <div className="text-center mb-16">
-          <h2 className="text-3xl md:text-5xl font-medium mb-4">{t.workflow.title}</h2>
-          <p className="text-gray-subtle/70 max-w-xl mx-auto">{t.workflow.subtitle}</p>
+    <section id="features" className="py-16 md:py-24 bg-white">
+      <div className="max-w-5xl mx-auto px-6">
+        {/* Header */}
+        <div className="text-center mb-12 md:mb-16">
+          <p className="text-[#fe5b25] text-[11px] font-semibold tracking-widest uppercase mb-3">
+            {lang === 'he' ? 'איך זה עובד' : 'How It Works'}
+          </p>
+          <h2 className="text-2xl md:text-4xl font-medium text-dark mb-3">{t.workflow.title}</h2>
+          <p className="text-dark/40 max-w-md mx-auto text-sm">{t.workflow.subtitle}</p>
         </div>
 
-        <div className="grid md:grid-cols-3 gap-6">
-          {t.workflow.cards.map((card, i) => {
-            const Icon = icons[i]
-            return (
-              <div key={i} className="card group">
-                <div className={`w-12 h-12 rounded-xl flex items-center justify-center mb-5 ${iconColors[i]} transition-transform group-hover:scale-110`}>
-                  <Icon size={22} />
-                </div>
-                <h3 className="text-xl font-bold mb-3">{card.title}</h3>
-                <p className="text-gray-subtle/70 text-sm leading-relaxed">{card.desc}</p>
+        {/* Steps — horizontal on desktop, vertical on mobile */}
+        <div className="relative">
+          {/* Connecting line — desktop */}
+          <div className="hidden md:block absolute top-10 left-[16%] right-[16%] h-[2px] bg-gradient-to-r from-[#fe5b25]/20 via-blue-500/20 to-amber-500/20" />
 
-                {/* Mini illustration */}
-                <div className="mt-6 rounded-xl bg-cream-dark p-4 border border-dark/5">
-                  {i === 0 && (
-                    <div className="space-y-2">
-                      <div className="text-xs text-gray-subtle/50 mb-2">{lang === 'he' ? 'בחר את האזור שלך:' : 'Choose your area:'}</div>
-                      {[
-                        { label: lang === 'he' ? 'מדינה' : 'County', value: lang === 'he' ? 'פלורידה' : 'Miami-Dade' },
-                        { label: lang === 'he' ? 'עיר' : 'City', value: lang === 'he' ? 'מיאמי' : 'Miami' },
-                        { label: lang === 'he' ? 'מיקוד' : 'Zip Code', value: '33101' },
-                      ].map((item, j) => (
-                        <div key={j} className="flex items-center justify-between py-1.5 border-b border-dark/5 last:border-0">
-                          <span className="text-[11px] text-gray-subtle/50">{item.label}</span>
-                          <span className="text-sm font-medium">{item.value}</span>
-                        </div>
-                      ))}
+          <div className="grid md:grid-cols-3 gap-8 md:gap-6">
+            {t.workflow.cards.map((card, i) => {
+              const step = steps[i]
+              const Icon = step.icon
+              return (
+                <div key={i} className="relative flex flex-col items-center text-center group">
+                  {/* Step number + icon */}
+                  <div className="relative mb-5">
+                    <div
+                      className={`w-20 h-20 rounded-2xl bg-gradient-to-br ${step.bg} flex items-center justify-center transition-transform duration-300 group-hover:scale-105 group-hover:shadow-lg`}
+                      style={{ boxShadow: `0 8px 30px ${step.color}15` }}
+                    >
+                      <Icon size={28} style={{ color: step.color }} strokeWidth={1.8} />
+                    </div>
+                    {/* Step badge */}
+                    <div
+                      className="absolute -top-2 -right-2 w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-bold shadow-md"
+                      style={{ backgroundColor: step.color }}
+                    >
+                      {i + 1}
+                    </div>
+                  </div>
+
+                  {/* Arrow between steps — mobile only */}
+                  {i < 2 && (
+                    <div className="md:hidden flex justify-center -mt-2 mb-3">
+                      <ArrowRight size={16} className="text-dark/15 rotate-90" />
                     </div>
                   )}
-                  {i === 1 && (
-                    <div className="space-y-2">
-                      {(lang === 'he'
-                        ? ['תיקון מזגנים', 'אינסטלציה', 'חשמל']
-                        : ['HVAC Repair', 'Plumbing', 'Electrical']
-                      ).map((item, j) => (
-                        <div key={j} className="flex items-center justify-between py-2 border-b border-dark/5 last:border-0">
-                          <div className="flex items-center gap-2">
-                            <div className="w-6 h-6 rounded bg-primary/10 flex items-center justify-center">
-                              <Filter size={12} className="text-primary" />
-                            </div>
-                            <span className="text-sm">{item}</span>
-                          </div>
-                          <span className="text-primary">→</span>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                  {i === 2 && (
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                        <div className="w-5 h-5 rounded-full bg-primary/30 flex items-center justify-center">
-                          <div className="w-2 h-2 rounded-full bg-primary" />
-                        </div>
-                      </div>
-                      <div>
-                        <div className="text-sm font-medium">{lang === 'he' ? 'מנתח לידים...' : 'Analyzing leads...'}</div>
-                        <div className="text-xs text-gray-subtle/50 mt-1">{lang === 'he' ? '3 התאמות חדשות נמצאו' : '3 new matches found'}</div>
-                      </div>
-                    </div>
-                  )}
+
+                  {/* Text */}
+                  <h3 className="text-lg font-semibold text-dark mb-2">{card.title}</h3>
+                  <p className="text-dark/40 text-sm leading-relaxed max-w-[260px]">{card.desc}</p>
                 </div>
-              </div>
-            )
-          })}
+              )
+            })}
+          </div>
         </div>
       </div>
     </section>
