@@ -16,6 +16,7 @@ import Profile from './pages/Profile'
 import Subscription from './pages/Subscription'
 import TelegramConnect from './pages/TelegramConnect'
 import JobPortal from './pages/JobPortal'
+import JobsDashboard from './pages/JobsDashboard'
 import OnboardingWizard from './pages/OnboardingWizard'
 import RequireSubscription from './components/Paywall'
 import SubscriptionBanner from './components/SubscriptionBanner'
@@ -122,6 +123,7 @@ function AppShell() {
               <Route path="/leads" element={<RequireSubscription><RequireSetup><LeadsFeed /></RequireSetup></RequireSubscription>} />
               <Route path="/group-scan" element={<RequireSubscription><RequireSetup><ContractorGroupScan /></RequireSetup></RequireSubscription>} />
               <Route path="/subcontractors" element={<RequireSubscription><RequireSetup><Subcontractors /></RequireSetup></RequireSubscription>} />
+              <Route path="/jobs" element={<RequireSubscription><RequireSetup><JobsDashboard /></RequireSetup></RequireSubscription>} />
               <Route path="/profile" element={<Profile />} />
               <Route path="/subscription" element={<Subscription />} />
               <Route path="/telegram" element={<RequireSubscription><TelegramConnect /></RequireSubscription>} />

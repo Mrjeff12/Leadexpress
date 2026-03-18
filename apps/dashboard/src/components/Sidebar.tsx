@@ -8,6 +8,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Users,
+  Briefcase,
   Settings,
   CreditCard,
 } from 'lucide-react'
@@ -36,6 +37,7 @@ export default function Sidebar() {
     { label: t('nav.leads'), to: '/leads', icon: Zap },
     { label: locale === 'he' ? 'קבוצות לסריקה' : 'Group Scan', to: '/group-scan', icon: Users },
     { label: t('nav.subcontractors'), to: '/subcontractors', icon: Users },
+    { label: locale === 'he' ? 'עבודות' : 'Jobs', to: '/jobs', icon: Briefcase },
   ]
 
   const CollapseIcon = isRtl
