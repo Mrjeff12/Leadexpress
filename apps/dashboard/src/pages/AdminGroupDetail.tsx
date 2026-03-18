@@ -24,6 +24,7 @@ import {
   Users,
   ShieldAlert,
   Calendar,
+  Flame,
 } from 'lucide-react'
 
 /* ── Stage labels ──────────────────────────────────────── */
@@ -67,7 +68,7 @@ export default function AdminGroupDetail() {
   const { locale } = useI18n()
   const he = locale === 'he'
 
-  const { info, funnel, activity, members, isLoading, isError } = useGroupDetail(id)
+  const { info, funnel, activity, members, market, isLoading, isError } = useGroupDetail(id)
 
   const [tab, setTab] = useState<'overview' | 'members' | 'messages' | 'market'>('overview')
 
@@ -280,9 +281,7 @@ export default function AdminGroupDetail() {
       )}
 
       {tab === 'market' && (
-        <div className="glass-panel p-12 text-center">
-          <p style={{ color: 'hsl(40 4% 42%)' }}>Coming soon...</p>
-        </div>
+        <MarketIntelTab market={market} he={he} />
       )}
     </div>
   )
@@ -526,6 +525,211 @@ function MessagesTab({ waGroupId, he }: { waGroupId: string; he: boolean }) {
           </div>
         )
       })}
+    </div>
+  )
+}
+
+/* ── Market Intel Tab sub-component ──────────────────── */
+
+interface MarketIntel {
+  professions: { name: string; count: number; pct: number }[]
+  regions: { name: string; count: number; pct: number }[]
+  urgency: { level: string; count: number; pct: number }[]
+  repeatRequesters: {
+    sender_id: string
+    display_name: string | null
+    request_count: number
+    professions: string[]
+    last_request: string
+  }[]
+}
+
+function MarketIntelTab({ market, he }: { market: MarketIntel | null | undefined; he: boolean }) {
+  const professions = market?.professions ?? []
+  const regions = market?.regions ?? []
+  const urgency = market?.urgency ?? []
+  const repeatRequesters = market?.repeatRequesters ?? []
+
+  // Empty state
+  if (!market || professions.length === 0) {
+    return (
+      <div className="glass-panel p-12 text-center">
+        <p style={{ color: 'hsl(40 4% 42%)' }}>
+          {he ? 'אין לידים מהקבוצה הזו עדיין' : 'No leads from this group yet'}
+        </p>
+      </div>
+    )
+  }
+
+  const sortedProfessions = [...professions].sort((a, b) => b.count - a.count)
+  const topRegions = [...regions].sort((a, b) => b.count - a.count).slice(0, 10)
+
+  const getUrgency = (level: string) => urgency.find((u) => u.level === level)
+  const hotPct = getUrgency('hot')?.pct ?? 0
+  const warmPct = getUrgency('warm')?.pct ?? 0
+  const coldPct = getUrgency('cold')?.pct ?? 0
+
+  return (
+    <div className="space-y-6">
+      {/* Section 1: Top Professions */}
+      <div className="glass-panel p-5">
+        <h2 className="text-sm font-semibold mb-4" style={{ color: 'hsl(40 8% 10%)' }}>
+          {he ? 'מקצועות מובילים' : 'Top Professions'}
+        </h2>
+        {sortedProfessions.length >= 3 ? (
+          <ResponsiveContainer width="100%" height={Math.max(180, sortedProfessions.length * 36)}>
+            <BarChart
+              data={sortedProfessions}
+              layout="vertical"
+              margin={{ left: 10, right: 20, top: 5, bottom: 5 }}
+            >
+              <XAxis type="number" tick={{ fontSize: 12, fill: 'hsl(40 4% 42%)' }} />
+              <YAxis
+                type="category"
+                dataKey="name"
+                width={120}
+                tick={{ fontSize: 12, fill: 'hsl(40 4% 42%)' }}
+              />
+              <Tooltip
+                contentStyle={{
+                  background: '#fff',
+                  border: '1px solid hsl(40 4% 88%)',
+                  borderRadius: 8,
+                  fontSize: 12,
+                }}
+                formatter={(value: number, _name: string, props: any) => [
+                  `${value} (${props.payload.pct}%)`,
+                  he ? 'בקשות' : 'Requests',
+                ]}
+              />
+              <Bar dataKey="count" fill="hsl(220 60% 55%)" radius={[0, 4, 4, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        ) : (
+          <div className="flex flex-wrap gap-2">
+            {sortedProfessions.map((p) => (
+              <span
+                key={p.name}
+                className="glass-panel inline-flex px-3 py-1.5 rounded-full text-sm"
+                style={{ color: 'hsl(40 8% 10%)' }}
+              >
+                {p.name} <span className="ml-1.5 font-medium" style={{ color: 'hsl(220 60% 55%)' }}>{p.pct}%</span>
+              </span>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Section 2: Hot Regions */}
+      {topRegions.length > 0 && (
+        <div className="glass-panel p-5">
+          <h2 className="text-sm font-semibold mb-4" style={{ color: 'hsl(40 8% 10%)' }}>
+            {he ? 'אזורים חמים' : 'Hot Regions'}
+          </h2>
+          <div className="flex flex-wrap gap-2">
+            {topRegions.map((r) => (
+              <span
+                key={r.name}
+                className="glass-panel inline-flex px-3 py-1.5 rounded-full text-sm"
+                style={{ color: 'hsl(40 8% 10%)' }}
+              >
+                {r.name} <span className="ml-1.5 font-semibold tabular-nums">{r.count}</span>
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Section 3: Urgency Mix */}
+      {urgency.length > 0 && (
+        <div className="glass-panel p-5">
+          <h2 className="text-sm font-semibold mb-4" style={{ color: 'hsl(40 8% 10%)' }}>
+            {he ? 'פילוח דחיפות' : 'Urgency Breakdown'}
+          </h2>
+          <div className="grid grid-cols-3 gap-3">
+            <div className="rounded-xl p-4 text-center" style={{ background: 'hsl(0 80% 93% / 0.5)' }}>
+              <div className="text-lg mb-1">🔥</div>
+              <div className="text-xl font-bold" style={{ color: 'hsl(0 60% 40%)' }}>{hotPct}%</div>
+              <div className="text-xs mt-1" style={{ color: 'hsl(0 50% 45%)' }}>Hot</div>
+            </div>
+            <div className="rounded-xl p-4 text-center" style={{ background: 'hsl(40 80% 90% / 0.5)' }}>
+              <div className="text-lg mb-1">☀️</div>
+              <div className="text-xl font-bold" style={{ color: 'hsl(35 70% 35%)' }}>{warmPct}%</div>
+              <div className="text-xs mt-1" style={{ color: 'hsl(35 50% 40%)' }}>Warm</div>
+            </div>
+            <div className="rounded-xl p-4 text-center" style={{ background: 'hsl(220 60% 92% / 0.5)' }}>
+              <div className="text-lg mb-1">❄️</div>
+              <div className="text-xl font-bold" style={{ color: 'hsl(220 50% 40%)' }}>{coldPct}%</div>
+              <div className="text-xs mt-1" style={{ color: 'hsl(220 40% 45%)' }}>Cold</div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Section 4: Repeat Requesters */}
+      <div className="glass-panel p-5">
+        <h2 className="text-sm font-semibold" style={{ color: 'hsl(40 8% 10%)' }}>
+          {he ? 'מבקשים חוזרים' : 'Repeat Requesters'}
+        </h2>
+        <p className="text-xs mt-0.5 mb-4" style={{ color: 'hsl(40 4% 42%)' }}>
+          {he
+            ? 'פרוספקטים בעלי ערך גבוה שפרסמו 2+ בקשות'
+            : 'High-value prospects who posted 2+ requests'}
+        </p>
+        {repeatRequesters.length === 0 ? (
+          <p className="text-sm text-center py-4" style={{ color: 'hsl(40 4% 55%)' }}>
+            {he ? 'לא נמצאו מבקשים חוזרים' : 'No repeat requesters found'}
+          </p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm" style={{ color: 'hsl(40 8% 10%)' }}>
+              <thead>
+                <tr style={{ borderBottom: '1px solid hsl(40 4% 88%)' }}>
+                  <th className="px-4 py-2 text-left font-medium" style={{ color: 'hsl(40 4% 42%)', fontSize: 12 }}>
+                    {he ? 'שולח' : 'Sender'}
+                  </th>
+                  <th className="px-4 py-2 text-left font-medium" style={{ color: 'hsl(40 4% 42%)', fontSize: 12 }}>
+                    {he ? 'בקשות' : 'Requests'}
+                  </th>
+                  <th className="px-4 py-2 text-left font-medium" style={{ color: 'hsl(40 4% 42%)', fontSize: 12 }}>
+                    {he ? 'מקצועות' : 'Professions'}
+                  </th>
+                  <th className="px-4 py-2 text-left font-medium" style={{ color: 'hsl(40 4% 42%)', fontSize: 12 }}>
+                    {he ? 'בקשה אחרונה' : 'Last Request'}
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {repeatRequesters.map((rr) => (
+                  <tr
+                    key={rr.sender_id}
+                    className="hover:bg-black/[0.02] transition-colors"
+                    style={{ borderBottom: '1px solid hsl(40 4% 93%)' }}
+                  >
+                    <td className="px-4 py-2.5 whitespace-nowrap">
+                      {rr.display_name || rr.sender_id}
+                    </td>
+                    <td className="px-4 py-2.5 tabular-nums whitespace-nowrap">
+                      <span className="inline-flex items-center gap-1">
+                        {rr.request_count}
+                        {rr.request_count >= 3 && (
+                          <Flame size={14} style={{ color: 'hsl(0 80% 50%)' }} />
+                        )}
+                      </span>
+                    </td>
+                    <td className="px-4 py-2.5" style={{ color: 'hsl(40 4% 42%)' }}>
+                      {rr.professions.join(', ')}
+                    </td>
+                    <td className="px-4 py-2.5 whitespace-nowrap" style={{ color: 'hsl(40 4% 42%)' }}>
+                      {relativeTime(rr.last_request)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
     </div>
   )
 }
