@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
-import { useState, useCallback, type ReactNode } from 'react'
+import { useState, useEffect, useCallback, type ReactNode } from 'react'
 import { AuthProvider, useAuth } from './lib/auth'
 import { I18nContext, createTranslator, isRtl, type Locale } from './lib/i18n'
 import { Toaster } from './components/shadcn/ui/toaster'
@@ -16,7 +16,9 @@ import Profile from './pages/Profile'
 import Subscription from './pages/Subscription'
 import TelegramConnect from './pages/TelegramConnect'
 import JobPortal from './pages/JobPortal'
+import OnboardingWizard from './pages/OnboardingWizard'
 import RequireSubscription from './components/Paywall'
+import { supabase } from './lib/supabase'
 import { Globe } from 'lucide-react'
 
 /* ─── Auth guard ─── */
@@ -35,6 +37,35 @@ function RequireAdmin({ children }: { children: ReactNode }) {
 }
 
 
+
+/* ─── Setup guard — redirects to /onboarding if contractor has no professions/zips ─── */
+function RequireSetup({ children }: { children: ReactNode }) {
+  const { effectiveUserId, isAdmin } = useAuth()
+  const location = useLocation()
+  const [ready, setReady] = useState<boolean | null>(null)
+
+  useEffect(() => {
+    if (!effectiveUserId || isAdmin) {
+      setReady(true)
+      return
+    }
+
+    supabase
+      .from('contractors')
+      .select('professions, zip_codes')
+      .eq('user_id', effectiveUserId)
+      .maybeSingle()
+      .then(({ data }) => {
+        const hasProfs = data?.professions && (data.professions as string[]).length > 0
+        const hasZips = data?.zip_codes && (data.zip_codes as string[]).length > 0
+        setReady(!!(hasProfs && hasZips))
+      })
+  }, [effectiveUserId, isAdmin])
+
+  if (ready === null) return <LoadingScreen />
+  if (!ready && location.pathname !== '/onboarding') return <Navigate to="/onboarding" replace />
+  return <>{children}</>
+}
 
 function LoadingScreen() {
   return (
@@ -60,6 +91,15 @@ function AppShell() {
 
   if (isAdmin && !impersonatedUserId) return <Navigate to="/admin" replace />
 
+  // Onboarding wizard is full-screen, no sidebar
+  if (location.pathname === '/onboarding') {
+    return (
+      <RequireSubscription>
+        <OnboardingWizard />
+      </RequireSubscription>
+    )
+  }
+
   return (
     <div className="min-h-screen">
       <div className="le-bg" />
@@ -70,19 +110,20 @@ function AppShell() {
         {isFullBleed ? (
           <div className="h-screen">
             <Routes>
-              <Route path="/" element={<RequireSubscription><ContractorDashboard /></RequireSubscription>} />
+              <Route path="/" element={<RequireSubscription><RequireSetup><ContractorDashboard /></RequireSetup></RequireSubscription>} />
             </Routes>
           </div>
         ) : (
           <div className="max-w-6xl mx-auto px-6 py-8">
             <Routes>
-              <Route path="/" element={<RequireSubscription><ContractorDashboard /></RequireSubscription>} />
-              <Route path="/leads" element={<RequireSubscription><LeadsFeed /></RequireSubscription>} />
-              <Route path="/group-scan" element={<RequireSubscription><ContractorGroupScan /></RequireSubscription>} />
-              <Route path="/subcontractors" element={<RequireSubscription><Subcontractors /></RequireSubscription>} />
+              <Route path="/" element={<RequireSubscription><RequireSetup><ContractorDashboard /></RequireSetup></RequireSubscription>} />
+              <Route path="/leads" element={<RequireSubscription><RequireSetup><LeadsFeed /></RequireSetup></RequireSubscription>} />
+              <Route path="/group-scan" element={<RequireSubscription><RequireSetup><ContractorGroupScan /></RequireSetup></RequireSubscription>} />
+              <Route path="/subcontractors" element={<RequireSubscription><RequireSetup><Subcontractors /></RequireSetup></RequireSubscription>} />
               <Route path="/profile" element={<Profile />} />
               <Route path="/subscription" element={<Subscription />} />
               <Route path="/telegram" element={<RequireSubscription><TelegramConnect /></RequireSubscription>} />
+              <Route path="/onboarding" element={<RequireSubscription><OnboardingWizard /></RequireSubscription>} />
               <Route path="/settings" element={<Navigate to="/" replace />} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
