@@ -22,25 +22,30 @@ import SystemSettings from '../pages/admin/SystemSettings'
 import LeadsMap from '../pages/admin/LeadsMap'
 import ContractorDetail from '../pages/admin/ContractorDetail'
 
+import AdminInbox from '../pages/AdminInbox'
+import AdminGroupDetail from '../pages/AdminGroupDetail'
+
 export default function AdminLayout() {
   const location = useLocation()
-  const isFullBleed = location.pathname === '/admin/leads-map'
+  const isFullBleed = location.pathname === '/admin/leads-map' || location.pathname === '/admin/inbox'
 
   return (
-    <div className="min-h-screen">
+    <div className="h-screen w-full flex flex-col overflow-hidden">
       <div className="le-bg" />
       <div className="le-grain" />
       <AdminSidebar />
-      <main className="relative transition-all duration-300" style={{ paddingInlineStart: 264 }}>
-        <div className={isFullBleed ? 'h-screen' : 'max-w-6xl mx-auto px-6 py-8'}>
+      <main className="relative transition-all duration-300 admin-main-content flex-1 flex flex-col h-full overflow-hidden">
+        <div className={isFullBleed ? 'flex-1 relative overflow-hidden flex flex-col h-full' : 'max-w-6xl mx-auto w-full px-6 py-8 flex-1 overflow-y-auto'}>
           <Routes>
             <Route path="/" element={<AdminDashboard />} />
+            <Route path="/inbox" element={<AdminInbox />} />
             <Route path="/leads" element={<AdminLeads />} />
             <Route path="/prospects" element={<AdminProspects />} />
             <Route path="/prospects/:id" element={<ProspectDetail />} />
             <Route path="/contractors" element={<AdminContractors />} />
             <Route path="/whatsapp" element={<AdminWhatsApp />} />
             <Route path="/groups" element={<AdminGroups />} />
+            <Route path="/groups/:id" element={<AdminGroupDetail />} />
             <Route path="/message-templates" element={<MessageTemplates />} />
             <Route path="/subscriptions" element={<Subscriptions />} />
             <Route path="/revenue" element={<Revenue />} />
