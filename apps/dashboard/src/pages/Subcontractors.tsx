@@ -130,6 +130,8 @@ export default function Subcontractors() {
   if (!canManageSubs) {
     const teaserSteps = [
       {
+        icon: '📨',
+        label: 'Lead',
         title: 'A New Lead Comes In',
         subtitle: "You get a lead you can't handle — but your network can.",
         duration: 5000,
@@ -166,6 +168,8 @@ export default function Subcontractors() {
         ),
       },
       {
+        icon: '👤',
+        label: 'Sub',
         title: 'Pick a Subcontractor',
         subtitle: 'Choose from your trusted subs — with their profile and track record.',
         duration: 4500,
@@ -199,6 +203,8 @@ export default function Subcontractors() {
         ),
       },
       {
+        icon: '💬',
+        label: 'Send',
         title: 'Send via WhatsApp',
         subtitle: 'A ready-made message is sent with all the lead details and deal terms.',
         duration: 5000,
@@ -236,6 +242,8 @@ export default function Subcontractors() {
         ),
       },
       {
+        icon: '🤝',
+        label: 'Deal',
         title: 'Set the Deal Terms',
         subtitle: 'Choose how you split — percentage, fixed price, or custom.',
         duration: 4500,
@@ -280,6 +288,8 @@ export default function Subcontractors() {
         ),
       },
       {
+        icon: '📊',
+        label: 'Track',
         title: 'Track in Your Jobs Dashboard',
         subtitle: 'Monitor every job — status, payments, and sub performance.',
         duration: 5000,

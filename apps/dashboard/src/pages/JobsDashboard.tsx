@@ -189,6 +189,8 @@ export default function JobsDashboard() {
   if (!canManageSubs) {
     const teaserSteps = [
       {
+        icon: '📋',
+        label: 'Dashboard',
         title: 'Your Jobs Dashboard',
         subtitle: 'Track every forwarded job — status, payments, and sub performance at a glance.',
         duration: 5000,
@@ -249,6 +251,8 @@ export default function JobsDashboard() {
         ),
       },
       {
+        icon: '🔍',
+        label: 'Details',
         title: 'Job Detail Panel',
         subtitle: 'Click any job to see full details — timeline, financials, and sub info.',
         duration: 4500,
@@ -302,6 +306,8 @@ export default function JobsDashboard() {
         ),
       },
       {
+        icon: '💰',
+        label: 'Finance',
         title: 'Financial Overview',
         subtitle: 'Track revenue, payments, and overdue invoices across all your jobs.',
         duration: 4500,
@@ -354,6 +360,8 @@ export default function JobsDashboard() {
         ),
       },
       {
+        icon: '🔗',
+        label: 'Portal',
         title: 'Sub Portal Access',
         subtitle: 'Your subs get a one-click portal to view, accept, and update jobs.',
         duration: 4500,
