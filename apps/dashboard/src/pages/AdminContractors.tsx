@@ -1,5 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useI18n } from '../lib/i18n'
+import { useAuth } from '../lib/auth'
 import { supabase } from '../lib/supabase'
 import {
   Users,
@@ -14,6 +16,7 @@ import {
   Download,
   UserPlus,
   Send,
+  Eye,
 } from 'lucide-react'
 
 const BOT_NAME = 'LeadExpressBot'
@@ -51,6 +54,8 @@ function qrUrl(data: string, size = 300): string {
 
 export default function AdminContractors() {
   const { locale } = useI18n()
+  const { impersonate } = useAuth()
+  const navigate = useNavigate()
   const isRtl = locale === 'he'
 
   const [contractors, setContractors] = useState<Contractor[]>([])
@@ -305,24 +310,41 @@ export default function AdminContractors() {
                       </span>
                     </td>
                     <td className="px-4 py-3">
-                      {!c.profiles?.telegram_chat_id && (
+                      <div className="flex items-center gap-2">
                         <button
-                          onClick={() => generateQr(c)}
+                          onClick={async () => {
+                            await impersonate(c.user_id)
+                            navigate('/')
+                          }}
+                          title={isRtl ? 'התחבר בתור קבלן' : 'Login As'}
                           className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all hover:scale-[1.02]"
                           style={{
-                            background: 'hsl(155 44% 30%)',
+                            background: 'hsl(220 60% 50%)',
                             color: 'white',
                           }}
                         >
-                          <QrCode className="w-3.5 h-3.5" />
-                          {isRtl ? 'צור QR' : 'Generate QR'}
+                          <Eye className="w-3.5 h-3.5" />
+                          {isRtl ? 'צפה' : 'View As'}
                         </button>
-                      )}
-                      {c.profiles?.telegram_chat_id && (
-                        <span className="text-xs" style={{ color: 'hsl(40 4% 55%)' }}>
-                          ID: {c.profiles.telegram_chat_id}
-                        </span>
-                      )}
+                        {!c.profiles?.telegram_chat_id && (
+                          <button
+                            onClick={() => generateQr(c)}
+                            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all hover:scale-[1.02]"
+                            style={{
+                              background: 'hsl(155 44% 30%)',
+                              color: 'white',
+                            }}
+                          >
+                            <QrCode className="w-3.5 h-3.5" />
+                            {isRtl ? 'צור QR' : 'Generate QR'}
+                          </button>
+                        )}
+                        {c.profiles?.telegram_chat_id && (
+                          <span className="text-xs" style={{ color: 'hsl(40 4% 55%)' }}>
+                            ID: {c.profiles.telegram_chat_id}
+                          </span>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))
