@@ -779,27 +779,9 @@ export default function ContractorDashboard() {
       <UpsellModal
         isOpen={showUpsell}
         onClose={() => setShowUpsell(false)}
-        title={
-          upsellContext === 'zones'
-            ? { en: 'Need more zones?', he: 'צריך עוד אזורים?' }
-            : upsellContext === 'professions'
-            ? { en: 'Need more trades?', he: 'צריך עוד מקצועות?' }
-            : undefined
-        }
-        message={
-          upsellContext === 'zones'
-            ? { en: 'You\'ve reached your plan\'s zone limit. Upgrade to cover more service areas and get more leads.', he: 'הגעת למגבלת האזורים בתוכנית שלך. שדרג כדי לכסות עוד אזורי שירות ולקבל עוד לידים.' }
-            : upsellContext === 'professions'
-            ? { en: 'You\'ve reached your plan\'s profession limit. Upgrade to add more trades and get more leads.', he: 'הגעת למגבלת המקצועות בתוכנית שלך. שדרג כדי להוסיף עוד מקצועות ולקבל עוד לידים.' }
-            : undefined
-        }
-        featureHighlight={
-          upsellContext === 'zones'
-            ? `${zipCodes.length}/${planLimits.maxZipCodes} zones used`
-            : upsellContext === 'professions'
-            ? `${selectedProfs.length}/${planLimits.maxProfessions} trades used`
-            : undefined
-        }
+        currentPlan={planName.toLowerCase()}
+        context={upsellContext}
+        currentUsage={{ professions: selectedProfs.length, zips: zipCodes.length }}
       />
     </div>
   )
