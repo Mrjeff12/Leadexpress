@@ -37,6 +37,8 @@ interface RawMessagePayload {
   senderId?: string;     // e.g. "972501234567@c.us"
   timestamp: number;     // unix epoch
   accountId: string;     // wa_accounts.id UUID
+  quotedMessageId?: string | null;
+  quotedText?: string | null;
 }
 
 // ---- Pipeline event logger ----
@@ -122,7 +124,7 @@ async function processJob(job: Job<RawMessagePayload>): Promise<void> {
   });
 
   // ---- parse with OpenAI ----
-  const { parsed, usage, durationMs } = await parseMessage(text, jobLog);
+  const { parsed, usage, durationMs } = await parseMessage(text, jobLog, job.data.quotedText);
 
   // ---- log: ai_parsed ----
   await logPipelineEvent('ai_parsed', {
@@ -140,15 +142,51 @@ async function processJob(job: Job<RawMessagePayload>): Promise<void> {
 
   // ---- skip non-leads ----
   if (!parsed.is_lead) {
-    jobLog.info({ durationMs }, 'Not a lead — skipping');
+    jobLog.info({ durationMs, message_type: parsed.message_type }, 'Not a lead');
 
-    await logPipelineEvent('no_lead', {
-      groupId,
-      waMessageId: messageId,
-      senderId,
-      accountId,
-      detail: { reason: 'ai_classified_not_lead', durationMs },
-    });
+    // Save contractor responses to group_responses table
+    if (parsed.message_type === 'contractor_response') {
+      const groupUuid = await resolveGroupUuid(groupId);
+      if (groupUuid) {
+        // Try to link to the quoted lead
+        let linkedLeadId: string | null = null;
+        if (job.data.quotedMessageId) {
+          const { data: linkedLead } = await supabase
+            .from('leads')
+            .select('id')
+            .eq('wa_message_id', job.data.quotedMessageId)
+            .maybeSingle();
+          if (linkedLead) linkedLeadId = linkedLead.id;
+        }
+
+        await supabase.from('group_responses').insert({
+          group_id: groupUuid,
+          wa_message_id: messageId,
+          sender_id: senderId || 'unknown',
+          message: text.slice(0, 500),
+          quoted_message_id: job.data.quotedMessageId || null,
+          linked_lead_id: linkedLeadId,
+        });
+
+        await logPipelineEvent('response_captured', {
+          groupId,
+          waMessageId: messageId,
+          senderId,
+          accountId,
+          detail: { linked_lead_id: linkedLeadId, has_quote: !!job.data.quotedMessageId },
+        });
+
+        jobLog.info({ linkedLeadId }, 'Contractor response saved');
+      }
+    } else {
+      await logPipelineEvent('no_lead', {
+        groupId,
+        waMessageId: messageId,
+        senderId,
+        accountId,
+        detail: { reason: 'ai_classified_not_lead', durationMs },
+      });
+    }
     return;
   }
 
