@@ -1,8 +1,17 @@
 import { Check } from 'lucide-react'
 import { useLang } from '../i18n/LanguageContext'
 
+const DASHBOARD_URL = 'https://app.leadexpress.co.il'
+
+const PLAN_SLUGS = ['starter', 'pro', 'unlimited']
+
 export default function PricingSection() {
   const { t } = useLang()
+
+  function handlePlanClick(index: number) {
+    const slug = PLAN_SLUGS[index] || 'starter'
+    window.location.href = `${DASHBOARD_URL}/login?mode=signup&plan=${slug}`
+  }
 
   return (
     <section id="pricing" className="section-padding bg-cream">
@@ -44,7 +53,8 @@ export default function PricingSection() {
                 </div>
 
                 <button
-                  className={`w-full py-3 rounded-full text-sm font-semibold transition-all duration-300 mb-6 ${
+                  onClick={() => handlePlanClick(i)}
+                  className={`w-full py-3 rounded-full text-sm font-semibold transition-all duration-300 mb-6 cursor-pointer ${
                     isPopular
                       ? 'bg-white text-primary hover:bg-white/90'
                       : 'border border-dark/10 hover:bg-dark hover:text-white'

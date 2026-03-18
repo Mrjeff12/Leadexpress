@@ -19,8 +19,8 @@ import {
 } from 'lucide-react'
 
 const PLAN_LIMITS: Record<string, { professions: number; zips: number }> = {
-  Starter: { professions: 3, zips: 10 },
-  Pro: { professions: -1, zips: 25 },
+  Starter: { professions: 1, zips: 3 },
+  Pro: { professions: 3, zips: 8 },
   Unlimited: { professions: -1, zips: -1 },
 }
 

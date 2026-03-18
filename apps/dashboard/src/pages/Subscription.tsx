@@ -32,7 +32,7 @@ const PLAN_CONFIG: Record<string, {
 }> = {
   starter: {
     icon: Zap,
-    features: ['Up to 3 professions', 'Up to 10 zip codes', 'Email support', 'Standard delivery'],
+    features: ['Up to 1 profession', 'Up to 3 zip codes', 'Email support', 'Standard delivery'],
     gradient: 'from-slate-50 to-white',
     iconBg: 'bg-slate-100 text-slate-600',
     accentColor: 'slate',
@@ -40,10 +40,10 @@ const PLAN_CONFIG: Record<string, {
   pro: {
     icon: Star,
     badge: 'Most Popular',
-    features: ['All professions', 'Up to 25 zip codes', 'Priority support', 'Morning digest', 'Advanced analytics'],
+    features: ['Up to 3 professions', 'Up to 8 zip codes', 'Priority support', 'Morning digest', 'Advanced analytics'],
     gradient: 'from-[#fe5b25] to-[#e04d1c]',
     iconBg: 'bg-white/20 text-white',
-    accentColor: 'emerald',
+    accentColor: 'orange',
   },
   unlimited: {
     icon: Crown,

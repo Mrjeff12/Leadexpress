@@ -18,6 +18,7 @@ import TelegramConnect from './pages/TelegramConnect'
 import JobPortal from './pages/JobPortal'
 import OnboardingWizard from './pages/OnboardingWizard'
 import RequireSubscription from './components/Paywall'
+import SubscriptionBanner from './components/SubscriptionBanner'
 import { supabase } from './lib/supabase'
 import { Globe } from 'lucide-react'
 
@@ -104,6 +105,7 @@ function AppShell() {
     <div className="min-h-screen">
       <div className="le-bg" />
       <div className="le-grain" />
+      <SubscriptionBanner />
       <ImpersonationBanner />
       <Sidebar />
       <main className="relative contractor-main-content">

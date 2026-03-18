@@ -1,34 +1,50 @@
 import { useState } from 'react'
-import { Navigate } from 'react-router-dom'
+import { Navigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../lib/auth'
 import { useI18n } from '../lib/i18n'
+import { supabase } from '../lib/supabase'
 
-type Mode = 'login' | 'signup'
+type Mode = 'login' | 'signup' | 'forgot'
 
 export default function Login() {
   const { signIn, signUp, user, loading: authLoading } = useAuth()
   const { t, locale, setLocale } = useI18n()
   const isRtl = locale === 'he'
+  const [searchParams] = useSearchParams()
 
   if (!authLoading && user) return <Navigate to="/" replace />
 
-  const [mode, setMode] = useState<Mode>('login')
+  const initialMode = searchParams.get('mode') === 'signup' ? 'signup' : 'login'
+  const [mode, setMode] = useState<Mode>(initialMode)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [name, setName] = useState('')
   const [error, setError] = useState<string | null>(null)
+  const [success, setSuccess] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setError(null)
+    setSuccess(null)
     setLoading(true)
     try {
-      const result =
-        mode === 'login'
-          ? await signIn(email, password)
-          : await signUp(email, password, name)
-      if (result.error) setError(result.error)
+      if (mode === 'forgot') {
+        const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
+          redirectTo: `${window.location.origin}/login`,
+        })
+        if (resetError) {
+          setError(resetError.message)
+        } else {
+          setSuccess(isRtl ? 'קישור לאיפוס סיסמה נשלח למייל שלך' : 'Password reset link sent to your email')
+        }
+      } else {
+        const result =
+          mode === 'login'
+            ? await signIn(email, password)
+            : await signUp(email, password, name)
+        if (result.error) setError(result.error)
+      }
     } catch {
       setError('Something went wrong. Please try again.')
     } finally {
@@ -39,6 +55,7 @@ export default function Login() {
   function switchMode(next: Mode) {
     setMode(next)
     setError(null)
+    setSuccess(null)
   }
 
   return (
@@ -98,37 +115,53 @@ export default function Login() {
               </div>
 
               <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight leading-tight mb-2">
-                {mode === 'login' ? t('auth.welcomeBack') : t('auth.createAccount')}
+                {mode === 'forgot'
+                  ? (isRtl ? 'איפוס סיסמה' : 'Reset Password')
+                  : mode === 'login' ? t('auth.welcomeBack') : t('auth.createAccount')}
               </h1>
               <p className="text-gray-500 text-sm mb-7 leading-relaxed">
-                {mode === 'login' ? t('auth.loginSubtitle') : t('auth.signupSubtitle')}
+                {mode === 'forgot'
+                  ? (isRtl ? 'הזן את המייל שלך ונשלח לך קישור לאיפוס' : 'Enter your email and we\'ll send you a reset link')
+                  : mode === 'login' ? t('auth.loginSubtitle') : t('auth.signupSubtitle')}
               </p>
 
               {/* Mode tabs */}
-              <div className="flex rounded-xl bg-gray-100/80 p-1 mb-6">
-                <button
-                  type="button"
-                  onClick={() => switchMode('login')}
-                  className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all ${
-                    mode === 'login'
-                      ? 'bg-white text-gray-900 shadow-sm'
-                      : 'text-gray-400 hover:text-gray-600'
-                  }`}
-                >
-                  {t('auth.login')}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => switchMode('signup')}
-                  className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all ${
-                    mode === 'signup'
-                      ? 'bg-white text-gray-900 shadow-sm'
-                      : 'text-gray-400 hover:text-gray-600'
-                  }`}
-                >
-                  {t('auth.signup')}
-                </button>
-              </div>
+              {mode !== 'forgot' && (
+                <div className="flex rounded-xl bg-gray-100/80 p-1 mb-6">
+                  <button
+                    type="button"
+                    onClick={() => switchMode('login')}
+                    className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all ${
+                      mode === 'login'
+                        ? 'bg-white text-gray-900 shadow-sm'
+                        : 'text-gray-400 hover:text-gray-600'
+                    }`}
+                  >
+                    {t('auth.login')}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => switchMode('signup')}
+                    className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all ${
+                      mode === 'signup'
+                        ? 'bg-white text-gray-900 shadow-sm'
+                        : 'text-gray-400 hover:text-gray-600'
+                    }`}
+                  >
+                    {t('auth.signup')}
+                  </button>
+                </div>
+              )}
+
+              {/* Success */}
+              {success && (
+                <div className="mb-4 rounded-xl bg-green-50 border border-green-100 px-4 py-3 text-sm text-green-700 flex items-start gap-2">
+                  <svg className="w-4 h-4 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                  </svg>
+                  {success}
+                </div>
+              )}
 
               {/* Error */}
               {error && (
@@ -172,27 +205,33 @@ export default function Login() {
                   />
                 </div>
 
-                <div>
-                  <div className="flex items-center justify-between mb-1.5">
-                    <label className="block text-sm font-medium text-gray-600">{t('auth.password')}</label>
-                    {mode === 'login' && (
-                      <button type="button" className="text-xs text-[#fe5b25] hover:text-[#e54e1a] font-medium">
-                        {t('auth.forgotPassword')}
-                      </button>
-                    )}
+                {mode !== 'forgot' && (
+                  <div>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label className="block text-sm font-medium text-gray-600">{t('auth.password')}</label>
+                      {mode === 'login' && (
+                        <button
+                          type="button"
+                          onClick={() => switchMode('forgot')}
+                          className="text-xs text-[#fe5b25] hover:text-[#e54e1a] font-medium"
+                        >
+                          {t('auth.forgotPassword')}
+                        </button>
+                      )}
+                    </div>
+                    <input
+                      type="password"
+                      required
+                      minLength={6}
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
+                      className="w-full rounded-xl border border-gray-200/80 bg-white/80 px-4 py-2.5 text-gray-900 placeholder-gray-400 transition-all focus:border-[#fe5b25]/40 focus:outline-none focus:ring-3 focus:ring-[#fe5b25]/10"
+                      placeholder="••••••••"
+                      disabled={loading}
+                    />
                   </div>
-                  <input
-                    type="password"
-                    required
-                    minLength={6}
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
-                    className="w-full rounded-xl border border-gray-200/80 bg-white/80 px-4 py-2.5 text-gray-900 placeholder-gray-400 transition-all focus:border-[#fe5b25]/40 focus:outline-none focus:ring-3 focus:ring-[#fe5b25]/10"
-                    placeholder="••••••••"
-                    disabled={loading}
-                  />
-                </div>
+                )}
 
                 <button
                   type="submit"
@@ -205,21 +244,34 @@ export default function Login() {
                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" />
                         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                       </svg>
-                      {mode === 'login' ? t('auth.login') : t('auth.signup')}
                     </span>
-                  ) : mode === 'login' ? t('auth.login') : t('auth.signup')}
+                  ) : mode === 'forgot'
+                    ? (isRtl ? 'שלח קישור לאיפוס' : 'Send Reset Link')
+                    : mode === 'login' ? t('auth.login') : t('auth.signup')}
                 </button>
               </form>
 
               <p className="text-center text-sm text-gray-400 mt-6">
-                {mode === 'login' ? t('auth.no_account') : t('auth.has_account')}{' '}
-                <button
-                  type="button"
-                  onClick={() => switchMode(mode === 'login' ? 'signup' : 'login')}
-                  className="text-[#fe5b25] font-semibold hover:underline"
-                >
-                  {mode === 'login' ? t('auth.signup') : t('auth.login')}
-                </button>
+                {mode === 'forgot' ? (
+                  <button
+                    type="button"
+                    onClick={() => switchMode('login')}
+                    className="text-[#fe5b25] font-semibold hover:underline"
+                  >
+                    {isRtl ? 'חזרה להתחברות' : 'Back to login'}
+                  </button>
+                ) : (
+                  <>
+                    {mode === 'login' ? t('auth.no_account') : t('auth.has_account')}{' '}
+                    <button
+                      type="button"
+                      onClick={() => switchMode(mode === 'login' ? 'signup' : 'login')}
+                      className="text-[#fe5b25] font-semibold hover:underline"
+                    >
+                      {mode === 'login' ? t('auth.signup') : t('auth.login')}
+                    </button>
+                  </>
+                )}
               </p>
             </div>
 
