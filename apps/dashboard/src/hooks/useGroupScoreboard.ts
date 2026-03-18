@@ -21,6 +21,8 @@ export interface GroupRow {
   messagesReceived: number
   leadsCreated: number
   messages7d: number
+  messagesPrev7d: number
+  repeatRequesters: number
   leadYield: number
   lastLeadAt: string | null
   score: GroupScoreResult
@@ -54,6 +56,22 @@ async function fetchScoreboardData(): Promise<GroupRow[]> {
     .eq('stage', 'received')
     .gte('created_at', sevenDaysAgo)
 
+  // Previous week (7-14 days ago)
+  const fourteenDaysAgo = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString()
+  const { data: prevWeek } = await supabase
+    .from('pipeline_events')
+    .select('group_id')
+    .in('group_id', groupIds)
+    .eq('stage', 'received')
+    .gte('created_at', fourteenDaysAgo)
+    .lt('created_at', sevenDaysAgo)
+
+  // Repeat requesters
+  const { data: repeats } = await supabase
+    .from('leads')
+    .select('group_id, sender_id')
+    .in('group_id', groupIds)
+
   // 4. Latest lead per group
   const { data: latestLeads } = await supabase
     .from('leads')
@@ -75,6 +93,25 @@ async function fetchScoreboardData(): Promise<GroupRow[]> {
   recent?.forEach((e: any) => {
     msgs7d[e.group_id] = (msgs7d[e.group_id] || 0) + 1
   })
+
+  const msgsPrev7d: Record<string, number> = {}
+  prevWeek?.forEach((e: any) => {
+    msgsPrev7d[e.group_id] = (msgsPrev7d[e.group_id] || 0) + 1
+  })
+
+  const repeatCounts: Record<string, number> = {}
+  if (repeats) {
+    const senderGroups: Record<string, Record<string, number>> = {}
+    repeats.forEach((r: any) => {
+      if (!r.sender_id) return
+      const key = r.group_id
+      if (!senderGroups[key]) senderGroups[key] = {}
+      senderGroups[key][r.sender_id] = (senderGroups[key][r.sender_id] || 0) + 1
+    })
+    Object.entries(senderGroups).forEach(([gid, senders]) => {
+      repeatCounts[gid] = Object.values(senders).filter(c => c >= 2).length
+    })
+  }
 
   latestLeads?.forEach((l: any) => {
     if (!lastLead[l.group_id]) lastLead[l.group_id] = l.created_at
@@ -112,6 +149,8 @@ async function fetchScoreboardData(): Promise<GroupRow[]> {
       messagesReceived,
       leadsCreated,
       messages7d: messages7d_count,
+      messagesPrev7d: msgsPrev7d[g.id] || 0,
+      repeatRequesters: repeatCounts[g.id] || 0,
       leadYield,
       lastLeadAt,
       score,
