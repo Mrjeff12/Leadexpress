@@ -96,7 +96,7 @@ function Pipeline({ progress }: { progress: number }) {
 /* ─── UI Components ─── */
 function LeadCard({ scale = 1, x = 0, y = 0, opacity = 1, rotate = 0 }: { scale?: number; x?: number; y?: number; opacity?: number; rotate?: number }) {
   return (
-    <div style={{ transform: `perspective(800px) scale(${scale}) translate(${x}px,${y}px) rotateX(${rotate}deg)`, opacity, background: '#fff', borderRadius: 20, overflow: 'hidden', width: 420, boxShadow: '0 20px 60px rgba(0,0,0,0.4)' }}>
+    <div style={{ transform: `perspective(800px) scale(${scale}) translate(${x}px,${y}px) rotateX(${rotate}deg)`, opacity, background: '#fff', borderRadius: 22, overflow: 'hidden', width: 520, boxShadow: '0 20px 60px rgba(0,0,0,0.4)' }}>
       <div style={{ display: 'flex' }}>
         <div style={{ width: 85, padding: '14px 10px', background: 'rgba(0,0,0,0.02)', borderRight: '1px solid rgba(0,0,0,0.04)', display: 'flex', flexDirection: 'column', gap: 4 }}>
           <span style={{ fontSize: 11, fontWeight: 800, color: '#FF3B30' }}>🔥 Hot</span>
@@ -119,7 +119,7 @@ function LeadCard({ scale = 1, x = 0, y = 0, opacity = 1, rotate = 0 }: { scale?
 
 function SubCard({ scale = 1, x = 0, y = 0, opacity = 1 }: { scale?: number; x?: number; y?: number; opacity?: number }) {
   return (
-    <div style={{ transform: `scale(${scale}) translate(${x}px,${y}px)`, opacity, background: '#fff', borderRadius: 14, padding: 14, width: 240, border: '2px solid #fe5b25', boxShadow: '0 12px 40px rgba(254,91,37,0.15)' }}>
+    <div style={{ transform: `scale(${scale}) translate(${x}px,${y}px)`, opacity, background: '#fff', borderRadius: 16, padding: 16, width: 300, border: '2px solid #fe5b25', boxShadow: '0 12px 40px rgba(254,91,37,0.15)' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
         <div style={{ width: 36, height: 36, borderRadius: 18, background: 'linear-gradient(135deg,#fee8df,#fff4ef)', border: '1.5px solid #fdd5c5', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, color: '#e04d1c' }}>MJ</div>
         <div><div style={{ fontSize: 12, fontWeight: 600, color: '#1a1a1a' }}>Mike Johnson</div><div style={{ fontSize: 9, color: '#999' }}>🔧 Plumbing · 3 jobs</div></div>
@@ -139,7 +139,7 @@ function Arrow({ opacity = 1, scale = 1 }: { opacity?: number; scale?: number })
 
 function WhatsAppBubble({ opacity = 1, scale = 1, y = 0 }: { opacity?: number; scale?: number; y?: number }) {
   return (
-    <div style={{ opacity, transform: `scale(${scale}) translateY(${y}px)`, width: 380, borderRadius: 16, overflow: 'hidden', boxShadow: '0 20px 60px rgba(0,0,0,0.4)' }}>
+    <div style={{ opacity, transform: `scale(${scale}) translateY(${y}px)`, width: 470, borderRadius: 18, overflow: 'hidden', boxShadow: '0 20px 60px rgba(0,0,0,0.4)' }}>
       <div style={{ background: 'linear-gradient(135deg,#075E54,#128C7E)', padding: '10px 14px', display: 'flex', alignItems: 'center', gap: 10 }}>
         <div style={{ width: 30, height: 30, borderRadius: 15, background: 'rgba(255,255,255,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 10, fontWeight: 700 }}>MJ</div>
         <div><div style={{ color: '#fff', fontSize: 12, fontWeight: 600 }}>Mike Johnson</div><div style={{ color: '#a8d8b4', fontSize: 9 }}>online</div></div>
@@ -164,13 +164,13 @@ function WhatsAppBubble({ opacity = 1, scale = 1, y = 0 }: { opacity?: number; s
 
 function DealBadge({ opacity = 1, scale = 1, y = 0 }: { opacity?: number; scale?: number; y?: number }) {
   return (
-    <div style={{ opacity, transform: `scale(${scale}) translateY(${y}px)`, background: '#fff', borderRadius: 16, padding: 20, width: 320, boxShadow: '0 20px 60px rgba(0,0,0,0.3)', textAlign: 'center' }}>
-      <div style={{ fontSize: 32, marginBottom: 4 }}>🤝</div>
-      <div style={{ fontSize: 16, fontWeight: 800, color: '#1a1a1a', marginBottom: 4 }}>Deal Accepted!</div>
+    <div style={{ opacity, transform: `scale(${scale}) translateY(${y}px)`, background: '#fff', borderRadius: 18, padding: 24, width: 400, boxShadow: '0 20px 60px rgba(0,0,0,0.3)', textAlign: 'center' }}>
+      <div style={{ fontSize: 40, marginBottom: 6 }}>🤝</div>
+      <div style={{ fontSize: 20, fontWeight: 800, color: '#1a1a1a', marginBottom: 6 }}>Deal Accepted!</div>
       <div style={{ display: 'flex', justifyContent: 'center', gap: 16, marginTop: 10 }}>
-        <div><div style={{ fontSize: 18, fontWeight: 800, color: '#15803d' }}>20%</div><div style={{ fontSize: 9, color: '#999' }}>Your cut</div></div>
+        <div><div style={{ fontSize: 24, fontWeight: 800, color: '#15803d' }}>20%</div><div style={{ fontSize: 11, color: '#999' }}>Your cut</div></div>
         <div style={{ width: 1, background: '#eee' }} />
-        <div><div style={{ fontSize: 18, fontWeight: 800, color: '#e04d1c' }}>$240</div><div style={{ fontSize: 9, color: '#999' }}>Estimated</div></div>
+        <div><div style={{ fontSize: 24, fontWeight: 800, color: '#e04d1c' }}>$240</div><div style={{ fontSize: 11, color: '#999' }}>Estimated</div></div>
       </div>
       <div style={{ marginTop: 12, padding: '6px 14px', background: '#dcfce7', borderRadius: 8, display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11, fontWeight: 600, color: '#15803d' }}>✅ Forwarded to Mike Johnson</div>
     </div>
@@ -181,7 +181,7 @@ function DashboardView({ opacity = 1, scale = 1, y = 0 }: { opacity?: number; sc
   const frame = useCurrentFrame()
   const { fps } = useVideoConfig()
   return (
-    <div style={{ opacity, transform: `scale(${scale}) translateY(${y}px)`, width: 520 }}>
+    <div style={{ opacity, transform: `scale(${scale}) translateY(${y}px)`, width: 650 }}>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: 7, marginBottom: 10 }}>
         {[{ l: 'Total', v: '12', bg: 'linear-gradient(135deg,#fff4ef,#fee8df)', b: '#fdd5c5' }, { l: 'Active', v: '5', bg: '#eef2ff', b: '#c7d2fe' }, { l: 'Done', v: '6', bg: '#ecfdf5', b: '#a7f3d0' }, { l: 'Revenue', v: '$4.2k', bg: '#fffbeb', b: '#fde68a' }].map((s, i) => {
           const kIn = sp(frame, fps, 6 + i * 6)

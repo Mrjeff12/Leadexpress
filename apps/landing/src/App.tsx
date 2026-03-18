@@ -36,7 +36,7 @@ export default function App() {
         <TestimonialsSection />
         <PricingSection />
         <FAQSection />
-        {/* <CTASection /> */}
+        <CTASection />
         <Footer />
       </div>
     </LanguageProvider>
