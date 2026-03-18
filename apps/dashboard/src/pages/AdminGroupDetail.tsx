@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import {
   BarChart,
@@ -12,7 +12,9 @@ import {
   CartesianGrid,
 } from 'recharts'
 import { useI18n } from '../lib/i18n'
-import { useGroupDetail } from '../hooks/useGroupDetail'
+import { supabase } from '../lib/supabase'
+import { queryClient } from '../lib/queryClient'
+import { useGroupDetail, type MemberRow } from '../hooks/useGroupDetail'
 import { computeGroupScore, getScoreColorClass } from '../lib/group-score'
 import {
   ArrowLeft,
@@ -32,6 +34,29 @@ const stageLabels: Record<string, { en: string; he: string; color: string }> = {
   sender_filtered: { en: 'Seller Filtered', he: 'שולח מוכר', color: 'hsl(0 60% 55%)' },
   no_lead: { en: 'Not a Lead', he: 'לא ליד', color: 'hsl(40 80% 50%)' },
   lead_created: { en: 'Lead Created', he: 'ליד נוצר', color: 'hsl(155 44% 45%)' },
+}
+
+/* ── Classification styles ────────────────────────────── */
+
+const classificationStyle: Record<string, { bg: string; text: string; label_en: string; label_he: string }> = {
+  buyer: { bg: 'hsl(152 46% 85% / 0.5)', text: 'hsl(155 44% 30%)', label_en: 'Buyer', label_he: 'קונה' },
+  seller: { bg: 'hsl(0 80% 93% / 0.5)', text: 'hsl(0 60% 50%)', label_en: 'Seller', label_he: 'מוכר' },
+  bot: { bg: 'hsl(40 4% 90%)', text: 'hsl(40 4% 42%)', label_en: 'Bot', label_he: 'בוט' },
+  admin: { bg: 'hsl(220 60% 92% / 0.5)', text: 'hsl(220 60% 44%)', label_en: 'Admin', label_he: 'מנהל' },
+  unknown: { bg: 'hsl(40 4% 94%)', text: 'hsl(40 4% 55%)', label_en: 'Unknown', label_he: 'לא מסווג' },
+}
+
+/* ── Relative time helper ─────────────────────────────── */
+
+function relativeTime(dateStr: string | null): string {
+  if (!dateStr) return 'Never'
+  const diff = Date.now() - new Date(dateStr).getTime()
+  const hours = Math.floor(diff / (1000 * 60 * 60))
+  if (hours < 1) return 'Just now'
+  if (hours < 24) return `${hours}h ago`
+  const days = Math.floor(hours / 24)
+  if (days < 7) return `${days}d ago`
+  return `${Math.floor(days / 7)}w ago`
 }
 
 /* ── Component ─────────────────────────────────────────── */
@@ -246,11 +271,129 @@ export default function AdminGroupDetail() {
         </div>
       )}
 
-      {(tab === 'members' || tab === 'messages' || tab === 'market') && (
+      {tab === 'members' && members && (
+        <MembersTab members={members} groupId={id!} he={he} />
+      )}
+
+      {(tab === 'messages' || tab === 'market') && (
         <div className="glass-panel p-12 text-center">
           <p style={{ color: 'hsl(40 4% 42%)' }}>Coming soon...</p>
         </div>
       )}
+    </div>
+  )
+}
+
+/* ── Members Tab sub-component ───────────────────────── */
+
+function MembersTab({ members, groupId, he }: { members: MemberRow[]; groupId: string; he: boolean }) {
+  const [sortKey, setSortKey] = useState<keyof MemberRow | 'seller_ratio'>('total_messages')
+  const [sortAsc, setSortAsc] = useState(false)
+
+  const sorted = useMemo(() => {
+    const list = [...members]
+    list.sort((a, b) => {
+      let av: number | string
+      let bv: number | string
+      if (sortKey === 'seller_ratio') {
+        av = a.total_messages > 0 ? a.service_messages / a.total_messages : 0
+        bv = b.total_messages > 0 ? b.service_messages / b.total_messages : 0
+      } else {
+        av = a[sortKey] ?? ''
+        bv = b[sortKey] ?? ''
+      }
+      if (typeof av === 'number' && typeof bv === 'number') return sortAsc ? av - bv : bv - av
+      return sortAsc ? String(av).localeCompare(String(bv)) : String(bv).localeCompare(String(av))
+    })
+    return list
+  }, [members, sortKey, sortAsc])
+
+  const toggleSort = useCallback((key: typeof sortKey) => {
+    if (sortKey === key) setSortAsc((p) => !p)
+    else { setSortKey(key); setSortAsc(false) }
+  }, [sortKey])
+
+  const handleOverride = useCallback(async (memberId: string, newValue: string) => {
+    await supabase
+      .from('group_members')
+      .update({ classification: newValue, manual_override: true })
+      .eq('id', memberId)
+    queryClient.invalidateQueries({ queryKey: ['admin', 'group-detail', groupId, 'members'] })
+  }, [groupId])
+
+  const columns: { key: typeof sortKey; label: string }[] = [
+    { key: 'display_name', label: he ? 'שם' : 'Name' },
+    { key: 'classification', label: he ? 'סיווג' : 'Classification' },
+    { key: 'total_messages', label: he ? 'הודעות' : 'Messages' },
+    { key: 'lead_messages', label: he ? 'לידים' : 'Leads' },
+    { key: 'seller_ratio', label: he ? '% מוכר' : 'Seller Ratio' },
+    { key: 'last_seen_at', label: he ? 'נראה לאחרונה' : 'Last Seen' },
+  ]
+
+  return (
+    <div className="glass-panel overflow-x-auto">
+      <table className="w-full text-sm" style={{ color: 'hsl(40 8% 10%)' }}>
+        <thead>
+          <tr style={{ borderBottom: '1px solid hsl(40 4% 88%)' }}>
+            {columns.map((col) => (
+              <th
+                key={col.key}
+                onClick={() => toggleSort(col.key)}
+                className="px-4 py-3 text-left font-medium cursor-pointer select-none whitespace-nowrap"
+                style={{ color: 'hsl(40 4% 42%)', fontSize: 12 }}
+              >
+                {col.label} {sortKey === col.key ? (sortAsc ? '↑' : '↓') : ''}
+              </th>
+            ))}
+            <th className="px-4 py-3 text-left font-medium whitespace-nowrap" style={{ color: 'hsl(40 4% 42%)', fontSize: 12 }}>
+              {he ? 'שינוי ידני' : 'Override'}
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          {sorted.map((m) => {
+            const cls = classificationStyle[m.classification] || classificationStyle.unknown
+            const sellerRatio = m.total_messages > 0 ? ((m.service_messages / m.total_messages) * 100).toFixed(1) : '0.0'
+            return (
+              <tr key={m.id} className="hover:bg-black/[0.02] transition-colors" style={{ borderBottom: '1px solid hsl(40 4% 93%)' }}>
+                <td className="px-4 py-3 whitespace-nowrap">{m.display_name || m.wa_sender_id}</td>
+                <td className="px-4 py-3">
+                  <span
+                    className="inline-block px-2 py-0.5 rounded-full text-xs font-medium"
+                    style={{ background: cls.bg, color: cls.text }}
+                  >
+                    {he ? cls.label_he : cls.label_en}
+                  </span>
+                </td>
+                <td className="px-4 py-3 tabular-nums">{m.total_messages}</td>
+                <td className="px-4 py-3 tabular-nums">{m.lead_messages}</td>
+                <td className="px-4 py-3 tabular-nums">{sellerRatio}%</td>
+                <td className="px-4 py-3 whitespace-nowrap" style={{ color: 'hsl(40 4% 42%)' }}>{relativeTime(m.last_seen_at)}</td>
+                <td className="px-4 py-3">
+                  <select
+                    value={m.classification}
+                    onChange={(e) => handleOverride(m.id, e.target.value)}
+                    className="text-xs rounded border px-1.5 py-1 bg-white"
+                    style={{ borderColor: 'hsl(40 4% 82%)', color: 'hsl(40 8% 10%)' }}
+                  >
+                    <option value="buyer">{he ? 'קונה' : 'Buyer'}</option>
+                    <option value="seller">{he ? 'מוכר' : 'Seller'}</option>
+                    <option value="bot">{he ? 'בוט' : 'Bot'}</option>
+                    <option value="admin">{he ? 'מנהל' : 'Admin'}</option>
+                  </select>
+                </td>
+              </tr>
+            )
+          })}
+          {sorted.length === 0 && (
+            <tr>
+              <td colSpan={7} className="px-4 py-8 text-center" style={{ color: 'hsl(40 4% 55%)' }}>
+                {he ? 'אין חברים' : 'No members found'}
+              </td>
+            </tr>
+          )}
+        </tbody>
+      </table>
     </div>
   )
 }
