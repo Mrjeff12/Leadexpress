@@ -13,20 +13,96 @@ import { useI18n } from '../../lib/i18n'
 import { useAdminKPIs } from '../../hooks/useAdminKPIs'
 import { departments } from '../../config/departmentConfig'
 import DepartmentNode from './DepartmentNode'
-import { LogOut } from 'lucide-react'
+import {
+  LogOut,
+  Zap,
+  Users,
+  DollarSign,
+  Radio,
+  TrendingUp,
+  Wifi,
+  Activity,
+} from 'lucide-react'
 
 const nodeTypes = { department: DepartmentNode }
 
+/** Spread out more for premium feel — hexagonal-ish layout */
 const GRID_POSITIONS: [number, number][] = [
-  [0, 0],     [350, 0],     [700, 0],
-  [0, 260],   [350, 260],   [700, 260],
+  [50, 0],      [440, -20],    [830, 0],
+  [50, 320],    [440, 340],    [830, 320],
 ]
 
+/** Flow lines connecting related departments */
 const EDGES: Edge[] = [
-  { id: 'e-wr-cl', source: 'warroom', target: 'clients', style: { stroke: '#ff6b3530', strokeDasharray: '6 4' }, animated: false },
-  { id: 'e-ch-wr', source: 'channels', target: 'warroom', style: { stroke: '#8b5cf630', strokeDasharray: '6 4' }, animated: false },
-  { id: 'e-cl-fi', source: 'clients', target: 'finance', style: { stroke: '#10b98130', strokeDasharray: '6 4' }, animated: false },
+  {
+    id: 'e-ch-wr',
+    source: 'channels',
+    target: 'warroom',
+    type: 'smoothstep',
+    style: { stroke: '#8b5cf6', strokeWidth: 1.5, strokeDasharray: '8 4' },
+    animated: true,
+  },
+  {
+    id: 'e-wr-cl',
+    source: 'warroom',
+    target: 'clients',
+    type: 'smoothstep',
+    style: { stroke: '#ff6b35', strokeWidth: 1.5, strokeDasharray: '8 4' },
+    animated: true,
+  },
+  {
+    id: 'e-cl-fi',
+    source: 'clients',
+    target: 'finance',
+    type: 'smoothstep',
+    style: { stroke: '#10b981', strokeWidth: 1.5, strokeDasharray: '8 4' },
+    animated: true,
+  },
+  {
+    id: 'e-fi-in',
+    source: 'finance',
+    target: 'intel',
+    type: 'smoothstep',
+    style: { stroke: '#f59e0b', strokeWidth: 1.5, strokeDasharray: '8 4' },
+    animated: true,
+  },
 ]
+
+/* ─── KPI Pill for top bar ─── */
+function KpiPill({ icon: Icon, label, value, color }: {
+  icon: React.ComponentType<{ className?: string }>
+  label: string
+  value: string | number
+  color: string
+}) {
+  return (
+    <div
+      className="flex items-center gap-3 px-4 py-2 rounded-lg"
+      style={{
+        background: `${color}08`,
+        border: `1px solid ${color}20`,
+      }}
+    >
+      <Icon className="w-4 h-4 shrink-0" style={{ color }} />
+      <div className="flex flex-col">
+        <span className="text-[9px] text-white/35 uppercase tracking-[0.12em] leading-none">{label}</span>
+        <span className="text-[18px] font-black tabular-nums leading-tight text-white">{value}</span>
+      </div>
+    </div>
+  )
+}
+
+/* ─── Bottom stat cell ─── */
+function BottomStat({ label, value, color }: { label: string; value: string | number; color?: string }) {
+  return (
+    <div className="flex flex-col items-center px-4">
+      <span className="text-[22px] font-black tabular-nums" style={{ color: color ?? '#fff' }}>
+        {value}
+      </span>
+      <span className="text-[9px] text-white/30 uppercase tracking-[0.15em]">{label}</span>
+    </div>
+  )
+}
 
 export default function AdminCanvas() {
   const { profile, signOut } = useAuth()
@@ -49,27 +125,62 @@ export default function AdminCanvas() {
 
   const onNodeClick = useCallback(() => {}, [])
 
+  const totalLeads = Number(kpis.hotLeads ?? 0) + Number(kpis.leadsToday ?? 0)
+  const mrr = kpis.mrr ?? 0
+  const activeContractors = kpis.activeContractors ?? 0
+  const waConnected = kpis.waConnected ?? 0
+  const activeGroups = kpis.activeGroups ?? 0
+  const convRate = kpis.conversionRate ?? 0
+  const activeSubs = kpis.activeSubs ?? 0
+  const scansPending = kpis.scansPending ?? 0
+
   return (
-    <div className="h-screen w-screen" style={{ background: '#0f0f1a' }}>
-      <div className="absolute top-0 left-0 right-0 z-10 flex items-center justify-between px-6 py-4">
-        <div className="flex items-center gap-3">
-          <img src="/icon.png" alt="Lead Express" className="w-9 h-9 rounded-xl shadow-lg" />
-          <div>
-            <div className="text-white font-bold text-[15px]">Lead Express</div>
-            <div className="text-white/30 text-[10px] font-bold tracking-widest uppercase">
-              {he ? 'מרכז שליטה' : 'Control Center'}
+    <div className="h-screen w-screen flex flex-col" style={{ background: '#08081a' }}>
+
+      {/* ═══════════════ TOP BAR ═══════════════ */}
+      <div
+        className="shrink-0 flex items-center justify-between px-5 h-16 z-10 relative"
+        style={{
+          background: 'linear-gradient(180deg, #0f0f24 0%, #0a0a1a 100%)',
+          borderBottom: '1px solid rgba(255,255,255,0.06)',
+          boxShadow: '0 4px 30px rgba(0,0,0,0.4)',
+        }}
+      >
+        {/* Left: Logo + Performance badge */}
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2.5">
+            <img src="/icon.png" alt="Lead Express" className="w-8 h-8 rounded-lg" />
+            <div className="flex flex-col">
+              <span className="text-white/90 font-bold text-[13px] tracking-tight">LEAD EXPRESS</span>
+              <span className="text-[8px] text-white/20 uppercase tracking-[0.2em]">control center</span>
             </div>
           </div>
-        </div>
-        <div className="flex items-center gap-4">
-          {profile && (
-            <span className="text-white/50 text-[13px]">
-              {profile.full_name}
+          <div className="w-px h-8 bg-white/10 mx-1" />
+          <div className="flex items-center gap-1.5 px-3 py-1 rounded-md bg-emerald-500/10 border border-emerald-500/20">
+            <Activity className="w-3 h-3 text-emerald-400" />
+            <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-wider">
+              {he ? 'פעיל' : 'Live Ops'}
             </span>
+          </div>
+        </div>
+
+        {/* Center: KPI Pills */}
+        <div className="flex items-center gap-2">
+          <KpiPill icon={Zap} label={he ? 'לידים' : 'LEADS'} value={totalLeads} color="#ff6b35" />
+          <KpiPill icon={Users} label={he ? 'קבלנים' : 'CONTRACTORS'} value={activeContractors} color="#10b981" />
+          <KpiPill icon={Radio} label={he ? 'קבוצות' : 'GROUPS'} value={activeGroups} color="#8b5cf6" />
+          <KpiPill icon={TrendingUp} label={he ? 'המרה' : 'RATE'} value={`${convRate}%`} color="#f59e0b" />
+          <KpiPill icon={DollarSign} label="MRR" value={`$${Number(mrr).toLocaleString()}`} color="#22c55e" />
+        </div>
+
+        {/* Right: User + Logout */}
+        <div className="flex items-center gap-3">
+          {profile && (
+            <span className="text-white/40 text-[12px]">{profile.full_name}</span>
           )}
           <button
             onClick={signOut}
-            className="text-white/30 hover:text-white/60 transition-colors"
+            className="p-2 rounded-lg hover:bg-white/5 transition-colors text-white/25 hover:text-white/50"
             title={he ? 'התנתק' : 'Log Out'}
           >
             <LogOut className="w-4 h-4" />
@@ -77,41 +188,89 @@ export default function AdminCanvas() {
         </div>
       </div>
 
-      <ReactFlowProvider>
-        <ReactFlow
-          nodes={nodes}
-          edges={EDGES}
-          nodeTypes={nodeTypes}
-          onNodeClick={onNodeClick}
-          fitView
-          fitViewOptions={{ padding: 0.3 }}
-          minZoom={0.3}
-          maxZoom={2}
-          proOptions={{ hideAttribution: true }}
-          className="!bg-transparent"
-          zoomOnScroll
-          panOnScroll={false}
-          panOnDrag
-        >
-          <Background color="#ffffff08" gap={40} size={1} />
-          <Controls
-            showInteractive={false}
-            className="!bg-white/5 !border-white/10 !rounded-xl [&>button]:!bg-transparent [&>button]:!border-white/10 [&>button]:!text-white/40 [&>button:hover]:!bg-white/10"
-          />
-        </ReactFlow>
-      </ReactFlowProvider>
+      {/* ═══════════════ CANVAS ═══════════════ */}
+      <div className="flex-1 relative overflow-hidden">
+        <ReactFlowProvider>
+          <ReactFlow
+            nodes={nodes}
+            edges={EDGES}
+            nodeTypes={nodeTypes}
+            onNodeClick={onNodeClick}
+            fitView
+            fitViewOptions={{ padding: 0.25 }}
+            minZoom={0.2}
+            maxZoom={2.5}
+            proOptions={{ hideAttribution: true }}
+            className="!bg-transparent"
+            zoomOnScroll
+            panOnScroll={false}
+            panOnDrag
+          >
+            <Background color="#ffffff05" gap={30} size={1} />
+            <Controls
+              showInteractive={false}
+              position="bottom-left"
+              className="!bg-[#12122a] !border-white/8 !rounded-xl !shadow-2xl
+                [&>button]:!bg-transparent [&>button]:!border-white/8
+                [&>button]:!text-white/30 [&>button:hover]:!bg-white/5
+                [&>button:hover]:!text-white/60"
+            />
+          </ReactFlow>
+        </ReactFlowProvider>
 
-      <div className="absolute bottom-6 left-1/2 -translate-x-1/2 text-white/20 text-[13px]">
-        {he
-          ? 'לחץ על כרטיס להיכנס | גלול לזום | גרור להזיז'
-          : 'Click a card to enter | Scroll to zoom | Drag to pan'}
+        {/* Loading overlay */}
+        {loading && (
+          <div className="absolute inset-0 flex items-center justify-center bg-[#08081a]/80 z-20">
+            <div className="flex flex-col items-center gap-3">
+              <div className="animate-spin w-8 h-8 border-2 border-orange-500 border-t-transparent rounded-full" />
+              <span className="text-white/30 text-[11px] uppercase tracking-wider">Loading data...</span>
+            </div>
+          </div>
+        )}
       </div>
 
-      {loading && (
-        <div className="absolute inset-0 flex items-center justify-center bg-[#0f0f1a]/80 z-20">
-          <div className="animate-spin w-8 h-8 border-2 border-orange-500 border-t-transparent rounded-full" />
+      {/* ═══════════════ BOTTOM BAR ═══════════════ */}
+      <div
+        className="shrink-0 flex items-center justify-between px-6 h-14 z-10"
+        style={{
+          background: 'linear-gradient(0deg, #0a0a1a 0%, #0f0f24 100%)',
+          borderTop: '1px solid rgba(255,255,255,0.06)',
+          boxShadow: '0 -4px 30px rgba(0,0,0,0.3)',
+        }}
+      >
+        {/* Left: System status */}
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1.5">
+            <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_8px_rgba(52,211,153,0.6)]" />
+            <span className="text-[10px] text-white/40 uppercase tracking-wider">
+              {he ? 'מערכת מחוברת' : 'System Online'}
+            </span>
+          </div>
+          <div className="w-px h-4 bg-white/10" />
+          <div className="flex items-center gap-1.5">
+            <Wifi className="w-3 h-3 text-emerald-400/60" />
+            <span className="text-[10px] text-white/30">
+              {waConnected} WA
+            </span>
+          </div>
         </div>
-      )}
+
+        {/* Center: Summary stats */}
+        <div className="flex items-center gap-0 divide-x divide-white/8">
+          <BottomStat label={he ? 'לידים' : 'TOTAL LEADS'} value={totalLeads} color="#ff6b35" />
+          <BottomStat label={he ? 'מנויים' : 'ACTIVE SUBS'} value={activeSubs} color="#22c55e" />
+          <BottomStat label={he ? 'סריקות' : 'SCANS'} value={scansPending} color="#8b5cf6" />
+          <BottomStat label={he ? 'קבוצות' : 'GROUPS'} value={activeGroups} color="#3b82f6" />
+        </div>
+
+        {/* Right: Live badge */}
+        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/25">
+            <Wifi className="w-3 h-3 text-emerald-400" />
+            <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-wider">LIVE</span>
+          </div>
+        </div>
+      </div>
     </div>
   )
 }
