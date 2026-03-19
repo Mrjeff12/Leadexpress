@@ -449,10 +449,6 @@
   .prof-pill--fencing     { background: hsl(var(--prof-fencing) / 0.08); color: hsl(var(--prof-fencing)); }
   .prof-pill--cleaning    { background: hsl(var(--prof-cleaning) / 0.08); color: hsl(var(--prof-cleaning)); }
 
-  /* ─── Admin Layout Main Content ─── */
-  .admin-main-content { padding-inline-start: 264px; }
-  body.sidebar-collapsed .admin-main-content { padding-inline-start: 72px; }
-
   /* ─── Contractor Layout Main Content ─── */
   .contractor-main-content {
     padding-inline-start: 252px;
