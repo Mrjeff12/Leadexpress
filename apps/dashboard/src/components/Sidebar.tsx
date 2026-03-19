@@ -2,6 +2,7 @@ import { NavLink, useLocation } from 'react-router-dom'
 import { useAuth } from '../lib/auth'
 import { useI18n } from '../lib/i18n'
 import { useSubscriptionAccess } from '../hooks/useSubscriptionAccess'
+import { supabase } from '../lib/supabase'
 import {
   LayoutDashboard,
   Zap,
@@ -13,6 +14,15 @@ import {
   Settings,
   CreditCard,
   Lock,
+  Handshake,
+  UserPlus,
+  MessageSquare,
+  Wallet,
+  Share2,
+  ArrowLeftRight,
+  MessageSquarePlus,
+  FileText,
+  Plus,
 } from 'lucide-react'
 import { useState, useEffect } from 'react'
 
@@ -24,12 +34,26 @@ type NavItem = {
 }
 
 export default function Sidebar() {
-  const { signOut, profile } = useAuth()
+  const { signOut, profile, effectiveUserId, activeRole, switchRole, isPublisher, addPublisherRole } = useAuth()
   const { t, locale } = useI18n()
   const { canManageSubs } = useSubscriptionAccess()
   const location = useLocation()
   const [collapsed, setCollapsed] = useState(false)
+  const [isPartner, setIsPartner] = useState(false)
   const isRtl = locale === 'he'
+
+  // Check if user is an active partner
+  useEffect(() => {
+    if (!effectiveUserId) return
+    supabase
+      .from('community_partners')
+      .select('status')
+      .eq('user_id', effectiveUserId)
+      .maybeSingle()
+      .then(({ data }) => {
+        setIsPartner(data?.status === 'active')
+      })
+  }, [effectiveUserId])
 
   useEffect(() => {
     if (collapsed) document.body.classList.add('contractor-sidebar-collapsed')
@@ -43,6 +67,13 @@ export default function Sidebar() {
     { label: t('nav.subcontractors'), to: '/subcontractors', icon: Users, locked: !canManageSubs },
     { label: locale === 'he' ? 'עבודות' : 'Jobs', to: '/jobs', icon: Briefcase, locked: !canManageSubs },
   ]
+
+  const publisherNav: NavItem[] = [
+    { label: locale === 'he' ? 'פרסם עבודה' : 'Publish Job', to: '/publish', icon: MessageSquarePlus },
+    { label: locale === 'he' ? 'העבודות שלי' : 'My Published', to: '/my-published', icon: FileText },
+  ]
+
+  const activeNav = activeRole === 'publisher' ? publisherNav : contractorNav
 
   const CollapseIcon = isRtl
     ? (collapsed ? ChevronLeft : ChevronRight)
@@ -71,10 +102,10 @@ export default function Sidebar() {
     >
       {/* Logo */}
       <div className={`flex items-center gap-3 py-6 border-b border-stone-100 ${collapsed ? 'px-4 justify-center' : 'px-5'}`}>
-        <img src="/icon.png" alt="MasterLeadFlow" className="w-9 h-9 rounded-xl shrink-0 shadow-sm" />
+        <img src="/icon.png" alt="Lead Express" className="w-9 h-9 rounded-xl shrink-0 shadow-sm" />
         {!collapsed && (
           <span className="text-[15px] font-bold tracking-tight text-stone-800">
-            MasterLeadFlow
+            Lead Express
           </span>
         )}
       </div>
@@ -83,10 +114,12 @@ export default function Sidebar() {
       <nav className="flex-1 overflow-y-auto no-scrollbar px-3 py-5 space-y-0.5">
         {!collapsed && (
           <div className="text-[10px] font-bold uppercase tracking-[0.12em] px-3 mb-3 text-stone-300">
-            {locale === 'he' ? 'ראשי' : 'Main'}
+            {activeRole === 'publisher'
+              ? (locale === 'he' ? 'מפרסם' : 'Publisher')
+              : (locale === 'he' ? 'ראשי' : 'Main')}
           </div>
         )}
-        {contractorNav.map((item) => (
+        {activeNav.map((item) => (
           <NavLink
             key={item.to}
             to={item.to}
@@ -111,6 +144,84 @@ export default function Sidebar() {
             )}
           </NavLink>
         ))}
+
+        {/* Role Toggle */}
+        {!collapsed && (
+          <div className="mt-4 mb-2 px-1">
+            {isPublisher ? (
+              <button
+                onClick={() => switchRole(activeRole === 'contractor' ? 'publisher' : 'contractor')}
+                className="flex items-center gap-2 w-full px-3 py-2.5 rounded-xl text-[11px] font-medium
+                           bg-gradient-to-r from-stone-50 to-stone-100 hover:from-stone-100 hover:to-stone-150
+                           border border-stone-200 transition-all text-stone-500 hover:text-stone-700"
+              >
+                <ArrowLeftRight className="w-3.5 h-3.5" />
+                {activeRole === 'contractor'
+                  ? (locale === 'he' ? 'מצב מפרסם' : 'Switch to Publisher')
+                  : (locale === 'he' ? 'מצב קבלן' : 'Switch to Contractor')}
+              </button>
+            ) : (
+              <button
+                onClick={addPublisherRole}
+                className="flex items-center gap-2 w-full px-3 py-2.5 rounded-xl text-[11px] font-medium
+                           bg-emerald-50 hover:bg-emerald-100 border border-emerald-200
+                           transition-all text-emerald-600 hover:text-emerald-700"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                {locale === 'he' ? 'הפוך למפרסם' : 'Become a Publisher'}
+              </button>
+            )}
+          </div>
+        )}
+
+        {/* Partner Section */}
+        {isPartner ? (
+          <>
+            {!collapsed && (
+              <div className="text-[10px] font-bold uppercase tracking-[0.12em] px-3 mt-6 mb-3 text-stone-300">
+                {locale === 'he' ? 'שותף' : 'Partner'}
+              </div>
+            )}
+            {collapsed && <div className="mt-4 mb-1 border-t border-stone-100" />}
+            {([
+              { label: locale === 'he' ? 'דף שותף' : 'Partner Home', to: '/partner', icon: Handshake },
+              { label: locale === 'he' ? 'הפניות' : 'Referrals', to: '/partner/referrals', icon: UserPlus },
+              { label: locale === 'he' ? 'קהילות' : 'Communities', to: '/partner/communities', icon: MessageSquare },
+              { label: locale === 'he' ? 'ארנק' : 'Wallet', to: '/partner/wallet', icon: Wallet },
+              { label: locale === 'he' ? 'שיתוף' : 'Share', to: '/partner/share', icon: Share2 },
+            ] as NavItem[]).map((item) => (
+              <NavLink
+                key={item.to}
+                to={item.to}
+                end={item.to === '/partner'}
+                className={() => {
+                  const isActive = item.to === '/partner'
+                    ? location.pathname === '/partner'
+                    : location.pathname.startsWith(item.to)
+                  return [
+                    'sidebar-link',
+                    isActive ? 'active' : '',
+                    collapsed ? 'justify-center px-0' : '',
+                  ].join(' ')
+                }}
+                title={item.label}
+              >
+                <item.icon className="w-[18px] h-[18px] shrink-0" />
+                {!collapsed && <span className="truncate">{item.label}</span>}
+              </NavLink>
+            ))}
+          </>
+        ) : (
+          !collapsed && (
+            <NavLink
+              to="/partner/join"
+              className="flex items-center gap-2 px-3 py-2 mt-6 rounded-xl text-[11px] font-medium text-stone-400 hover:text-[#fe5b25] hover:bg-[#fff4ef] transition-all"
+            >
+              <Handshake className="w-4 h-4" />
+              {locale === 'he' ? 'הפוך לשותף' : 'Become a Partner'}
+            </NavLink>
+          )
+        )}
       </nav>
 
       {/* Footer — Profile + Account */}

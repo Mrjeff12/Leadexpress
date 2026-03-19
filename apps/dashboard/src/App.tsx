@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
-import { useState, useEffect, useCallback, type ReactNode } from 'react'
+import { lazy, Suspense, useState, useEffect, useCallback, type ReactNode } from 'react'
 import { AuthProvider, useAuth } from './lib/auth'
 import { I18nContext, createTranslator, isRtl, type Locale } from './lib/i18n'
 import { Toaster } from './components/shadcn/ui/toaster'
@@ -7,22 +7,30 @@ import { GlobalNotificationListener } from './components/GlobalNotificationListe
 import ErrorBoundary from './components/ErrorBoundary'
 import Sidebar from './components/Sidebar'
 import ImpersonationBanner from './components/ImpersonationBanner'
-import AdminLayout from './components/AdminLayout'
 import Login from './pages/Login'
-import ContractorDashboard from './pages/ContractorDashboard'
-import ContractorGroupScan from './pages/ContractorGroupScan'
-import LeadsFeed from './pages/LeadsFeed'
-import Subcontractors from './pages/Subcontractors'
-import Profile from './pages/Profile'
-import Subscription from './pages/Subscription'
-import TelegramConnect from './pages/TelegramConnect'
-import JobPortal from './pages/JobPortal'
-import JobsDashboard from './pages/JobsDashboard'
-import OnboardingWizard from './pages/OnboardingWizard'
 import RequireSubscription from './components/Paywall'
 import SubscriptionBanner from './components/SubscriptionBanner'
 import { supabase } from './lib/supabase'
 import { Globe } from 'lucide-react'
+
+/* ─── Lazy-loaded pages ─── */
+const AdminLayout = lazy(() => import('./components/AdminLayout'))
+const ContractorDashboard = lazy(() => import('./pages/ContractorDashboard'))
+const ContractorGroupScan = lazy(() => import('./pages/ContractorGroupScan'))
+const LeadsFeed = lazy(() => import('./pages/LeadsFeed'))
+const Subcontractors = lazy(() => import('./pages/Subcontractors'))
+const Profile = lazy(() => import('./pages/Profile'))
+const Subscription = lazy(() => import('./pages/Subscription'))
+const TelegramConnect = lazy(() => import('./pages/TelegramConnect'))
+const JobPortal = lazy(() => import('./pages/JobPortal'))
+const JobsDashboard = lazy(() => import('./pages/JobsDashboard'))
+const OnboardingWizard = lazy(() => import('./pages/OnboardingWizard'))
+const NotFound = lazy(() => import('./pages/NotFound'))
+const PublishChat = lazy(() => import('./pages/PublishChat'))
+const MyPublishedLeads = lazy(() => import('./pages/MyPublishedLeads'))
+const PartnerOnboarding = lazy(() => import('./pages/partner/PartnerOnboarding'))
+const PartnerLayout = lazy(() => import('./pages/partner/PartnerLayout'))
+import RequirePartner from './components/RequirePartner'
 
 /* ─── Auth guard ─── */
 function RequireAuth({ children }: { children: ReactNode }) {
@@ -103,6 +111,11 @@ function AppShell() {
     )
   }
 
+  // Partner onboarding is full-screen, no sidebar
+  if (location.pathname === '/partner/join') {
+    return <PartnerOnboarding />
+  }
+
   return (
     <div className="min-h-screen">
       <div className="le-bg" />
@@ -129,8 +142,12 @@ function AppShell() {
               <Route path="/subscription" element={<Subscription />} />
               <Route path="/telegram" element={<RequireSubscription><TelegramConnect /></RequireSubscription>} />
               <Route path="/onboarding" element={<RequireSubscription><OnboardingWizard /></RequireSubscription>} />
+              <Route path="/publish" element={<PublishChat />} />
+              <Route path="/my-published" element={<MyPublishedLeads />} />
+              <Route path="/partner/join" element={<PartnerOnboarding />} />
+              <Route path="/partner/*" element={<RequirePartner><PartnerLayout /></RequirePartner>} />
               <Route path="/settings" element={<Navigate to="/" replace />} />
-              <Route path="*" element={<Navigate to="/" replace />} />
+              <Route path="*" element={<NotFound />} />
             </Routes>
           </div>
         )}
@@ -183,14 +200,16 @@ function App() {
             <BrowserRouter>
               <GlobalLangToggle locale={locale} rtl={rtl} onToggle={() => handleSetLocale(locale === 'en' ? 'he' : 'en')} />
 
-              <Routes>
-                <Route path="/portal/job/:token" element={<JobPortal />} />
-                <Route path="/login" element={<Login />} />
-                <Route path="/admin/*" element={
-                  <RequireAuth><RequireAdmin><AdminLayout /></RequireAdmin></RequireAuth>
-                } />
-                <Route path="/*" element={<RequireAuth><AppShell /></RequireAuth>} />
-              </Routes>
+              <Suspense fallback={<LoadingScreen />}>
+                <Routes>
+                  <Route path="/portal/job/:token" element={<JobPortal />} />
+                  <Route path="/login" element={<Login />} />
+                  <Route path="/admin/*" element={
+                    <RequireAuth><RequireAdmin><AdminLayout /></RequireAdmin></RequireAuth>
+                  } />
+                  <Route path="/*" element={<RequireAuth><AppShell /></RequireAuth>} />
+                </Routes>
+              </Suspense>
               <Toaster />
               <GlobalNotificationListener />
             </BrowserRouter>
