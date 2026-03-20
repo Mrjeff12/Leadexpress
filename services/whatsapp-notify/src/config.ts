@@ -6,11 +6,30 @@ function required(name: string): string {
   return val;
 }
 
-export const config = {
-  redis: {
+function parseRedis() {
+  const url = process.env.REDIS_URL;
+  if (url && !process.env.REDIS_HOST) {
+    try {
+      const parsed = new URL(url);
+      const useTls = parsed.protocol === 'rediss:';
+      return {
+        host: parsed.hostname || '127.0.0.1',
+        port: Number(parsed.port || 6379),
+        password: parsed.password || undefined,
+        ...(useTls ? { tls: {} } : {}),
+      };
+    } catch { /* fall through */ }
+  }
+  return {
     host: process.env.REDIS_HOST ?? '127.0.0.1',
     port: Number(process.env.REDIS_PORT ?? 6379),
     password: process.env.REDIS_PASSWORD || undefined,
+  };
+}
+
+export const config = {
+  redis: {
+    ...parseRedis(),
     maxRetriesPerRequest: null as null, // required by BullMQ
   },
 

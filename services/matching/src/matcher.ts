@@ -98,6 +98,14 @@ export async function matchLead(
 
   if (lead.zip_code) {
     query = query.contains('zip_codes', [lead.zip_code]);
+  } else {
+    // No ZIP code — skip matching entirely to avoid flooding all contractors
+    log.warn(
+      { leadId: lead.id, profession: lead.profession },
+      'Lead has no zip_code — skipping matching (would match all contractors)',
+    );
+    await updateLeadStatus(lead.id, 'new', 0, []);
+    return 0;
   }
 
   const { data: matches, error } = await query;

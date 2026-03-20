@@ -5,6 +5,7 @@ import {
   ArrowRight, MessageCircle,
 } from 'lucide-react'
 import { useLang } from '../i18n/LanguageContext'
+import { genericAvatar } from '../utils/avatars'
 
 /* ─── Platform icons ─── */
 const WhatsAppIcon = ({ className = '' }: { className?: string }) => (
@@ -273,7 +274,7 @@ export default function NetworkSection() {
                       animationDelay: `${i * 0.3}s`,
                     }}>
                     <img
-                      src={`https://i.pravatar.cc/64?img=${p.id}`}
+                      src={genericAvatar(p.id)}
                       alt=""
                       className="w-7 h-7 md:w-9 md:h-9 rounded-full object-cover transition-all duration-300 hover:scale-125 shadow-sm"
                       style={{
@@ -356,7 +357,7 @@ export default function NetworkSection() {
                   {/* Step 3: Your Feed */}
                   <div className="flex items-center gap-2.5 px-3 py-1.5">
                     <div className="w-8 h-8 rounded-xl border-2 border-[#fe5b25] overflow-hidden" style={{ boxShadow: '0 2px 8px rgba(254,91,37,0.15)' }}>
-                      <img src="https://i.pravatar.cc/32?img=11" alt="" className="w-full h-full object-cover" />
+                      <img src={genericAvatar(11)} alt="" className="w-full h-full object-cover" />
                     </div>
                     <div>
                       <p className="text-[11px] font-bold text-dark leading-none">Your Feed</p>

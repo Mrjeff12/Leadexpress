@@ -97,6 +97,39 @@ Return JSON only, no markdown.`;
 
 const openai = new OpenAI({ apiKey: config.openai.apiKey });
 
+const MAX_RETRIES = 3;
+
+async function callOpenAIWithRetry(
+  userMessage: string,
+  log: Logger,
+): Promise<OpenAI.Chat.Completions.ChatCompletion> {
+  for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+    try {
+      return await openai.chat.completions.create({
+        model: config.openai.model,
+        response_format: { type: 'json_object' },
+        messages: [
+          { role: 'system', content: SYSTEM_PROMPT },
+          { role: 'user', content: userMessage },
+        ],
+        temperature: 0.1,
+        max_tokens: 512,
+      });
+    } catch (err: unknown) {
+      const status = (err as { status?: number }).status;
+      const isRetryable = status === 429 || status === 500 || status === 503;
+      if (isRetryable && attempt < MAX_RETRIES) {
+        const delayMs = Math.pow(2, attempt) * 1000; // 2s, 4s
+        log.warn({ attempt, status, delayMs }, 'OpenAI API error — retrying after delay');
+        await new Promise((resolve) => setTimeout(resolve, delayMs));
+        continue;
+      }
+      throw err;
+    }
+  }
+  throw new Error('Unreachable');
+}
+
 export async function parseMessage(
   text: string,
   log: Logger,
@@ -108,16 +141,7 @@ export async function parseMessage(
     ? `[Replying to: "${quotedText.slice(0, 200)}"]\n\n${text}`
     : text;
 
-  const response = await openai.chat.completions.create({
-    model: config.openai.model,
-    response_format: { type: 'json_object' },
-    messages: [
-      { role: 'system', content: SYSTEM_PROMPT },
-      { role: 'user', content: userMessage },
-    ],
-    temperature: 0.1,
-    max_tokens: 512,
-  });
+  const response = await callOpenAIWithRetry(userMessage, log);
 
   const durationMs = Math.round(performance.now() - start);
   const usage = response.usage ?? undefined;

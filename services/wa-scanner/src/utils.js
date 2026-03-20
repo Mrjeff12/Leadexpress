@@ -4,9 +4,6 @@ const { Queue } = require('bullmq')
 // ─── Environment ─────────────────────────────────────────
 const SUPABASE_URL = process.env.SUPABASE_URL
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY
-const REDIS_HOST = process.env.REDIS_HOST || 'localhost'
-const REDIS_PORT = parseInt(process.env.REDIS_PORT || '6379', 10)
-const REDIS_PASSWORD = process.env.REDIS_PASSWORD || undefined
 const ACCOUNT_ID = process.env.ACCOUNT_ID || 'scan-1'
 
 if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) {
@@ -17,11 +14,30 @@ if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) {
 // ─── Supabase ────────────────────────────────────────────
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY)
 
-// ─── BullMQ ──────────────────────────────────────────────
+// ─── Redis config (supports REDIS_URL with optional TLS) ─
+function parseRedis() {
+  const url = process.env.REDIS_URL
+  if (url && !process.env.REDIS_HOST) {
+    try {
+      const parsed = new URL(url)
+      const useTls = parsed.protocol === 'rediss:'
+      return {
+        host: parsed.hostname || 'localhost',
+        port: Number(parsed.port || 6379),
+        password: parsed.password || undefined,
+        ...(useTls ? { tls: {} } : {}),
+      }
+    } catch { /* fall through */ }
+  }
+  return {
+    host: process.env.REDIS_HOST || 'localhost',
+    port: parseInt(process.env.REDIS_PORT || '6379', 10),
+    password: process.env.REDIS_PASSWORD || undefined,
+  }
+}
+
 const redisConnection = {
-  host: REDIS_HOST,
-  port: REDIS_PORT,
-  password: REDIS_PASSWORD,
+  ...parseRedis(),
   maxRetriesPerRequest: null,
 }
 

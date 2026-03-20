@@ -20,8 +20,6 @@ import {
   DollarSign,
   XCircle,
   Clock,
-  CheckCircle2,
-  ChevronDown,
   Banknote,
 } from 'lucide-react'
 

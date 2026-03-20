@@ -4,16 +4,13 @@ import { useI18n } from '../../lib/i18n'
 import { supabase } from '../../lib/supabase'
 import {
   Handshake,
-  Users,
   Clock,
   DollarSign,
   Search,
   CheckCircle2,
-  XCircle,
   ChevronRight,
   Loader2,
   AlertCircle,
-  Eye,
   UserCheck,
   UserX,
 } from 'lucide-react'

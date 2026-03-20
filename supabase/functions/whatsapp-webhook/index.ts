@@ -16,13 +16,15 @@ const TWILIO_AUTH = 'Basic ' + btoa(`${TWILIO_SID}:${TWILIO_TOKEN}`);
 
 // ── Content Template SIDs (Quick Reply Buttons + CTA) ───────────────────────
 const CONTENT = {
-  CHECKIN:          Deno.env.get('TWILIO_CONTENT_CHECKIN')          ?? 'HXf8c273803017b584aed74e028412c9a5',
-  LEAD_NOTIFY:      Deno.env.get('TWILIO_CONTENT_LEAD_NOTIFY')      ?? 'HXa997347a85670beb8b475362c9089211',
-  LEAD_CONTACT:     Deno.env.get('TWILIO_CONTENT_LEAD_CONTACT')     ?? 'HX18a57e059d63d4ca54e07691a293cdf0',
-  CONFIRM_PROFILE:  Deno.env.get('TWILIO_CONTENT_CONFIRM_PROFILE')  ?? 'HXe4198ac8038457fb5e77c61e70d0818b',
-  WELCOME:          Deno.env.get('TWILIO_CONTENT_WELCOME_CONNECTED') ?? 'HX2dad0f39fa532b6db8483f597011ed88',
-  PAUSE_RESUME:     Deno.env.get('TWILIO_CONTENT_PAUSE_RESUME')     ?? 'HX601488e6723aed7e0871aa512551214a',
+  CHECKIN:          Deno.env.get('TWILIO_CONTENT_CHECKIN')          ?? 'HXbc2002314b4ccc42d9516b1e8fa39729',
+  LEAD_NOTIFY:      Deno.env.get('TWILIO_CONTENT_LEAD_NOTIFY')      ?? 'HX4ea56861f3586e6a3b6a00d2c04c013f',
+  LEAD_CONTACT:     Deno.env.get('TWILIO_CONTENT_LEAD_CONTACT')     ?? 'HXa91e18851fb81ed12e3de7c334c3218a',
+  CONFIRM_PROFILE:  Deno.env.get('TWILIO_CONTENT_CONFIRM_PROFILE')  ?? 'HXbfa6868f49ff1a3813767ab1005b57db',
+  WELCOME:          Deno.env.get('TWILIO_CONTENT_WELCOME_CONNECTED') ?? 'HXc09a10abda5b602d9a02ac0df544f7aa',
+  PAUSE_RESUME:     Deno.env.get('TWILIO_CONTENT_PAUSE_RESUME')     ?? 'HX7ee31519a4a677c64ed866bff6846462',
   MENU_LIST:        Deno.env.get('TWILIO_CONTENT_MENU_LIST')        ?? 'HXc4b6dadf3ec8b8f70b154a596d6fca22',
+  LEAD_NOTIFY_BTN:  Deno.env.get('TWILIO_CONTENT_LEAD_NOTIFY_BTN')  ?? 'HXadf35e4a23ae35e016827f23fde8e2d9',
+  LEAD_CLAIMED:     Deno.env.get('TWILIO_CONTENT_LEAD_CLAIMED')     ?? 'HX7b3697cc66e30d95904dd30e7ec5fb79',
 };
 
 // ── Redis-like state via Supabase (Edge Functions can't use Redis) ──────────
@@ -81,7 +83,16 @@ async function verifyTwilioSignature(
   const sig = await crypto.subtle.sign('HMAC', key, encoder.encode(data));
   const computed = btoa(String.fromCharCode(...new Uint8Array(sig)));
 
-  return computed === signature;
+  // Constant-time comparison to prevent timing attacks
+  if (computed.length !== signature.length) return false;
+  const encoder2 = new TextEncoder();
+  const a = encoder2.encode(computed);
+  const b = encoder2.encode(signature);
+  let result = 0;
+  for (let i = 0; i < a.length; i++) {
+    result |= a[i] ^ b[i];
+  }
+  return result === 0;
 }
 
 // ── Main handler ────────────────────────────────────────────────────────────
@@ -106,11 +117,18 @@ Deno.serve(async (req: Request) => {
     });
 
     // ── Twilio signature verification ──────────────────────────────────────
-    // If TWILIO_AUTH_TOKEN is not set (e.g. local dev), skip verification
-    // but log a warning. In production this env var MUST be set.
-    // TODO: Re-enable Twilio signature verification after confirming correct auth token
-    // Temporarily disabled to debug webhook connectivity
-    console.log('[webhook] Signature verification skipped (debug mode)');
+    // Skip verification only if TWILIO_AUTH_TOKEN is not set (local dev).
+    // In production this env var MUST be set.
+    if (TWILIO_TOKEN) {
+      const isValid = await verifyTwilioSignature(req, params, TWILIO_TOKEN);
+      if (!isValid) {
+        console.error('[webhook] Twilio signature verification FAILED');
+        return new Response('Forbidden', { status: 403 });
+      }
+      console.log('[webhook] Twilio signature verified');
+    } else {
+      console.warn('[webhook] TWILIO_AUTH_TOKEN not set — signature verification SKIPPED (dev mode only)');
+    }
 
     const from = params['From'] ?? '';
     const body = params['Body'] ?? '';

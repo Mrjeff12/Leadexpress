@@ -7,7 +7,6 @@ import {
   Users,
   Clock,
   DollarSign,
-  TrendingUp,
   Wallet,
   CheckCircle2,
   ArrowRight,
@@ -15,7 +14,6 @@ import {
   AlertCircle,
   Trophy,
   Activity,
-  RefreshCw,
 } from 'lucide-react'
 
 /* ── Design tokens ──────────────────────────────────────────────── */

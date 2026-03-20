@@ -10,6 +10,7 @@ import {
 } from 'lucide-react'
 import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
+import { genericAvatar } from '../utils/avatars'
 
 /* ─── Intersection Observer hook ─── */
 function useInView(threshold = 0.2) {
@@ -230,7 +231,7 @@ function PartnerHero() {
                       }`}
                         onClick={() => heroSelect(i)}>
                         <div className="relative shrink-0">
-                          <img src={`https://i.pravatar.cc/80?img=${m.id}`} alt="" className="w-10 h-10 rounded-full object-cover" />
+                          <img src={genericAvatar(m.id)} alt="" className="w-10 h-10 rounded-full object-cover" />
                           {m.online && <div className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-[#25D366] border-[1.5px] border-white" />}
                         </div>
                         <div className="flex-1 min-w-0">
@@ -273,7 +274,7 @@ function PartnerHero() {
                     </div>
                   ) : (
                     <div className="flex items-center gap-2.5">
-                      <img src={`https://i.pravatar.cc/80?img=${heroMember.id}`} alt="" className="w-10 h-10 rounded-full" />
+                      <img src={genericAvatar(heroMember.id)} alt="" className="w-10 h-10 rounded-full" />
                       <div>
                         <p className="text-[12px] font-semibold text-gray-800">{heroMember.name}</p>
                         <p className="text-[10px] text-[#25D366]">{heroMember.online ? 'online' : 'last seen today'}</p>
@@ -319,7 +320,7 @@ function PartnerHero() {
                         const tag = crmStatusTag(msg.status)
                         return (
                           <div key={i} className="flex gap-2">
-                            <img src={`https://i.pravatar.cc/40?img=${msg.avatar}`} alt="" className="w-6 h-6 rounded-full mt-0.5 shrink-0" />
+                            <img src={genericAvatar(msg.avatar)} alt="" className="w-6 h-6 rounded-full mt-0.5 shrink-0" />
                             <div className="max-w-[75%] rounded-lg rounded-tl-sm bg-white px-3 py-2 text-[11px] shadow-sm text-gray-700">
                               <span className="flex items-center gap-1">
                                 <span className={`font-bold text-[10px] ${msg.color}`}>{msg.sender}</span>
@@ -333,7 +334,7 @@ function PartnerHero() {
                       })}
                       {/* Typing indicator */}
                       <div className="flex gap-2">
-                        <img src="https://i.pravatar.cc/40?img=47" alt="" className="w-6 h-6 rounded-full mt-0.5 shrink-0" />
+                        <img src={genericAvatar(47)} alt="" className="w-6 h-6 rounded-full mt-0.5 shrink-0" />
                         <div className="rounded-lg rounded-tl-sm bg-white px-3 py-2 shadow-sm flex items-center gap-1">
                           <span className="text-[10px] text-teal-600 font-bold mr-1">Tony</span>
                           <span className="w-1.5 h-1.5 rounded-full bg-gray-400 animate-bounce" style={{ animationDelay: '0ms' }} />
@@ -417,7 +418,7 @@ function PartnerHero() {
                 ) : (
                   <>
                     <div className="p-4 flex flex-col items-center text-center border-b border-gray-100">
-                      <img src={`https://i.pravatar.cc/120?img=${heroMember.id}`} alt=""
+                      <img src={genericAvatar(heroMember.id)} alt=""
                         className="w-16 h-16 rounded-full object-cover mb-2 shadow-sm" />
                       <p className="text-[13px] font-bold text-gray-900">{heroMember.name}</p>
                       <p className="text-[10px] text-gray-400">{heroMember.profession}</p>
@@ -454,7 +455,7 @@ function PartnerHero() {
               <div className="flex items-center gap-3">
                 <div className="flex -space-x-2">
                   {[11, 33, 51, 15, 60].map(id => (
-                    <img key={id} src={`https://i.pravatar.cc/40?img=${id}`} alt="" className="w-7 h-7 rounded-full border-2 border-white object-cover" />
+                    <img key={id} src={genericAvatar(id)} alt="" className="w-7 h-7 rounded-full border-2 border-white object-cover" />
                   ))}
                   <div className="w-7 h-7 rounded-full bg-gray-200 border-2 border-white flex items-center justify-center text-[9px] font-bold text-gray-500">+578</div>
                 </div>

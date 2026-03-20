@@ -15,12 +15,9 @@ import {
   ExternalLink,
   Download,
   UserPlus,
-  Send,
   Eye,
   ChevronRight,
-  DollarSign,
   UsersRound,
-  Calendar,
   Crown,
   Zap,
   TrendingUp,
@@ -158,7 +155,6 @@ export default function AdminContractors() {
   // Helpers
   const getSub = (c: Contractor) => c.profiles?.subscriptions?.[0]
   const getPlanSlug = (c: Contractor) => getSub(c)?.plans?.slug ?? 'none'
-  const getPlanName = (c: Contractor) => getSub(c)?.plans?.name ?? 'None'
   const getSubStatus = (c: Contractor) => getSub(c)?.status ?? 'none'
   const getMonthlyFee = (c: Contractor) => { const cents = getSub(c)?.plans?.price_cents; return cents ? cents / 100 : 0 }
 

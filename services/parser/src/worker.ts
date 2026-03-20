@@ -279,7 +279,12 @@ async function processJob(job: Job<RawMessagePayload>): Promise<void> {
   }
 
   // ---- enqueue for downstream matching ----
-  await parsedLeadsQueue.add('parsed-lead', { leadId }, { removeOnComplete: 1000, removeOnFail: 5000 });
+  await parsedLeadsQueue.add('parsed-lead', { leadId }, {
+    removeOnComplete: 1000,
+    removeOnFail: 5000,
+    attempts: 3,
+    backoff: { type: 'exponential', delay: 2000 },
+  });
   jobLog.info({ leadId }, 'Pushed to parsed-leads queue');
 }
 

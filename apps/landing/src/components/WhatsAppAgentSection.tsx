@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { Bot, Mic, BarChart3, Play, Search, Share2, Sun } from 'lucide-react'
 import { useLang } from '../i18n/LanguageContext'
+import { initialsAvatar } from '../utils/avatars'
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
@@ -151,7 +152,7 @@ function VoiceWaveform() {
   )
 }
 
-const USER_AVATAR = 'https://randomuser.me/api/portraits/men/36.jpg'
+const USER_AVATAR = initialsAvatar('You', 36)
 
 function VoiceBubble({ msg, isRtl }: { msg: Message; isRtl: boolean }) {
   return (

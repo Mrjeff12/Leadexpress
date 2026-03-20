@@ -4,6 +4,7 @@ import {
   Snowflake, X, Clock, Users, CircleDollarSign,
   Briefcase, Share2,
 } from 'lucide-react'
+import { initialsAvatar } from '../utils/avatars'
 
 /* ─── Animation phases ─── */
 type Phase =
@@ -293,7 +294,7 @@ export default function PublishJobsSection() {
                         boxShadow: pi >= 5 ? '0 0 16px rgba(37,211,102,0.3)' : 'none',
                       }}
                     >
-                      <img src="https://i.pravatar.cc/80?img=33" alt="" className="w-full h-full object-cover" />
+                      <img src={initialsAvatar('David R.', 33)} alt="" className="w-full h-full object-cover" />
                     </div>
                     <div>
                       <p className="text-[13px] font-bold text-dark">David R.</p>
@@ -458,7 +459,7 @@ export default function PublishJobsSection() {
               <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-3 w-[200px]" style={{ animation: 'fadeSlideIn 0.5s ease-out' }}>
                 <div className="flex items-center gap-2 mb-2">
                   <img
-                    src="https://i.pravatar.cc/64?img=33"
+                    src={initialsAvatar('David R.', 33)}
                     alt=""
                     className="w-10 h-10 rounded-full border-2 border-[#25D366] shadow-sm"
                   />

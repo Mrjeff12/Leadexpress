@@ -21,7 +21,7 @@ export default function PricingSection() {
           <p className="text-gray-subtle/70">{t.pricing.subtitle}</p>
         </div>
 
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 max-w-4xl mx-auto">
+        <div className={`grid sm:grid-cols-2 ${t.pricing.plans.length === 3 ? 'lg:grid-cols-3' : 'lg:grid-cols-4'} gap-6 max-w-4xl mx-auto`}>
           {t.pricing.plans.map((plan, i) => {
             const isPopular = (plan as any).popular
             return (

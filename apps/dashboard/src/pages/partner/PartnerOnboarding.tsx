@@ -86,7 +86,7 @@ export default function PartnerOnboarding() {
     if (!effectiveUserId) return
     setSaving(true)
     try {
-      const { data, error } = await supabase.functions.invoke('partner-signup', {
+      const { error } = await supabase.functions.invoke('partner-signup', {
         body: {
           display_name: displayName.trim(),
           slug: slug.trim(),

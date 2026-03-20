@@ -1,7 +1,6 @@
 import { NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../lib/auth'
 import { useI18n } from '../lib/i18n'
-import { useSubscriptionAccess } from '../hooks/useSubscriptionAccess'
 import { supabase } from '../lib/supabase'
 import {
   LayoutDashboard,
@@ -16,10 +15,7 @@ import {
   Lock,
   Handshake,
   UserPlus,
-  MessageSquare,
   Wallet,
-  Share2,
-  ArrowLeftRight,
   MessageSquarePlus,
   FileText,
   Plus,
@@ -37,7 +33,6 @@ type NavItem = {
 export default function Sidebar() {
   const { signOut, profile, effectiveUserId, activeRole, switchRole, isPublisher, addPublisherRole } = useAuth()
   const { t, locale } = useI18n()
-  const { canManageSubs } = useSubscriptionAccess()
   const location = useLocation()
   const navigate = useNavigate()
   const [collapsed, setCollapsed] = useState(false)
@@ -78,13 +73,13 @@ export default function Sidebar() {
     { label: t('nav.dashboard'), to: '/', icon: LayoutDashboard },
     { label: t('nav.leads'), to: '/leads', icon: Zap },
     { label: locale === 'he' ? 'קבוצות לסריקה' : 'Group Scan', to: '/group-scan', icon: Users },
-    { label: t('nav.subcontractors'), to: '/subcontractors', icon: Users, locked: !canManageSubs },
-    { label: locale === 'he' ? 'עבודות' : 'Jobs', to: '/jobs', icon: Briefcase, locked: !canManageSubs },
   ]
 
   const publisherNav: NavItem[] = [
     { label: locale === 'he' ? 'פרסם עבודה' : 'Publish Job', to: '/publish', icon: MessageSquarePlus },
     { label: locale === 'he' ? 'העבודות שלי' : 'My Published', to: '/my-published', icon: FileText },
+    { label: t('nav.subcontractors'), to: '/subcontractors', icon: Users },
+    { label: locale === 'he' ? 'עבודות' : 'Jobs', to: '/jobs', icon: Briefcase },
   ]
 
   const partnerNav: NavItem[] = [
@@ -168,82 +163,105 @@ export default function Sidebar() {
           </NavLink>
         ))}
 
-        {/* Role Dropdown */}
-        {!collapsed && (
-          <div className="mt-4 mb-2 px-1 relative" ref={roleRef}>
-            <button
-              onClick={() => setRoleOpen(!roleOpen)}
-              className="flex items-center gap-2 w-full px-3 py-2.5 rounded-xl text-[11px] font-semibold
-                         bg-gradient-to-r from-stone-50 to-stone-100 hover:from-stone-100 hover:to-stone-150
-                         border border-stone-200 transition-all text-stone-600"
-            >
-              {inPartnerView
-                ? <><Handshake className="w-3.5 h-3.5 text-[#fe5b25]" />{locale === 'he' ? 'שותף' : 'Partner'}</>
-                : activeRole === 'publisher'
-                  ? <><FileText className="w-3.5 h-3.5 text-emerald-500" />{locale === 'he' ? 'מפרסם' : 'Publisher'}</>
-                  : <><Zap className="w-3.5 h-3.5 text-[#fe5b25]" />{locale === 'he' ? 'קבלן' : 'Contractor'}</>
-              }
-              <ChevronDown className={`w-3.5 h-3.5 text-stone-400 ms-auto transition-transform ${roleOpen ? 'rotate-180' : ''}`} />
-            </button>
-
-            {roleOpen && (
-              <div className="absolute left-0 right-0 mt-1 bg-white rounded-xl border border-stone-200 shadow-lg z-50 overflow-hidden">
-                {/* Contractor */}
-                {!(activeRole === 'contractor' && !inPartnerView) && (
-                  <button
-                    onClick={() => { setRoleOpen(false); if (inPartnerView) navigate('/'); else switchRole('contractor'); }}
-                    className="flex items-center gap-2.5 w-full px-3 py-2.5 text-[11px] font-medium text-stone-600 hover:bg-stone-50 transition-colors"
-                  >
-                    <Zap className="w-3.5 h-3.5 text-[#fe5b25]" />
-                    {locale === 'he' ? 'קבלן' : 'Contractor'}
-                  </button>
-                )}
-
-                {/* Publisher */}
-                {isPublisher && !(activeRole === 'publisher' && !inPartnerView) && (
-                  <button
-                    onClick={() => { setRoleOpen(false); if (inPartnerView) { switchRole('publisher'); navigate('/'); } else switchRole('publisher'); }}
-                    className="flex items-center gap-2.5 w-full px-3 py-2.5 text-[11px] font-medium text-stone-600 hover:bg-stone-50 transition-colors"
-                  >
-                    <FileText className="w-3.5 h-3.5 text-emerald-500" />
-                    {locale === 'he' ? 'מפרסם' : 'Publisher'}
-                  </button>
-                )}
-
-                {/* Partner */}
-                {isPartner && !inPartnerView && (
-                  <button
-                    onClick={() => { setRoleOpen(false); navigate('/partner'); }}
-                    className="flex items-center gap-2.5 w-full px-3 py-2.5 text-[11px] font-medium text-stone-600 hover:bg-stone-50 transition-colors"
-                  >
-                    <Handshake className="w-3.5 h-3.5 text-[#fe5b25]" />
-                    {locale === 'he' ? 'שותף' : 'Partner'}
-                  </button>
-                )}
-
-                {/* Become options */}
+        {/* Role Switcher */}
+        {!collapsed && (() => {
+          const currentRole = inPartnerView ? 'partner' : activeRole
+          // 2-role swipe toggle (Contractor ↔ Publisher) — no partner
+          if (!isPartner) {
+            const roles = [
+              { key: 'contractor' as const, icon: Zap, label: locale === 'he' ? 'קבלן' : 'Contractor', color: '#fe5b25' },
+              ...(isPublisher
+                ? [{ key: 'publisher' as const, icon: FileText, label: locale === 'he' ? 'מפרסם' : 'Publisher', color: '#10b981' }]
+                : []),
+            ]
+            const activeIdx = roles.findIndex(r => r.key === currentRole)
+            return roles.length > 1 ? (
+              <div className="mt-4 mb-2 px-1">
+                <div className="relative flex bg-stone-100 rounded-xl p-1 border border-stone-200/60">
+                  {/* Sliding pill */}
+                  <div
+                    className="absolute top-1 bottom-1 rounded-lg bg-white shadow-md transition-all duration-300 ease-[cubic-bezier(0.4,0,0.15,1)]"
+                    style={{
+                      width: `calc(${100 / roles.length}% - 4px)`,
+                      left: `calc(${(activeIdx < 0 ? 0 : activeIdx) * (100 / roles.length)}% + 2px)`,
+                    }}
+                  />
+                  {roles.map((role) => {
+                    const isActive = role.key === currentRole
+                    return (
+                      <button
+                        key={role.key}
+                        onClick={() => {
+                          if (role.key === currentRole) return
+                          if (inPartnerView) navigate('/')
+                          switchRole(role.key)
+                        }}
+                        className={`relative z-10 flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-[11px] font-semibold transition-colors duration-200 ${
+                          isActive ? 'text-stone-800' : 'text-stone-400 hover:text-stone-500'
+                        }`}
+                      >
+                        <role.icon className="w-3.5 h-3.5" style={{ color: isActive ? role.color : undefined }} />
+                        {role.label}
+                      </button>
+                    )
+                  })}
+                </div>
                 {!isPublisher && (
                   <button
-                    onClick={() => { setRoleOpen(false); addPublisherRole(); }}
-                    className="flex items-center gap-2.5 w-full px-3 py-2.5 text-[11px] font-medium text-emerald-500 hover:bg-emerald-50 transition-colors border-t border-stone-100"
+                    onClick={addPublisherRole}
+                    className="flex items-center justify-center gap-1.5 w-full mt-1.5 py-1.5 rounded-lg text-[10px] font-medium text-emerald-500 hover:bg-emerald-50 transition-colors"
                   >
-                    <Plus className="w-3.5 h-3.5" />
+                    <Plus className="w-3 h-3" />
                     {locale === 'he' ? 'הפוך למפרסם' : 'Become a Publisher'}
                   </button>
                 )}
-                {!isPartner && (
-                  <button
-                    onClick={() => { setRoleOpen(false); navigate('/partner/join'); }}
-                    className="flex items-center gap-2.5 w-full px-3 py-2.5 text-[11px] font-medium text-[#fe5b25] hover:bg-[#fff4ef] transition-colors border-t border-stone-100"
-                  >
-                    <Plus className="w-3.5 h-3.5" />
-                    {locale === 'he' ? 'הפוך לשותף' : 'Become a Partner'}
-                  </button>
-                )}
               </div>
-            )}
-          </div>
-        )}
+            ) : null
+          }
+          // 3-role dropdown (Partner exists in DB)
+          const roles3 = [
+            { key: 'contractor' as const, icon: Zap, label: locale === 'he' ? 'קבלן' : 'Contractor', color: '#fe5b25' },
+            ...(isPublisher
+              ? [{ key: 'publisher' as const, icon: FileText, label: locale === 'he' ? 'מפרסם' : 'Publisher', color: '#10b981' }]
+              : []),
+            { key: 'partner' as const, icon: Handshake, label: locale === 'he' ? 'שותף' : 'Partner', color: '#ec4899' },
+          ]
+          const currentDef = roles3.find(r => r.key === currentRole) || roles3[0]
+          return (
+            <div className="mt-4 mb-2 px-1 relative" ref={roleRef}>
+              <button
+                onClick={() => setRoleOpen(!roleOpen)}
+                className="flex items-center gap-2 w-full px-3 py-2.5 rounded-xl text-[11px] font-semibold
+                           bg-stone-100 hover:bg-stone-150 border border-stone-200/60 transition-all text-stone-700"
+              >
+                <currentDef.icon className="w-3.5 h-3.5" style={{ color: currentDef.color }} />
+                {currentDef.label}
+                <ChevronDown className={`w-3.5 h-3.5 text-stone-400 ms-auto transition-transform duration-200 ${roleOpen ? 'rotate-180' : ''}`} />
+              </button>
+              <div
+                className={`absolute left-0 right-0 mt-1 bg-white rounded-xl border border-stone-200 shadow-lg z-50 overflow-hidden transition-all duration-200 origin-top ${
+                  roleOpen ? 'opacity-100 scale-y-100' : 'opacity-0 scale-y-75 pointer-events-none'
+                }`}
+              >
+                {roles3.filter(r => r.key !== currentRole).map((role) => (
+                  <button
+                    key={role.key}
+                    onClick={() => {
+                      setRoleOpen(false)
+                      if (role.key === 'partner') { navigate('/partner'); return }
+                      if (inPartnerView) navigate('/')
+                      switchRole(role.key)
+                    }}
+                    className="flex items-center gap-2.5 w-full px-3 py-2.5 text-[11px] font-medium text-stone-600 hover:bg-stone-50 transition-colors"
+                  >
+                    <role.icon className="w-3.5 h-3.5" style={{ color: role.color }} />
+                    {role.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )
+        })()}
       </nav>
 
       {/* Footer — Profile + Account */}

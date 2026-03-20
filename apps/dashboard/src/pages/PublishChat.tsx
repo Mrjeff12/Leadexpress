@@ -1,6 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
 import { Send, Bot, Loader2, Plus } from 'lucide-react'
-import { useAuth } from '../lib/auth'
 import { supabase } from '../lib/supabase'
 import JobCardPreview, { type ParsedLead } from '../components/JobCardPreview'
 import { useI18n } from '../lib/i18n'
@@ -14,7 +13,6 @@ interface Message {
 }
 
 export default function PublishChat() {
-  const { user } = useAuth()
   const { locale } = useI18n()
   const [messages, setMessages] = useState<Message[]>([
     {

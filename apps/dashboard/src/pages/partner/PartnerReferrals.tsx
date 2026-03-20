@@ -4,10 +4,8 @@ import { usePartnerReferrals } from '../../hooks/usePartnerReferrals'
 import { useNavigate } from 'react-router-dom'
 import {
   Search,
-  Users,
   UserPlus,
   Share2,
-  Loader2,
   CheckCircle2,
   Clock,
   XCircle,

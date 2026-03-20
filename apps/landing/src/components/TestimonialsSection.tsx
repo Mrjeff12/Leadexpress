@@ -1,17 +1,9 @@
 import { Star } from 'lucide-react'
 import { useLang } from '../i18n/LanguageContext'
+import { initialsAvatar } from '../utils/avatars'
 
-/* Profile photos — one per testimonial slot */
-const avatars = [
-  'https://randomuser.me/api/portraits/men/32.jpg',
-  'https://randomuser.me/api/portraits/women/44.jpg',
-  'https://randomuser.me/api/portraits/men/52.jpg',
-  'https://randomuser.me/api/portraits/men/75.jpg',
-  'https://randomuser.me/api/portraits/women/65.jpg',
-  'https://randomuser.me/api/portraits/men/22.jpg',
-]
-
-function TestimonialCard({ item, avatarUrl }: { item: { text: string; name: string; role: string }; avatarUrl: string }) {
+function TestimonialCard({ item }: { item: { text: string; name: string; role: string } }) {
+  const avatarUrl = initialsAvatar(item.name)
   return (
     <div className="flex-shrink-0 w-[320px] md:w-[360px] bg-white/70 backdrop-blur-sm rounded-xl border border-gray-100 shadow-sm p-5 mx-2">
       {/* Stars */}
@@ -48,8 +40,6 @@ export default function TestimonialsSection() {
   /* Split into two rows */
   const row1 = items.slice(0, 3)
   const row2 = items.slice(3, 6)
-  const avatars1 = avatars.slice(0, 3)
-  const avatars2 = avatars.slice(3, 6)
 
   return (
     <>
@@ -89,7 +79,7 @@ export default function TestimonialsSection() {
         <div className="mb-3">
           <div className="flex marquee-track-left" style={{ width: 'max-content' }}>
             {[...row1, ...row1, ...row1, ...row1].map((item, i) => (
-              <TestimonialCard key={`r1-${i}`} item={item} avatarUrl={avatars1[i % 3]} />
+              <TestimonialCard key={`r1-${i}`} item={item} />
             ))}
           </div>
         </div>
@@ -98,7 +88,7 @@ export default function TestimonialsSection() {
         <div>
           <div className="flex marquee-track-right" style={{ width: 'max-content' }}>
             {[...row2, ...row2, ...row2, ...row2].map((item, i) => (
-              <TestimonialCard key={`r2-${i}`} item={item} avatarUrl={avatars2[i % 3]} />
+              <TestimonialCard key={`r2-${i}`} item={item} />
             ))}
           </div>
         </div>

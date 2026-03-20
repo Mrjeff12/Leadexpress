@@ -1,8 +1,7 @@
-import { useState, useRef, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useState } from 'react'
 import { useContractorSettings } from '../hooks/useContractorSettings'
 import { useSubscriptionAccess } from '../hooks/useSubscriptionAccess'
-import { PROFESSIONS, type ProfessionId } from '../lib/professions'
+import { PROFESSIONS } from '../lib/professions'
 import { DAY_KEYS, DAY_LABELS, type DayKey } from '../lib/working-hours'
 import { useI18n } from '../lib/i18n'
 import { useToast } from '../components/hooks/use-toast'
@@ -15,13 +14,11 @@ import {
   Clock,
   Sparkles,
   Loader2,
-  Plus,
   X,
   Zap,
 } from 'lucide-react'
 
 export default function OnboardingWizard() {
-  const navigate = useNavigate()
   const { locale } = useI18n()
   const he = locale === 'he'
   const { toast } = useToast()
@@ -40,7 +37,6 @@ export default function OnboardingWizard() {
   } = useContractorSettings()
 
   const [step, setStep] = useState(0)
-  const [zipInput, setZipInput] = useState('')
   // Track transition direction for slide animation
   const [slideDir, setSlideDir] = useState<'left' | 'right'>('left')
   const [animating, setAnimating] = useState(false)
@@ -92,14 +88,6 @@ export default function OnboardingWizard() {
     }, 200)
   }
 
-  function handleAddZip() {
-    const cleaned = zipInput.trim().replace(/\D/g, '')
-    if (cleaned.length === 5) {
-      if (maxZips > 0 && zipCodes.length >= maxZips) return
-      addZipCode(cleaned)
-      setZipInput('')
-    }
-  }
 
   async function handleFinish() {
     try {

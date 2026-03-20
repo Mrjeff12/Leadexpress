@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { Bot, Mic, Play, Search, Sun } from 'lucide-react'
+import { initialsAvatar } from '../utils/avatars'
 
 /* ------------------------------------------------------------------ */
 /*  Rebeca Scanner — "דרך 1" — Finds and delivers matched jobs         */
@@ -49,7 +50,7 @@ const scenes: Scene[] = [
   },
 ]
 
-const USER_AVATAR = 'https://randomuser.me/api/portraits/men/36.jpg'
+const USER_AVATAR = initialsAvatar('You', 36)
 
 /* ── Sub-components ── */
 

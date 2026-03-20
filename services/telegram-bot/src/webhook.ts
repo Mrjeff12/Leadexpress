@@ -296,37 +296,19 @@ async function handleCallbackQuery(
       return
     }
 
-    // A region was selected — add all its ZIP prefixes
+    // A region was selected — prompt user to enter actual ZIP codes for that region
     const region = REGIONS.find((r) => r.key === areaKey)
     if (region) {
-      // Add common zip codes for the region
-      const regionZips = region.zips.map((prefix) => `${prefix}00`)
-      state.zipCodes = [...new Set([...state.zipCodes, ...regionZips])]
-      await setOnboardState(redis, chatId, state)
-      await answerCallbackQuery(query.id, `Added ${region.label} ✓`)
-
-      if (messageId) {
-        const selectedRegions = REGIONS
-          .filter((r) => r.zips.some((z) => state.zipCodes.some((sz) => sz.startsWith(z))))
-          .map((r) => r.label)
-          .join(', ')
-
-        const updatedButtons = [
-          ...REGIONS.map((r) => {
-            const isSelected = r.zips.some((z) => state.zipCodes.some((sz) => sz.startsWith(z)))
-            return [{ text: isSelected ? `✓ ${r.label}` : r.label, callback_data: `area:${r.key}` }]
-          }),
-          [{ text: '⌨️ Type specific ZIPs', callback_data: 'area:manual' }],
-          [{ text: `✅ Done (${state.zipCodes.length} ZIPs)`, callback_data: 'area:done' }],
-        ]
-
-        await editMessage(
-          chatId,
-          messageId,
-          `<b>Select your service areas:</b>\n\nSelected: ${selectedRegions || 'none yet'}\nZIPs: ${state.zipCodes.join(', ')}`,
-          updatedButtons,
-        )
-      }
+      await answerCallbackQuery(query.id)
+      await sendMessage(
+        chatId,
+        `You selected <b>${region.label}</b>.\n\nPlease type the actual 5-digit ZIP codes you serve in this area, separated by commas or spaces.\n\nExample: <code>33139, 33140, 33141</code>`,
+        {
+          buttons: [
+            ...(state.zipCodes.length > 0 ? [[{ text: `✅ Done (${state.zipCodes.length} ZIPs)`, callback_data: 'area:done' }]] : []),
+          ],
+        },
+      )
     }
     return
   }

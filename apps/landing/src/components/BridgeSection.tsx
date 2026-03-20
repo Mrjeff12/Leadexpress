@@ -4,6 +4,7 @@ import {
   Snowflake, Forward, CheckCircle2, X, DollarSign,
   Upload, Phone,
 } from 'lucide-react'
+import { initialsAvatar } from '../utils/avatars'
 
 /* ─── Lead card data ─── */
 interface Lead {
@@ -24,8 +25,8 @@ const PUBLISH_LEAD: Lead = {
 }
 
 /* ─── Avatars ─── */
-const YOU_IMG = 'https://i.pravatar.cc/80?img=51'
-const MATCH_IMG = 'https://i.pravatar.cc/80?img=33'
+const YOU_IMG = initialsAvatar('You', 51)
+const MATCH_IMG = initialsAvatar('Mike R.', 33)
 
 /* ─── Animation phases ─── */
 type Phase =

@@ -2,7 +2,6 @@ import { useState, useEffect, useMemo, useRef } from 'react'
 import { useAuth } from '../lib/auth'
 import { useI18n } from '../lib/i18n'
 import { supabase } from '../lib/supabase'
-import { useSubscriptionAccess } from '../hooks/useSubscriptionAccess'
 import ForwardLeadModal from '../components/ForwardLeadModal'
 import UpsellModal from '../components/UpsellModal'
 import {
@@ -17,7 +16,6 @@ import {
   Snowflake,
   Search,
   Loader2,
-  Send,
   MessageCircle,
   Phone,
   Wrench,
@@ -130,7 +128,6 @@ export default function LeadsFeed() {
   const [search, setSearch] = useState('')
   const [expandedId, setExpandedId] = useState<string | null>(null)
 
-  const { canManageSubs } = useSubscriptionAccess()
   const [forwardLead, setForwardLead] = useState<Lead | null>(null)
   const [showUpsell, setShowUpsell] = useState(false)
 

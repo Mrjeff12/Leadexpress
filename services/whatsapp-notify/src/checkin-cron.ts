@@ -61,18 +61,12 @@ export function startCheckinCron(log: Logger): cron.ScheduledTask {
 
       log.info({ count: contractors.length, dayOfWeek: today }, 'Sending check-in messages');
 
-      // Get yesterday's lead count per ZIP area (for motivation)
+      // Get yesterday's date range for lead count queries
       const yesterday = new Date();
       yesterday.setDate(yesterday.getDate() - 1);
       yesterday.setHours(0, 0, 0, 0);
       const todayStart = new Date();
       todayStart.setHours(0, 0, 0, 0);
-
-      const { count: totalLeadsYesterday } = await supabase
-        .from('leads')
-        .select('id', { count: 'exact', head: true })
-        .gte('created_at', yesterday.toISOString())
-        .lt('created_at', todayStart.toISOString());
 
       let sent = 0;
       let failed = 0;
@@ -84,7 +78,20 @@ export function startCheckinCron(log: Logger): cron.ScheduledTask {
         };
 
         const firstName = profile.full_name.split(' ')[0];
-        const leadCount = totalLeadsYesterday ?? 0;
+
+        // Count yesterday's leads filtered by contractor's service areas (zip_codes)
+        const contractorZips = (contractor as any).zip_codes as string[] | null;
+        let leadCount = 0;
+
+        if (contractorZips && contractorZips.length > 0) {
+          const { count } = await supabase
+            .from('leads')
+            .select('id', { count: 'exact', head: true })
+            .gte('created_at', yesterday.toISOString())
+            .lt('created_at', todayStart.toISOString())
+            .in('zip_code', contractorZips);
+          leadCount = count ?? 0;
+        }
 
         const leadLine = leadCount > 0
           ? `🔥 ${leadCount} new leads in your area yesterday.`

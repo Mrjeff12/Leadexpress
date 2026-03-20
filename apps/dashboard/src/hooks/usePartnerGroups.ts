@@ -253,7 +253,7 @@ async function fetchPartnerGroupDetail(groupId: string): Promise<PartnerGroupDet
   // Top professions (from leads — safe to show categories, not exact yield)
   const { data: leadData } = await supabase
     .from('leads')
-    .select('profession, state')
+    .select('profession, state, created_at')
     .eq('group_id', groupId)
 
   const profMap: Record<string, number> = {}

@@ -77,7 +77,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return data as Profile
   }
 
-  async function refreshProfile() {
+  const refreshProfile = useCallback(async () => {
     if (!state.user) return
     const profile = await fetchProfile(state.user.id)
     if (profile) {
@@ -87,7 +87,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isAdmin: profile.role === 'admin',
       }))
     }
-  }
+  }, [state.user])
 
   useEffect(() => {
     supabase.auth.getSession().then(async ({ data: { session } }) => {

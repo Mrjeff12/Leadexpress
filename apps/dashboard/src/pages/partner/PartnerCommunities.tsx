@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../lib/auth'
 import { useI18n } from '../../lib/i18n'
@@ -14,26 +14,20 @@ import {
 } from '../../components/shadcn/ui/dialog'
 import {
   MessageSquare,
-  Plus,
   Users,
   Zap,
-  UserPlus,
   Loader2,
   CheckCircle2,
-  Clock,
   Link2,
   QrCode,
-  ShieldCheck,
   ShieldAlert,
   ArrowRight,
   TrendingUp,
-  DollarSign,
   Bot,
   Smartphone,
   BarChart3,
   RefreshCw,
   Activity,
-  Eye,
 } from 'lucide-react'
 
 type ConnectTab = 'link' | 'qr'

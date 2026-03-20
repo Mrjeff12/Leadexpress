@@ -34,7 +34,7 @@ export default function Revenue() {
         return
       }
 
-      setSubs((data || []) as SubRow[])
+      setSubs((data || []) as unknown as SubRow[])
       setLoading(false)
     }
     load()

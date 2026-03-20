@@ -21,7 +21,6 @@ import {
   Radio,
   TrendingUp,
   Wifi,
-  Activity,
   Phone,
   BarChart3,
   Handshake,
@@ -38,25 +37,25 @@ const GRID_POSITIONS: [number, number][] = [
 
 /* ─── Flow edges with department colors ─── */
 const EDGES: Edge[] = [
-  { id: 'e1', source: 'channels', target: 'warroom', type: 'smoothstep', animated: true,
-    style: { stroke: '#8b5cf6', strokeWidth: 1.5 } },
-  { id: 'e2', source: 'warroom', target: 'clients', type: 'smoothstep', animated: true,
-    style: { stroke: '#ff6b35', strokeWidth: 1.5 } },
-  { id: 'e3', source: 'clients', target: 'finance', type: 'smoothstep', animated: true,
-    style: { stroke: '#10b981', strokeWidth: 1.5 } },
-  { id: 'e4', source: 'finance', target: 'intel', type: 'smoothstep', animated: true,
-    style: { stroke: '#f59e0b', strokeWidth: 1.5 } },
-  { id: 'e5', source: 'warroom', target: 'intel', type: 'smoothstep', animated: true,
-    style: { stroke: '#3b82f650', strokeWidth: 1 } },
-  { id: 'e6', source: 'finance', target: 'partners', type: 'smoothstep', animated: true,
-    style: { stroke: '#ec4899', strokeWidth: 1.5 } },
+  { id: 'e1', source: 'channels', target: 'warroom', type: 'smoothstep',
+    style: { stroke: '#e5e5e5', strokeWidth: 1.5, strokeDasharray: '6 4' } },
+  { id: 'e2', source: 'warroom', target: 'clients', type: 'smoothstep',
+    style: { stroke: '#e5e5e5', strokeWidth: 1.5, strokeDasharray: '6 4' } },
+  { id: 'e3', source: 'clients', target: 'finance', type: 'smoothstep',
+    style: { stroke: '#e5e5e5', strokeWidth: 1.5, strokeDasharray: '6 4' } },
+  { id: 'e4', source: 'finance', target: 'intel', type: 'smoothstep',
+    style: { stroke: '#e5e5e5', strokeWidth: 1.5, strokeDasharray: '6 4' } },
+  { id: 'e5', source: 'warroom', target: 'intel', type: 'smoothstep',
+    style: { stroke: '#e5e5e5', strokeWidth: 1, strokeDasharray: '6 4' } },
+  { id: 'e6', source: 'finance', target: 'partners', type: 'smoothstep',
+    style: { stroke: '#e5e5e5', strokeWidth: 1.5, strokeDasharray: '6 4' } },
 ]
 
 /* ═══════════════════════════════════════════════════════════
    Top-bar KPI pill (Biotix-style)
    ═══════════════════════════════════════════════════════════ */
 function KpiPill({ icon: Icon, label, value, color, highlight }: {
-  icon: React.ComponentType<{ className?: string }>
+  icon: React.ComponentType<{ className?: string; style?: React.CSSProperties }>
   label: string
   value: string | number
   color: string
@@ -66,16 +65,16 @@ function KpiPill({ icon: Icon, label, value, color, highlight }: {
     <div
       className="flex items-center gap-2.5 px-3.5 py-2 rounded-lg transition-all duration-300 hover:scale-[1.02]"
       style={{
-        background: highlight ? `${color}12` : 'rgba(255,255,255,0.02)',
-        border: `1px solid ${highlight ? color + '30' : 'rgba(255,255,255,0.06)'}`,
+        background: highlight ? `${color}08` : '#f5f2ed',
+        border: `1px solid ${highlight ? color + '20' : '#efeff1'}`,
       }}
     >
       <Icon className="w-3.5 h-3.5 shrink-0 opacity-60" style={{ color }} />
       <div className="flex flex-col min-w-0">
-        <span className="text-[8px] text-white/30 uppercase tracking-[0.15em] leading-none font-medium">{label}</span>
+        <span className="text-[8px] text-[#3b3b3b]/50 uppercase tracking-[0.15em] leading-none font-medium">{label}</span>
         <span
           className="text-[17px] font-black tabular-nums leading-tight"
-          style={{ color: highlight ? color : '#fff' }}
+          style={{ color: highlight ? color : '#0b0707' }}
         >
           {value}
         </span>
@@ -90,10 +89,10 @@ function KpiPill({ icon: Icon, label, value, color, highlight }: {
 function BottomStat({ label, value, color }: { label: string; value: string | number; color?: string }) {
   return (
     <div className="flex flex-col items-center px-5">
-      <span className="text-[20px] font-black tabular-nums leading-tight" style={{ color: color ?? '#fff' }}>
+      <span className="text-[20px] font-black tabular-nums leading-tight" style={{ color: color ?? '#0b0707' }}>
         {value}
       </span>
-      <span className="text-[8px] text-white/25 uppercase tracking-[0.15em] font-medium">{label}</span>
+      <span className="text-[8px] text-[#3b3b3b]/40 uppercase tracking-[0.15em] font-medium">{label}</span>
     </div>
   )
 }
@@ -140,17 +139,16 @@ export default function AdminCanvas() {
     <div
       className="h-screen w-screen flex flex-col"
       style={{
-        background: 'linear-gradient(180deg, #08081a 0%, #0a0a22 50%, #06061a 100%)',
+        background: '#faf9f6',
       }}
     >
       {/* ═══════════════ TOP BAR ═══════════════ */}
       <div
         className="shrink-0 flex items-center justify-between px-4 h-[60px] z-10 relative"
         style={{
-          background: 'linear-gradient(180deg, rgba(12,12,30,0.95) 0%, rgba(8,8,24,0.9) 100%)',
-          borderBottom: '1px solid rgba(255,255,255,0.05)',
-          backdropFilter: 'blur(20px)',
-          boxShadow: '0 4px 30px rgba(0,0,0,0.5)',
+          background: '#ffffff',
+          borderBottom: '1px solid #efeff1',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
         }}
       >
         {/* Left: Logo + LIVE OPS */}
@@ -158,14 +156,14 @@ export default function AdminCanvas() {
           <div className="flex items-center gap-2">
             <img src="/icon.png" alt="Lead Express" className="w-7 h-7 rounded-lg" />
             <div className="flex flex-col leading-none">
-              <span className="text-white/80 font-extrabold text-[12px] tracking-[0.05em]">LEAD EXPRESS</span>
-              <span className="text-[7px] text-white/15 uppercase tracking-[0.25em]">control center</span>
+              <span className="text-[#0b0707]/80 font-extrabold text-[12px] tracking-[0.05em]">LEAD EXPRESS</span>
+              <span className="text-[7px] text-[#3b3b3b]/30 uppercase tracking-[0.25em]">control center</span>
             </div>
           </div>
 
-          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-emerald-500/10 border border-emerald-500/20 ml-1">
-            <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_6px_rgba(52,211,153,0.8)]" />
-            <span className="text-[9px] font-bold text-emerald-400 uppercase tracking-[0.12em]">
+          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-[#fe5b25]/10 border border-[#fe5b25]/20 ml-1">
+            <div className="w-1.5 h-1.5 rounded-full bg-[#fe5b25] animate-pulse shadow-[0_0_6px_rgba(254,91,37,0.8)]" />
+            <span className="text-[9px] font-bold text-[#fe5b25] uppercase tracking-[0.12em]">
               {he ? 'פעיל' : 'Live Ops'}
             </span>
           </div>
@@ -174,31 +172,31 @@ export default function AdminCanvas() {
         {/* Center: KPI strip */}
         <div className="flex items-center gap-1.5">
           <KpiPill icon={Zap} label={he ? 'לידים חמים' : 'HOT LEADS'} value={hotLeads} color="#ff6b35" highlight={hotLeads > 0} />
-          <div className="w-px h-6 bg-white/5" />
+          <div className="w-px h-6 bg-[#efeff1]" />
           <KpiPill icon={Users} label={he ? 'קבלנים' : 'CONTRACTORS'} value={activeContractors} color="#10b981" />
-          <div className="w-px h-6 bg-white/5" />
+          <div className="w-px h-6 bg-[#efeff1]" />
           <KpiPill icon={Radio} label={he ? 'קבוצות' : 'GROUPS'} value={activeGroups} color="#8b5cf6" />
-          <div className="w-px h-6 bg-white/5" />
+          <div className="w-px h-6 bg-[#efeff1]" />
           <KpiPill icon={TrendingUp} label={he ? 'המרה' : 'RATE'} value={`${convRate}%`} color="#f59e0b" />
-          <div className="w-px h-6 bg-white/5" />
+          <div className="w-px h-6 bg-[#efeff1]" />
           <KpiPill icon={DollarSign} label="MRR" value={`$${mrr.toLocaleString()}`} color="#22c55e" highlight={mrr > 0} />
-          <div className="w-px h-6 bg-white/5" />
+          <div className="w-px h-6 bg-[#efeff1]" />
           <KpiPill icon={Handshake} label={he ? 'שותפים' : 'PARTNERS'} value={activePartners} color="#ec4899" highlight={pendingPartners > 0} />
         </div>
 
         {/* Right: User */}
         <div className="flex items-center gap-2 shrink-0">
           {profile && (
-            <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-white/3 border border-white/5">
-              <div className="w-6 h-6 rounded-md bg-gradient-to-br from-white/10 to-white/5 flex items-center justify-center text-[10px] font-bold text-white/50">
+            <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-[#f5f2ed] border border-[#efeff1]">
+              <div className="w-6 h-6 rounded-md bg-[#efeff1] flex items-center justify-center text-[10px] font-bold text-[#0b0707]/50">
                 {profile.full_name?.charAt(0)?.toUpperCase() ?? '?'}
               </div>
-              <span className="text-white/35 text-[11px] font-medium">{profile.full_name}</span>
+              <span className="text-[#3b3b3b]/60 text-[11px] font-medium">{profile.full_name}</span>
             </div>
           )}
           <button
             onClick={signOut}
-            className="p-2 rounded-lg hover:bg-white/5 transition-colors text-white/20 hover:text-white/50"
+            className="p-2 rounded-lg hover:bg-[#f5f2ed] transition-colors text-[#3b3b3b]/30 hover:text-[#3b3b3b]/60"
             title={he ? 'התנתק' : 'Log Out'}
           >
             <LogOut className="w-3.5 h-3.5" />
@@ -208,16 +206,6 @@ export default function AdminCanvas() {
 
       {/* ═══════════════ CANVAS ═══════════════ */}
       <div className="flex-1 relative overflow-hidden">
-        {/* Ambient glow spots */}
-        <div className="absolute inset-0 pointer-events-none overflow-hidden">
-          <div className="absolute top-[10%] left-[15%] w-[400px] h-[400px] rounded-full opacity-[0.03]"
-            style={{ background: 'radial-gradient(circle, #ff6b35, transparent 70%)' }} />
-          <div className="absolute bottom-[20%] right-[20%] w-[500px] h-[500px] rounded-full opacity-[0.02]"
-            style={{ background: 'radial-gradient(circle, #8b5cf6, transparent 70%)' }} />
-          <div className="absolute top-[50%] left-[50%] w-[600px] h-[600px] -translate-x-1/2 -translate-y-1/2 rounded-full opacity-[0.015]"
-            style={{ background: 'radial-gradient(circle, #3b82f6, transparent 70%)' }} />
-        </div>
-
         <ReactFlowProvider>
           <ReactFlow
             nodes={nodes}
@@ -234,27 +222,27 @@ export default function AdminCanvas() {
             panOnScroll={false}
             panOnDrag
           >
-            <Background color="#ffffff04" gap={25} size={1} />
+            <Background color="#e5e5e5" gap={30} size={1} />
             <Controls
               showInteractive={false}
               position="bottom-left"
-              className="!bg-[#0c0c22] !border-white/6 !rounded-xl !shadow-2xl
-                [&>button]:!bg-transparent [&>button]:!border-white/6
-                [&>button]:!text-white/20 [&>button:hover]:!bg-white/5
-                [&>button:hover]:!text-white/50"
+              className="!bg-white !border-[#efeff1] !rounded-xl !shadow-md
+                [&>button]:!bg-transparent [&>button]:!border-[#efeff1]
+                [&>button]:!text-[#3b3b3b]/30 [&>button:hover]:!bg-[#f5f2ed]
+                [&>button:hover]:!text-[#3b3b3b]/60"
             />
           </ReactFlow>
         </ReactFlowProvider>
 
         {/* Loading */}
         {loading && (
-          <div className="absolute inset-0 flex items-center justify-center bg-[#08081a]/90 z-20 backdrop-blur-sm">
+          <div className="absolute inset-0 flex items-center justify-center bg-[#faf9f6]/90 z-20 backdrop-blur-sm">
             <div className="flex flex-col items-center gap-3">
               <div className="relative w-10 h-10">
-                <div className="absolute inset-0 border-2 border-orange-500/20 rounded-full" />
-                <div className="absolute inset-0 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" />
+                <div className="absolute inset-0 border-2 border-[#fe5b25]/20 rounded-full" />
+                <div className="absolute inset-0 border-2 border-[#fe5b25] border-t-transparent rounded-full animate-spin" />
               </div>
-              <span className="text-white/25 text-[10px] uppercase tracking-[0.2em] font-medium">
+              <span className="text-[#3b3b3b]/40 text-[10px] uppercase tracking-[0.2em] font-medium">
                 Loading systems...
               </span>
             </div>
@@ -266,34 +254,33 @@ export default function AdminCanvas() {
       <div
         className="shrink-0 flex items-center justify-between px-5 h-12 z-10"
         style={{
-          background: 'linear-gradient(0deg, rgba(8,8,24,0.95) 0%, rgba(12,12,28,0.9) 100%)',
-          borderTop: '1px solid rgba(255,255,255,0.04)',
-          backdropFilter: 'blur(20px)',
-          boxShadow: '0 -4px 30px rgba(0,0,0,0.4)',
+          background: '#ffffff',
+          borderTop: '1px solid #efeff1',
+          boxShadow: '0 -1px 3px rgba(0,0,0,0.05)',
         }}
       >
         {/* Left: System status */}
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-1.5">
-            <div className="w-[6px] h-[6px] rounded-full bg-emerald-400 animate-pulse shadow-[0_0_8px_rgba(52,211,153,0.7)]" />
-            <span className="text-[9px] text-white/30 uppercase tracking-[0.12em] font-medium">
+            <div className="w-[6px] h-[6px] rounded-full bg-emerald-500 animate-pulse shadow-[0_0_4px_rgba(52,211,153,0.5)]" />
+            <span className="text-[9px] text-[#3b3b3b]/40 uppercase tracking-[0.12em] font-medium">
               {he ? 'מערכת מחוברת' : 'System Online'}
             </span>
           </div>
-          <div className="w-px h-3 bg-white/8" />
+          <div className="w-px h-3 bg-[#efeff1]" />
           <div className="flex items-center gap-1">
-            <Phone className="w-3 h-3 text-emerald-400/50" />
-            <span className="text-[9px] text-white/25 tabular-nums">{waConnected} WA</span>
+            <Phone className="w-3 h-3 text-emerald-500/40" />
+            <span className="text-[9px] text-[#3b3b3b]/35 tabular-nums">{waConnected} WA</span>
           </div>
-          <div className="w-px h-3 bg-white/8" />
+          <div className="w-px h-3 bg-[#efeff1]" />
           <div className="flex items-center gap-1">
-            <BarChart3 className="w-3 h-3 text-blue-400/50" />
-            <span className="text-[9px] text-white/25 tabular-nums">{leadsToday} {he ? 'היום' : 'today'}</span>
+            <BarChart3 className="w-3 h-3 text-blue-500/40" />
+            <span className="text-[9px] text-[#3b3b3b]/35 tabular-nums">{leadsToday} {he ? 'היום' : 'today'}</span>
           </div>
         </div>
 
         {/* Center: Key metrics */}
-        <div className="flex items-center divide-x divide-white/6">
+        <div className="flex items-center divide-x divide-[#efeff1]">
           <BottomStat label={he ? 'לידים' : 'LEADS'} value={totalLeads} color="#ff6b35" />
           <BottomStat label={he ? 'מנויים' : 'SUBS'} value={activeSubs} color="#22c55e" />
           <BottomStat label={he ? 'סריקות' : 'SCANS'} value={scansPending} color="#8b5cf6" />
@@ -302,9 +289,9 @@ export default function AdminCanvas() {
         </div>
 
         {/* Right: LIVE badge */}
-        <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/8 border border-emerald-500/20">
-          <Wifi className="w-3 h-3 text-emerald-400/80" />
-          <span className="text-[9px] font-bold text-emerald-400 uppercase tracking-[0.12em]">LIVE</span>
+        <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#fe5b25]/10 border border-[#fe5b25]/20">
+          <Wifi className="w-3 h-3 text-[#fe5b25]/80" />
+          <span className="text-[9px] font-bold text-[#fe5b25] uppercase tracking-[0.12em]">LIVE</span>
         </div>
       </div>
     </div>

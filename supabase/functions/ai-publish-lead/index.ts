@@ -52,7 +52,7 @@ Deno.serve(async (req: Request) => {
     return new Response(null, { headers: corsHeaders });
   }
   if (req.method !== "POST") {
-    return new Response("Method not allowed", { status: 405 });
+    return new Response("Method not allowed", { status: 405, headers: corsHeaders });
   }
 
   try {
@@ -63,7 +63,15 @@ Deno.serve(async (req: Request) => {
     let userId: string;
 
     if (publisherOverride) {
-      // Called from WhatsApp webhook with service role — trust the header
+      // Only trust x-publisher-id if the request carries the service role key
+      const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+      const bearerToken = authHeader?.replace("Bearer ", "");
+      if (!bearerToken || bearerToken !== serviceRoleKey) {
+        return new Response(JSON.stringify({ error: "Unauthorized: x-publisher-id requires service role key" }), {
+          status: 403,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
       userId = publisherOverride;
     } else if (authHeader) {
       const token = authHeader.replace("Bearer ", "");
@@ -130,6 +138,32 @@ Deno.serve(async (req: Request) => {
     if (action === "publish") {
       if (!lead_data) {
         return new Response(JSON.stringify({ error: "lead_data is required" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Validate required fields before attempting insert
+      if (!lead_data.profession || !VALID_PROFESSIONS.includes(lead_data.profession)) {
+        return new Response(JSON.stringify({ error: `Invalid or missing profession. Must be one of: ${VALID_PROFESSIONS.join(", ")}` }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      if (!lead_data.state || typeof lead_data.state !== "string" || lead_data.state.length !== 2) {
+        return new Response(JSON.stringify({ error: "Invalid or missing state (must be 2-letter abbreviation)" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      if (!lead_data.city || typeof lead_data.city !== "string") {
+        return new Response(JSON.stringify({ error: "Missing city" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      if (!lead_data.description || typeof lead_data.description !== "string") {
+        return new Response(JSON.stringify({ error: "Missing description" }), {
           status: 400,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });

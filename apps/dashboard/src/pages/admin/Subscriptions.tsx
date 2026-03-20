@@ -110,7 +110,6 @@ export default function Subscriptions() {
 
   const totalSubscribers = subscribers.length
   const activeCount = subscribers.filter((s) => s.status === 'active' || s.status === 'trialing').length
-  const starterCount = subscribers.filter((s) => s.plan === 'starter').length
   const proCount = subscribers.filter((s) => s.plan === 'pro').length
   const unlimitedCount = subscribers.filter((s) => s.plan === 'unlimited').length
 

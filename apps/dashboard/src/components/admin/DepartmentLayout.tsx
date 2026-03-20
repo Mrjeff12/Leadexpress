@@ -29,7 +29,7 @@ const PartnerDetail = lazy(() => import('../../pages/admin/PartnerDetail'))
 const WithdrawalQueue = lazy(() => import('../../pages/admin/WithdrawalQueue'))
 const CommissionLog = lazy(() => import('../../pages/admin/CommissionLog'))
 
-const TAB_COMPONENTS: Record<string, React.LazyExoticComponent<() => JSX.Element>> = {
+const TAB_COMPONENTS: Record<string, React.LazyExoticComponent<() => React.JSX.Element>> = {
   'warroom/inbox': AdminInbox,
   'warroom/leads': AdminLeads,
   'warroom/prospects': AdminProspects,
@@ -77,22 +77,21 @@ export default function DepartmentLayout() {
   return (
     <div
       className="h-screen w-full flex flex-col overflow-hidden"
-      style={{ background: 'linear-gradient(180deg, #08081a 0%, #0a0a22 100%)' }}
+      style={{ background: '#faf9f6' }}
     >
       {/* ═══════════════ TOP NAV BAR ═══════════════ */}
       <div
         className="shrink-0 flex items-center gap-3 px-5 h-[52px]"
         style={{
-          background: 'rgba(12,12,28,0.9)',
-          borderBottom: `1px solid ${dept.color}15`,
-          backdropFilter: 'blur(20px)',
-          boxShadow: '0 4px 30px rgba(0,0,0,0.4)',
+          background: '#ffffff',
+          borderBottom: '1px solid #efeff1',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
         }}
       >
         {/* Back to map */}
         <button
           onClick={() => navigate('/admin')}
-          className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg transition-all duration-200 hover:bg-white/5 group"
+          className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg transition-all duration-200 hover:bg-[#f5f2ed] group"
           style={{ color: dept.color }}
         >
           <LayoutGrid className="w-3.5 h-3.5 opacity-60 group-hover:opacity-100 transition-opacity" />
@@ -100,15 +99,15 @@ export default function DepartmentLayout() {
         </button>
 
         {/* Divider */}
-        <div className="w-px h-6 bg-white/8" />
+        <div className="w-px h-6 bg-[#efeff1]" />
 
         {/* Department name */}
         <div className="flex items-center gap-2">
           <div
             className="w-7 h-7 rounded-lg flex items-center justify-center"
             style={{
-              background: `${dept.color}15`,
-              border: `1px solid ${dept.color}25`,
+              background: `${dept.color}10`,
+              border: `1px solid ${dept.color}20`,
             }}
           >
             <Icon className="w-3.5 h-3.5" style={{ color: dept.color }} />
@@ -122,7 +121,7 @@ export default function DepartmentLayout() {
         </div>
 
         {/* Divider */}
-        <div className="w-px h-6 bg-white/8" />
+        <div className="w-px h-6 bg-[#efeff1]" />
 
         {/* Tabs */}
         <nav className="flex items-center gap-0.5" dir={he ? 'rtl' : 'ltr'}>
@@ -136,16 +135,15 @@ export default function DepartmentLayout() {
                 className={({ isActive }) =>
                   `relative px-3.5 py-1.5 rounded-lg text-[12px] font-semibold transition-all duration-200 ${
                     isActive
-                      ? 'text-white'
-                      : 'text-white/30 hover:text-white/60 hover:bg-white/3'
+                      ? 'text-[#0b0707]'
+                      : 'text-[#3b3b3b]/40 hover:text-[#3b3b3b]/80 hover:bg-[#f5f2ed]'
                   }`
                 }
                 style={({ isActive }) =>
                   isActive
                     ? {
-                        background: `${dept.color}18`,
-                        border: `1px solid ${dept.color}25`,
-                        boxShadow: `0 0 12px ${dept.color}10`,
+                        background: `${dept.color}08`,
+                        border: `1px solid ${dept.color}15`,
                       }
                     : { border: '1px solid transparent' }
                 }
@@ -164,13 +162,13 @@ export default function DepartmentLayout() {
             <div className="flex items-center justify-center h-full">
               <div className="flex flex-col items-center gap-3">
                 <div className="relative w-8 h-8">
-                  <div className="absolute inset-0 border-2 rounded-full" style={{ borderColor: `${dept.color}20` }} />
+                  <div className="absolute inset-0 border-2 rounded-full" style={{ borderColor: `${dept.color}15` }} />
                   <div
                     className="absolute inset-0 border-2 border-t-transparent rounded-full animate-spin"
                     style={{ borderColor: dept.color, borderTopColor: 'transparent' }}
                   />
                 </div>
-                <span className="text-white/20 text-[10px] uppercase tracking-[0.15em]">
+                <span className="text-[#3b3b3b]/30 text-[10px] uppercase tracking-[0.15em]">
                   Loading...
                 </span>
               </div>

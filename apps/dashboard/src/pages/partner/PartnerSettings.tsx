@@ -4,7 +4,6 @@ import { usePartnerProfile } from '../../hooks/usePartnerProfile'
 import { useToast } from '../../components/hooks/use-toast'
 import { supabase } from '../../lib/supabase'
 import {
-  Settings,
   Check,
   Loader2,
   User,

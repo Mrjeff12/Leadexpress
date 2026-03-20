@@ -30,8 +30,8 @@ export default function Footer() {
           <div>
             <h4 className="font-semibold text-sm mb-4 text-white/80">{t.footer.company}</h4>
             <ul className="space-y-3">
-              <li><a href="#" className="text-sm text-white/40 hover:text-primary transition-colors">{t.footer.aboutUs}</a></li>
-              <li><a href="#features" className="text-sm text-white/40 hover:text-primary transition-colors">{t.footer.features}</a></li>
+              <li><a href="/" className="text-sm text-white/40 hover:text-primary transition-colors">{t.footer.aboutUs}</a></li>
+              <li><a href="#path-1" className="text-sm text-white/40 hover:text-primary transition-colors">{t.footer.features}</a></li>
               <li><a href="#pricing" className="text-sm text-white/40 hover:text-primary transition-colors">{t.footer.pricing}</a></li>
             </ul>
           </div>
@@ -40,9 +40,9 @@ export default function Footer() {
           <div>
             <h4 className="font-semibold text-sm mb-4 text-white/80">{t.footer.resources}</h4>
             <ul className="space-y-3">
-              <li><a href="#" className="text-sm text-white/40 hover:text-primary transition-colors">{t.footer.blog}</a></li>
-              <li><a href="#contact" className="text-sm text-white/40 hover:text-primary transition-colors">{t.footer.contact}</a></li>
-              <li><a href="#" className="text-sm text-white/40 hover:text-primary transition-colors">{t.footer.integrations}</a></li>
+              <li><span className="text-sm text-white/40">{t.footer.blog} <span className="text-white/20 text-xs">(Coming soon)</span></span></li>
+              <li><a href="mailto:support@leadexpress.co.il" className="text-sm text-white/40 hover:text-primary transition-colors">{t.footer.contact}</a></li>
+              <li><span className="text-sm text-white/40">{t.footer.integrations} <span className="text-white/20 text-xs">(Coming soon)</span></span></li>
             </ul>
           </div>
 

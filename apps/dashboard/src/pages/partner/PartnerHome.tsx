@@ -17,11 +17,9 @@ import {
   Percent,
   ArrowRight,
   Share2,
-  Loader2,
   TrendingUp,
   Clock,
   Wallet,
-  CheckCircle2,
   XCircle,
   ArrowDownRight,
   ArrowUpRight,
@@ -158,7 +156,7 @@ export default function PartnerHome() {
                 />
                 <Tooltip
                   contentStyle={{ borderRadius: 12, border: 'none', boxShadow: '0 4px 20px rgba(0,0,0,0.08)', fontSize: 12 }}
-                  formatter={(value: number) => [`$${value.toFixed(2)}`, 'Earnings']}
+                  formatter={(value) => [`$${Number(value).toFixed(2)}`, 'Earnings']}
                 />
                 <Area
                   type="monotone"

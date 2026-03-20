@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { DollarSign, Mic, Play, Share2, Users, CheckCircle2, ArrowRight } from 'lucide-react'
 import { useLang } from '../i18n/LanguageContext'
+import { initialsAvatar } from '../utils/avatars'
 
 /* ------------------------------------------------------------------ */
 /*  Chat data                                                          */
@@ -104,11 +105,11 @@ const flowStepsHE = [
 /* ------------------------------------------------------------------ */
 
 const networkContractors = [
-  { name: 'David R.', nameHe: 'דוד ר.', trade: 'HVAC', tradeHe: 'מיזוג', avatar: 'https://randomuser.me/api/portraits/men/45.jpg' },
-  { name: 'Mike S.', nameHe: 'מיכאל ש.', trade: 'Plumbing', tradeHe: 'אינסטלציה', avatar: 'https://randomuser.me/api/portraits/men/32.jpg' },
-  { name: 'Alex T.', nameHe: 'אלכס ט.', trade: 'Electrical', tradeHe: 'חשמל', avatar: 'https://randomuser.me/api/portraits/men/67.jpg' },
-  { name: 'Chris L.', nameHe: 'כריס ל.', trade: 'AC Clean', tradeHe: 'ניקוי מזגנים', avatar: 'https://randomuser.me/api/portraits/men/52.jpg' },
-  { name: 'James P.', nameHe: "ג'יימס פ.", trade: 'Moving', tradeHe: 'הובלות', avatar: 'https://randomuser.me/api/portraits/men/75.jpg' },
+  { name: 'David R.', nameHe: 'דוד ר.', trade: 'HVAC', tradeHe: 'מיזוג' },
+  { name: 'Mike S.', nameHe: 'מיכאל ש.', trade: 'Plumbing', tradeHe: 'אינסטלציה' },
+  { name: 'Alex T.', nameHe: 'אלכס ט.', trade: 'Electrical', tradeHe: 'חשמל' },
+  { name: 'Chris L.', nameHe: 'כריס ל.', trade: 'AC Clean', tradeHe: 'ניקוי מזגנים' },
+  { name: 'James P.', nameHe: "ג'יימס פ.", trade: 'Moving', tradeHe: 'הובלות' },
 ]
 
 /* ------------------------------------------------------------------ */
@@ -392,7 +393,7 @@ export default function EarnMoreSection() {
                             </div>
                           )}
                           {!isAgent && (
-                            <img src="https://randomuser.me/api/portraits/men/36.jpg" alt="" className="w-5 h-5 rounded-full object-cover flex-shrink-0 mb-0.5" />
+                            <img src={initialsAvatar('You', 36)} alt="" className="w-5 h-5 rounded-full object-cover flex-shrink-0 mb-0.5" />
                           )}
                         </div>
                       )
@@ -500,7 +501,7 @@ export default function EarnMoreSection() {
                         } : undefined}
                       >
                         <img
-                          src={c.avatar}
+                          src={initialsAvatar(c.name, i)}
                           alt={isRtl ? c.nameHe : c.name}
                           className="w-9 h-9 rounded-full object-cover ring-2 ring-white shadow-sm"
                         />

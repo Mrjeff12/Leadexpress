@@ -5,7 +5,6 @@ import { useToast } from '../../components/hooks/use-toast'
 import {
   Copy,
   Check,
-  Share2,
   MessageCircle,
   Mail,
   Globe,

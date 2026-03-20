@@ -13,6 +13,7 @@ const redis = new Redis({
   port: config.redis.port,
   password: config.redis.password,
   maxRetriesPerRequest: config.redis.maxRetriesPerRequest,
+  ...((config.redis as any).tls ? { tls: {} } : {}),
 });
 
 log.info(

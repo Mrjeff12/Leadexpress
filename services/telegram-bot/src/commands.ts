@@ -17,12 +17,25 @@ const ONBOARD_TTL = 3600 // 1 hour
 
 export const PROFESSIONS = [
   { key: 'hvac', label: '❄️ HVAC / AC', emoji: '❄️' },
+  { key: 'air_duct', label: '🌬️ Air Duct', emoji: '🌬️' },
+  { key: 'chimney', label: '🏠 Chimney', emoji: '🏠' },
+  { key: 'dryer_vent', label: '🌀 Dryer Vent', emoji: '🌀' },
+  { key: 'garage_door', label: '🚗 Garage Door', emoji: '🚗' },
   { key: 'renovation', label: '🔨 Renovation', emoji: '🔨' },
   { key: 'fencing', label: '🧱 Fencing', emoji: '🧱' },
   { key: 'cleaning', label: '✨ Cleaning', emoji: '✨' },
+  { key: 'carpet_cleaning', label: '🧹 Carpet Cleaning', emoji: '🧹' },
   { key: 'locksmith', label: '🔑 Locksmith', emoji: '🔑' },
+  { key: 'roofing', label: '🏗️ Roofing', emoji: '🏗️' },
   { key: 'plumbing', label: '🚰 Plumbing', emoji: '🚰' },
   { key: 'electrical', label: '⚡ Electrical', emoji: '⚡' },
+  { key: 'painting', label: '🎨 Painting', emoji: '🎨' },
+  { key: 'landscaping', label: '🌿 Landscaping', emoji: '🌿' },
+  { key: 'tiling', label: '🔲 Tiling', emoji: '🔲' },
+  { key: 'kitchen', label: '🍳 Kitchen', emoji: '🍳' },
+  { key: 'bathroom', label: '🚿 Bathroom', emoji: '🚿' },
+  { key: 'pool', label: '🏊 Pool', emoji: '🏊' },
+  { key: 'moving', label: '📦 Moving', emoji: '📦' },
   { key: 'other', label: '📋 Other', emoji: '📋' },
 ] as const
 

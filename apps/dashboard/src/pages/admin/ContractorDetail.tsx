@@ -6,7 +6,6 @@ import { supabase } from '../../lib/supabase'
 import {
   ArrowLeft,
   Zap,
-  DollarSign,
   Calendar,
   Phone,
   Send,
@@ -16,7 +15,6 @@ import {
   UserCheck,
   UsersRound,
   Package,
-  Clock,
   Loader2,
   Crown,
   TrendingUp,
@@ -27,11 +25,9 @@ import {
   MessageSquare,
   StickyNote,
   ExternalLink,
-  Hash,
   Mail,
   CircleDot,
   Users,
-  Receipt,
   BarChart3,
   CalendarDays,
   Timer,
@@ -526,7 +522,7 @@ export default function ContractorDetail() {
       labelHe: 'תשלום ראשון',
       date: firstPaymentDate,
       reached: !!isPaying,
-      isCurrent: isPaying && monthsActive <= 1 && sub?.status === 'active',
+      isCurrent: !!(isPaying && monthsActive <= 1 && sub?.status === 'active'),
     })
 
     // 4. Renewed
@@ -537,7 +533,7 @@ export default function ContractorDetail() {
       labelHe: 'חידוש',
       date: hasRenewed && sub?.current_period_end ? sub.current_period_end : null,
       reached: !!hasRenewed,
-      isCurrent: hasRenewed && sub?.status === 'active',
+      isCurrent: !!(hasRenewed && sub?.status === 'active'),
     })
 
     // 5. Churned
@@ -1095,7 +1091,7 @@ export default function ContractorDetail() {
                   border: `1px solid ${C.border}`,
                   color: C.dark,
                   minHeight: '100px',
-                  focusRingColor: C.primary,
+                  // focus ring handled via className
                 }}
                 placeholder={he ? 'הוסף הערות על הלקוח...' : 'Add notes about this customer...'}
                 value={adminNotes}

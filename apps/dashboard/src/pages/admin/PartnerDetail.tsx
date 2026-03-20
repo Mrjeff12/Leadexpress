@@ -5,17 +5,12 @@ import { useAuth } from '../../lib/auth'
 import { supabase } from '../../lib/supabase'
 import {
   ArrowLeft,
-  Handshake,
   DollarSign,
   Users,
-  Calendar,
   Eye,
   UserX,
   UserCheck,
-  Clock,
   Loader2,
-  CheckCircle2,
-  XCircle,
   AlertCircle,
   Percent,
   Save,

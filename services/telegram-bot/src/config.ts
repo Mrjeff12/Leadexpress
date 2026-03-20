@@ -15,7 +15,7 @@ export const config = {
   telegramWebhookUrl: required('TELEGRAM_WEBHOOK_URL'),
   telegramWebhookSecret: process.env.TELEGRAM_WEBHOOK_SECRET || '',
 
-  redisUrl: process.env.REDIS_URL || 'redis://localhost:6379',
+  redisUrl: process.env.REDIS_URL ?? 'redis://localhost:6379',
 
   supabaseUrl: required('SUPABASE_URL'),
   supabaseServiceKey: required('SUPABASE_SERVICE_KEY'),
