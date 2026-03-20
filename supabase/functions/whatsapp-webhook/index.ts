@@ -961,134 +961,98 @@ async function onboardConfirm(phone: string, textLower: string, data: Record<str
   console.log(`[onboard] Complete: ${userId}`);
 }
 
-// ── AI Agent (OpenAI Responses API + Memory) ─────────────────────────────────
+// ── Multi-Agent Engine (DB-driven, OpenAI Responses API) ─────────────────────
 
 const OPENAI_KEY = Deno.env.get('OPENAI_API_KEY') ?? '';
 
-function buildSystemPrompt(profile: { id: string; full_name: string }, contractor: Record<string, unknown> | null, userSummary: string): string {
+// Cache agents for the lifetime of this Edge Function invocation (~same request)
+let _agentCache: Array<{
+  id: string; slug: string; name: string; instructions: string;
+  model: string; temperature: number; handoff_targets: string[];
+  guardrails: Record<string, unknown>; is_entry_point: boolean;
+  bot_agent_tools: Array<{ bot_tools: { slug: string; name: string; description: string; parameters: Record<string, unknown> } }>;
+}> | null = null;
+
+async function loadAgents() {
+  if (_agentCache) return _agentCache;
+  const { data, error } = await supabase
+    .from('bot_agents')
+    .select('id, slug, name, instructions, model, temperature, handoff_targets, guardrails, is_entry_point, bot_agent_tools(bot_tools(slug, name, description, parameters))')
+    .eq('is_active', true);
+  if (error) console.error('[agents] Load error:', error);
+  _agentCache = data || [];
+  return _agentCache;
+}
+
+function buildUserContext(profile: { id: string; full_name: string }, contractor: Record<string, unknown> | null, userSummary: string): string {
   const name = profile.full_name || 'Contractor';
   const trades = (contractor?.professions as string[])?.join(', ') || 'not set';
   const zips = (contractor?.zip_codes as string[])?.length || 0;
   const available = contractor?.available_today ? 'Yes' : 'No';
   const waNotify = contractor?.wa_notify ? 'Active' : 'Paused';
-
-  return `<role>
-You are LeadExpress AI — a smart WhatsApp assistant for US contractors.
-You help contractors manage leads, post jobs, and control their account.
-You speak English and Hebrew fluently. ALWAYS match the user's language.
-Keep messages SHORT — max 2-3 sentences. This is WhatsApp, not email.
-Use bold (*text*) for emphasis. Use emojis sparingly.
-</role>
-
-<user_context>
+  return `<user_context>
 Name: ${name}
 Trades: ${trades}
 Service ZIPs: ${zips} areas
 Available today: ${available}
 Notification status: ${waNotify}
 ${userSummary ? `Memory: ${userSummary}` : ''}
-</user_context>
-
-<tools_usage>
-Call the right function immediately — don't ask "would you like me to...?"
-Bias toward action over investigation. If the intent is clear, act.
-When posting a job: call start_post_job and the post-job flow takes over.
-</tools_usage>
-
-<constraints>
-- Never fabricate lead data or contractor info
-- Never share one user's data with another
-- Strip personal info (phone, address) from any job descriptions
-- If you can't help, suggest MENU
-- Don't repeat yourself — check conversation history
-</constraints>
-
-<stop_conditions>
-- After executing a function, stop. The function sends its own response.
-- After answering a question, stop. Don't ask follow-ups unless needed.
-- If user says thanks/bye, respond briefly and stop.
-</stop_conditions>`;
+</user_context>`;
 }
 
-const AI_TOOLS = [
-  {
+function agentToolsToOpenAI(agent: { bot_agent_tools: Array<{ bot_tools: { slug: string; description: string; parameters: Record<string, unknown> } }> }) {
+  return agent.bot_agent_tools.map(at => ({
     type: 'function' as const,
-    name: 'show_menu',
-    description: 'Show the interactive menu with all options',
-    parameters: { type: 'object', properties: {}, additionalProperties: false },
+    name: at.bot_tools.slug,
+    description: at.bot_tools.description,
+    parameters: Object.keys(at.bot_tools.parameters).length > 0
+      ? at.bot_tools.parameters
+      : { type: 'object', properties: {}, additionalProperties: false },
     strict: true,
-  },
-  {
-    type: 'function' as const,
-    name: 'show_settings',
-    description: 'Show the user their current profile settings, plan, and status',
-    parameters: { type: 'object', properties: {}, additionalProperties: false },
-    strict: true,
-  },
-  {
-    type: 'function' as const,
-    name: 'show_stats',
-    description: 'Show lead statistics (total claimed, this week, active)',
-    parameters: { type: 'object', properties: {}, additionalProperties: false },
-    strict: true,
-  },
-  {
-    type: 'function' as const,
-    name: 'pause_leads',
-    description: 'Pause/stop lead notifications temporarily',
-    parameters: { type: 'object', properties: {}, additionalProperties: false },
-    strict: true,
-  },
-  {
-    type: 'function' as const,
-    name: 'resume_leads',
-    description: 'Resume/start lead notifications again',
-    parameters: { type: 'object', properties: {}, additionalProperties: false },
-    strict: true,
-  },
-  {
-    type: 'function' as const,
-    name: 'update_trades',
-    description: 'Start updating trade/profession preferences',
-    parameters: { type: 'object', properties: {}, additionalProperties: false },
-    strict: true,
-  },
-  {
-    type: 'function' as const,
-    name: 'update_areas',
-    description: 'Start updating service areas/locations',
-    parameters: { type: 'object', properties: {}, additionalProperties: false },
-    strict: true,
-  },
-  {
-    type: 'function' as const,
-    name: 'update_days',
-    description: 'Start updating working days schedule',
-    parameters: { type: 'object', properties: {}, additionalProperties: false },
-    strict: true,
-  },
-  {
-    type: 'function' as const,
-    name: 'checkin_available',
-    description: 'Mark contractor as available today to receive leads',
-    parameters: { type: 'object', properties: {}, additionalProperties: false },
-    strict: true,
-  },
-  {
-    type: 'function' as const,
-    name: 'checkin_off',
-    description: 'Mark contractor as off/unavailable today',
-    parameters: { type: 'object', properties: {}, additionalProperties: false },
-    strict: true,
-  },
-  {
-    type: 'function' as const,
-    name: 'start_post_job',
-    description: 'Start posting a job for other contractors. Use when user wants to publish work, has a customer who needs a different trade, or wants to share a lead.',
-    parameters: { type: 'object', properties: {}, additionalProperties: false },
-    strict: true,
-  },
-];
+  }));
+}
+
+async function routeToAgent(text: string, agents: typeof _agentCache): Promise<string> {
+  const router = agents!.find(a => a.is_entry_point);
+  if (!router) return 'chat_agent'; // fallback
+
+  try {
+    const res = await fetch('https://api.openai.com/v1/responses', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${OPENAI_KEY}` },
+      body: JSON.stringify({
+        model: router.model,
+        instructions: router.instructions,
+        input: [{ role: 'user', content: text }],
+        text: { format: { type: 'json_object' } },
+        max_output_tokens: (router.guardrails as Record<string, number>)?.max_tokens ?? 100,
+        store: false,
+      }),
+    });
+
+    if (!res.ok) {
+      console.error('[router] Classification error:', await res.text());
+      return 'chat_agent';
+    }
+
+    const data = await res.json();
+    const outputText = data.output_text || '';
+    try {
+      const parsed = JSON.parse(outputText);
+      const target = parsed.target || parsed.agent || 'chat_agent';
+      // Validate target exists
+      if (agents!.find(a => a.slug === target)) return target;
+      console.warn(`[router] Unknown target: ${target}, falling back to chat_agent`);
+      return 'chat_agent';
+    } catch {
+      console.warn('[router] Failed to parse classification:', outputText);
+      return 'chat_agent';
+    }
+  } catch (err) {
+    console.error('[router] Error:', err);
+    return 'chat_agent';
+  }
+}
 
 async function handleAI(phone: string, text: string, profile: { id: string; full_name: string }): Promise<void> {
   if (!OPENAI_KEY) {
@@ -1097,6 +1061,13 @@ async function handleAI(phone: string, text: string, profile: { id: string; full
   }
 
   try {
+    const agents = await loadAgents();
+    if (!agents.length) {
+      // Fallback: no agents in DB yet — use basic response
+      await sendText(phone, `Send *MENU* for options.`);
+      return;
+    }
+
     // Fetch contractor data for context
     const { data: contractor } = await supabase
       .from('contractors')
@@ -1104,27 +1075,62 @@ async function handleAI(phone: string, text: string, profile: { id: string; full
       .eq('user_id', profile.id)
       .maybeSingle();
 
-    // Fetch or create session (memory)
+    // Fetch session (memory + current agent tracking)
     const { data: session } = await supabase
       .from('wa_agent_sessions')
-      .select('last_response_id, user_summary, message_count')
+      .select('last_response_id, user_summary, message_count, current_agent_slug, handoff_history')
       .eq('wa_id', phone)
       .maybeSingle();
 
-    const instructions = buildSystemPrompt(profile, contractor, session?.user_summary ?? '');
+    // Route: use current agent if recent, otherwise classify via router
+    let targetSlug = session?.current_agent_slug;
+    if (!targetSlug || targetSlug === 'router') {
+      targetSlug = await routeToAgent(text, agents);
+      console.log(`[router] Classified → ${targetSlug}`);
+    }
+
+    const targetAgent = agents.find(a => a.slug === targetSlug) || agents.find(a => a.slug === 'chat_agent') || agents[0];
+
+    // Build instructions: agent instructions + user context
+    const userContext = buildUserContext(profile, contractor, session?.user_summary ?? '');
+    const instructions = targetAgent.instructions + '\n\n' + userContext;
+
+    // Build tools from DB
+    const tools = agentToolsToOpenAI(targetAgent);
+
+    // Add handoff tool if agent has handoff targets
+    if (targetAgent.handoff_targets?.length > 0) {
+      tools.push({
+        type: 'function' as const,
+        name: 'handoff',
+        description: 'Hand off the conversation to a different agent. Use when the user asks about something outside your scope.',
+        parameters: {
+          type: 'object',
+          properties: {
+            target: { type: 'string', enum: targetAgent.handoff_targets, description: 'The agent to hand off to' },
+            reason: { type: 'string', description: 'Brief reason for handoff' },
+          },
+          required: ['target'],
+          additionalProperties: false,
+        },
+        strict: true,
+      });
+    }
 
     // Call OpenAI Responses API
+    const maxTokens = (targetAgent.guardrails as Record<string, number>)?.max_tokens ?? 300;
     const body: Record<string, unknown> = {
-      model: 'gpt-4o-mini',
+      model: targetAgent.model,
       instructions,
       input: [{ role: 'user', content: text }],
-      tools: AI_TOOLS,
+      tools: tools.length > 0 ? tools : undefined,
       store: true,
-      max_output_tokens: 300,
+      max_output_tokens: maxTokens,
+      temperature: targetAgent.temperature,
     };
 
-    // Chain to previous response for memory (if exists and not too old)
-    if (session?.last_response_id && (session?.message_count ?? 0) < 50) {
+    // Chain to previous response for memory (if same agent and not too old)
+    if (session?.last_response_id && (session?.message_count ?? 0) < 50 && session?.current_agent_slug === targetSlug) {
       body.previous_response_id = session.last_response_id;
     }
 
@@ -1136,8 +1142,8 @@ async function handleAI(phone: string, text: string, profile: { id: string; full
 
     if (!res.ok) {
       const errText = await res.text();
-      console.error('[ai] OpenAI Responses API error:', errText);
-      // Retry without previous_response_id if chaining failed
+      console.error(`[${targetSlug}] OpenAI error:`, errText);
+      // Retry without chaining if previous_response_id failed
       if (session?.last_response_id && errText.includes('previous_response')) {
         delete body.previous_response_id;
         const retry = await fetch('https://api.openai.com/v1/responses', {
@@ -1150,7 +1156,7 @@ async function handleAI(phone: string, text: string, profile: { id: string; full
           return;
         }
         const retryData = await retry.json();
-        await processAIResponse(phone, profile, retryData);
+        await processAIResponse(phone, profile, retryData, targetSlug, session?.handoff_history);
         return;
       }
       await sendText(phone, `Send *MENU* for options.`);
@@ -1158,7 +1164,7 @@ async function handleAI(phone: string, text: string, profile: { id: string; full
     }
 
     const data = await res.json();
-    await processAIResponse(phone, profile, data);
+    await processAIResponse(phone, profile, data, targetSlug, session?.handoff_history);
   } catch (err) {
     console.error('[ai] Error:', err);
     await sendText(phone, `Send *MENU* for options.`);
@@ -1169,24 +1175,54 @@ async function processAIResponse(
   phone: string,
   profile: { id: string; full_name: string },
   data: Record<string, unknown>,
+  agentSlug: string,
+  handoffHistory?: unknown[],
 ): Promise<void> {
   const responseId = data.id as string;
-  const output = data.output as Array<{ type: string; name?: string; content?: Array<{ text?: string }>; text?: string }>;
+  const output = data.output as Array<{ type: string; name?: string; arguments?: string; content?: Array<{ text?: string }>; text?: string }>;
 
-  // Save session
+  // Save session with current agent tracking
+  const currentCount = (await supabase.from('wa_agent_sessions').select('message_count').eq('wa_id', phone).maybeSingle()).data?.message_count ?? 0;
   await supabase.from('wa_agent_sessions').upsert({
     wa_id: phone,
     user_id: profile.id,
     last_response_id: responseId,
-    message_count: ((await supabase.from('wa_agent_sessions').select('message_count').eq('wa_id', phone).maybeSingle()).data?.message_count ?? 0) + 1,
+    message_count: currentCount + 1,
+    current_agent_slug: agentSlug,
+    handoff_history: handoffHistory || [],
     updated_at: new Date().toISOString(),
   });
 
   // Process output items
   for (const item of (output || [])) {
     if (item.type === 'function_call' && item.name) {
-      await executeAIFunction(phone, item.name, profile);
-      return; // Function sends its own response
+      // Handle handoff — re-route to different agent
+      if (item.name === 'handoff') {
+        try {
+          const args = JSON.parse(item.arguments || '{}');
+          const newAgent = args.target || 'chat_agent';
+          const newHistory = [...(handoffHistory || []), { from: agentSlug, to: newAgent, reason: args.reason, at: new Date().toISOString() }];
+          // Update session to new agent and reset chaining
+          await supabase.from('wa_agent_sessions').upsert({
+            wa_id: phone,
+            user_id: profile.id,
+            last_response_id: null,
+            current_agent_slug: newAgent,
+            handoff_history: newHistory,
+            updated_at: new Date().toISOString(),
+          });
+          console.log(`[handoff] ${agentSlug} → ${newAgent} (${args.reason})`);
+          // Re-run with new agent (recursive, but only 1 level deep via router reset)
+          await handleAI(phone, (data as Record<string, unknown>).input_text as string || 'help', profile);
+          return;
+        } catch (err) {
+          console.error('[handoff] Parse error:', err);
+        }
+      }
+
+      // Execute tool function
+      await executeAIFunction(phone, item.name, profile, item.arguments);
+      return;
     }
     if (item.type === 'message') {
       const content = item.content as Array<{ type: string; text?: string }>;
@@ -1208,7 +1244,7 @@ async function processAIResponse(
   await sendText(phone, `Send *MENU* for options.`);
 }
 
-async function executeAIFunction(phone: string, fnName: string, profile: { id: string; full_name: string }): Promise<void> {
+async function executeAIFunction(phone: string, fnName: string, profile: { id: string; full_name: string }, args?: string): Promise<void> {
   switch (fnName) {
     case 'show_menu':
       await handleMenu(phone);
@@ -1247,7 +1283,28 @@ async function executeAIFunction(phone: string, fnName: string, profile: { id: s
     case 'start_post_job':
       await startPostJob(phone, profile);
       break;
+    case 'claim_lead': {
+      try {
+        const parsed = JSON.parse(args || '{}');
+        if (parsed.lead_id) {
+          const { error } = await supabase.from('leads').update({ status: 'claimed', claimed_by: profile.id }).eq('id', parsed.lead_id).eq('status', 'sent');
+          await sendText(phone, error ? `Could not claim this lead.` : `✅ Lead claimed! Check your WhatsApp for the customer's contact.`);
+        }
+      } catch { await sendText(phone, `Send *MENU* for options.`); }
+      break;
+    }
+    case 'pass_lead': {
+      try {
+        const parsed = JSON.parse(args || '{}');
+        if (parsed.lead_id) {
+          await supabase.from('pipeline_events').insert({ lead_id: parsed.lead_id, user_id: profile.id, stage: 'lead_passed', meta: { reason: parsed.reason } });
+          await sendText(phone, `👍 Lead passed.`);
+        }
+      } catch { await sendText(phone, `Send *MENU* for options.`); }
+      break;
+    }
     default:
+      console.warn(`[tool] Unknown function: ${fnName}`);
       await sendText(phone, `Send *MENU* for options.`);
   }
 }

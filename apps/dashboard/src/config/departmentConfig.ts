@@ -6,6 +6,7 @@ import {
   BarChart3,
   Settings,
   Handshake,
+  Bot,
   type LucideIcon,
 } from 'lucide-react'
 
@@ -140,6 +141,19 @@ export const departments: DepartmentDef[] = [
       { key: 'activePartners', labelEn: 'Active Partners', labelHe: 'שותפים פעילים' },
       { key: 'pendingPartners', labelEn: 'Pending Approval', labelHe: 'ממתינים לאישור' },
       { key: 'partnerCommissions', labelEn: 'Commissions', labelHe: 'עמלות', format: 'currency' },
+    ],
+  },
+  {
+    id: 'bot',
+    nameEn: 'Bot Control',
+    nameHe: 'בוט',
+    color: '#8b5cf6',
+    icon: Bot,
+    basePath: 'bot',
+    tabs: [],
+    kpis: [
+      { key: 'activeAgents', labelEn: 'Agents', labelHe: 'סוכנים' },
+      { key: 'activeTools', labelEn: 'Tools', labelHe: 'כלים' },
     ],
   },
   {

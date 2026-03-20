@@ -3,6 +3,7 @@ import { Routes, Route, Navigate } from 'react-router-dom'
 
 const AdminCanvas = lazy(() => import('./admin/AdminCanvas'))
 const DepartmentLayout = lazy(() => import('./admin/DepartmentLayout'))
+const BotMissionControl = lazy(() => import('../pages/admin/BotMissionControl'))
 
 export default function AdminLayout() {
   // Remove sidebar body classes on mount (cleanup from old layout)
@@ -20,6 +21,7 @@ export default function AdminLayout() {
     >
       <Routes>
         <Route path="/" element={<AdminCanvas />} />
+        <Route path="/bot" element={<BotMissionControl />} />
         <Route path="/:deptId/*" element={<DepartmentLayout />} />
         <Route path="*" element={<Navigate to="/admin" replace />} />
       </Routes>
