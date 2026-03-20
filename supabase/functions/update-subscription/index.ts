@@ -1,6 +1,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import Stripe from "npm:stripe@17";
+import { getCorsHeaders } from "../_shared/cors.ts";
 
 const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY")!);
 
@@ -9,13 +10,9 @@ const supabase = createClient(
   Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
 );
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, content-type, x-client-info, apikey",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-};
-
 Deno.serve(async (req: Request) => {
+  const corsHeaders = getCorsHeaders(req);
+
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
@@ -58,6 +55,21 @@ Deno.serve(async (req: Request) => {
       items: [{ id: currentItemId, price: newPriceId }],
       proration_behavior: "create_prorations",
     });
+
+    // Update local DB immediately so the frontend can refetch without
+    // waiting for the Stripe webhook to arrive.
+    const { data: newPlan } = await supabase
+      .from("plans")
+      .select("id")
+      .or(`stripe_price_id.eq.${newPriceId},stripe_yearly_price_id.eq.${newPriceId}`)
+      .maybeSingle();
+
+    if (newPlan) {
+      await supabase
+        .from("subscriptions")
+        .update({ plan_id: newPlan.id })
+        .eq("user_id", user.id);
+    }
 
     return new Response(JSON.stringify({ status: updated.status }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },

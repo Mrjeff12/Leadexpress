@@ -302,6 +302,20 @@ export default function AdminWhatsApp() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
 
+  // ── Real connection flow (production) ─────────────────────────────────────
+  async function startRealConnect() {
+    try {
+      setConnState({ status: 'waiting_qr', qr: null, phone: null, connectedSince: null })
+      const res = await fetch(`${WA_API}/api/connect`, { method: 'POST' })
+      if (!res.ok) throw new Error(`Connection request failed: ${res.status}`)
+      // The status polling (useAdminWhatsAppData) will pick up the QR and status changes
+    } catch (err) {
+      console.error('[AdminWhatsApp] connect error:', err)
+      setConnState({ status: 'disconnected', qr: null, phone: null, connectedSince: null })
+      alert(he ? 'שגיאה בחיבור WhatsApp. ודא שהשירות פעיל.' : 'Failed to connect WhatsApp. Make sure the WA listener service is running.')
+    }
+  }
+
   // ── Demo connection flow ───────────────────────────────────────────────────
   function startDemoConnect() {
     setDemoStep('waiting_qr')
@@ -360,7 +374,7 @@ export default function AdminWhatsApp() {
                   <QrCode className="w-12 h-12" style={{ color: 'hsl(40 4% 55%)' }} />
                   <p className="text-xs" style={{ color: 'hsl(40 4% 42%)' }}>{he ? 'לא מחובר' : 'Not connected'}</p>
                 </div>
-                <button onClick={IS_DEV ? startDemoConnect : undefined} className="btn-primary px-6 py-2.5 rounded-lg text-sm font-semibold flex items-center gap-2">
+                <button onClick={IS_DEV ? startDemoConnect : startRealConnect} className="btn-primary px-6 py-2.5 rounded-lg text-sm font-semibold flex items-center gap-2">
                   <Smartphone className="w-4 h-4" />
                   {he ? 'חבר WhatsApp' : 'Connect WhatsApp'}
                 </button>

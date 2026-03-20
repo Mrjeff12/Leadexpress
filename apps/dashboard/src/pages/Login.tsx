@@ -20,8 +20,108 @@ export default function Login() {
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+  const [needsVerification, setNeedsVerification] = useState(false)
+  const [verificationEmail, setVerificationEmail] = useState('')
+  const [resending, setResending] = useState(false)
 
   if (!authLoading && user) return <Navigate to="/" replace />
+
+  async function handleResendVerification() {
+    setResending(true)
+    setError(null)
+    setSuccess(null)
+    try {
+      const { error: resendError } = await supabase.auth.resend({
+        type: 'signup',
+        email: verificationEmail,
+      })
+      if (resendError) {
+        setError(resendError.message)
+      } else {
+        setSuccess(isRtl ? 'אימייל אימות נשלח שוב!' : 'Verification email resent!')
+      }
+    } catch {
+      setError('Failed to resend verification email.')
+    } finally {
+      setResending(false)
+    }
+  }
+
+  if (needsVerification) {
+    return (
+      <div
+        className="min-h-screen flex items-center justify-center p-4 sm:p-6 lg:p-10 relative overflow-hidden"
+        dir={isRtl ? 'rtl' : 'ltr'}
+      >
+        <div className="fixed inset-0 bg-gradient-to-br from-slate-50 via-gray-50 to-orange-50/30" />
+        <div className="relative z-10 w-full max-w-md">
+          <div className="rounded-2xl border border-white/60 bg-white/70 backdrop-blur-2xl shadow-[0_8px_60px_-12px_rgba(0,0,0,0.12)] p-8 sm:p-10 text-center">
+            {/* Email icon */}
+            <div className="mx-auto w-16 h-16 rounded-2xl bg-orange-50 flex items-center justify-center mb-5">
+              <svg className="w-8 h-8 text-[#fe5b25]" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" />
+              </svg>
+            </div>
+
+            <h2 className="text-xl font-bold text-gray-900 mb-2">
+              {isRtl ? 'בדוק את האימייל שלך' : 'Check your email'}
+            </h2>
+            <p className="text-sm text-gray-500 mb-1">
+              {isRtl ? 'שלחנו קישור אימות אל:' : 'We sent a verification link to:'}
+            </p>
+            <p className="text-sm font-semibold text-gray-900 mb-6">{verificationEmail}</p>
+
+            {success && (
+              <div className="mb-4 rounded-xl bg-green-50 border border-green-100 px-4 py-3 text-sm text-green-700 flex items-center justify-center gap-2">
+                <svg className="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                </svg>
+                {success}
+              </div>
+            )}
+
+            {error && (
+              <div className="mb-4 rounded-xl bg-red-50 border border-red-100 px-4 py-3 text-sm text-red-600 flex items-center justify-center gap-2">
+                <svg className="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                </svg>
+                {error}
+              </div>
+            )}
+
+            <div className="space-y-3">
+              <button
+                onClick={handleResendVerification}
+                disabled={resending}
+                className="w-full py-2.5 rounded-xl text-sm font-semibold text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed bg-gradient-to-r from-[#fe5b25] to-[#ff7a4d] hover:from-[#e54e1a] hover:to-[#fe5b25] shadow-lg shadow-orange-200/40 hover:shadow-orange-300/50 active:scale-[0.98]"
+              >
+                {resending ? (
+                  <span className="inline-flex items-center gap-2">
+                    <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                    </svg>
+                  </span>
+                ) : (isRtl ? 'שלח אימייל אימות שוב' : 'Resend verification email')}
+              </button>
+
+              <button
+                onClick={() => {
+                  setNeedsVerification(false)
+                  setError(null)
+                  setSuccess(null)
+                  switchMode('login')
+                }}
+                className="w-full py-2.5 rounded-xl text-sm font-medium text-gray-600 border border-gray-200/80 bg-white hover:bg-gray-50 transition-all active:scale-[0.98]"
+              >
+                {isRtl ? 'חזרה להתחברות' : 'Back to login'}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -43,7 +143,12 @@ export default function Login() {
           mode === 'login'
             ? await signIn(email, password)
             : await signUp(email, password, name)
-        if (result.error) setError(result.error)
+        if (result.error) {
+          setError(result.error)
+        } else if ('needsVerification' in result && result.needsVerification) {
+          setVerificationEmail(email)
+          setNeedsVerification(true)
+        }
       }
     } catch {
       setError('Something went wrong. Please try again.')
@@ -104,8 +209,8 @@ export default function Login() {
             <div className="order-2 lg:order-1 w-full lg:w-[420px] xl:w-[440px] flex-shrink-0 flex flex-col justify-start sm:justify-center flex-1 sm:flex-initial px-6 sm:px-10 lg:px-12 pt-4 pb-6 sm:py-10 lg:py-14">
               {/* Logo */}
               <div className="flex items-center gap-2.5 mb-2 sm:mb-8">
-                <img src="/icon.png" alt="MasterLeadFlow" className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl shadow-md shadow-orange-200/50" />
-                <span className="text-base sm:text-lg font-semibold tracking-tight text-gray-900">MasterLeadFlow</span>
+                <img src="/icon.png" alt="Lead Express" className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl shadow-md shadow-orange-200/50" />
+                <span className="text-base sm:text-lg font-semibold tracking-tight text-gray-900">Lead Express</span>
               </div>
 
               <h1 className="text-xl sm:text-3xl font-bold text-gray-900 tracking-tight leading-tight mb-1 sm:mb-2">
@@ -325,11 +430,15 @@ export default function Login() {
             {/* ─── Hero Image (first on mobile, right on desktop) ─── */}
             <div className="order-1 lg:order-2 flex items-center p-0 sm:p-3 lg:flex-1">
               <div className="relative w-full sm:rounded-2xl overflow-hidden sm:shadow-lg h-[140px] sm:aspect-[16/9] sm:h-auto lg:aspect-auto lg:h-full lg:min-h-[400px]">
-                <img
-                  src="/login-hero.jpg"
-                  alt="Air duct cleaning contractor"
-                  className="w-full h-full object-cover"
-                />
+                <picture>
+                  <source srcSet="/login-hero.webp" type="image/webp" />
+                  <img
+                    src="/login-hero.jpg"
+                    alt="Air duct cleaning contractor"
+                    className="w-full h-full object-cover"
+                    loading="lazy"
+                  />
+                </picture>
                 {/* Gradient overlay */}
                 <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
 

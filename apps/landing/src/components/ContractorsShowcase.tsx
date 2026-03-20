@@ -8,10 +8,10 @@ export default function ContractorsShowcase() {
             Trusted by Contractors
           </p>
           <h2 className="text-2xl md:text-[32px] md:leading-[1.2] font-medium text-dark mb-2">
-            One app. Every trade. All your leads.
+            500+ contractors. 50 states. One WhatsApp message away.
           </h2>
           <p className="text-dark/40 max-w-md mx-auto text-sm">
-            Contractors across every trade use Lead Express to find jobs before the competition.
+            Every trade, every area — contractors trust Lead Express to find their next job.
           </p>
         </div>
 
@@ -24,12 +24,14 @@ export default function ContractorsShowcase() {
           <div className="relative bg-white/60 backdrop-blur-xl rounded-2xl border border-white/80 shadow-[0_8px_60px_rgba(254,91,37,0.12),0_2px_20px_rgba(0,0,0,0.06)] p-2 md:p-3">
             {/* Image */}
             <div className="relative rounded-xl overflow-hidden">
-              <img
-                src="/contractors-team.jpg"
-                alt="Contractors from different trades using Lead Express on their phones"
+              <picture>
+                <img
+                  src="/ourteam.jpg"
+                  alt="The Lead Express team — powering contractor growth across the US"
                 className="w-full h-auto block"
                 loading="lazy"
-              />
+                />
+              </picture>
               <div className="absolute inset-x-0 bottom-0 h-1/4 bg-gradient-to-t from-black/50 to-transparent" />
               <div className="absolute inset-x-0 bottom-0 px-4 py-3 md:px-6 md:py-4">
                 <p className="text-white/90 text-xs md:text-sm font-medium tracking-wide">

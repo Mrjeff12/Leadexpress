@@ -92,7 +92,8 @@ export default function ForwardLeadModal({ lead, isOpen, onClose }: ForwardLeadM
           subcontractor_id: selectedSubId,
           deal_type: dealType,
           deal_value: dealValue,
-          status: 'pending'
+          status: 'pending',
+          token_expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
         })
         .select('access_token')
         .single()

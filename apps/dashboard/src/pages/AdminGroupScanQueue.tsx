@@ -24,8 +24,6 @@ export default function AdminGroupScanQueue() {
   const { data, loading, addAdminLink, updateStatus } = useAdminGroupScanData()
   
   const [newLink, setNewLink] = useState('')
-  const [groupName, setGroupName] = useState('')
-  const [memberCount, setMemberCount] = useState('')
   const [submitting, setSubmitting] = useState(false)
   
   const [filterStatus, setFilterStatus] = useState<GroupScanStatus | 'all'>('all')
@@ -36,11 +34,9 @@ export default function AdminGroupScanQueue() {
     if (!newLink.trim()) return
 
     setSubmitting(true)
-    const res = await addAdminLink(newLink, groupName || undefined, memberCount ? parseInt(memberCount, 10) : undefined)
+    const res = await addAdminLink(newLink)
     if (res.success) {
       setNewLink('')
-      setGroupName('')
-      setMemberCount('')
     } else {
       alert(res.error)
     }
@@ -91,28 +87,6 @@ export default function AdminGroupScanQueue() {
                   className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500/50"
                   dir="ltr"
                   required
-                />
-              </div>
-              <div>
-                <label className="block text-[11px] font-bold text-stone-500 mb-1">
-                  {locale === 'he' ? 'שם קבוצה (אופציונלי)' : 'Group Name (Optional)'}
-                </label>
-                <input
-                  type="text"
-                  value={groupName}
-                  onChange={(e) => setGroupName(e.target.value)}
-                  className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500/50"
-                />
-              </div>
-              <div>
-                <label className="block text-[11px] font-bold text-stone-500 mb-1">
-                  {locale === 'he' ? 'כמות חברים (אופציונלי)' : 'Member Count (Optional)'}
-                </label>
-                <input
-                  type="number"
-                  value={memberCount}
-                  onChange={(e) => setMemberCount(e.target.value)}
-                  className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500/50"
                 />
               </div>
               <button

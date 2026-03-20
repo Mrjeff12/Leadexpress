@@ -47,6 +47,49 @@ Deno.serve(async (req: Request) => {
       case "invoice.payment_failed":
         await handleInvoiceFailed(event.data.object as Stripe.Invoice);
         break;
+      case "charge.refunded":
+        await handleChargeRefunded(event.data.object as Stripe.Charge);
+        break;
+
+      // ── Stripe Connect events ──────────────────────────────────────
+      case "account.updated": {
+        const account = event.data.object as Stripe.Account;
+        if (account.details_submitted && account.charges_enabled) {
+          const { error } = await supabase
+            .from("community_partners")
+            .update({ stripe_onboarded: true })
+            .eq("stripe_connect_id", account.id);
+          if (error) {
+            console.error("[webhook] Failed to update partner onboarding:", error.message);
+          } else {
+            console.log(`[webhook] Partner onboarded: connect_account=${account.id}`);
+          }
+        }
+        break;
+      }
+
+      case "transfer.created": {
+        const transfer = event.data.object as Stripe.Transfer;
+        if (transfer.metadata?.commission_id) {
+          const { error } = await supabase
+            .from("partner_commissions")
+            .update({
+              stripe_payout_id: transfer.id,
+              status: "paid",
+              paid_at: new Date().toISOString(),
+            })
+            .eq("id", transfer.metadata.commission_id);
+          if (error) {
+            console.error("[webhook] Failed to update commission with transfer:", error.message);
+          } else {
+            console.log(
+              `[webhook] Commission paid: id=${transfer.metadata.commission_id}, transfer=${transfer.id}`,
+            );
+          }
+        }
+        break;
+      }
+
       default:
         console.log(`[webhook] Unhandled event: ${event.type}`);
     }
@@ -103,6 +146,46 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
   );
 
   console.log(`[webhook] Subscription activated: user=${userId}, plan=${planSlug}`);
+
+  // ── Create partner referral if checkout had a ref code ───────────────
+  const refPartnerSlug = session.metadata?.ref_partner_slug;
+  if (refPartnerSlug) {
+    try {
+      const { data: partner } = await supabase
+        .from("community_partners")
+        .select("id, user_id, status")
+        .eq("slug", refPartnerSlug)
+        .eq("status", "active")
+        .maybeSingle();
+
+      if (!partner) {
+        console.warn(`[webhook] Referral partner not found or inactive: slug=${refPartnerSlug}`);
+      } else if (partner.user_id === userId) {
+        console.warn(`[webhook] Self-referral blocked: user=${userId}, partner=${partner.id}`);
+      } else {
+        const { error: refErr } = await supabase
+          .from("partner_referrals")
+          .insert({
+            partner_id: partner.id,
+            referred_user_id: userId,
+            referral_source: "link",
+          })
+          .select("id")
+          .maybeSingle();
+
+        // 23505 = unique_violation (user already referred)
+        if (refErr && refErr.code !== "23505") {
+          console.error("[webhook] Failed to create partner referral:", refErr.message);
+        } else if (refErr?.code === "23505") {
+          console.log(`[webhook] Referral already exists for user=${userId}, skipping`);
+        } else {
+          console.log(`[webhook] Partner referral created: partner=${partner.id}, user=${userId}`);
+        }
+      }
+    } catch (err) {
+      console.error("[webhook] Partner referral creation error (non-blocking):", err);
+    }
+  }
 }
 
 async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
@@ -162,6 +245,9 @@ async function handleInvoicePaid(invoice: Stripe.Invoice) {
   }).eq("user_id", userId);
 
   console.log(`[webhook] Invoice paid: user=${userId}`);
+
+  // ── Partner commission tracking ──────────────────────────────────────
+  await trackPartnerCommission(userId, invoice);
 }
 
 async function handleInvoiceFailed(invoice: Stripe.Invoice) {
@@ -173,4 +259,172 @@ async function handleInvoiceFailed(invoice: Stripe.Invoice) {
 
   await supabase.from("subscriptions").update({ status: "past_due" }).eq("user_id", userId);
   console.log(`[webhook] Invoice failed: user=${userId}`);
+}
+
+async function handleChargeRefunded(charge: Stripe.Charge) {
+  const invoiceId = charge.invoice as string | null;
+  if (!invoiceId) {
+    console.log("[webhook] charge.refunded — no invoice attached, skipping commission clawback");
+    return;
+  }
+
+  try {
+    // Find the earning commission tied to this invoice
+    const { data: earning, error: earningErr } = await supabase
+      .from("partner_commissions")
+      .select("id, partner_id, referral_id, amount_cents, status")
+      .eq("stripe_invoice_id", invoiceId)
+      .eq("type", "earning")
+      .maybeSingle();
+
+    if (earningErr) {
+      console.error("[webhook] Error looking up earning for clawback:", earningErr.message);
+      return;
+    }
+
+    if (!earning) {
+      console.log(`[webhook] charge.refunded — no partner commission for invoice ${invoiceId}`);
+      return;
+    }
+
+    // Insert refund_clawback (negative amount)
+    const { error: clawbackErr } = await supabase.from("partner_commissions").insert({
+      partner_id: earning.partner_id,
+      referral_id: earning.referral_id,
+      type: "refund_clawback",
+      amount_cents: -Math.abs(earning.amount_cents),
+      status: "approved",
+      stripe_invoice_id: invoiceId,
+      note: `Clawback for refunded charge ${charge.id}`,
+    });
+
+    if (clawbackErr) {
+      console.error("[webhook] Failed to insert refund clawback:", clawbackErr.message);
+      return;
+    }
+
+    console.log(`[webhook] Refund clawback created: partner=${earning.partner_id}, amount=-${earning.amount_cents}`);
+
+    // If original commission is still pending, reverse it
+    if (earning.status === "pending") {
+      const { error: reverseErr } = await supabase
+        .from("partner_commissions")
+        .update({ status: "reversed" })
+        .eq("id", earning.id);
+
+      if (reverseErr) {
+        console.error("[webhook] Failed to reverse original commission:", reverseErr.message);
+      } else {
+        console.log(`[webhook] Original commission ${earning.id} reversed`);
+      }
+    }
+  } catch (err) {
+    console.error("[webhook] Commission clawback error (non-blocking):", err);
+  }
+}
+
+// ── Partner Commission Helpers ────────────────────────────────────────────
+
+async function trackPartnerCommission(userId: string, invoice: Stripe.Invoice) {
+  try {
+    const invoiceId = invoice.id;
+    const amountPaid = invoice.amount_paid;
+
+    if (!amountPaid || amountPaid <= 0) {
+      console.log("[webhook] Invoice amount is zero, skipping commission");
+      return;
+    }
+
+    // Look up referral for this user
+    const { data: referral, error: refErr } = await supabase
+      .from("partner_referrals")
+      .select("id, partner_id, converted_at")
+      .eq("referred_user_id", userId)
+      .maybeSingle();
+
+    if (refErr) {
+      console.error("[webhook] Error looking up partner referral:", refErr.message);
+      return;
+    }
+
+    if (!referral) return; // User was not referred — nothing to do
+
+    // Get partner record and verify active status
+    const { data: partner, error: partnerErr } = await supabase
+      .from("community_partners")
+      .select("id, user_id, commission_rate, status")
+      .eq("id", referral.partner_id)
+      .single();
+
+    if (partnerErr || !partner) {
+      console.error("[webhook] Partner not found for referral:", partnerErr?.message);
+      return;
+    }
+
+    if (partner.status !== "active") {
+      console.log(`[webhook] Partner ${partner.id} is not active (${partner.status}), skipping commission`);
+      return;
+    }
+
+    // Self-referral guard
+    if (partner.user_id === userId) {
+      console.warn(`[webhook] Self-referral blocked: user=${userId}, partner=${partner.id}`);
+      return;
+    }
+
+    // Idempotency: check for duplicate commission on this invoice
+    const { data: existing } = await supabase
+      .from("partner_commissions")
+      .select("id")
+      .eq("stripe_invoice_id", invoiceId)
+      .eq("type", "earning")
+      .maybeSingle();
+
+    if (existing) {
+      console.log(`[webhook] Commission already exists for invoice ${invoiceId}, skipping`);
+      return;
+    }
+
+    // Calculate commission (amount_paid is in cents)
+    const commissionCents = Math.floor(amountPaid * Number(partner.commission_rate));
+
+    if (commissionCents <= 0) {
+      console.log("[webhook] Calculated commission is zero, skipping");
+      return;
+    }
+
+    // Insert earning commission
+    const { error: insertErr } = await supabase.from("partner_commissions").insert({
+      partner_id: partner.id,
+      referral_id: referral.id,
+      type: "earning",
+      amount_cents: commissionCents,
+      status: "pending",
+      stripe_invoice_id: invoiceId,
+      note: `Commission on invoice ${invoiceId}`,
+    });
+
+    if (insertErr) {
+      console.error("[webhook] Failed to insert commission:", insertErr.message);
+      return;
+    }
+
+    console.log(`[webhook] Commission created: partner=${partner.id}, amount=${commissionCents}c, invoice=${invoiceId}`);
+
+    // Mark referral as converted if this is the first payment
+    if (!referral.converted_at) {
+      const { error: convertErr } = await supabase
+        .from("partner_referrals")
+        .update({ converted_at: new Date().toISOString() })
+        .eq("id", referral.id);
+
+      if (convertErr) {
+        console.error("[webhook] Failed to update referral converted_at:", convertErr.message);
+      } else {
+        console.log(`[webhook] Referral ${referral.id} marked as converted`);
+      }
+    }
+  } catch (err) {
+    console.error("[webhook] Commission tracking error (non-blocking):", err);
+  }
 }

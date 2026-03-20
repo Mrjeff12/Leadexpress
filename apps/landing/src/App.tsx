@@ -1,44 +1,53 @@
-import { LanguageProvider } from './i18n/LanguageContext'
 import Navbar from './components/Navbar'
-import Hero from './components/HeroOptionA'
-import LogoStrip from './components/LogoStrip'
-import ChaosToOrderSection from './components/ChaosToOrderSection'
+import StickyProgressBar from './components/StickyProgressBar'
+import NetworkSection from './components/NetworkSection'
 import ContractorsShowcase from './components/ContractorsShowcase'
-import PipelineSection from './components/PipelineSection'
-import MapSection from './components/MapSection'
-import WorkflowSection from './components/WorkflowSection'
-import FeaturesSection from './components/FeaturesSection'
-import FeatureGrid from './components/FeatureGrid'
-import MarketingSection from './components/MarketingSection'
-import SubcontractorFeature from './components/SubcontractorFeature'
+import ReceiveJobsSection from './components/ReceiveJobsSection'
+import WhatsAppPhoneDemo from './components/HeroOptionA'
+// WorkflowSection removed — merged into ReceiveJobsSection
+import DashboardShowcase from './components/DashboardShowcase'
+import LeadsFeedShowcase from './components/LeadsFeedShowcase'
+import RebecaScannerSection from './components/RebecaScannerSection'
+import SubcontractorShowcase from './components/SubcontractorShowcase'
+import EarnMoreSection from './components/EarnMoreSection'
+import RebecaDistributorSection from './components/RebecaDistributorSection'
 import TestimonialsSection from './components/TestimonialsSection'
 import PricingSection from './components/PricingSection'
 import FAQSection from './components/FAQSection'
-import CTASection from './components/CTASection'
+import MapSection from './components/MapSection'
 import Footer from './components/Footer'
 
 export default function App() {
   return (
-    <LanguageProvider>
-      <div className="grain">
-        <Navbar />
-        <Hero />
-        {/* <LogoStrip /> */}
-        {/* <ChaosToOrderSection /> */}
-        <ContractorsShowcase />
-        <WorkflowSection />
-        {/* <PipelineSection /> */}
-        <MapSection />
-        {/* <FeaturesSection /> */}
-        {/* <FeatureGrid /> */}
-        {/* <MarketingSection /> */}
-        <SubcontractorFeature />
-        <TestimonialsSection />
-        <PricingSection />
-        <FAQSection />
-        <CTASection />
-        <Footer />
+    <div className="grain">
+      <Navbar />
+      <StickyProgressBar />
+
+      {/* ═══ Hero ═══ */}
+      <NetworkSection />
+      <ContractorsShowcase />
+
+      {/* ═══ Path 1: We bring you jobs ═══ */}
+      <div id="path-1">
+        <ReceiveJobsSection />
+        <DashboardShowcase />
+        <LeadsFeedShowcase />
+        <RebecaScannerSection />
       </div>
-    </LanguageProvider>
+
+      {/* ═══ Path 2: You publish private jobs ═══ */}
+      <div id="path-2">
+        <SubcontractorShowcase />
+        <EarnMoreSection />
+        <RebecaDistributorSection />
+      </div>
+
+      {/* ═══ Closing ═══ */}
+      <TestimonialsSection />
+      <PricingSection />
+      <FAQSection />
+      <MapSection />
+      <Footer />
+    </div>
   )
 }

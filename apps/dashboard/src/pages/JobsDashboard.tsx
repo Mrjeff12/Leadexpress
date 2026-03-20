@@ -185,8 +185,9 @@ export default function JobsDashboard() {
 
   const refetch = () => fetchJobs(false)
 
-  const { canManageSubs } = useSubscriptionAccess()
+  const { canManageSubs, loading: subsLoading } = useSubscriptionAccess()
 
+  if (subsLoading) return null
   if (!canManageSubs) {
     return (
       <FeatureTeaser

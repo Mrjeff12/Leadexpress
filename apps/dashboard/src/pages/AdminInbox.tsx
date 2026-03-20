@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from 'react'
 import { useI18n } from '../lib/i18n'
+import { useToast } from '../components/hooks/use-toast'
 import { supabase } from '../lib/supabase'
 import {
   useProspectDetailData,
@@ -77,6 +78,7 @@ function buildTimeline(msgs: Message[], evts: ProspectEvent[]): TimelineItem[] {
 export default function AdminInbox() {
   const { locale } = useI18n()
   const he = locale === 'he'
+  const { toast } = useToast()
 
   /* ── State ──────────────────────────────────────────────────────── */
   const [selectedId, setSelectedId] = useState<string | undefined>(undefined)
@@ -137,13 +139,13 @@ export default function AdminInbox() {
   /* ── Actions ────────────────────────────────────────────────────── */
   async function handleSend(text?: string) {
     const t = text ?? newMessage; if (!t.trim() || !prospect || sending) return; setSending(true)
-    try { const url = import.meta.env.VITE_WA_LISTENER_URL || 'http://localhost:3001'; const r = await fetch(`${url}/api/prospects/send`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prospect_id: prospect.id, wa_id: prospect.wa_id, text: t.trim(), wa_account_id: prospect.assigned_wa_account_id, channel: selectedChannel }) }); if (r.ok) { setNewMessage(''); setShowQR(false); if (inputRef.current) { inputRef.current.style.height = 'auto'; inputRef.current.focus(); } if (prospect.stage === 'prospect') await changeStage('reached_out') } } finally { setSending(false) }
+    try { const url = import.meta.env.VITE_WA_LISTENER_URL || 'http://localhost:3001'; const r = await fetch(`${url}/api/prospects/send`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prospect_id: prospect.id, wa_id: prospect.wa_id, text: t.trim(), wa_account_id: prospect.assigned_wa_account_id, channel: selectedChannel }) }); if (r.ok) { setNewMessage(''); setShowQR(false); if (inputRef.current) { inputRef.current.style.height = 'auto'; inputRef.current.focus(); } if (prospect.stage === 'prospect') await changeStage('reached_out') } else { toast({ title: 'Send failed', description: 'Message could not be sent. Please try again.', variant: 'destructive' }) } } catch { toast({ title: 'Send failed', description: 'Network error. Please check your connection.', variant: 'destructive' }) } finally { setSending(false) }
   }
-  async function changeStage(ns: string) { if (!prospect || prospect.stage === ns) return; const old = prospect.stage; setStageMenuOpen(false); await supabase.from('prospects').update({ stage: ns }).eq('id', prospect.id); await supabase.from('prospect_events').insert({ prospect_id: prospect.id, event_type: 'stage_change', old_value: old, new_value: ns }); await refetchDetail() }
-  async function saveNotes() { if (!prospect) return; await supabase.from('prospects').update({ notes: noteDraft }).eq('id', prospect.id); await supabase.from('prospect_events').insert({ prospect_id: prospect.id, event_type: 'note_added', new_value: noteDraft.substring(0, 100) }); setEditingNotes(false); await refetchDetail() }
-  async function saveName() { if (!prospect) return; const n = nameDraft.trim() || null; await supabase.from('prospects').update({ display_name: n }).eq('id', prospect.id); setEditingName(false); await refetchDetail() }
-  async function saveFU() { if (!prospect) return; const v = fuDraft || null; await supabase.from('prospects').update({ next_followup_at: v }).eq('id', prospect.id); setShowFU(false); await refetchDetail() }
-  async function clearFU() { if (!prospect) return; await supabase.from('prospects').update({ next_followup_at: null }).eq('id', prospect.id); setShowFU(false); await refetchDetail() }
+  async function changeStage(ns: string) { if (!prospect || prospect.stage === ns) return; const old = prospect.stage; setStageMenuOpen(false); const { error } = await supabase.from('prospects').update({ stage: ns }).eq('id', prospect.id); if (error) { toast({ title: 'Update failed', description: 'Could not change stage.', variant: 'destructive' }); return } await supabase.from('prospect_events').insert({ prospect_id: prospect.id, event_type: 'stage_change', old_value: old, new_value: ns }); await refetchDetail() }
+  async function saveNotes() { if (!prospect) return; const { error } = await supabase.from('prospects').update({ notes: noteDraft }).eq('id', prospect.id); if (error) { toast({ title: 'Save failed', description: 'Could not save notes.', variant: 'destructive' }); return } await supabase.from('prospect_events').insert({ prospect_id: prospect.id, event_type: 'note_added', new_value: noteDraft.substring(0, 100) }); setEditingNotes(false); await refetchDetail() }
+  async function saveName() { if (!prospect) return; const n = nameDraft.trim() || null; const { error } = await supabase.from('prospects').update({ display_name: n }).eq('id', prospect.id); if (error) { toast({ title: 'Save failed', description: 'Could not update name.', variant: 'destructive' }); return } setEditingName(false); await refetchDetail() }
+  async function saveFU() { if (!prospect) return; const v = fuDraft || null; const { error } = await supabase.from('prospects').update({ next_followup_at: v }).eq('id', prospect.id); if (error) { toast({ title: 'Save failed', description: 'Could not set follow-up.', variant: 'destructive' }); return } setShowFU(false); await refetchDetail() }
+  async function clearFU() { if (!prospect) return; const { error } = await supabase.from('prospects').update({ next_followup_at: null }).eq('id', prospect.id); if (error) { toast({ title: 'Save failed', description: 'Could not clear follow-up.', variant: 'destructive' }); return } setShowFU(false); await refetchDetail() }
   function copyPhone() { if (!prospect) return; navigator.clipboard.writeText(prospect.phone); setCopied(true); setTimeout(() => setCopied(false), 2000) }
 
   const stg = prospect ? getStage(prospect.stage) : STAGES[0]

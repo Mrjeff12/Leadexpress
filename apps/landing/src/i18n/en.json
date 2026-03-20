@@ -8,13 +8,13 @@
   },
   "hero": {
     "badge": "AI-Powered WhatsApp Lead Extraction",
-    "title1": "Your AI scans",
+    "title1": "Every job in your",
     "titleHighlight": "WhatsApp groups",
-    "title2": "and sends you only the jobs that matter",
-    "subtitle": "You're in dozens of WhatsApp groups, all on mute. Jobs are posted every minute and you're missing them. Lead Express reads every message, extracts the leads that match your trade and area, and sends them straight to your WhatsApp.",
+    "title2": "None of the noise.",
+    "subtitle": "Lead Express scans your groups 24/7 and sends matching jobs straight to your WhatsApp.",
     "cta1": "Start Getting Leads",
     "cta2": "See How It Works",
-    "trustedBy": "Helping contractors across the US find more work, faster."
+    "trustedBy": "500+ contractors across the US already use Lead Express."
   },
   "logos": {
     "label": "Trusted partners"
@@ -165,27 +165,27 @@
     "items": [
       {
         "q": "How does Lead Express find leads?",
-        "a": "Our AI monitors WhatsApp groups 24/7 — both groups you share with us and groups from our own database. It reads every message, identifies real job requests, and sends you only the ones that match your trade and area."
+        "a": "Our AI monitors WhatsApp groups 24/7 — both groups you share with us and our own curated database. It identifies real job requests and sends you only the ones matching your trade and area."
       },
       {
         "q": "Can I add my own WhatsApp groups?",
-        "a": "Yes! You can share invite links to any WhatsApp groups you're already in. Our AI will monitor them alongside our own curated groups in your area."
+        "a": "Yes! Share invite links to groups you're already in. Our AI will monitor them alongside our own groups in your area."
       },
       {
-        "q": "How do I get the leads?",
-        "a": "Directly to your WhatsApp. When a matching lead is found, you receive a message with all the details. If you're interested, we connect you to the original poster."
+        "q": "What can Rebeca do for me?",
+        "a": "Rebeca is your AI assistant on WhatsApp. Send her a voice message to check your stats, pause leads, update your trades, or distribute a job to your contractor network — all without leaving WhatsApp."
+      },
+      {
+        "q": "Can I earn from jobs I can't take?",
+        "a": "Yes! Forward any lead to your subcontractor network. Set your commission terms, and Rebeca handles the distribution and tracking."
       },
       {
         "q": "How fast do I get notified?",
-        "a": "In real time. The moment our AI detects a matching job request, you get notified on WhatsApp. Be the first to respond, close the deal."
-      },
-      {
-        "q": "How is this different from just reading the groups myself?",
-        "a": "You're in 20+ groups, all on mute. Hundreds of messages a day. You can't read them all. Our AI reads every message across all groups, 24/7, and only sends you what's relevant. No more missed jobs."
+        "a": "In real time. The moment a matching job is posted, you get a WhatsApp message with all the details. Be the first to respond."
       },
       {
         "q": "How long does setup take?",
-        "a": "About 2 minutes. Pick your trade, set your area, and optionally share your group links. That's it — leads start coming in immediately."
+        "a": "About 2 minutes. Pick your trade, set your area, and optionally share your group links. Leads start coming in immediately."
       }
     ]
   },

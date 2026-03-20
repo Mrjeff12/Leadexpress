@@ -20,6 +20,9 @@ export function useAdminKPIs() {
         scanQueueRes,
         waRes,
         serviceAreasRes,
+        partnersActiveRes,
+        partnersPendingRes,
+        partnerCommissionsRes,
       ] = await Promise.all([
         supabase.from('leads').select('urgency, status, created_at'),
         supabase.from('groups').select('id, status'),
@@ -29,6 +32,9 @@ export function useAdminKPIs() {
         supabase.from('group_scan_requests').select('id, status').eq('status', 'pending'),
         supabase.from('whatsapp_connections').select('id, status').eq('status', 'connected'),
         supabase.from('service_areas').select('id'),
+        supabase.from('community_partners').select('id').eq('status', 'active'),
+        supabase.from('community_partners').select('id').eq('status', 'pending'),
+        supabase.from('partner_commissions').select('amount_cents').eq('status', 'pending').eq('type', 'earning'),
       ])
 
       const leads = leadsRes.data ?? []
@@ -46,6 +52,12 @@ export function useAdminKPIs() {
       const sent = leads.filter(l => l.status === 'sent').length
       const convRate = totalLeads > 0 ? Math.round((sent / totalLeads) * 1000) / 10 : 0
 
+      const activePartners = partnersActiveRes.data?.length ?? 0
+      const pendingPartners = partnersPendingRes.data?.length ?? 0
+      const partnerCommissionsCents = (partnerCommissionsRes.data ?? []).reduce(
+        (sum: number, c: any) => sum + (c.amount_cents ?? 0), 0
+      )
+
       setData({
         hotLeads,
         prospectsWaiting: 0,
@@ -62,6 +74,9 @@ export function useAdminKPIs() {
         conversionRate: convRate,
         professionsCount: professionsRes.data?.length ?? 0,
         systemConfig: 'Active',
+        activePartners,
+        pendingPartners,
+        partnerCommissions: Math.round(partnerCommissionsCents / 100),
       })
       setLoading(false)
     }

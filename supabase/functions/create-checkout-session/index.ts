@@ -1,6 +1,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import Stripe from "npm:stripe@17";
+import { getCorsHeaders } from "../_shared/cors.ts";
 
 const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY")!);
 
@@ -11,13 +12,9 @@ const supabase = createClient(
 
 const DASHBOARD_URL = Deno.env.get("DASHBOARD_URL") || "https://app.leadexpress.com";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, content-type, x-client-info, apikey",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-};
-
 Deno.serve(async (req: Request) => {
+  const corsHeaders = getCorsHeaders(req);
+
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
@@ -35,12 +32,28 @@ Deno.serve(async (req: Request) => {
     const { data: { user }, error: authError } = await supabase.auth.getUser(token);
     if (authError || !user) return new Response("Unauthorized", { status: 401 });
 
-    const { priceId, planSlug, billingInterval } = await req.json();
+    const { priceId, planSlug, billingInterval, refCode } = await req.json();
     if (!priceId || !planSlug) {
       return new Response(JSON.stringify({ error: "Missing priceId or planSlug" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
+    }
+
+    // Validate referral partner if refCode provided
+    let refPartnerSlug: string | undefined;
+    if (refCode) {
+      const { data: partner } = await supabase
+        .from("community_partners")
+        .select("id, slug, user_id, status")
+        .eq("slug", refCode)
+        .eq("status", "active")
+        .maybeSingle();
+
+      // Only apply if partner exists, is active, and is not self-referral
+      if (partner && partner.user_id !== user.id) {
+        refPartnerSlug = partner.slug;
+      }
     }
 
     // Get or create Stripe customer
@@ -66,13 +79,13 @@ Deno.serve(async (req: Request) => {
       });
       customerId = customer.id;
 
-      // Save customer ID to existing subscription row
-      if (sub) {
-        await supabase
-          .from("subscriptions")
-          .update({ stripe_customer_id: customerId })
-          .eq("user_id", user.id);
-      }
+      // Always persist customer ID so it survives abandoned checkouts
+      await supabase
+        .from("subscriptions")
+        .upsert(
+          { user_id: user.id, stripe_customer_id: customerId },
+          { onConflict: "user_id" },
+        );
     }
 
     // Create Checkout Session
@@ -83,11 +96,19 @@ Deno.serve(async (req: Request) => {
       allow_promotion_codes: true,
       success_url: `${DASHBOARD_URL}/subscription?success=true&session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${DASHBOARD_URL}/subscription?canceled=true`,
+      metadata: {
+        supabase_user_id: user.id,
+        plan_slug: planSlug,
+        billing_interval: billingInterval || "monthly",
+        ...(refPartnerSlug && { ref_partner_slug: refPartnerSlug }),
+      },
       subscription_data: {
+        trial_period_days: 7,
         metadata: {
           supabase_user_id: user.id,
           plan_slug: planSlug,
           billing_interval: billingInterval || "monthly",
+          ...(refPartnerSlug && { ref_partner_slug: refPartnerSlug }),
         },
       },
     });

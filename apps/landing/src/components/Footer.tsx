@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom'
 import { useLang } from '../i18n/LanguageContext'
 
 export default function Footer() {
@@ -20,13 +21,9 @@ export default function Footer() {
               <span className="text-xl font-medium">Lead Express</span>
             </div>
             <p className="text-white/50 text-sm leading-relaxed mb-6">{t.footer.desc}</p>
-            <div className="flex gap-3">
-              {['fb', 'li', 'ig', 'tg'].map(social => (
-                <a key={social} href="#" className="w-9 h-9 rounded-full bg-white/10 hover:bg-primary transition-colors flex items-center justify-center">
-                  <span className="text-xs">{social === 'fb' ? 'f' : social === 'li' ? 'in' : social === 'ig' ? '📷' : '✈'}</span>
-                </a>
-              ))}
-            </div>
+            <a href="mailto:support@leadexpress.co.il" className="text-sm text-white/40 hover:text-primary transition-colors">
+              support@leadexpress.co.il
+            </a>
           </div>
 
           {/* Company */}
@@ -53,8 +50,8 @@ export default function Footer() {
           <div>
             <h4 className="font-semibold text-sm mb-4 text-white/80">{t.footer.legal}</h4>
             <ul className="space-y-3">
-              <li><a href="#" className="text-sm text-white/40 hover:text-primary transition-colors">{t.footer.privacy}</a></li>
-              <li><a href="#" className="text-sm text-white/40 hover:text-primary transition-colors">{t.footer.terms}</a></li>
+              <li><Link to="/privacy" className="text-sm text-white/40 hover:text-primary transition-colors">{t.footer.privacy}</Link></li>
+              <li><Link to="/terms" className="text-sm text-white/40 hover:text-primary transition-colors">{t.footer.terms}</Link></li>
             </ul>
           </div>
         </div>

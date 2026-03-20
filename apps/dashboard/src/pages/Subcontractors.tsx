@@ -126,8 +126,9 @@ export default function Subcontractors() {
     fetchSubs()
   }, [effectiveUserId])
 
-  const { canManageSubs } = useSubscriptionAccess()
+  const { canManageSubs, loading: subsLoading } = useSubscriptionAccess()
 
+  if (subsLoading) return null
   if (!canManageSubs) {
     return (
       <FeatureTeaser

@@ -23,6 +23,11 @@ const Analytics = lazy(() => import('../../pages/admin/Analytics'))
 const ActivityLog = lazy(() => import('../../pages/admin/ActivityLog'))
 const Professions = lazy(() => import('../../pages/admin/Professions'))
 const SystemSettings = lazy(() => import('../../pages/admin/SystemSettings'))
+const PartnerOverview = lazy(() => import('../../pages/admin/PartnerOverview'))
+const PartnerList = lazy(() => import('../../pages/admin/PartnerList'))
+const PartnerDetail = lazy(() => import('../../pages/admin/PartnerDetail'))
+const WithdrawalQueue = lazy(() => import('../../pages/admin/WithdrawalQueue'))
+const CommissionLog = lazy(() => import('../../pages/admin/CommissionLog'))
 
 const TAB_COMPONENTS: Record<string, React.LazyExoticComponent<() => JSX.Element>> = {
   'warroom/inbox': AdminInbox,
@@ -39,6 +44,10 @@ const TAB_COMPONENTS: Record<string, React.LazyExoticComponent<() => JSX.Element
   'finance/revenue': Revenue,
   'intel/analytics': Analytics,
   'intel/activity': ActivityLog,
+  'partners/overview': PartnerOverview,
+  'partners/list': PartnerList,
+  'partners/withdrawals': WithdrawalQueue,
+  'partners/commissions': CommissionLog,
   'settings/professions': Professions,
   'settings/system': SystemSettings,
 }
@@ -199,6 +208,9 @@ export default function DepartmentLayout() {
             )}
             {dept.id === 'channels' && (
               <Route path="groups/:id" element={<div className="max-w-6xl mx-auto w-full px-6 py-8 h-full overflow-y-auto"><AdminGroupDetail /></div>} />
+            )}
+            {dept.id === 'partners' && (
+              <Route path="list/:id" element={<div className="max-w-6xl mx-auto w-full px-6 py-8 h-full overflow-y-auto"><PartnerDetail /></div>} />
             )}
 
             <Route path="*" element={<Navigate to={basePath} replace />} />

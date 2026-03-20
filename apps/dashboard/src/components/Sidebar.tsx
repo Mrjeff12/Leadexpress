@@ -1,4 +1,4 @@
-import { NavLink, useLocation } from 'react-router-dom'
+import { NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../lib/auth'
 import { useI18n } from '../lib/i18n'
 import { useSubscriptionAccess } from '../hooks/useSubscriptionAccess'
@@ -23,8 +23,9 @@ import {
   MessageSquarePlus,
   FileText,
   Plus,
+  ChevronDown,
 } from 'lucide-react'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 
 type NavItem = {
   label: string
@@ -38,9 +39,22 @@ export default function Sidebar() {
   const { t, locale } = useI18n()
   const { canManageSubs } = useSubscriptionAccess()
   const location = useLocation()
+  const navigate = useNavigate()
   const [collapsed, setCollapsed] = useState(false)
   const [isPartner, setIsPartner] = useState(false)
+  const [roleOpen, setRoleOpen] = useState(false)
+  const roleRef = useRef<HTMLDivElement>(null)
   const isRtl = locale === 'he'
+  const inPartnerView = location.pathname.startsWith('/partner')
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (roleRef.current && !roleRef.current.contains(e.target as Node)) setRoleOpen(false)
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [])
 
   // Check if user is an active partner
   useEffect(() => {
@@ -73,7 +87,14 @@ export default function Sidebar() {
     { label: locale === 'he' ? 'העבודות שלי' : 'My Published', to: '/my-published', icon: FileText },
   ]
 
-  const activeNav = activeRole === 'publisher' ? publisherNav : contractorNav
+  const partnerNav: NavItem[] = [
+    { label: locale === 'he' ? 'דף הבית' : 'Home', to: '/partner', icon: LayoutDashboard },
+    { label: locale === 'he' ? 'הקבוצות שלי' : 'My Groups', to: '/partner/communities', icon: Users },
+    { label: locale === 'he' ? 'הפניות' : 'Referrals', to: '/partner/referrals', icon: UserPlus },
+    { label: locale === 'he' ? 'ארנק' : 'Wallet', to: '/partner/wallet', icon: Wallet },
+  ]
+
+  const activeNav = inPartnerView ? partnerNav : activeRole === 'publisher' ? publisherNav : contractorNav
 
   const CollapseIcon = isRtl
     ? (collapsed ? ChevronLeft : ChevronRight)
@@ -114,9 +135,11 @@ export default function Sidebar() {
       <nav className="flex-1 overflow-y-auto no-scrollbar px-3 py-5 space-y-0.5">
         {!collapsed && (
           <div className="text-[10px] font-bold uppercase tracking-[0.12em] px-3 mb-3 text-stone-300">
-            {activeRole === 'publisher'
-              ? (locale === 'he' ? 'מפרסם' : 'Publisher')
-              : (locale === 'he' ? 'ראשי' : 'Main')}
+            {inPartnerView
+              ? (locale === 'he' ? 'שותף' : 'Partner')
+              : activeRole === 'publisher'
+                ? (locale === 'he' ? 'מפרסם' : 'Publisher')
+                : (locale === 'he' ? 'ראשי' : 'Main')}
           </div>
         )}
         {activeNav.map((item) => (
@@ -145,82 +168,81 @@ export default function Sidebar() {
           </NavLink>
         ))}
 
-        {/* Role Toggle */}
+        {/* Role Dropdown */}
         {!collapsed && (
-          <div className="mt-4 mb-2 px-1">
-            {isPublisher ? (
-              <button
-                onClick={() => switchRole(activeRole === 'contractor' ? 'publisher' : 'contractor')}
-                className="flex items-center gap-2 w-full px-3 py-2.5 rounded-xl text-[11px] font-medium
-                           bg-gradient-to-r from-stone-50 to-stone-100 hover:from-stone-100 hover:to-stone-150
-                           border border-stone-200 transition-all text-stone-500 hover:text-stone-700"
-              >
-                <ArrowLeftRight className="w-3.5 h-3.5" />
-                {activeRole === 'contractor'
-                  ? (locale === 'he' ? 'מצב מפרסם' : 'Switch to Publisher')
-                  : (locale === 'he' ? 'מצב קבלן' : 'Switch to Contractor')}
-              </button>
-            ) : (
-              <button
-                onClick={addPublisherRole}
-                className="flex items-center gap-2 w-full px-3 py-2.5 rounded-xl text-[11px] font-medium
-                           bg-emerald-50 hover:bg-emerald-100 border border-emerald-200
-                           transition-all text-emerald-600 hover:text-emerald-700"
-              >
-                <Plus className="w-3.5 h-3.5" />
-                {locale === 'he' ? 'הפוך למפרסם' : 'Become a Publisher'}
-              </button>
-            )}
-          </div>
-        )}
+          <div className="mt-4 mb-2 px-1 relative" ref={roleRef}>
+            <button
+              onClick={() => setRoleOpen(!roleOpen)}
+              className="flex items-center gap-2 w-full px-3 py-2.5 rounded-xl text-[11px] font-semibold
+                         bg-gradient-to-r from-stone-50 to-stone-100 hover:from-stone-100 hover:to-stone-150
+                         border border-stone-200 transition-all text-stone-600"
+            >
+              {inPartnerView
+                ? <><Handshake className="w-3.5 h-3.5 text-[#fe5b25]" />{locale === 'he' ? 'שותף' : 'Partner'}</>
+                : activeRole === 'publisher'
+                  ? <><FileText className="w-3.5 h-3.5 text-emerald-500" />{locale === 'he' ? 'מפרסם' : 'Publisher'}</>
+                  : <><Zap className="w-3.5 h-3.5 text-[#fe5b25]" />{locale === 'he' ? 'קבלן' : 'Contractor'}</>
+              }
+              <ChevronDown className={`w-3.5 h-3.5 text-stone-400 ms-auto transition-transform ${roleOpen ? 'rotate-180' : ''}`} />
+            </button>
 
-        {/* Partner Section */}
-        {isPartner ? (
-          <>
-            {!collapsed && (
-              <div className="text-[10px] font-bold uppercase tracking-[0.12em] px-3 mt-6 mb-3 text-stone-300">
-                {locale === 'he' ? 'שותף' : 'Partner'}
+            {roleOpen && (
+              <div className="absolute left-0 right-0 mt-1 bg-white rounded-xl border border-stone-200 shadow-lg z-50 overflow-hidden">
+                {/* Contractor */}
+                {!(activeRole === 'contractor' && !inPartnerView) && (
+                  <button
+                    onClick={() => { setRoleOpen(false); if (inPartnerView) navigate('/'); else switchRole('contractor'); }}
+                    className="flex items-center gap-2.5 w-full px-3 py-2.5 text-[11px] font-medium text-stone-600 hover:bg-stone-50 transition-colors"
+                  >
+                    <Zap className="w-3.5 h-3.5 text-[#fe5b25]" />
+                    {locale === 'he' ? 'קבלן' : 'Contractor'}
+                  </button>
+                )}
+
+                {/* Publisher */}
+                {isPublisher && !(activeRole === 'publisher' && !inPartnerView) && (
+                  <button
+                    onClick={() => { setRoleOpen(false); if (inPartnerView) { switchRole('publisher'); navigate('/'); } else switchRole('publisher'); }}
+                    className="flex items-center gap-2.5 w-full px-3 py-2.5 text-[11px] font-medium text-stone-600 hover:bg-stone-50 transition-colors"
+                  >
+                    <FileText className="w-3.5 h-3.5 text-emerald-500" />
+                    {locale === 'he' ? 'מפרסם' : 'Publisher'}
+                  </button>
+                )}
+
+                {/* Partner */}
+                {isPartner && !inPartnerView && (
+                  <button
+                    onClick={() => { setRoleOpen(false); navigate('/partner'); }}
+                    className="flex items-center gap-2.5 w-full px-3 py-2.5 text-[11px] font-medium text-stone-600 hover:bg-stone-50 transition-colors"
+                  >
+                    <Handshake className="w-3.5 h-3.5 text-[#fe5b25]" />
+                    {locale === 'he' ? 'שותף' : 'Partner'}
+                  </button>
+                )}
+
+                {/* Become options */}
+                {!isPublisher && (
+                  <button
+                    onClick={() => { setRoleOpen(false); addPublisherRole(); }}
+                    className="flex items-center gap-2.5 w-full px-3 py-2.5 text-[11px] font-medium text-emerald-500 hover:bg-emerald-50 transition-colors border-t border-stone-100"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    {locale === 'he' ? 'הפוך למפרסם' : 'Become a Publisher'}
+                  </button>
+                )}
+                {!isPartner && (
+                  <button
+                    onClick={() => { setRoleOpen(false); navigate('/partner/join'); }}
+                    className="flex items-center gap-2.5 w-full px-3 py-2.5 text-[11px] font-medium text-[#fe5b25] hover:bg-[#fff4ef] transition-colors border-t border-stone-100"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    {locale === 'he' ? 'הפוך לשותף' : 'Become a Partner'}
+                  </button>
+                )}
               </div>
             )}
-            {collapsed && <div className="mt-4 mb-1 border-t border-stone-100" />}
-            {([
-              { label: locale === 'he' ? 'דף שותף' : 'Partner Home', to: '/partner', icon: Handshake },
-              { label: locale === 'he' ? 'הפניות' : 'Referrals', to: '/partner/referrals', icon: UserPlus },
-              { label: locale === 'he' ? 'קהילות' : 'Communities', to: '/partner/communities', icon: MessageSquare },
-              { label: locale === 'he' ? 'ארנק' : 'Wallet', to: '/partner/wallet', icon: Wallet },
-              { label: locale === 'he' ? 'שיתוף' : 'Share', to: '/partner/share', icon: Share2 },
-            ] as NavItem[]).map((item) => (
-              <NavLink
-                key={item.to}
-                to={item.to}
-                end={item.to === '/partner'}
-                className={() => {
-                  const isActive = item.to === '/partner'
-                    ? location.pathname === '/partner'
-                    : location.pathname.startsWith(item.to)
-                  return [
-                    'sidebar-link',
-                    isActive ? 'active' : '',
-                    collapsed ? 'justify-center px-0' : '',
-                  ].join(' ')
-                }}
-                title={item.label}
-              >
-                <item.icon className="w-[18px] h-[18px] shrink-0" />
-                {!collapsed && <span className="truncate">{item.label}</span>}
-              </NavLink>
-            ))}
-          </>
-        ) : (
-          !collapsed && (
-            <NavLink
-              to="/partner/join"
-              className="flex items-center gap-2 px-3 py-2 mt-6 rounded-xl text-[11px] font-medium text-stone-400 hover:text-[#fe5b25] hover:bg-[#fff4ef] transition-all"
-            >
-              <Handshake className="w-4 h-4" />
-              {locale === 'he' ? 'הפוך לשותף' : 'Become a Partner'}
-            </NavLink>
-          )
+          </div>
         )}
       </nav>
 
@@ -259,29 +281,31 @@ export default function Sidebar() {
         {/* Quick links under profile */}
         {!collapsed && (
           <div className="flex gap-1 px-1">
+            {!inPartnerView && (
+              <NavLink
+                to="/subscription"
+                className={() => {
+                  const active = location.pathname === '/subscription'
+                  return `flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-[11px] font-medium transition-all ${
+                    active ? 'bg-[#fff4ef] text-[#fe5b25]' : 'text-stone-400 hover:text-stone-600 hover:bg-stone-50'
+                  }`
+                }}
+              >
+                <CreditCard className="w-3.5 h-3.5" />
+                {locale === 'he' ? 'תשלומים' : 'Billing'}
+              </NavLink>
+            )}
             <NavLink
-              to="/subscription"
+              to={inPartnerView ? '/partner/settings' : '/profile'}
               className={() => {
-                const active = location.pathname === '/subscription'
-                return `flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-[11px] font-medium transition-all ${
-                  active ? 'bg-[#fff4ef] text-[#fe5b25]' : 'text-stone-400 hover:text-stone-600 hover:bg-stone-50'
-                }`
-              }}
-            >
-              <CreditCard className="w-3.5 h-3.5" />
-              {locale === 'he' ? 'תשלומים' : 'Billing'}
-            </NavLink>
-            <NavLink
-              to="/profile"
-              className={() => {
-                const active = location.pathname === '/profile'
+                const active = inPartnerView ? location.pathname === '/partner/settings' : location.pathname === '/profile'
                 return `flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-[11px] font-medium transition-all ${
                   active ? 'bg-[#fff4ef] text-[#fe5b25]' : 'text-stone-400 hover:text-stone-600 hover:bg-stone-50'
                 }`
               }}
             >
               <Settings className="w-3.5 h-3.5" />
-              {locale === 'he' ? 'פרופיל' : 'Profile'}
+              {locale === 'he' ? (inPartnerView ? 'הגדרות' : 'פרופיל') : (inPartnerView ? 'Settings' : 'Profile')}
             </NavLink>
           </div>
         )}

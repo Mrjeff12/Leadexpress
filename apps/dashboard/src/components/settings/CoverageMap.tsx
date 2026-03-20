@@ -487,8 +487,8 @@ export default function CoverageMap({ zipCodes, onAddZip, onRemoveZip, onBatchAd
       {onAddZip && (
         <div
           ref={searchRef}
-          className="absolute z-20"
-          style={{ top: 24, right: 60, width: 380 }}
+          className="absolute z-20 left-1/2 -translate-x-1/2"
+          style={{ top: 16, width: 'min(440px, calc(100% - 120px))' }}
         >
           <div
             className="relative"
@@ -509,6 +509,7 @@ export default function CoverageMap({ zipCodes, onAddZip, onRemoveZip, onBatchAd
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               onFocus={() => searchResults.length > 0 && setShowResults(true)}
+              autoFocus
               placeholder={he ? 'חפש עיר, county, ZIP...' : 'Search city, county, or ZIP...'}
               className="w-full bg-transparent rounded-[20px] pl-11 pr-10 py-3.5 text-sm font-semibold text-stone-800 placeholder:text-stone-400/70 outline-none focus:ring-2 focus:ring-[#fe5b25]/20 transition-all"
             />

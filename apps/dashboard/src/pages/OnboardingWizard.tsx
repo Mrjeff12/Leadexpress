@@ -1,10 +1,11 @@
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useContractorSettings } from '../hooks/useContractorSettings'
 import { useSubscriptionAccess } from '../hooks/useSubscriptionAccess'
 import { PROFESSIONS, type ProfessionId } from '../lib/professions'
 import { DAY_KEYS, DAY_LABELS, type DayKey } from '../lib/working-hours'
 import { useI18n } from '../lib/i18n'
+import { useToast } from '../components/hooks/use-toast'
 import CoverageMap from '../components/settings/CoverageMap'
 import {
   ArrowRight,
@@ -16,19 +17,15 @@ import {
   Loader2,
   Plus,
   X,
+  Zap,
 } from 'lucide-react'
-
-const PLAN_LIMITS: Record<string, { professions: number; zips: number }> = {
-  Starter: { professions: 1, zips: 3 },
-  Pro: { professions: 3, zips: 8 },
-  Unlimited: { professions: -1, zips: -1 },
-}
 
 export default function OnboardingWizard() {
   const navigate = useNavigate()
   const { locale } = useI18n()
   const he = locale === 'he'
-  const { planName } = useSubscriptionAccess()
+  const { toast } = useToast()
+  const { maxProfessions, maxZipCodes } = useSubscriptionAccess()
   const {
     professions,
     zipCodes,
@@ -44,21 +41,55 @@ export default function OnboardingWizard() {
 
   const [step, setStep] = useState(0)
   const [zipInput, setZipInput] = useState('')
+  // Track transition direction for slide animation
+  const [slideDir, setSlideDir] = useState<'left' | 'right'>('left')
+  const [animating, setAnimating] = useState(false)
+  const [visibleStep, setVisibleStep] = useState(0)
 
-  const limits = PLAN_LIMITS[planName] ?? PLAN_LIMITS.Starter
-  const maxProf = limits.professions
-  const maxZips = limits.zips
+  // Use dynamic plan limits from the database (-1 means unlimited)
+  const maxProf = maxProfessions
+  const maxZips = maxZipCodes
 
   const steps = [
-    { label: he ? 'מקצועות' : 'Trades', icon: Sparkles },
-    { label: he ? 'אזורי שירות' : 'Service Areas', icon: MapPin },
-    { label: he ? 'שעות עבודה' : 'Schedule', icon: Clock },
+    {
+      label: he ? 'מקצועות' : 'Trades',
+      icon: Sparkles,
+      desc: he
+        ? 'בחר את סוגי העבודה שלך ונתאים לך לידים רלוונטיים'
+        : "Pick your trades so we send you the right leads",
+    },
+    {
+      label: he ? 'אזורי שירות' : 'Service Areas',
+      icon: MapPin,
+      desc: he
+        ? 'סמן את האזורים שלך ונחבר אותך ללידים באזור'
+        : "Mark your zones and we'll match you with nearby leads",
+    },
+    {
+      label: he ? 'שעות עבודה' : 'Schedule',
+      icon: Clock,
+      desc: he
+        ? 'הגדר מתי אתה זמין כדי שנשלח לידים בזמן הנכון'
+        : "Set your hours so leads arrive when you're available",
+    },
   ]
 
   function canNext(): boolean {
     if (step === 0) return professions.length > 0
     if (step === 1) return zipCodes.length > 0
     return true
+  }
+
+  function goToStep(target: number) {
+    if (target === step || animating) return
+    setSlideDir(target > step ? 'left' : 'right')
+    setAnimating(true)
+    // Start exit animation, then swap content, then enter
+    setTimeout(() => {
+      setStep(target)
+      setVisibleStep(target)
+      setTimeout(() => setAnimating(false), 30)
+    }, 200)
   }
 
   function handleAddZip() {
@@ -77,28 +108,43 @@ export default function OnboardingWizard() {
       window.location.href = '/'
     } catch (err) {
       console.error('Save failed:', err)
+      toast({
+        title: he ? 'שמירה נכשלה' : 'Save failed',
+        description: he ? 'לא הצלחנו לשמור את ההגדרות. נסה שוב.' : 'Could not save your settings. Please try again.',
+        variant: 'destructive',
+      })
     }
+  }
+
+  // Inline style for slide transitions
+  const slideStyle: React.CSSProperties = {
+    transition: 'opacity 0.25s ease, transform 0.25s ease',
+    opacity: animating ? 0 : 1,
+    transform: animating
+      ? `translateX(${slideDir === 'left' ? '-24px' : '24px'})`
+      : 'translateX(0)',
   }
 
   return (
     <div className="fixed inset-0 flex flex-col bg-white">
-      {/* Top bar */}
+      {/* ── Top bar ── */}
       <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-100">
         <div className="flex items-center gap-3">
           <div
             className="w-8 h-8 rounded-lg flex items-center justify-center font-bold text-white text-[11px]"
             style={{ background: 'linear-gradient(135deg, #fe5b25, #e04d1c)' }}
           >
-            LE
+            <img src="/icon.png" alt="Lead Express" className="w-full h-full rounded-lg" />
           </div>
           <span className="text-sm font-bold text-zinc-800">Lead Express</span>
         </div>
-        <span className="text-xs text-zinc-400">
-          {he ? `שלב ${step + 1} מתוך 3` : `Step ${step + 1} of 3`}
-        </span>
+        <div className="flex items-center gap-2 text-xs text-zinc-400">
+          <Zap className="w-3.5 h-3.5 text-[#fe5b25]" />
+          <span>{he ? '~30 שניות' : '~30 seconds'}</span>
+        </div>
       </div>
 
-      {/* Progress bar */}
+      {/* ── Progress bar ── */}
       <div className="h-1 bg-zinc-100">
         <div
           className="h-full transition-all duration-500 ease-out"
@@ -109,42 +155,86 @@ export default function OnboardingWizard() {
         />
       </div>
 
-      {/* Step indicator */}
-      <div className="flex justify-center gap-8 py-5">
+      {/* ── Welcome header ── */}
+      <div className="text-center pt-5 pb-2 px-4">
+        <h2 className="text-lg font-bold text-zinc-800">
+          {he ? 'בוא נגדיר את החשבון שלך' : "Let's set up your account"}
+        </h2>
+        <p className="text-xs text-zinc-400 mt-0.5">
+          {he ? '3 שלבים קצרים — תסיים תוך שניות' : 'Just 3 quick steps — you\'ll be done in seconds'}
+        </p>
+      </div>
+
+      {/* ── Step indicator with connecting lines ── */}
+      <div className="flex items-center justify-center gap-0 py-3 px-4">
         {steps.map((s, i) => {
           const Icon = s.icon
           const done = i < step
           const active = i === step
           return (
-            <div key={i} className="flex items-center gap-2">
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all ${
-                done ? 'bg-[#fe5b25] text-white' :
-                active ? 'bg-[#fe5b25] text-white shadow-lg shadow-[#fe5b25]/30' :
-                'bg-zinc-100 text-zinc-400'
-              }`}>
-                {done ? <Check className="w-4 h-4" /> : <Icon className="w-4 h-4" />}
+            <div key={i} className="flex items-center">
+              {/* Connecting line before (skip first) */}
+              {i > 0 && (
+                <div
+                  className="h-[2px] transition-all duration-500"
+                  style={{
+                    width: 48,
+                    background: i <= step
+                      ? 'linear-gradient(90deg, #fe5b25, #ff8a5c)'
+                      : '#e4e4e7',
+                  }}
+                />
+              )}
+              {/* Step circle + label */}
+              <div className="flex flex-col items-center gap-1.5 relative">
+                <div
+                  className={`w-9 h-9 rounded-full flex items-center justify-center transition-all duration-300 ${
+                    done
+                      ? 'bg-[#fe5b25] text-white scale-100'
+                      : active
+                      ? 'text-white shadow-lg shadow-[#fe5b25]/30 scale-110'
+                      : 'bg-zinc-100 text-zinc-400 scale-100'
+                  }`}
+                  style={
+                    active
+                      ? { background: 'linear-gradient(135deg, #fe5b25, #e04d1c)' }
+                      : undefined
+                  }
+                >
+                  {done ? (
+                    <Check className="w-4 h-4" />
+                  ) : (
+                    <Icon className="w-4 h-4" />
+                  )}
+                </div>
+                <span
+                  className={`text-[11px] font-semibold whitespace-nowrap transition-colors duration-300 ${
+                    active ? 'text-zinc-800' : done ? 'text-[#fe5b25]' : 'text-zinc-400'
+                  }`}
+                >
+                  {s.label}
+                </span>
               </div>
-              <span className={`text-xs font-medium hidden sm:block ${active ? 'text-zinc-900' : 'text-zinc-400'}`}>
-                {s.label}
-              </span>
             </div>
           )
         })}
       </div>
 
-      {/* Content */}
+      {/* ── Content area with slide transition ── */}
       <div className="flex-1 overflow-y-auto px-6 pb-32">
-        <div className={`mx-auto ${step === 1 ? 'max-w-5xl' : 'max-w-2xl'}`}>
-
+        <div
+          className={`mx-auto ${step === 1 ? 'max-w-5xl' : 'max-w-2xl'}`}
+          style={slideStyle}
+        >
           {/* ─── Step 0: Professions ─── */}
-          {step === 0 && (
-            <div className="animate-fade-in space-y-6">
+          {visibleStep === 0 && (
+            <div className="space-y-5">
               <div className="text-center">
                 <h1 className="text-2xl font-bold text-zinc-900">
                   {he ? 'מה סוג העבודה שלך?' : 'What type of work do you do?'}
                 </h1>
                 <p className="text-sm text-zinc-500 mt-1">
-                  {he ? 'בחר את המקצועות שלך כדי לקבל לידים מתאימים' : 'Select your trades to get matching leads'}
+                  {steps[0].desc}
                   {maxProf > 0 && (
                     <span className="ml-2 text-[#fe5b25] font-semibold">
                       ({professions.length}/{maxProf})
@@ -188,14 +278,14 @@ export default function OnboardingWizard() {
           )}
 
           {/* ─── Step 1: Service Areas with Map ─── */}
-          {step === 1 && (
-            <div className="animate-fade-in space-y-4">
+          {visibleStep === 1 && (
+            <div className="space-y-4">
               <div className="text-center">
                 <h1 className="text-2xl font-bold text-zinc-900">
                   {he ? 'אזורי השירות שלך' : 'Your service areas'}
                 </h1>
                 <p className="text-sm text-zinc-500 mt-1">
-                  {he ? 'חפש עיר או ZIP code, או לחץ על המפה' : 'Search for a city or ZIP code, or click the map'}
+                  {steps[1].desc}
                   {maxZips > 0 && (
                     <span className="ml-2 text-[#fe5b25] font-semibold">
                       ({zipCodes.length}/{maxZips})
@@ -206,7 +296,7 @@ export default function OnboardingWizard() {
 
               {/* Guidance tips */}
               {zipCodes.length === 0 && (
-                <div className="flex gap-3 justify-center flex-wrap animate-fade-in">
+                <div className="flex gap-3 justify-center flex-wrap">
                   <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[#fff4ef] border border-[#fee8df] text-xs text-[#e04d1c]">
                     <MapPin className="w-3.5 h-3.5" />
                     {he ? 'לחץ על ZIP במפה' : 'Click a ZIP on the map'}
@@ -219,7 +309,7 @@ export default function OnboardingWizard() {
               )}
 
               {/* Full CoverageMap — same as dashboard */}
-              <div className="rounded-2xl overflow-hidden border border-zinc-200 shadow-sm" style={{ height: 'calc(100vh - 380px)', minHeight: 350 }}>
+              <div className="rounded-2xl overflow-hidden border border-zinc-200 shadow-sm" style={{ height: 'calc(100vh - 420px)', minHeight: 350 }}>
                 <CoverageMap
                   zipCodes={zipCodes}
                   onAddZip={(zip) => addZipCode(zip)}
@@ -252,21 +342,21 @@ export default function OnboardingWizard() {
           )}
 
           {/* ─── Step 2: Working Hours ─── */}
-          {step === 2 && (
-            <div className="animate-fade-in space-y-6">
+          {visibleStep === 2 && (
+            <div className="space-y-5">
               <div className="text-center">
                 <h1 className="text-2xl font-bold text-zinc-900">
                   {he ? 'שעות העבודה שלך' : 'Your working hours'}
                 </h1>
                 <p className="text-sm text-zinc-500 mt-1">
-                  {he ? 'מתי אתה זמין לקבל לידים?' : 'When are you available to receive leads?'}
+                  {steps[2].desc}
                 </p>
               </div>
 
               {/* Quick presets */}
               <div className="flex gap-2 justify-center">
                 {[
-                  { label: he ? 'ראשון-חמישי' : 'Mon–Fri', days: ['mon','tue','wed','thu','fri'] as DayKey[] },
+                  { label: he ? 'ראשון-חמישי' : 'Mon\u2013Fri', days: ['mon','tue','wed','thu','fri'] as DayKey[] },
                   { label: he ? 'כל יום' : 'Every day', days: DAY_KEYS },
                 ].map((preset) => (
                   <button
@@ -333,7 +423,7 @@ export default function OnboardingWizard() {
                             }}
                             className="rounded-lg border border-zinc-200 px-2 py-1 text-xs font-mono text-zinc-700 outline-none focus:border-[#fe5b25] w-[90px]"
                           />
-                          <span className="text-zinc-400 text-xs">–</span>
+                          <span className="text-zinc-400 text-xs">{'\u2013'}</span>
                           <input
                             type="time"
                             value={schedule.end}
@@ -356,13 +446,13 @@ export default function OnboardingWizard() {
         </div>
       </div>
 
-      {/* Bottom nav */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-zinc-100 px-6 py-4">
+      {/* ── Bottom nav ── */}
+      <div className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-sm border-t border-zinc-100 px-6 py-4">
         <div className="max-w-2xl mx-auto flex items-center justify-between">
           {step > 0 ? (
             <button
               type="button"
-              onClick={() => setStep(step - 1)}
+              onClick={() => goToStep(step - 1)}
               className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold text-zinc-600 hover:bg-zinc-50 transition-all"
             >
               <ArrowLeft className="w-4 h-4" />
@@ -375,8 +465,8 @@ export default function OnboardingWizard() {
           {step < 2 ? (
             <button
               type="button"
-              disabled={!canNext()}
-              onClick={() => setStep(step + 1)}
+              disabled={!canNext() || animating}
+              onClick={() => goToStep(step + 1)}
               className="flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-semibold text-white disabled:opacity-40 transition-all shadow-md shadow-[#fe5b25]/20"
               style={{ background: 'linear-gradient(135deg, #fe5b25, #e04d1c)' }}
             >
@@ -396,7 +486,7 @@ export default function OnboardingWizard() {
               ) : (
                 <Check className="w-4 h-4" />
               )}
-              {he ? 'סיום והתחלה' : 'Finish & Start'}
+              {he ? 'סיום והתחלה' : "Finish & Start"}
             </button>
           )}
         </div>

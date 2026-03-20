@@ -1,11 +1,9 @@
-import { LanguageProvider } from './i18n/LanguageContext'
 import HeroOptionA from './components/HeroOptionA'
 import HeroOptionB from './components/HeroOptionB'
 import HeroOptionC from './components/HeroOptionC'
 
 export default function HeroTest() {
   return (
-    <LanguageProvider>
       <div>
         {/* Option A */}
         <div className="relative">
@@ -41,6 +39,5 @@ export default function HeroTest() {
           <HeroOptionC />
         </div>
       </div>
-    </LanguageProvider>
   )
 }

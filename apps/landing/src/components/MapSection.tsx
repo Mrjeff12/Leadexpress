@@ -1,211 +1,267 @@
-import { useState, useEffect } from 'react'
-import { MapPin, Filter, Zap } from 'lucide-react'
+import { useState, useEffect, useRef, useCallback } from 'react'
+import { MapPin, BarChart3, DollarSign } from 'lucide-react'
 import { useLang } from '../i18n/LanguageContext'
 import USMap from './USMap'
 
-const ALL_STATES = [
-  'AL','AK','AZ','AR','CA','CO','CT','DE','FL','GA',
-  'HI','ID','IL','IN','IA','KS','KY','LA','ME','MD',
-  'MA','MI','MN','MS','MO','MT','NE','NV','NH','NJ',
-  'NM','NY','NC','ND','OH','OK','OR','PA','RI','SC',
-  'SD','TN','TX','UT','VT','VA','WA','WV','WI','WY','DC'
-]
-const HIGHLIGHT_STATES = ['FL', 'TX', 'CA']
+/* ─── Heatmap tiers ─── */
+const BRIGHT_STATES = ['FL', 'TX', 'CA']
+const MEDIUM_STATES = ['NY', 'IL', 'GA']
+const LIGHT_STATES  = ['OH', 'NC', 'AZ', 'PA']
 
-const DEMO_LEADS = [
-  { state: 'FL', city: 'Miami', zip: '33101', trade: 'Plumbing', tradeHe: 'אינסטלציה', est: '$300-500' },
-  { state: 'TX', city: 'Houston', zip: '77001', trade: 'HVAC', tradeHe: 'מיזוג', est: '$400-800' },
-  { state: 'CA', city: 'Los Angeles', zip: '90001', trade: 'Electrical', tradeHe: 'חשמל', est: '$200-400' },
-  { state: 'FL', city: 'Orlando', zip: '32801', trade: 'Roofing', tradeHe: 'איטום', est: '$500-1,200' },
-  { state: 'TX', city: 'Dallas', zip: '75201', trade: 'Plumbing', tradeHe: 'אינסטלציה', est: '$150-350' },
+const ACCENT = '#fe5b25'
+
+function buildStateStyles(): Record<string, { fill: string; opacity?: number; stroke?: string }> {
+  const styles: Record<string, { fill: string; opacity?: number; stroke?: string }> = {}
+  BRIGHT_STATES.forEach(s => { styles[s] = { fill: ACCENT, opacity: 0.6, stroke: ACCENT } })
+  MEDIUM_STATES.forEach(s => { styles[s] = { fill: ACCENT, opacity: 0.35, stroke: ACCENT } })
+  LIGHT_STATES.forEach(s =>  { styles[s] = { fill: ACCENT, opacity: 0.2, stroke: ACCENT } })
+  return styles
+}
+
+const STATE_STYLES = buildStateStyles()
+
+/* ─── Dot centroids (% of map container) ─── */
+interface DotConfig {
+  state: string
+  x: number
+  y: number
+  size: number
+}
+
+const DOTS: DotConfig[] = [
+  { state: 'FL', x: 81, y: 82, size: 12 },
+  { state: 'TX', x: 42, y: 78, size: 12 },
+  { state: 'CA', x: 8,  y: 48, size: 10 },
+  { state: 'NY', x: 82, y: 28, size: 10 },
+  { state: 'IL', x: 60, y: 38, size: 7 },
+  { state: 'GA', x: 74, y: 65, size: 7 },
+  { state: 'OH', x: 70, y: 35, size: 7 },
+  { state: 'NC', x: 78, y: 55, size: 7 },
+  { state: 'AZ', x: 18, y: 62, size: 7 },
+  { state: 'PA', x: 78, y: 32, size: 7 },
 ]
 
-const FILTER_STEPS_EN = ['All States', 'Florida, Texas, California', 'Miami, FL — Zip 33101']
-const FILTER_STEPS_HE = ['כל המדינות', 'פלורידה, טקסס, קליפורניה', 'מיאמי, FL — מיקוד 33101']
+/* ─── Inline keyframes (injected once) ─── */
+const STYLE_ID = 'map-section-anims'
+
+function ensureStyles() {
+  if (typeof document === 'undefined') return
+  if (document.getElementById(STYLE_ID)) return
+  const style = document.createElement('style')
+  style.id = STYLE_ID
+  style.textContent = `
+    @keyframes pulse-dot {
+      0%, 100% { transform: scale(1); opacity: 0.7; }
+      50% { transform: scale(1.4); opacity: 1; }
+    }
+    @keyframes spawn-dot {
+      0% { transform: scale(0); opacity: 0.9; }
+      60% { transform: scale(1.2); opacity: 0.8; }
+      100% { transform: scale(0.8); opacity: 0; }
+    }
+  `
+  document.head.appendChild(style)
+}
+
+/* ─── KPI Counter ─── */
+function useCountUp(target: number, duration: number, active: boolean) {
+  const [value, setValue] = useState(0)
+  const rafRef = useRef<number>(0)
+
+  useEffect(() => {
+    if (!active) return
+    const start = performance.now()
+    const tick = (now: number) => {
+      const elapsed = now - start
+      const progress = Math.min(elapsed / duration, 1)
+      // ease-out cubic
+      const eased = 1 - Math.pow(1 - progress, 3)
+      setValue(Math.round(target * eased))
+      if (progress < 1) {
+        rafRef.current = requestAnimationFrame(tick)
+      }
+    }
+    rafRef.current = requestAnimationFrame(tick)
+    return () => cancelAnimationFrame(rafRef.current)
+  }, [target, duration, active])
+
+  return value
+}
+
+/* ─── Spawned dot type ─── */
+interface SpawnedDot {
+  id: number
+  x: number
+  y: number
+}
 
 export default function MapSection() {
   const { lang } = useLang()
-  const [step, setStep] = useState(0)
-  const [visibleLeads, setVisibleLeads] = useState(0)
+  const isHe = lang === 'he'
+  const sectionRef = useRef<HTMLElement>(null)
+  const [isVisible, setIsVisible] = useState(false)
+  const [spawnedDots, setSpawnedDots] = useState<SpawnedDot[]>([])
+  const spawnIdRef = useRef(0)
 
-  // Auto-cycle through filter steps
+  // Inject CSS keyframes
+  useEffect(() => { ensureStyles() }, [])
+
+  // IntersectionObserver
   useEffect(() => {
-    const interval = setInterval(() => {
-      setStep(prev => (prev + 1) % 3)
-    }, 3000)
-    return () => clearInterval(interval)
+    const el = sectionRef.current
+    if (!el) return
+    const observer = new IntersectionObserver(
+      ([entry]) => { if (entry.isIntersecting) setIsVisible(true) },
+      { threshold: 0.2 }
+    )
+    observer.observe(el)
+    return () => observer.disconnect()
   }, [])
 
-  // Animate leads appearing when on step 2
-  useEffect(() => {
-    if (step === 2) {
-      setVisibleLeads(0)
-      const timeouts = DEMO_LEADS.filter(l => l.state === 'FL').map((_, i) =>
-        setTimeout(() => setVisibleLeads(i + 1), (i + 1) * 400)
-      )
-      return () => timeouts.forEach(clearTimeout)
-    } else {
-      setVisibleLeads(0)
+  // Spawn random dots every 2.5s
+  const spawnDot = useCallback(() => {
+    const base = DOTS[Math.floor(Math.random() * DOTS.length)]
+    const offsetX = (Math.random() - 0.5) * 6
+    const offsetY = (Math.random() - 0.5) * 6
+    const id = ++spawnIdRef.current
+    const dot: SpawnedDot = {
+      id,
+      x: base.x + offsetX,
+      y: base.y + offsetY,
     }
-  }, [step])
+    setSpawnedDots(prev => [...prev, dot])
+    // Remove after 2s
+    setTimeout(() => {
+      setSpawnedDots(prev => prev.filter(d => d.id !== id))
+    }, 2000)
+  }, [])
 
-  const stateStyles: Record<string, { fill: string; opacity?: number }> = {}
+  useEffect(() => {
+    if (!isVisible) return
+    const interval = setInterval(spawnDot, 2500)
+    // Spawn one immediately
+    spawnDot()
+    return () => clearInterval(interval)
+  }, [isVisible, spawnDot])
 
-  if (step === 0) {
-    ALL_STATES.forEach(s => { stateStyles[s] = { fill: '#fe5b25', opacity: 0.4 } })
-  } else if (step === 1) {
-    ALL_STATES.forEach(s => { stateStyles[s] = { fill: '#fe5b25', opacity: 0.15 } })
-    HIGHLIGHT_STATES.forEach(s => { stateStyles[s] = { fill: '#fe5b25', opacity: 0.8 } })
-  } else {
-    ALL_STATES.forEach(s => { stateStyles[s] = { fill: '#fe5b25', opacity: 0.1 } })
-    stateStyles['FL'] = { fill: '#fe5b25', opacity: 1 }
-  }
-
-  const filterSteps = lang === 'he' ? FILTER_STEPS_HE : FILTER_STEPS_EN
-  const matchedLeads = step === 2 ? DEMO_LEADS.filter(l => l.state === 'FL') : []
+  // KPI count-ups
+  const leadsCount = useCountUp(12847, 1500, isVisible)
+  const statesCount = useCountUp(50, 1500, isVisible)
+  const valueCount = useCountUp(342, 1500, isVisible)
 
   return (
-    <section className="section-padding bg-cream overflow-hidden">
+    <section ref={sectionRef} className="section-padding bg-cream overflow-hidden">
       <div className="max-w-7xl mx-auto px-6">
         {/* Header */}
-        <div className="text-center mb-16">
+        <div className="text-center mb-12">
           <h2 className="text-3xl md:text-5xl font-medium mb-4">
-            {lang === 'he' ? 'לידים בכל ארה״ב. בדיוק איפה שאתה עובד.' : 'Leads across all 50 states. Right where you work.'}
+            {isHe
+              ? 'תראה לידים נכנסים — מכל 50 המדינות'
+              : 'See leads flow in — across all 50 states'}
           </h2>
-          <p className="text-gray-subtle/70 max-w-2xl mx-auto">
-            {lang === 'he'
-              ? 'אנחנו פעילים בכל 50 המדינות. בחר מדינה, עיר או מיקוד — וקבל רק לידים מהאזור שלך.'
-              : 'We cover all 50 states. Choose a state, city, or zip code — and get only leads from your area.'}
+          <p className="text-gray-subtle/70 max-w-2xl mx-auto text-lg">
+            {isHe
+              ? 'הבינה המלאכותית שלנו סורקת אלפי קבוצות וואטסאפ 24/7'
+              : 'Our AI monitors thousands of WhatsApp groups 24/7'}
           </p>
         </div>
 
-        <div className="grid lg:grid-cols-5 gap-8 items-center">
-          {/* Map — 3 columns */}
-          <div className="lg:col-span-3 relative">
-            {/* Filter progress bar */}
-            <div className="flex items-center gap-2 mb-6 justify-center">
-              {filterSteps.map((label, i) => (
-                <button
-                  key={i}
-                  onClick={() => setStep(i)}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-full text-xs font-medium transition-all duration-500 ${
-                    step === i
-                      ? 'bg-[#fe5b25] text-white shadow-lg shadow-[#fe5b25]/25 scale-105'
-                      : 'bg-dark/5 text-dark/50 hover:bg-dark/10'
-                  }`}
-                >
-                  {i === 0 && <MapPin size={12} />}
-                  {i === 1 && <Filter size={12} />}
-                  {i === 2 && <Zap size={12} />}
-                  {label}
-                </button>
-              ))}
+        {/* Map with dot overlay */}
+        <div className="relative mx-auto max-w-4xl">
+          <div style={{ filter: 'drop-shadow(0 0 20px rgba(254,91,37,0.15))' }}>
+            <USMap
+              defaultFill="#f1f5f9"
+              defaultStroke="#e2e8f0"
+              stateStyles={STATE_STYLES}
+              className="w-full"
+            />
+          </div>
+
+          {/* Persistent pulsing dots */}
+          {isVisible && DOTS.map((dot, i) => (
+            <span
+              key={dot.state}
+              style={{
+                position: 'absolute',
+                left: `${dot.x}%`,
+                top: `${dot.y}%`,
+                width: dot.size,
+                height: dot.size,
+                borderRadius: '50%',
+                backgroundColor: ACCENT,
+                transform: 'translate(-50%, -50%)',
+                animation: `pulse-dot 2.4s ease-in-out ${i * 0.3}s infinite`,
+                pointerEvents: 'none',
+                boxShadow: `0 0 ${dot.size}px ${ACCENT}60`,
+              }}
+            />
+          ))}
+
+          {/* Spawned temporary dots */}
+          {spawnedDots.map(dot => (
+            <span
+              key={dot.id}
+              style={{
+                position: 'absolute',
+                left: `${dot.x}%`,
+                top: `${dot.y}%`,
+                width: 10,
+                height: 10,
+                borderRadius: '50%',
+                backgroundColor: ACCENT,
+                transform: 'translate(-50%, -50%)',
+                animation: 'spawn-dot 2s ease-out forwards',
+                pointerEvents: 'none',
+                boxShadow: `0 0 12px ${ACCENT}80`,
+              }}
+            />
+          ))}
+        </div>
+
+        {/* Stats bar */}
+        <div className="mt-10 rounded-2xl bg-[#0b0707] text-white p-6 md:p-8 flex flex-wrap items-center justify-around gap-6 md:gap-10">
+          {/* Leads extracted */}
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center text-[#fe5b25]">
+              <BarChart3 size={20} />
             </div>
-
-            {/* The Map */}
-            <div className="relative">
-              <USMap
-                defaultFill="#f1f5f9"
-                defaultStroke="#e2e8f0"
-                stateStyles={stateStyles}
-                className="w-full transition-all duration-700"
-              />
-
-              {/* Animated pins on Florida when step 2 */}
-              {step === 2 && (
-                <>
-                  {/* Miami pin */}
-                  <div className="absolute map-pin-drop" style={{ top: '78%', left: '78%' }}>
-                    <div className="relative">
-                      <div className="w-3 h-3 bg-[#fe5b25] rounded-full animate-pulse" />
-                      <div className="absolute -top-1 -left-1 w-5 h-5 bg-[#fe5b25]/30 rounded-full animate-ping" />
-                    </div>
-                  </div>
-                  {/* Orlando pin */}
-                  <div className="absolute map-pin-drop" style={{ top: '73%', left: '76%', animationDelay: '0.3s' }}>
-                    <div className="w-2.5 h-2.5 bg-[#fe5b25] rounded-full" />
-                  </div>
-                  {/* Tampa pin */}
-                  <div className="absolute map-pin-drop" style={{ top: '75%', left: '74%', animationDelay: '0.6s' }}>
-                    <div className="w-2.5 h-2.5 bg-[#fe5b25] rounded-full" />
-                  </div>
-                </>
-              )}
-
-              {/* Glow effect on active region */}
-              {step === 2 && (
-                <div className="absolute top-[65%] left-[72%] w-32 h-32 bg-[#fe5b25]/20 rounded-full blur-3xl animate-pulse" />
-              )}
+            <div>
+              <div className="text-2xl md:text-3xl font-bold tabular-nums">
+                {leadsCount.toLocaleString()}
+              </div>
+              <div className="text-xs text-white/50 font-medium">
+                {isHe ? 'לידים חולצו' : 'leads extracted'}
+              </div>
             </div>
           </div>
 
-          {/* Lead feed — 2 columns */}
-          <div className="lg:col-span-2">
-            <div className="bg-cream rounded-2xl p-6 border border-dark/5 min-h-[320px]">
-              {/* Feed header */}
-              <div className="flex items-center gap-3 mb-5 pb-4 border-b border-dark/5">
-                <div className="w-8 h-8 rounded-lg bg-[#fe5b25]/10 flex items-center justify-center">
-                  <Zap size={16} className="text-[#fe5b25]" />
-                </div>
-                <div>
-                  <div className="text-sm font-semibold">
-                    {lang === 'he' ? 'לידים בזמן אמת' : 'Live Lead Feed'}
-                  </div>
-                  <div className="text-[10px] text-gray-subtle/50">
-                    {step === 0 && (lang === 'he' ? 'בחר אזור כדי לסנן...' : 'Select a region to filter...')}
-                    {step === 1 && (lang === 'he' ? 'מצמצם ל-3 מדינות...' : 'Narrowing to 3 states...')}
-                    {step === 2 && (lang === 'he' ? '2 לידים מתאימים במיאמי!' : '2 matching leads in Miami!')}
-                  </div>
-                </div>
+          {/* States covered */}
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center text-[#fe5b25]">
+              <MapPin size={20} />
+            </div>
+            <div>
+              <div className="text-2xl md:text-3xl font-bold tabular-nums">
+                {statesCount}
               </div>
+              <div className="text-xs text-white/50 font-medium">
+                {isHe ? 'מדינות' : 'states covered'}
+              </div>
+            </div>
+          </div>
 
-              {/* Lead cards */}
-              {step < 2 ? (
-                <div className="space-y-3">
-                  {[0, 1, 2].map(i => (
-                    <div key={i} className="flex items-center gap-3 p-3 rounded-xl bg-white/60 border border-dark/5">
-                      <div className={`w-2 h-2 rounded-full ${step === 0 ? 'bg-dark/20' : 'bg-[#fe5b25]/40'} transition-colors duration-500`} />
-                      <div className="flex-1">
-                        <div className="h-3 bg-dark/10 rounded w-3/4 mb-1.5" />
-                        <div className="h-2 bg-dark/5 rounded w-1/2" />
-                      </div>
-                    </div>
-                  ))}
-                  <div className="text-center text-xs text-gray-subtle/40 pt-2">
-                    {lang === 'he' ? 'ממתין לסינון...' : 'Waiting for filter...'}
-                  </div>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {matchedLeads.map((lead, i) => (
-                    <div
-                      key={i}
-                      className={`p-3 rounded-xl bg-white border border-dark/5 shadow-sm transition-all duration-500 ${
-                        i < visibleLeads ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
-                      }`}
-                    >
-                      <div className="flex items-start justify-between mb-1">
-                        <div className="flex items-center gap-2">
-                          <div className="w-2 h-2 rounded-full bg-[#fe5b25]" />
-                          <span className="text-xs font-semibold">{lang === 'he' ? lead.tradeHe : lead.trade}</span>
-                        </div>
-                        <span className="text-[10px] text-primary font-semibold">{lead.est}</span>
-                      </div>
-                      <div className="text-[11px] text-gray-subtle/60 ms-4">
-                        📍 {lead.city}, {lead.state} {lead.zip}
-                      </div>
-                    </div>
-                  ))}
-                  {visibleLeads >= matchedLeads.length && (
-                    <div className="text-center pt-2">
-                      <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#fe5b25]">
-                        <Zap size={12} />
-                        {lang === 'he' ? 'תגיב ראשון, תסגור את העבודה!' : 'Respond first, close the deal!'}
-                      </span>
-                    </div>
-                  )}
-                </div>
-              )}
+          {/* Estimated value */}
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center text-[#fe5b25]">
+              <DollarSign size={20} />
+            </div>
+            <div>
+              <div className="text-2xl md:text-3xl font-bold tabular-nums">
+                ${(valueCount / 10).toFixed(1)}M
+              </div>
+              <div className="text-xs text-white/50 font-medium">
+                {isHe ? 'ערך משוער' : 'estimated value'}
+              </div>
             </div>
           </div>
         </div>

@@ -5,6 +5,8 @@ import { supabase } from '../lib/supabase'
 export function useSubscriptionAccess() {
   const { effectiveUserId } = useAuth()
   const [planName, setPlanName] = useState('Starter')
+  const [maxProfessions, setMaxProfessions] = useState(1)
+  const [maxZipCodes, setMaxZipCodes] = useState(3)
   const [canManageSubs, setCanManageSubs] = useState(false)
   const [loading, setLoading] = useState(true)
 
@@ -19,7 +21,7 @@ export function useSubscriptionAccess() {
     async function fetchSub() {
       const { data: subData } = await supabase
         .from('subscriptions')
-        .select('status, plans ( name )')
+        .select('status, plans ( name, max_professions, max_zip_codes )')
         .eq('user_id', effectiveUserId)
         .maybeSingle()
 
@@ -28,6 +30,8 @@ export function useSubscriptionAccess() {
           const plan = subData.plans as any
           const fetchedPlan = plan?.name as string | undefined
           if (fetchedPlan) setPlanName(fetchedPlan)
+          if (plan?.max_professions != null) setMaxProfessions(plan.max_professions)
+          if (plan?.max_zip_codes != null) setMaxZipCodes(plan.max_zip_codes)
           // Only Unlimited plan can manage subcontractors
           setCanManageSubs(fetchedPlan === 'Unlimited')
         }
@@ -40,5 +44,5 @@ export function useSubscriptionAccess() {
     return () => { cancelled = true }
   }, [effectiveUserId])
 
-  return { planName, canManageSubs, loading }
+  return { planName, maxProfessions, maxZipCodes, canManageSubs, loading }
 }

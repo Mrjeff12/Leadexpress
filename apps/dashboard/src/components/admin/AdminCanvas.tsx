@@ -24,6 +24,7 @@ import {
   Activity,
   Phone,
   BarChart3,
+  Handshake,
 } from 'lucide-react'
 
 const nodeTypes = { department: DepartmentNode }
@@ -32,6 +33,7 @@ const nodeTypes = { department: DepartmentNode }
 const GRID_POSITIONS: [number, number][] = [
   [0, 0],       [420, -30],    [840, 10],
   [60, 340],    [420, 360],    [840, 330],
+  [1260, 170],
 ]
 
 /* ─── Flow edges with department colors ─── */
@@ -46,6 +48,8 @@ const EDGES: Edge[] = [
     style: { stroke: '#f59e0b', strokeWidth: 1.5 } },
   { id: 'e5', source: 'warroom', target: 'intel', type: 'smoothstep', animated: true,
     style: { stroke: '#3b82f650', strokeWidth: 1 } },
+  { id: 'e6', source: 'finance', target: 'partners', type: 'smoothstep', animated: true,
+    style: { stroke: '#ec4899', strokeWidth: 1.5 } },
 ]
 
 /* ═══════════════════════════════════════════════════════════
@@ -129,6 +133,8 @@ export default function AdminCanvas() {
   const scansPending = Number(kpis.scansPending ?? 0)
   const leadsToday = Number(kpis.leadsToday ?? 0)
   const hotLeads = Number(kpis.hotLeads ?? 0)
+  const activePartners = Number(kpis.activePartners ?? 0)
+  const pendingPartners = Number(kpis.pendingPartners ?? 0)
 
   return (
     <div
@@ -176,6 +182,8 @@ export default function AdminCanvas() {
           <KpiPill icon={TrendingUp} label={he ? 'המרה' : 'RATE'} value={`${convRate}%`} color="#f59e0b" />
           <div className="w-px h-6 bg-white/5" />
           <KpiPill icon={DollarSign} label="MRR" value={`$${mrr.toLocaleString()}`} color="#22c55e" highlight={mrr > 0} />
+          <div className="w-px h-6 bg-white/5" />
+          <KpiPill icon={Handshake} label={he ? 'שותפים' : 'PARTNERS'} value={activePartners} color="#ec4899" highlight={pendingPartners > 0} />
         </div>
 
         {/* Right: User */}
@@ -290,6 +298,7 @@ export default function AdminCanvas() {
           <BottomStat label={he ? 'מנויים' : 'SUBS'} value={activeSubs} color="#22c55e" />
           <BottomStat label={he ? 'סריקות' : 'SCANS'} value={scansPending} color="#8b5cf6" />
           <BottomStat label={he ? 'קבוצות' : 'GROUPS'} value={activeGroups} color="#3b82f6" />
+          <BottomStat label={he ? 'שותפים' : 'PARTNERS'} value={activePartners} color="#ec4899" />
         </div>
 
         {/* Right: LIVE badge */}

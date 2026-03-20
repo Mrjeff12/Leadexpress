@@ -5,6 +5,7 @@ import {
   Coins,
   BarChart3,
   Settings,
+  Handshake,
   type LucideIcon,
 } from 'lucide-react'
 
@@ -120,6 +121,25 @@ export const departments: DepartmentDef[] = [
     kpis: [
       { key: 'leadsToday', labelEn: 'Leads Today', labelHe: 'לידים היום' },
       { key: 'conversionRate', labelEn: 'Conversion', labelHe: 'המרה', format: 'percent' },
+    ],
+  },
+  {
+    id: 'partners',
+    nameEn: 'Partners',
+    nameHe: 'שותפים',
+    color: '#ec4899',
+    icon: Handshake,
+    basePath: 'partners',
+    tabs: [
+      { key: 'overview', labelEn: 'Overview', labelHe: 'סקירה', path: '' },
+      { key: 'list', labelEn: 'Partners', labelHe: 'שותפים', path: 'list' },
+      { key: 'withdrawals', labelEn: 'Withdrawals', labelHe: 'משיכות', path: 'withdrawals' },
+      { key: 'commissions', labelEn: 'Commissions', labelHe: 'עמלות', path: 'commissions' },
+    ],
+    kpis: [
+      { key: 'activePartners', labelEn: 'Active Partners', labelHe: 'שותפים פעילים' },
+      { key: 'pendingPartners', labelEn: 'Pending Approval', labelHe: 'ממתינים לאישור' },
+      { key: 'partnerCommissions', labelEn: 'Commissions', labelHe: 'עמלות', format: 'currency' },
     ],
   },
   {

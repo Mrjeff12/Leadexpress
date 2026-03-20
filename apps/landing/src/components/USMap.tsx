@@ -65,6 +65,8 @@ interface StateStyle {
 interface USMapProps {
   /** Called when a state path is clicked, receives the state abbreviation and full name */
   onStateClick?: (abbr: string, name: string) => void;
+  /** Called when a state is hovered or unhovered */
+  onStateHover?: (abbr: string | null, name: string | null) => void;
   /** Default fill color for all states */
   defaultFill?: string;
   /** Default stroke color for state borders */
@@ -95,6 +97,7 @@ interface USMapProps {
  */
 export function USMap({
   onStateClick,
+  onStateHover,
   defaultFill = "#e2e8f0",
   defaultStroke = "#ffffff",
   stateStyles = {},
@@ -122,6 +125,8 @@ export function USMap({
             strokeLinejoin="round"
             opacity={custom.opacity ?? 1}
             onClick={() => onStateClick?.(abbr, name)}
+            onMouseEnter={() => onStateHover?.(abbr, name)}
+            onMouseLeave={() => onStateHover?.(null, null)}
             className={
               onStateClick
                 ? "cursor-pointer hover:opacity-75 transition-opacity duration-150"

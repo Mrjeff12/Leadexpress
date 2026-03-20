@@ -1,6 +1,6 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useSubscriptionBilling } from '../hooks/useSubscriptionBilling'
-import { useSearchParams } from 'react-router-dom'
+import { useSearchParams, useNavigate } from 'react-router-dom'
 import {
   CreditCard,
   Check,
@@ -76,6 +76,7 @@ function formatCents(cents: number, currency = 'usd'): string {
 /* ─── Component ─── */
 export default function Subscription() {
   const [searchParams] = useSearchParams()
+  const navigate = useNavigate()
   const [billingInterval, setBillingInterval] = useState<'monthly' | 'yearly'>('monthly')
 
   const {
@@ -95,6 +96,15 @@ export default function Subscription() {
   const showSuccess = searchParams.get('success') === 'true'
   const showCanceled = searchParams.get('canceled') === 'true'
   const currentSlug = subscription?.plan?.slug
+
+  // Redirect to dashboard after successful payment (3s delay to show success message)
+  // Don't wait for webhook/isActive — Stripe already confirmed payment via ?success=true
+  useEffect(() => {
+    if (showSuccess) {
+      const timer = setTimeout(() => navigate('/', { replace: true }), 3000)
+      return () => clearTimeout(timer)
+    }
+  }, [showSuccess, navigate])
 
   if (loading) {
     return (
@@ -148,7 +158,7 @@ export default function Subscription() {
       {showSuccess && (
         <div className="rounded-2xl p-4 bg-[#fff4ef] border border-[#fee8df] flex items-center gap-3">
           <CheckCircle2 className="h-5 w-5 text-[#fe5b25] shrink-0" />
-          <p className="text-sm font-medium text-[#c43d10]">Payment successful! Your subscription is now active.</p>
+          <p className="text-sm font-medium text-[#c43d10]">Payment successful! Your subscription is now active. Redirecting to dashboard...</p>
         </div>
       )}
       {showCanceled && (

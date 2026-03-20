@@ -43,36 +43,37 @@ export function useSubscriptionBilling() {
   const [loading, setLoading] = useState(true)
   const [actionLoading, setActionLoading] = useState(false)
 
-  // Load subscription + plans
-  useEffect(() => {
+  // Reusable loader for subscription + plans
+  const loadSubscription = useCallback(async () => {
     if (!effectiveUserId) { setLoading(false); return }
 
-    async function load() {
-      const [subRes, plansRes] = await Promise.all([
-        supabase
-          .from('subscriptions')
-          .select('status, current_period_end, stripe_subscription_id, stripe_customer_id, plans (*)')
-          .eq('user_id', effectiveUserId)
-          .maybeSingle(),
-        supabase
-          .from('plans')
-          .select('*')
-          .eq('is_active', true)
-          .order('price_cents'),
-      ])
+    const [subRes, plansRes] = await Promise.all([
+      supabase
+        .from('subscriptions')
+        .select('status, current_period_end, stripe_subscription_id, stripe_customer_id, plans (*)')
+        .eq('user_id', effectiveUserId)
+        .maybeSingle(),
+      supabase
+        .from('plans')
+        .select('*')
+        .eq('is_active', true)
+        .order('price_cents'),
+    ])
 
-      if (subRes.data) {
-        setSubscription({
-          ...subRes.data,
-          plan: subRes.data.plans as unknown as PlanData,
-        })
-      }
-      if (plansRes.data) setPlans(plansRes.data as PlanData[])
-      setLoading(false)
+    if (subRes.data) {
+      setSubscription({
+        ...subRes.data,
+        plan: subRes.data.plans as unknown as PlanData,
+      })
     }
-
-    load()
+    if (plansRes.data) setPlans(plansRes.data as PlanData[])
+    setLoading(false)
   }, [effectiveUserId])
+
+  // Load subscription + plans on mount
+  useEffect(() => {
+    loadSubscription()
+  }, [loadSubscription])
 
   // Load invoices
   const loadInvoices = useCallback(async () => {
@@ -108,11 +109,14 @@ export function useSubscriptionBilling() {
         body: { newPriceId },
       })
       if (error) throw error
-      window.location.reload()
+      // Refetch subscription data from DB instead of reloading the page.
+      // The edge function updates the subscription synchronously before returning,
+      // so the local DB should already reflect the change.
+      await loadSubscription()
     } finally {
       setActionLoading(false)
     }
-  }, [])
+  }, [loadSubscription])
 
   // Open Stripe Customer Portal
   const openPortal = useCallback(async () => {
@@ -143,5 +147,6 @@ export function useSubscriptionBilling() {
     changePlan,
     openPortal,
     loadInvoices,
+    refetch: loadSubscription,
   }
 }

@@ -3,8 +3,8 @@
   "configurations": [
     {
       "name": "Dashboard (Vite)",
-      "runtimeExecutable": "pnpm",
-      "runtimeArgs": ["--filter", "admin", "dev"],
+      "runtimeExecutable": "/bin/zsh",
+      "runtimeArgs": ["-c", "export PATH=/Users/bigjeff/.nvm/versions/node/v20.19.6/bin:$PATH && cd apps/dashboard && npx vite --port 5173"],
       "port": 5173
     },
     {
@@ -45,9 +45,9 @@
     },
     {
       "name": "Landing Page",
-      "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev", "--prefix", "apps/landing"],
-      "port": 5175
+      "runtimeExecutable": "/bin/zsh",
+      "runtimeArgs": ["-c", "export PATH=/Users/bigjeff/.nvm/versions/node/v20.19.6/bin:$PATH && cd apps/landing && npx vite --port 5174"],
+      "port": 5174
     }
   ]
 }

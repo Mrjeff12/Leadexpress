@@ -1,13 +1,4 @@
-import { ArrowRight, MessageCircle } from 'lucide-react'
 import { useState, useEffect, useRef } from 'react'
-import { useLang } from '../i18n/LanguageContext'
-
-/**
- * OPTION A — Single phone showing the extraction process:
- * 1. WhatsApp group with noisy messages scrolling in one by one
- * 2. AI scans → scan line sweeps, lead message highlights + pulses
- * 3. That message "extracts" into a large lead card with spring animation
- */
 
 const WhatsAppIcon = ({ className = '' }: { className?: string }) => (
   <svg viewBox="0 0 24 24" fill="currentColor" className={className}>
@@ -27,95 +18,74 @@ const GROUP_MSGS = [
 ]
 
 export default function HeroOptionA() {
-  const { t } = useLang()
   const [phase, setPhase] = useState<'scroll' | 'scan' | 'extract'>('scroll')
   const [visibleMsgs, setVisibleMsgs] = useState(0)
+  const sectionRef = useRef<HTMLElement>(null)
+  const [isInView, setIsInView] = useState(false)
 
   useEffect(() => {
+    const el = sectionRef.current
+    if (!el) return
+    const obs = new IntersectionObserver(
+      ([entry]) => { if (entry.isIntersecting) setIsInView(true) },
+      { threshold: 0.15 }
+    )
+    obs.observe(el)
+    return () => obs.disconnect()
+  }, [])
+
+  useEffect(() => {
+    if (!isInView) return
+
     const cycle = () => {
       setPhase('scroll')
       setVisibleMsgs(0)
 
-      // Messages appear one by one
       const msgTimers = GROUP_MSGS.map((_, i) =>
         setTimeout(() => setVisibleMsgs(i + 1), (i + 1) * 350)
       )
 
-      // After messages, scan phase
       setTimeout(() => setPhase('scan'), GROUP_MSGS.length * 350 + 500)
-
-      // After scan, extract
       setTimeout(() => setPhase('extract'), GROUP_MSGS.length * 350 + 1800)
 
       return msgTimers
     }
 
     const timers = cycle()
-    const interval = setInterval(() => {
-      cycle()
-    }, 10000)
+    const interval = setInterval(() => { cycle() }, 10000)
 
     return () => {
       clearInterval(interval)
       timers.forEach(clearTimeout)
     }
-  }, [])
+  }, [isInView])
 
   return (
-    <section className="relative pt-28 pb-8 md:pt-36 md:pb-16 overflow-hidden min-h-screen flex items-center bg-cream">
-      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-[#fe5b25]/8 rounded-full blur-[120px]" />
+    <section ref={sectionRef} className="relative pt-10 md:pt-14 pb-8 md:pb-12 overflow-hidden bg-cream">
+      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[600px] h-[300px] bg-[#fe5b25]/5 rounded-full blur-[120px]" />
 
-      <div className="max-w-7xl mx-auto px-6 relative w-full">
-        <div className="grid md:grid-cols-2 gap-8 md:gap-12 items-center">
-
-          {/* Text side */}
-          <div className="text-center md:text-start">
-            <div className="inline-flex items-center gap-2 bg-[#fe5b25]/15 text-[#fe5b25] rounded-full px-4 py-1.5 text-xs font-semibold mb-6">
-              <WhatsAppIcon className="w-3.5 h-3.5" />
-              {t.hero.badge}
-            </div>
-
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-medium leading-[1.15] tracking-[-0.04em] mb-6 text-dark">
-              {t.hero.title1}{' '}
-              <span className="highlight-box">{t.hero.titleHighlight}</span>
-              <br />
-              {t.hero.title2}
-            </h1>
-
-            <p className="text-base md:text-lg text-gray-subtle/70 max-w-lg mb-8 leading-relaxed">
-              {t.hero.subtitle}
-            </p>
-
-            <div className="flex flex-col sm:flex-row items-center md:items-start gap-4 mb-8">
-              <a href="#pricing" className="group inline-flex items-center justify-center gap-2 rounded-full bg-[#fe5b25] text-white px-8 py-4 text-base font-semibold transition-all duration-300 hover:bg-[#e04d1c] hover:scale-105 hover:shadow-lg hover:shadow-[#fe5b25]/25 active:scale-95">
-                <WhatsAppIcon className="w-5 h-5" />
-                {t.hero.cta1}
-                <ArrowRight size={16} className="transition-transform group-hover:translate-x-1" />
-              </a>
-              <a href="#features" className="inline-flex items-center justify-center gap-2 rounded-full border border-dark/20 text-dark/70 px-8 py-4 text-base font-semibold transition-all duration-300 hover:border-dark/40 hover:text-dark hover:scale-105 active:scale-95">
-                <MessageCircle size={16} />
-                {t.hero.cta2}
-              </a>
-            </div>
-
-            <div className="flex items-center gap-3 justify-center md:justify-start">
-              <div className="flex -space-x-2">
-                {['bg-blue-400', 'bg-amber-400', 'bg-orange-400', 'bg-purple-400'].map((bg, i) => (
-                  <div key={i} className={`w-8 h-8 rounded-full ${bg} border-2 border-cream flex items-center justify-center text-[10px] font-bold text-white`}>
-                    {['M', 'S', 'D', 'R'][i]}
-                  </div>
-                ))}
-              </div>
-              <p className="text-xs text-gray-subtle/50">{t.hero.trustedBy}</p>
-            </div>
+      <div className="max-w-5xl mx-auto px-6 relative w-full">
+        {/* Section header */}
+        <div className="text-center mb-6">
+          <div className="inline-flex items-center gap-2 bg-[#25D366]/10 text-[#25D366] rounded-full px-4 py-1.5 text-[11px] font-semibold tracking-widest uppercase mb-4">
+            <WhatsAppIcon className="w-3.5 h-3.5" />
+            See It In Action
           </div>
+          <h2 className="text-2xl md:text-3xl font-medium text-dark tracking-[-0.03em] mb-3">
+            From group noise to <span className="highlight-box">your next job.</span>
+          </h2>
+          <p className="text-gray-subtle/60 text-base max-w-lg mx-auto">
+            Watch how our AI scans a WhatsApp group, finds the lead, and extracts it for you — in real time.
+          </p>
+        </div>
 
-          {/* Phone — extraction process */}
+        {/* Phone demo — centered, pushed down to sit on section edge */}
+        <div className="flex justify-center -mb-6 md:-mb-10">
           <div className="flex flex-col items-center">
 
-            {/* The Phone */}
+            {/* The Phone + Rebeca — cropped at half */}
             <div className="relative">
-              <div className="relative z-10">
+              <div className="relative" style={{ maxHeight: 320, overflow: 'hidden', maskImage: 'linear-gradient(to bottom, black 78%, transparent 100%)', WebkitMaskImage: 'linear-gradient(to bottom, black 78%, transparent 100%)' }}>
                 {/* Titanium frame */}
                 <div
                   className="w-[260px] md:w-[280px] rounded-[44px] p-[3px] shadow-[0_0_0_1px_rgba(0,0,0,0.08),0_20px_60px_rgba(0,0,0,0.2),0_8px_24px_rgba(0,0,0,0.12)]"
@@ -315,7 +285,7 @@ export default function HeroOptionA() {
 
               {/* Extracted lead card — dramatic entrance from phone */}
               <div
-                className={`absolute -right-4 md:-right-32 top-[28%] z-20 transition-all ${
+                className={`absolute -right-4 md:-right-32 top-[15%] z-20 transition-all ${
                   phase === 'extract'
                     ? 'opacity-100 translate-x-0 scale-100 duration-[800ms]'
                     : 'opacity-0 -translate-x-12 scale-[0.6] duration-500'
@@ -342,12 +312,16 @@ export default function HeroOptionA() {
 
                   {/* Header */}
                   <div className="px-3 pt-2.5 pb-2 flex items-center gap-2 border-b border-[#fe5b25]/10">
-                    <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-[#fe5b25] to-[#e04d1c] flex items-center justify-center">
-                      <span className="text-[11px]">🎯</span>
+                    <div className="w-7 h-7 rounded-lg bg-[#fe5b25] flex items-center justify-center">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M12 2L2 7l10 5 10-5-10-5z" />
+                        <path d="M2 17l10 5 10-5" />
+                        <path d="M2 12l10 5 10-5" />
+                      </svg>
                     </div>
                     <div>
                       <div className="text-[11px] font-bold text-[#fe5b25]">Lead Found!</div>
-                      <div className="text-[8px] text-[#8696a0]">Matched to your profile</div>
+                      <div className="text-[8px] text-[#8696a0]">Lead Express</div>
                     </div>
                   </div>
 
