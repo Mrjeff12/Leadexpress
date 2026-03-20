@@ -286,7 +286,7 @@ export default function NetworkSection() {
               })}
 
               {/* Pipeline legend — visual flow story */}
-              <div className={`absolute -bottom-6 left-1/2 -translate-x-1/2 transition-all duration-700 ${
+              <div className={`absolute -bottom-16 left-1/2 -translate-x-1/2 transition-all duration-700 ${
                 connected ? 'opacity-100' : 'opacity-0'
               }`} style={{ transitionDelay: '2500ms' }}>
                 <div

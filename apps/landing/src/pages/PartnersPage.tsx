@@ -112,10 +112,11 @@ function PartnerHero() {
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-8">
             <a
-              href="#earnings-calculator"
+              href="https://app.leadexpress.co.il/partner/join"
               className="group inline-flex items-center justify-center gap-2 rounded-full bg-gradient-to-r from-[#fe5b25] to-[#e04d1c] text-white px-8 py-4 text-base font-semibold transition-all duration-300 hover:scale-105 hover:shadow-lg hover:shadow-[#fe5b25]/25 active:scale-95"
             >
-              Become a Partner
+              <Zap size={16} />
+              Start in 5 Minutes — It's Free
               <ArrowRight size={16} className="transition-transform group-hover:translate-x-1" />
             </a>
             <a
@@ -1097,116 +1098,74 @@ function PartnerSocialProof() {
 }
 
 /* ═══════════════════════════════════════════
-   SECTION 8: Partner Tiers
+   SECTION 8: Become a Partner CTA
    ═══════════════════════════════════════════ */
 function PartnerTiersSection() {
   const { ref, visible } = useInView()
 
-  const tiers = [
-    {
-      name: 'Starter Partner',
-      range: '1-2 referrals',
-      discount: '20%',
-      desc: 'Get started with a discount on your own subscription.',
-      features: ['Partner dashboard', 'Branded referral link', '15% commission', '20% off your plan'],
-      highlighted: false,
-    },
-    {
-      name: 'Growth Partner',
-      range: '3-4 referrals',
-      discount: '50%',
-      desc: 'Your community is growing. Your savings grow with it.',
-      features: ['Everything in Starter', 'Priority support', 'Verified badge', '50% off your plan'],
-      highlighted: true,
-    },
-    {
-      name: 'Elite Partner',
-      range: '5+ referrals',
-      discount: 'FREE',
-      desc: 'Your subscription is on us. You just keep earning.',
-      features: ['Everything in Growth', 'Custom partner page', 'Featured in directory', 'FREE subscription'],
-      highlighted: false,
-    },
-  ]
-
   return (
     <section ref={ref as any} className="section-padding bg-cream-dark overflow-hidden">
-      <div className="max-w-6xl mx-auto px-6">
-        <div className="text-center mb-12">
-          <p className="text-[#fe5b25] text-[11px] font-semibold tracking-widest uppercase mb-3">
-            Partner Tiers
-          </p>
-          <h2 className="text-3xl md:text-5xl font-medium text-dark mb-4">
-            The More You Refer,{' '}
-            <span className="highlight-box">The Less You Pay</span>
-          </h2>
-          <p className="text-gray-subtle/60 max-w-2xl mx-auto text-lg">
-            Every referral gets you closer to a free subscription. Plus you keep earning 15% on every one.
-          </p>
-        </div>
+      <div className="max-w-4xl mx-auto px-6">
+        <div className={`relative rounded-3xl overflow-hidden transition-all duration-700 ${visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
+          {/* Background */}
+          <div className="absolute inset-0 bg-gradient-to-br from-[#0b0707] via-[#1a0f0a] to-[#0b0707]" />
+          <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-[#fe5b25]/10 rounded-full blur-[120px]" />
+          <div className="absolute bottom-0 left-0 w-[300px] h-[300px] bg-[#fe5b25]/5 rounded-full blur-[100px]" />
 
-        <div className="grid md:grid-cols-3 gap-5">
-          {tiers.map((tier, i) => (
-            <div
-              key={i}
-              className={`relative rounded-2xl p-6 transition-all duration-700 ${
-                visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
-              } ${
-                tier.highlighted
-                  ? 'bg-[#0b0707] text-white border-2 border-[#fe5b25]/30 shadow-[0_8px_60px_rgba(254,91,37,0.2)] scale-[1.02]'
-                  : 'bg-white/60 backdrop-blur-xl border border-white/80 shadow-[0_4px_40px_rgba(0,0,0,0.04)]'
-              }`}
-              style={{ transitionDelay: `${i * 150}ms` }}
-            >
-              {tier.highlighted && (
-                <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-gradient-to-r from-[#fe5b25] to-[#e04d1c] text-white text-[10px] font-bold px-4 py-1 rounded-full">
-                  MOST POPULAR
-                </div>
-              )}
-
-              <div className="mb-4">
-                <h3 className={`text-lg font-bold mb-1 ${tier.highlighted ? 'text-white' : 'text-dark'}`}>
-                  {tier.name}
-                </h3>
-                <p className={`text-xs font-medium ${tier.highlighted ? 'text-white/40' : 'text-dark/40'}`}>
-                  {tier.range}
-                </p>
-              </div>
-
-              <div className="mb-4">
-                <span className={`text-4xl font-bold ${tier.highlighted ? 'text-[#fe5b25]' : 'gradient-text'}`}>
-                  {tier.discount}
-                </span>
-                {tier.discount !== 'FREE' && (
-                  <span className={`text-sm ml-1 ${tier.highlighted ? 'text-white/40' : 'text-dark/40'}`}>off</span>
-                )}
-              </div>
-
-              <p className={`text-sm mb-5 ${tier.highlighted ? 'text-white/60' : 'text-gray-subtle/60'}`}>
-                {tier.desc}
-              </p>
-
-              <ul className="space-y-2.5 mb-6">
-                {tier.features.map((f, j) => (
-                  <li key={j} className="flex items-center gap-2 text-sm">
-                    <Sparkles size={14} className="text-[#fe5b25] flex-shrink-0" />
-                    <span className={tier.highlighted ? 'text-white/80' : 'text-dark/70'}>{f}</span>
-                  </li>
-                ))}
-              </ul>
-
-              <a
-                href="#earnings-calculator"
-                className={`block text-center py-3 rounded-xl text-sm font-semibold transition-all duration-300 ${
-                  tier.highlighted
-                    ? 'bg-gradient-to-r from-[#fe5b25] to-[#e04d1c] text-white hover:shadow-lg hover:shadow-[#fe5b25]/25'
-                    : 'bg-dark/5 text-dark hover:bg-dark/10'
-                }`}
-              >
-                Get Started
-              </a>
+          <div className="relative px-8 py-14 md:px-16 md:py-20 text-center">
+            {/* FREE badge */}
+            <div className="inline-flex items-center gap-2 bg-[#25D366]/15 border border-[#25D366]/25 text-[#25D366] rounded-full px-5 py-2 text-sm font-bold mb-8">
+              <Gift className="w-4 h-4" />
+              100% Free — No Catch
             </div>
-          ))}
+
+            <h2 className="text-3xl md:text-5xl lg:text-[56px] font-medium text-white mb-5 leading-tight tracking-[-0.03em]">
+              Become a Partner{' '}
+              <span className="gradient-text">in 5 Minutes</span>
+            </h2>
+
+            <p className="text-white/45 max-w-xl mx-auto text-lg mb-10 leading-relaxed">
+              No fees. No commitments. Connect your WhatsApp group, share your link, and start earning 15% recurring commission on every contractor who subscribes.
+            </p>
+
+            {/* Speed steps */}
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 md:gap-8 mb-10">
+              {[
+                { step: '1', label: 'Sign up', time: '30 sec' },
+                { step: '2', label: 'Connect group', time: '2 min' },
+                { step: '3', label: 'Start earning', time: 'Instant' },
+              ].map((s, i) => (
+                <div key={i} className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-[#fe5b25]/15 border border-[#fe5b25]/25 flex items-center justify-center text-[#fe5b25] text-sm font-bold">
+                    {s.step}
+                  </div>
+                  <div className="text-left">
+                    <p className="text-white text-sm font-semibold">{s.label}</p>
+                    <p className="text-white/30 text-xs">{s.time}</p>
+                  </div>
+                  {i < 2 && (
+                    <ArrowRight className="w-4 h-4 text-white/15 hidden sm:block ml-2" />
+                  )}
+                </div>
+              ))}
+            </div>
+
+            {/* CTA button */}
+            <a
+              href="https://app.leadexpress.co.il/partner/join"
+              className="group inline-flex items-center justify-center gap-3 rounded-full bg-gradient-to-r from-[#fe5b25] to-[#e04d1c] text-white px-12 py-5 text-lg font-semibold transition-all duration-300 hover:scale-105 hover:shadow-[0_8px_40px_rgba(254,91,37,0.35)] active:scale-95"
+            >
+              Start Earning Now — It's Free
+              <ArrowRight size={20} className="transition-transform group-hover:translate-x-1" />
+            </a>
+
+            {/* Trust signals */}
+            <div className="flex items-center justify-center gap-6 mt-8 text-white/25 text-xs">
+              <span className="flex items-center gap-1.5"><Shield size={13} /> No fees ever</span>
+              <span className="flex items-center gap-1.5"><Clock size={13} /> 5-minute setup</span>
+              <span className="flex items-center gap-1.5"><DollarSign size={13} /> 15% recurring</span>
+            </div>
+          </div>
         </div>
       </div>
     </section>
@@ -1315,15 +1274,16 @@ function PartnerCTA() {
         </h2>
 
         <p className="text-white/40 max-w-xl mx-auto text-lg mb-10 leading-relaxed">
-          Stop building someone else's business for free. Your WhatsApp group is already generating value. Now it's time to capture it.
+          Your WhatsApp group is already generating value. Sign up in 5 minutes, share your link, and start earning 15% on every referral — forever.
         </p>
 
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-8">
           <a
             href="https://app.leadexpress.co.il/partner/join"
-            className="group inline-flex items-center justify-center gap-2 rounded-full bg-gradient-to-r from-[#fe5b25] to-[#e04d1c] text-white px-10 py-4 text-lg font-semibold transition-all duration-300 hover:scale-105 hover:shadow-lg hover:shadow-[#fe5b25]/25 active:scale-95"
+            className="group inline-flex items-center justify-center gap-3 rounded-full bg-gradient-to-r from-[#fe5b25] to-[#e04d1c] text-white px-10 py-4 text-lg font-semibold transition-all duration-300 hover:scale-105 hover:shadow-lg hover:shadow-[#fe5b25]/25 active:scale-95"
           >
-            Become a Partner
+            <Zap size={18} />
+            Start Earning Now — It's Free
             <ArrowRight size={18} className="transition-transform group-hover:translate-x-1" />
           </a>
           <Link
@@ -1335,8 +1295,8 @@ function PartnerCTA() {
         </div>
 
         <div className="flex items-center justify-center gap-6 text-white/30 text-xs">
-          <span className="flex items-center gap-1"><Shield size={12} /> No upfront cost</span>
-          <span className="flex items-center gap-1"><Clock size={12} /> Takes 2 minutes</span>
+          <span className="flex items-center gap-1"><Shield size={12} /> No fees ever</span>
+          <span className="flex items-center gap-1"><Clock size={12} /> 5-minute setup</span>
           <span className="flex items-center gap-1"><CreditCard size={12} /> 15% recurring</span>
         </div>
       </div>
