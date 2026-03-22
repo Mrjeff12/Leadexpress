@@ -39,32 +39,42 @@ export default function Subscriptions() {
 
   useEffect(() => {
     async function load() {
-      const { data, error } = await supabase
-        .from('subscriptions')
-        .select(`
-          id,
-          status,
-          created_at,
-          current_period_end,
-          stripe_customer_id,
-          plans ( slug, name, price_cents ),
-          profiles ( full_name, id )
-        `)
-        .order('created_at', { ascending: false })
+      const [subsResult, emailsResult] = await Promise.all([
+        supabase
+          .from('subscriptions')
+          .select(`
+            id,
+            status,
+            created_at,
+            current_period_end,
+            stripe_customer_id,
+            plans ( slug, name, price_cents ),
+            profiles ( full_name, id )
+          `)
+          .order('created_at', { ascending: false }),
+        supabase.rpc('admin_subscriber_emails'),
+      ])
 
-      if (error) {
-        console.error('Failed to load subscriptions:', error)
+      if (subsResult.error) {
+        console.error('Failed to load subscriptions:', subsResult.error)
         setLoading(false)
         return
       }
 
-      const rows: SubscriberRow[] = (data || []).map((row: any) => {
+      const emailMap = new Map<string, string>()
+      if (emailsResult.data) {
+        for (const row of emailsResult.data as { user_id: string; email: string }[]) {
+          emailMap.set(row.user_id, row.email)
+        }
+      }
+
+      const rows: SubscriberRow[] = (subsResult.data || []).map((row: any) => {
         const plan = row.plans as any
         const profile = row.profiles as any
         return {
           id: row.id,
           name: profile?.full_name || 'Unknown',
-          email: '',
+          email: emailMap.get(profile?.id) || '',
           plan: (plan?.slug || 'starter') as PlanSlug,
           status: (row.status || 'active') as SubStatus,
           fee: plan ? plan.price_cents / 100 : 0,
@@ -104,7 +114,7 @@ export default function Subscriptions() {
   const filtered = subscribers.filter((s) => {
     if (planFilter !== 'all' && s.plan !== planFilter) return false
     if (statusFilter !== 'all' && s.status !== statusFilter) return false
-    if (search && !s.name.toLowerCase().includes(search.toLowerCase())) return false
+    if (search && !s.name.toLowerCase().includes(search.toLowerCase()) && !s.email.toLowerCase().includes(search.toLowerCase())) return false
     return true
   })
 
@@ -166,7 +176,7 @@ export default function Subscriptions() {
           <Search className="absolute top-1/2 -translate-y-1/2 h-4 w-4" style={{ color: '#9ca89e', left: he ? 'auto' : '0.75rem', right: he ? '0.75rem' : 'auto' }} />
           <input
             type="text"
-            placeholder={he ? 'חיפוש לפי שם...' : 'Search by name...'}
+            placeholder={he ? 'חיפוש לפי שם או אימייל...' : 'Search by name or email...'}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="w-full rounded-xl border text-sm py-2"
@@ -216,6 +226,9 @@ export default function Subscriptions() {
                   {he ? 'שם הקבלן' : 'Contractor Name'}
                 </th>
                 <th className="text-left px-5 py-3 font-semibold text-xs uppercase tracking-wider" style={{ color: '#9ca89e' }}>
+                  {he ? 'אימייל' : 'Email'}
+                </th>
+                <th className="text-left px-5 py-3 font-semibold text-xs uppercase tracking-wider" style={{ color: '#9ca89e' }}>
                   {he ? 'מסלול' : 'Plan'}
                 </th>
                 <th className="text-left px-5 py-3 font-semibold text-xs uppercase tracking-wider" style={{ color: '#9ca89e' }}>
@@ -244,6 +257,7 @@ export default function Subscriptions() {
                       onClick={() => setExpandedRow(isExpanded ? null : sub.id)}
                     >
                       <td className="px-5 py-3.5 font-medium" style={{ color: '#2d3a2e' }}>{sub.name}</td>
+                      <td className="px-5 py-3.5" style={{ color: '#6b7c6e' }}>{sub.email || '—'}</td>
                       <td className="px-5 py-3.5">
                         <span className="badge badge-blue">{planLabel(sub.plan)}</span>
                       </td>
@@ -269,7 +283,7 @@ export default function Subscriptions() {
                     </tr>
                     {isExpanded && (
                       <tr>
-                        <td colSpan={7} className="px-5 py-4" style={{ backgroundColor: '#fafbfa' }}>
+                        <td colSpan={8} className="px-5 py-4" style={{ backgroundColor: '#fafbfa' }}>
                           <div className="ml-2 space-y-2">
                             <p className="text-xs" style={{ color: '#6b7c6e' }}>
                               <strong>Stripe Customer:</strong>{' '}
@@ -303,7 +317,7 @@ export default function Subscriptions() {
               })}
               {filtered.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="px-5 py-12 text-center" style={{ color: '#9ca89e' }}>
+                  <td colSpan={8} className="px-5 py-12 text-center" style={{ color: '#9ca89e' }}>
                     {he ? 'לא נמצאו מנויים' : 'No subscribers found'}
                   </td>
                 </tr>

@@ -4,50 +4,62 @@ import { useI18n } from '../../lib/i18n'
 import { getDepartment } from '../../config/departmentConfig'
 import { ArrowRight, ArrowLeft, LayoutGrid } from 'lucide-react'
 
-const AdminInbox = lazy(() => import('../../pages/AdminInbox'))
-const AdminLeads = lazy(() => import('../../pages/AdminLeads'))
-const AdminProspects = lazy(() => import('../../pages/AdminProspects'))
-const ProspectDetail = lazy(() => import('../../pages/ProspectDetail'))
-const AdminContractors = lazy(() => import('../../pages/AdminContractors'))
-const ContractorDetail = lazy(() => import('../../pages/admin/ContractorDetail'))
-const ServiceAreas = lazy(() => import('../../pages/admin/ServiceAreas'))
-const LeadsMap = lazy(() => import('../../pages/admin/LeadsMap'))
+/* ─── Lazy page imports ─── */
+// Channels
 const AdminWhatsApp = lazy(() => import('../../pages/AdminWhatsApp'))
 const AdminGroups = lazy(() => import('../../pages/AdminGroups'))
 const AdminGroupDetail = lazy(() => import('../../pages/AdminGroupDetail'))
 const AdminGroupScanQueue = lazy(() => import('../../pages/AdminGroupScanQueue'))
 const MessageTemplates = lazy(() => import('../../pages/admin/MessageTemplates'))
+
+// Clients
+const AdminContractors = lazy(() => import('../../pages/AdminContractors'))
+const ContractorDetail = lazy(() => import('../../pages/admin/ContractorDetail'))
+const AdminProspects = lazy(() => import('../../pages/AdminProspects'))
+const ProspectDetail = lazy(() => import('../../pages/ProspectDetail'))
+const AdminLeads = lazy(() => import('../../pages/AdminLeads'))
 const Subscriptions = lazy(() => import('../../pages/admin/Subscriptions'))
-const Revenue = lazy(() => import('../../pages/admin/Revenue'))
-const Analytics = lazy(() => import('../../pages/admin/Analytics'))
-const ActivityLog = lazy(() => import('../../pages/admin/ActivityLog'))
-const Professions = lazy(() => import('../../pages/admin/Professions'))
-const SystemSettings = lazy(() => import('../../pages/admin/SystemSettings'))
+const ServiceAreas = lazy(() => import('../../pages/admin/ServiceAreas'))
+
+// Partners
 const PartnerOverview = lazy(() => import('../../pages/admin/PartnerOverview'))
-const PartnerList = lazy(() => import('../../pages/admin/PartnerList'))
 const PartnerDetail = lazy(() => import('../../pages/admin/PartnerDetail'))
 const WithdrawalQueue = lazy(() => import('../../pages/admin/WithdrawalQueue'))
 const CommissionLog = lazy(() => import('../../pages/admin/CommissionLog'))
 
+// Finance
+const Payments = lazy(() => import('../../pages/admin/Payments'))
+const Revenue = lazy(() => import('../../pages/admin/Revenue'))
+const AllInvoices = lazy(() => import('../../pages/admin/AllInvoices'))
+const Alerts = lazy(() => import('../../pages/admin/Alerts'))
+
+// Settings
+const Professions = lazy(() => import('../../pages/admin/Professions'))
+const SystemSettings = lazy(() => import('../../pages/admin/SystemSettings'))
+
+/* ─── Tab key → Component mapping ─── */
 const TAB_COMPONENTS: Record<string, React.LazyExoticComponent<() => React.JSX.Element>> = {
-  'warroom/inbox': AdminInbox,
-  'warroom/leads': AdminLeads,
-  'warroom/prospects': AdminProspects,
-  'clients/contractors': AdminContractors,
-  'clients/service-areas': ServiceAreas,
-  'clients/map': LeadsMap,
+  // Channels
   'channels/whatsapp': AdminWhatsApp,
   'channels/groups': AdminGroups,
+  'channels/leads': AdminLeads,
   'channels/scan': AdminGroupScanQueue,
   'channels/templates': MessageTemplates,
-  'finance/subscriptions': Subscriptions,
-  'finance/revenue': Revenue,
-  'intel/analytics': Analytics,
-  'intel/activity': ActivityLog,
+  // Clients
+  'clients/contractors': AdminContractors,
+  'clients/prospects': AdminProspects,
+  'clients/subscriptions': Subscriptions,
+  'clients/service-areas': ServiceAreas,
+  // Partners
   'partners/overview': PartnerOverview,
-  'partners/list': PartnerList,
-  'partners/withdrawals': WithdrawalQueue,
   'partners/commissions': CommissionLog,
+  'partners/withdrawals': WithdrawalQueue,
+  // Finance
+  'finance/payments': Payments,
+  'finance/revenue': Revenue,
+  'finance/invoices': AllInvoices,
+  'finance/alerts': Alerts,
+  // Settings
   'settings/professions': Professions,
   'settings/system': SystemSettings,
 }
@@ -88,7 +100,6 @@ export default function DepartmentLayout() {
           boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
         }}
       >
-        {/* Back to map */}
         <button
           onClick={() => navigate('/admin')}
           className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg transition-all duration-200 hover:bg-[#f5f2ed] group"
@@ -98,10 +109,8 @@ export default function DepartmentLayout() {
           <BackArrow className="w-3 h-3 opacity-40" />
         </button>
 
-        {/* Divider */}
         <div className="w-px h-6 bg-[#efeff1]" />
 
-        {/* Department name */}
         <div className="flex items-center gap-2">
           <div
             className="w-7 h-7 rounded-lg flex items-center justify-center"
@@ -120,10 +129,8 @@ export default function DepartmentLayout() {
           </span>
         </div>
 
-        {/* Divider */}
         <div className="w-px h-6 bg-[#efeff1]" />
 
-        {/* Tabs */}
         <nav className="flex items-center gap-0.5" dir={he ? 'rtl' : 'ltr'}>
           {dept.tabs.map((tab) => {
             const to = tab.path ? `${basePath}/${tab.path}` : basePath
@@ -198,11 +205,12 @@ export default function DepartmentLayout() {
               )
             })}
 
-            {dept.id === 'warroom' && (
-              <Route path="prospects/:id" element={<div className="max-w-6xl mx-auto w-full px-6 py-8 h-full overflow-y-auto"><ProspectDetail /></div>} />
-            )}
+            {/* Detail routes */}
             {dept.id === 'clients' && (
-              <Route path="contractors/:id" element={<div className="max-w-6xl mx-auto w-full px-6 py-8 h-full overflow-y-auto"><ContractorDetail /></div>} />
+              <>
+                <Route path="contractors/:id" element={<div className="max-w-6xl mx-auto w-full px-6 py-8 h-full overflow-y-auto"><ContractorDetail /></div>} />
+                <Route path="prospects/:id" element={<div className="max-w-6xl mx-auto w-full px-6 py-8 h-full overflow-y-auto"><ProspectDetail /></div>} />
+              </>
             )}
             {dept.id === 'channels' && (
               <Route path="groups/:id" element={<div className="max-w-6xl mx-auto w-full px-6 py-8 h-full overflow-y-auto"><AdminGroupDetail /></div>} />

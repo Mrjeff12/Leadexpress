@@ -16,7 +16,6 @@ import {
   BarChart3,
   Handshake,
   Bot,
-  Target,
   Coins,
   Settings,
   Brain,
@@ -25,32 +24,25 @@ import {
 } from 'lucide-react'
 
 /* ═══════════════════════════════════════════════════════════
-   Full-System Neural Network — Concentric Ring Layout
+   Solar System Dashboard
    ═══════════════════════════════════════════════════════════
+   Each department = its own "solar system" with clear space.
 
-   Center (700, 400): Brain / War Room — the AI core
+   Left zone:    Channels ☀️ (groups orbit)  →  Scanner
+   Center zone:  Brain ☀️ (the AI core, pulse animation)
+   Right zone:   Clients ☀️ (professions ring → contractors orbit each)
+   Bottom zone:  Finance, Partners, Intel, Settings
+   Top:          Bot
 
-   Ring 1 (r≈180): Pipeline departments — the data flow
-     Channels (9 o'clock) → Scanner (10:30) → Clients (3 o'clock)
-     Finance (5 o'clock)
-
-   Ring 2 (r≈320): Support & Analytics
-     Bot (12 o'clock) → Intelligence (4:30) → Partners (7:30)
-     Settings (6 o'clock)
-
-   Professions: arc between brain and clients (2-4 o'clock zone)
-
-   Data flow: Channels→Scanner→Brain→Professions→Clients→Finance
-              Bot↔Brain, Partners→Clients, Intel←Brain
+   Pipeline: Channels → Brain → Clients → Finance
+   Support:  Bot ↔ Brain, Partners → Clients, Brain → Intel
 */
 
 const VW = 1400
 const VH = 800
-const CX = 700 // center X
-const CY = 400 // center Y
 
-/* ─── System hub nodes positioned on concentric rings ─── */
-interface HubNode {
+/* ─── Hub definitions with absolute positions ─── */
+interface HubDef {
   id: string
   x: number
   y: number
@@ -59,72 +51,66 @@ interface HubNode {
   gradient: [string, string]
   icon: React.ComponentType<{ className?: string; style?: React.CSSProperties }>
   path: string
-  ring: number
 }
 
-// Helper: place on ring at clock position (12=top, 3=right, 6=bottom, 9=left)
-function ringPos(ring: number, clockHour: number): { x: number; y: number } {
-  const R1 = 185, R2 = 330
-  const r = ring === 1 ? R1 : R2
-  const angle = ((clockHour - 3) / 12) * Math.PI * 2 // 3 o'clock = 0°
-  return { x: CX + r * Math.cos(angle), y: CY + r * Math.sin(angle) }
-}
+const HUBS: HubDef[] = [
+  // ☀️ Brain — center-left, the AI engine
+  { id: 'brain', x: 420, y: 390, size: 76, color: '#fe5b25',
+    gradient: ['#ff8a5c', '#e04d1c'], icon: Brain, path: '/admin/channels/leads' },
 
-const HUBS: HubNode[] = [
-  // Ring 0: Center — Brain / War Room
-  { id: 'brain', ...{ x: CX, y: CY }, size: 76, color: '#fe5b25',
-    gradient: ['#ff8a5c', '#e04d1c'], icon: Brain, path: '/admin/warroom', ring: 0 },
+  // ☀️ Channels — far left, groups orbit around it
+  { id: 'channels', x: 140, y: 390, size: 52, color: '#8b5cf6',
+    gradient: ['#a78bfa', '#7c3aed'], icon: MessageCircle, path: '/admin/channels' },
 
-  // Ring 1: Pipeline (inner ring, r≈185)
-  { id: 'channels', ...ringPos(1, 9), size: 52, color: '#8b5cf6',
-    gradient: ['#a78bfa', '#7c3aed'], icon: MessageCircle, path: '/admin/channels', ring: 1 },
-  { id: 'scan', ...ringPos(1, 10.5), size: 40, color: '#06b6d4',
-    gradient: ['#22d3ee', '#0891b2'], icon: Scan, path: '/admin/channels/scan', ring: 1 },
-  { id: 'clients', ...ringPos(1, 3), size: 52, color: '#10b981',
-    gradient: ['#34d399', '#059669'], icon: Users, path: '/admin/clients', ring: 1 },
-  { id: 'finance', ...ringPos(1, 5), size: 44, color: '#f59e0b',
-    gradient: ['#fbbf24', '#d97706'], icon: Coins, path: '/admin/finance', ring: 1 },
+  // Scanner — between Channels and Brain
+  { id: 'scan', x: 285, y: 265, size: 40, color: '#06b6d4',
+    gradient: ['#22d3ee', '#0891b2'], icon: Scan, path: '/admin/channels/scan' },
 
-  // Ring 2: Support & Analytics (outer ring, r≈330)
-  { id: 'bot', ...ringPos(2, 12), size: 44, color: '#8b5cf6',
-    gradient: ['#a78bfa', '#7c3aed'], icon: Bot, path: '/admin/bot', ring: 2 },
-  { id: 'intel', ...ringPos(2, 4.5), size: 44, color: '#3b82f6',
-    gradient: ['#60a5fa', '#2563eb'], icon: BarChart3, path: '/admin/intel', ring: 2 },
-  { id: 'partners', ...ringPos(2, 7.5), size: 44, color: '#ec4899',
-    gradient: ['#f472b6', '#db2777'], icon: Handshake, path: '/admin/partners', ring: 2 },
-  { id: 'settings', ...ringPos(2, 6), size: 36, color: '#6b7280',
-    gradient: ['#9ca3af', '#4b5563'], icon: Settings, path: '/admin/settings', ring: 2 },
+  // Bot — above Brain
+  { id: 'bot', x: 420, y: 130, size: 44, color: '#8b5cf6',
+    gradient: ['#a78bfa', '#7c3aed'], icon: Bot, path: '/admin/bot' },
+
+  // ☀️ Clients — right side, center of profession solar system
+  { id: 'clients', x: 950, y: 380, size: 56, color: '#10b981',
+    gradient: ['#34d399', '#059669'], icon: Users, path: '/admin/clients' },
+
+  // Finance — bottom center (navigates to subscriptions under Clients)
+  { id: 'finance', x: 560, y: 660, size: 44, color: '#f59e0b',
+    gradient: ['#fbbf24', '#d97706'], icon: Coins, path: '/admin/finance' },
+
+  // Partners — bottom left
+  { id: 'partners', x: 210, y: 660, size: 44, color: '#ec4899',
+    gradient: ['#f472b6', '#db2777'], icon: Handshake, path: '/admin/partners' },
+
+  // Today's leads — bottom right (navigates to leads under Clients)
+  { id: 'intel', x: 760, y: 660, size: 44, color: '#3b82f6',
+    gradient: ['#60a5fa', '#2563eb'], icon: BarChart3, path: '/admin/channels/leads' },
+
+  // Settings — far bottom right
+  { id: 'settings', x: 1200, y: 660, size: 36, color: '#6b7280',
+    gradient: ['#9ca3af', '#4b5563'], icon: Settings, path: '/admin/settings' },
 ]
 
-/* ─── Connections follow the real data pipeline ─── */
+function getHub(id: string) { return HUBS.find(h => h.id === id)! }
+
+/* ─── Pipeline connections between solar systems ─── */
 const CONNECTIONS: { from: string; to: string; width: number; animated?: boolean }[] = [
-  // Primary pipeline: Channels → Scanner → Brain → Clients
-  { from: 'channels', to: 'scan', width: 2.5, animated: true },
-  { from: 'scan', to: 'brain', width: 3, animated: true },
-  { from: 'brain', to: 'clients', width: 3, animated: true },
-  // Money flow: Clients → Finance
+  // Primary pipeline: Channels → Brain → Clients → Finance
+  { from: 'channels', to: 'brain', width: 3, animated: true },
+  { from: 'scan', to: 'brain', width: 2, animated: true },
+  { from: 'brain', to: 'clients', width: 3.5, animated: true },
   { from: 'clients', to: 'finance', width: 2, animated: true },
   // AI: Bot ↔ Brain
   { from: 'bot', to: 'brain', width: 2, animated: true },
-  // Analytics: Brain → Intelligence
-  { from: 'brain', to: 'intel', width: 2, animated: true },
+  // Analytics: Brain → Intel
+  { from: 'brain', to: 'intel', width: 1.5, animated: true },
   // Referrals: Partners → Clients
   { from: 'partners', to: 'clients', width: 1.5 },
-  // Partner commissions: Finance → Partners
-  { from: 'finance', to: 'partners', width: 1.2 },
   // Config: Settings → Brain
   { from: 'settings', to: 'brain', width: 1 },
-  // Direct channel: Channels → Brain
-  { from: 'channels', to: 'brain', width: 1.5 },
 ]
 
-function getHub(id: string) {
-  return HUBS.find(h => h.id === id)!
-}
-
-/* ═══════════════════════════════════════════════════════════ */
-
-// Status color mapping for contractor subscription
+/* ─── Subscription status colors ─── */
 const STATUS_COLORS: Record<string, string> = {
   active: '#22c55e',
   trialing: '#3b82f6',
@@ -133,95 +119,79 @@ const STATUS_COLORS: Record<string, string> = {
   incomplete: '#9ca3af',
 }
 
+/* ─── Solar system radii ─── */
+const PROF_RING_R = 155      // professions orbit Clients at this radius
+/* contractor orbit removed — count on profession node is cleaner */
+const GROUP_ORBIT_R = 55      // groups orbit Channels
+
+/* ═══════════════════════════════════════════════════════════
+   Network Visualization (SVG + HTML overlay)
+   ═══════════════════════════════════════════════════════════ */
 function NetworkVisualization({ he, kpis }: {
   he: boolean
   kpis: Record<string, number | string>
 }) {
   const { data: net } = useNetworkData()
   const navigate = useNavigate()
-
+  const clientsHub = getHub('clients')
   const channelsHub = getHub('channels')
+  const brainHub = getHub('brain')
 
-  /* ─── Ring 2: Professions (ellipse, rx=250, ry=190) ─── */
+  /* ─── Professions ring around Clients hub ─── */
   const profNodes = useMemo(() => {
-    const profs = net.professions.filter(p => p.contractorCount > 0)
-    const fallback = profs.length > 0 ? profs : net.professions.slice(0, 8)
-    const count = fallback.length
-    const rx = 250, ry = 190
-    return fallback.map((prof, i) => {
-      const angle = (i / count) * Math.PI * 2 - Math.PI / 2 // start from top
+    const withContractors = net.professions.filter(p => p.contractorCount > 0)
+    const without = net.professions.filter(p => p.contractorCount === 0)
+    const all = [...withContractors, ...without].slice(0, 12)
+    if (all.length === 0) return []
+
+    return all.map((prof, i) => {
+      const angle = (i / all.length) * Math.PI * 2 - Math.PI / 2
       return {
         ...prof,
-        x: CX + rx * Math.cos(angle),
-        y: CY + ry * Math.sin(angle),
+        x: clientsHub.x + PROF_RING_R * Math.cos(angle),
+        y: clientsHub.y + PROF_RING_R * Math.sin(angle),
         angle,
       }
     })
-  }, [net.professions])
+  }, [net.professions, clientsHub])
 
-  /* ─── Ring 3: Contractors (ellipse, rx=400, ry=300) ─── */
-  const contractorNodes = useMemo(() => {
-    const shown = net.contractors.slice(0, 24)
-    // Assign each contractor near their first profession on the outer ring
-    return shown.map((c) => {
-      const profIdx = profNodes.findIndex(p => c.professions.includes(p.id))
-      const prof = profIdx >= 0 ? profNodes[profIdx] : null
-      // Place on outer ring at same angle as profession, with slight offset per contractor
-      const baseAngle = prof?.angle ?? 0
-      // Count siblings (same profession) to spread them
-      const siblings = shown.filter(s => {
-        const sIdx = profNodes.findIndex(p => s.professions.includes(p.id))
-        return sIdx === profIdx
-      })
-      const sibIdx = siblings.indexOf(c)
-      const spread = siblings.length > 1 ? (sibIdx - (siblings.length - 1) / 2) * 0.12 : 0
-      const angle = baseAngle + spread
-      const rx = 410, ry = 310
-      return {
-        ...c,
-        x: CX + rx * Math.cos(angle),
-        y: CY + ry * Math.sin(angle),
-        profColor: prof?.color ?? '#6b7280',
-        profX: prof?.x ?? CX,
-        profY: prof?.y ?? CY,
-      }
-    })
-  }, [net.contractors, profNodes])
+  /* Contractors data used for count display only — no individual nodes */
 
-  /* ─── Group bubbles ─── */
+  /* ─── Group bubbles orbiting Channels ─── */
   const groupBubbles = useMemo(() => {
-    const count = Math.min(Number(net.groupsCount) || 8, 12)
+    const count = Math.min(Number(net.groupsCount) || 8, 16)
     return Array.from({ length: count }, (_, i) => {
       const angle = (i / count) * Math.PI * 2 - Math.PI / 2
-      const r = 45 + (i % 2) * 12
+      const r = GROUP_ORBIT_R + (i % 3) * 8
       return {
         x: channelsHub.x + r * Math.cos(angle),
         y: channelsHub.y + r * Math.sin(angle),
-        size: 3 + (i % 3) * 2,
+        size: 4 + (i % 3) * 2,
       }
     })
   }, [net.groupsCount, channelsHub])
 
+  /* ─── Hub label data ─── */
   const hotLeads = Number(kpis.hotLeads ?? 0)
   const mrr = Number(kpis.mrr ?? 0)
   const leadsToday = Number(kpis.leadsToday ?? 0)
   const activePartners = Number(kpis.activePartners ?? 0)
-  const scansPending = Number(kpis.scansPending ?? 0)
 
   const hubLabels: Record<string, { value: string | number; label: string }> = {
     brain: { value: hotLeads, label: he ? 'לידים חמים' : 'HOT LEADS' },
     channels: { value: net.groupsCount, label: he ? 'קבוצות' : 'GROUPS' },
     clients: { value: net.contractors.length, label: he ? 'קבלנים' : 'CONTRACTORS' },
     finance: { value: `$${mrr}`, label: 'MRR' },
-    intel: { value: leadsToday, label: he ? 'לידים היום' : 'TODAY' },
+    intel: { value: leadsToday, label: he ? 'היום' : 'TODAY' },
     partners: { value: activePartners, label: he ? 'שותפים' : 'PARTNERS' },
     bot: { value: 'AI', label: he ? 'בוט' : 'BOT' },
-    scan: { value: scansPending || '', label: he ? 'סריקה' : 'SCAN' },
+    scan: { value: '', label: he ? 'סריקה' : 'SCAN' },
     settings: { value: '', label: he ? 'הגדרות' : 'SETTINGS' },
   }
 
   return (
     <div className="w-full h-full flex items-center justify-center overflow-hidden">
+      {/* ═══ SVG Layer ═══ */}
       <svg
         viewBox={`0 0 ${VW} ${VH}`}
         className="w-full h-full"
@@ -233,42 +203,38 @@ function NetworkVisualization({ he, kpis }: {
             <feGaussianBlur stdDeviation="4" result="blur" />
             <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
           </filter>
-          <filter id="softGlow">
-            <feGaussianBlur stdDeviation="6" result="blur" />
-            <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
-          </filter>
         </defs>
 
-        {/* ─── Ring guides ─── */}
-        <ellipse cx={CX} cy={CY} rx="185" ry="145" fill="none" stroke="#e5e5e5" strokeWidth="0.5" opacity="0.25" strokeDasharray="4 6" />
-        <ellipse cx={CX} cy={CY} rx="250" ry="190" fill="none" stroke="#e5e5e5" strokeWidth="0.5" opacity="0.2" strokeDasharray="3 5" />
-        <ellipse cx={CX} cy={CY} rx="410" ry="310" fill="none" stroke="#e5e5e5" strokeWidth="0.4" opacity="0.15" strokeDasharray="2 6" />
+        {/* ─── Clients Solar System: professions orbit ring ─── */}
+        <circle cx={clientsHub.x} cy={clientsHub.y} r={PROF_RING_R}
+          fill="none" stroke="#10b981" strokeWidth="0.6" opacity="0.1" strokeDasharray="4 8" />
 
-        {/* ─── Brain pulse ─── */}
-        <circle cx={CX} cy={CY} r="50" fill="none" stroke="#fe5b25" strokeWidth="1" opacity="0.08">
-          <animate attributeName="r" values="50;160" dur="4s" repeatCount="indefinite" />
+        {/* (contractor orbit rings removed) */}
+
+        {/* ─── Channels Solar System: group orbit ring ─── */}
+        <circle cx={channelsHub.x} cy={channelsHub.y} r={GROUP_ORBIT_R}
+          fill="none" stroke="#8b5cf6" strokeWidth="0.5" opacity="0.1" strokeDasharray="3 5" />
+
+        {/* ─── Brain pulse animation ─── */}
+        <circle cx={brainHub.x} cy={brainHub.y} r="50" fill="none" stroke="#fe5b25" strokeWidth="1" opacity="0.08">
+          <animate attributeName="r" values="50;120" dur="4s" repeatCount="indefinite" />
           <animate attributeName="opacity" values="0.08;0" dur="4s" repeatCount="indefinite" />
         </circle>
-        <circle cx={CX} cy={CY} r="80" fill="#fe5b25" opacity="0.025" filter="url(#softGlow)" />
 
-        {/* ─── Hub connections ─── */}
+        {/* ─── Hub-to-hub connections ─── */}
         {CONNECTIONS.map((conn, i) => {
           const from = getHub(conn.from)
           const to = getHub(conn.to)
           const dx = to.x - from.x
           const dy = to.y - from.y
-          const cx1 = from.x + dx * 0.35
-          const cy1 = from.y + dy * 0.1
-          const cx2 = from.x + dx * 0.65
-          const cy2 = to.y - dy * 0.1
-          const pathD = `M${from.x},${from.y} C${cx1},${cy1} ${cx2},${cy2} ${to.x},${to.y}`
-          const pathId = `path-${i}`
+          const pathD = `M${from.x},${from.y} C${from.x + dx * 0.4},${from.y + dy * 0.1} ${to.x - dx * 0.4},${to.y - dy * 0.1} ${to.x},${to.y}`
+          const pathId = `conn-${i}`
           return (
             <g key={i}>
-              <path d={pathD} fill="none" stroke={from.color} strokeWidth={conn.width + 3} opacity="0.04" strokeLinecap="round" />
-              <path id={pathId} d={pathD} fill="none" stroke={from.color} strokeWidth={conn.width} opacity="0.2" strokeLinecap="round" />
+              <path d={pathD} fill="none" stroke={from.color} strokeWidth={conn.width + 4} opacity="0.03" strokeLinecap="round" />
+              <path id={pathId} d={pathD} fill="none" stroke={from.color} strokeWidth={conn.width} opacity="0.18" strokeLinecap="round" />
               {conn.animated && (
-                <circle r="3.5" fill={from.color} opacity="0.65" filter="url(#glow)">
+                <circle r="3.5" fill={from.color} opacity="0.6" filter="url(#glow)">
                   <animateMotion dur={`${2.5 + i * 0.4}s`} repeatCount="indefinite">
                     <mpath href={`#${pathId}`} />
                   </animateMotion>
@@ -278,27 +244,24 @@ function NetworkVisualization({ he, kpis }: {
           )
         })}
 
-        {/* ─── Brain → Profession lines ─── */}
+        {/* ─── Clients hub → Profession spokes ─── */}
         {profNodes.map((p, i) => (
-          <line key={`bp-${i}`} x1={CX} y1={CY} x2={p.x} y2={p.y}
-            stroke={p.color || '#ccc'} strokeWidth="0.8" opacity="0.12" strokeDasharray="3 4" />
+          <line key={`spoke-${i}`}
+            x1={clientsHub.x} y1={clientsHub.y} x2={p.x} y2={p.y}
+            stroke={p.color || '#10b981'} strokeWidth="1" opacity="0.1" />
         ))}
 
-        {/* ─── Profession → Contractor lines ─── */}
-        {contractorNodes.map((c, i) => (
-          <line key={`pc-${i}`} x1={c.profX} y1={c.profY} x2={c.x} y2={c.y}
-            stroke={c.profColor} strokeWidth="0.6" opacity="0.15" />
-        ))}
+        {/* (contractor lines removed — count on profession is enough) */}
 
-        {/* ─── Group bubbles ─── */}
+        {/* ─── Group bubbles orbiting Channels ─── */}
         {groupBubbles.map((g, i) => (
           <g key={`gb-${i}`}>
-            <circle cx={g.x} cy={g.y} r={g.size} fill="#8b5cf6" opacity="0.1">
+            <circle cx={g.x} cy={g.y} r={g.size} fill="#8b5cf6" opacity="0.12">
               <animate attributeName="r" values={`${g.size};${g.size + 1.5};${g.size}`}
                 dur={`${3 + i * 0.2}s`} repeatCount="indefinite" />
             </circle>
             <line x1={channelsHub.x} y1={channelsHub.y} x2={g.x} y2={g.y}
-              stroke="#8b5cf6" strokeWidth="0.4" opacity="0.06" />
+              stroke="#8b5cf6" strokeWidth="0.3" opacity="0.06" />
           </g>
         ))}
       </svg>
@@ -309,13 +272,16 @@ function NetworkVisualization({ he, kpis }: {
       {HUBS.map((hub) => {
         const Icon = hub.icon
         const data = hubLabels[hub.id]
-        const pctX = (hub.x / VW) * 100
-        const pctY = (hub.y / VH) * 100
         return (
           <div
             key={hub.id}
             className="absolute flex flex-col items-center cursor-pointer transition-all duration-300 hover:scale-110 hover:-translate-y-1"
-            style={{ left: `${pctX}%`, top: `${pctY}%`, transform: 'translate(-50%, -50%)', pointerEvents: 'auto' }}
+            style={{
+              left: `${(hub.x / VW) * 100}%`,
+              top: `${(hub.y / VH) * 100}%`,
+              transform: 'translate(-50%, -50%)',
+              pointerEvents: 'auto',
+            }}
             onClick={() => navigate(hub.path)}
           >
             <div
@@ -337,92 +303,63 @@ function NetworkVisualization({ he, kpis }: {
               }} />
             </div>
             {data.value !== '' && (
-              <div className="text-[14px] font-black tabular-nums text-[#0b0707]/85 mt-1 leading-none">{data.value}</div>
+              <div className="text-[14px] font-black tabular-nums text-[#0b0707]/85 mt-1 leading-none">
+                {data.value}
+              </div>
             )}
-            <div className="text-[8px] text-[#3b3b3b]/40 uppercase tracking-[0.1em] font-semibold mt-0.5">{data.label}</div>
+            <div className="text-[8px] text-[#3b3b3b]/40 uppercase tracking-[0.1em] font-semibold mt-0.5">
+              {data.label}
+            </div>
           </div>
         )
       })}
 
-      {/* ─── Ring 2: Profession nodes ─── */}
+      {/* ─── Profession nodes orbiting Clients ─── */}
       {profNodes.map((prof, i) => {
-        const pctX = (prof.x / VW) * 100
-        const pctY = (prof.y / VH) * 100
+        const hasContractors = prof.contractorCount > 0
         return (
           <div
             key={prof.id}
             className="absolute flex flex-col items-center cursor-pointer transition-all duration-300 hover:scale-110"
             style={{
-              left: `${pctX}%`, top: `${pctY}%`,
-              transform: 'translate(-50%, -50%)', pointerEvents: 'auto',
-              opacity: 0, animation: `fadeScaleIn 0.4s ease-out ${200 + i * 60}ms forwards`,
+              left: `${(prof.x / VW) * 100}%`,
+              top: `${(prof.y / VH) * 100}%`,
+              transform: 'translate(-50%, -50%)',
+              pointerEvents: 'auto',
+              opacity: 0,
+              animation: `fadeScaleIn 0.4s ease-out ${200 + i * 60}ms forwards`,
             }}
             onClick={() => navigate('/admin/clients')}
           >
-            <div className="relative">
-              <div
-                className="w-11 h-11 rounded-xl flex items-center justify-center text-[18px] shadow-sm"
-                style={{ background: `${prof.color}12`, border: `1.5px solid ${prof.color}25` }}
+            <div
+              className="relative flex flex-col items-center gap-0.5 px-2 py-1.5 rounded-xl"
+              style={{
+                background: hasContractors ? `${prof.color}08` : '#f5f2ed',
+                border: `1.5px solid ${hasContractors ? prof.color + '30' : '#e5e5e5'}`,
+                boxShadow: hasContractors ? `0 2px 8px ${prof.color}12` : 'none',
+              }}
+            >
+              <span className="text-[18px] leading-none">{prof.emoji}</span>
+              <span className="text-[7px] text-[#3b3b3b]/50 font-medium text-center max-w-[52px] truncate leading-tight">
+                {he ? prof.name_he : prof.name_en}
+              </span>
+              <span
+                className="text-[10px] font-black tabular-nums leading-none"
+                style={{ color: hasContractors ? prof.color : '#bbb' }}
               >
-                {prof.emoji}
-              </div>
-              {prof.contractorCount > 0 && (
-                <div
-                  className="absolute -top-1.5 -right-1.5 w-4.5 h-4.5 min-w-[18px] rounded-full text-[8px] font-bold flex items-center justify-center text-white shadow-sm"
-                  style={{ background: prof.color }}
-                >
-                  {prof.contractorCount}
-                </div>
-              )}
-            </div>
-            <div className="text-[7px] text-[#3b3b3b]/45 mt-1 font-medium text-center max-w-[50px] truncate">
-              {he ? prof.name_he : prof.name_en}
+                {prof.contractorCount}
+              </span>
+              <span className="text-[5px] uppercase tracking-[0.1em] font-semibold leading-none"
+                style={{ color: hasContractors ? prof.color + 'aa' : '#ccc' }}
+              >
+                {he ? 'קבלנים' : 'waiting'}
+              </span>
             </div>
           </div>
         )
       })}
 
-      {/* ─── Ring 3: Contractor avatars with status dots ─── */}
-      {contractorNodes.map((c, i) => {
-        const pctX = (c.x / VW) * 100
-        const pctY = (c.y / VH) * 100
-        const statusColor = STATUS_COLORS[c.subscription_status ?? ''] ?? '#9ca3af'
-        return (
-          <div
-            key={c.user_id}
-            className="absolute flex flex-col items-center cursor-pointer transition-all duration-300 hover:scale-120 hover:z-10"
-            style={{
-              left: `${pctX}%`, top: `${pctY}%`,
-              transform: 'translate(-50%, -50%)', pointerEvents: 'auto',
-              opacity: 0, animation: `fadeScaleIn 0.4s ease-out ${400 + i * 60}ms forwards`,
-            }}
-            onClick={() => navigate(`/admin/clients/contractors/${c.user_id}`)}
-            title={`${c.full_name ?? 'Contractor'} — ${c.subscription_status ?? 'unknown'}`}
-          >
-            <div className="relative">
-              <div
-                className="w-9 h-9 rounded-full flex items-center justify-center text-[11px] font-bold shadow-md"
-                style={{
-                  background: c.avatar_url ? `url(${c.avatar_url}) center/cover` : '#fff',
-                  color: c.profColor,
-                  border: `2px solid ${c.profColor}40`,
-                  boxShadow: `0 2px 8px ${c.profColor}15`,
-                }}
-              >
-                {!c.avatar_url && (c.full_name?.charAt(0)?.toUpperCase() ?? '?')}
-              </div>
-              {/* Status dot */}
-              <div
-                className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-[#faf9f6]"
-                style={{ background: statusColor, boxShadow: `0 0 4px ${statusColor}60` }}
-              />
-            </div>
-            <div className="text-[7px] text-[#3b3b3b]/40 mt-0.5 font-medium text-center max-w-[45px] truncate">
-              {c.full_name?.split(' ')[0] ?? ''}
-            </div>
-          </div>
-        )
-      })}
+      {/* Contractor avatars removed — profession count badges tell the story */}
 
       <style>{`
         @keyframes fadeScaleIn {
@@ -500,7 +437,7 @@ export default function AdminCanvas() {
   const pendingPartners = Number(kpis.pendingPartners ?? 0)
 
   return (
-    <div className="h-screen w-screen flex flex-col" style={{ background: '#faf9f6' }}>
+    <div className="h-screen w-full flex flex-col" style={{ background: '#faf9f6' }}>
       {/* ═══════════════ TOP BAR ═══════════════ */}
       <div
         className="shrink-0 flex items-center justify-between px-4 h-[60px] z-10 relative"
@@ -556,7 +493,7 @@ export default function AdminCanvas() {
         </div>
       </div>
 
-      {/* ═══════════════ FULL NEURAL NETWORK ═══════════════ */}
+      {/* ═══════════════ SOLAR SYSTEM NETWORK ═══════════════ */}
       <div className="flex-1 relative overflow-hidden">
         <NetworkVisualization he={he} kpis={kpis} />
 
