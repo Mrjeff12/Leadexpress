@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react'
 import { useSubscriptionBilling } from '../hooks/useSubscriptionBilling'
+import { useSubscriptionAccess } from '../hooks/useSubscriptionAccess'
 import { useSearchParams, useNavigate } from 'react-router-dom'
 import {
   CreditCard,
   Check,
-  Star,
   Crown,
   Zap,
   ArrowRight,
@@ -30,34 +30,38 @@ const PLAN_CONFIG: Record<string, {
   iconBg: string
   accentColor: string
 }> = {
-  starter: {
+  free: {
     icon: Zap,
-    features: ['Up to 1 profession', 'Up to 3 zip codes', 'Email support', 'Standard delivery'],
+    features: [
+      'Unlimited WhatsApp groups',
+      'Lead notifications (preview only)',
+      'Forward jobs via Rebeca',
+      'Earn Network Points',
+      'Lead feedback & ratings',
+    ],
     gradient: 'from-slate-50 to-white',
     iconBg: 'bg-slate-100 text-slate-600',
     accentColor: 'slate',
   },
-  pro: {
-    icon: Star,
-    badge: 'Most Popular',
-    features: ['Up to 3 professions', 'Up to 8 zip codes', 'Priority support', 'Morning digest', 'Advanced analytics'],
+  premium: {
+    icon: Crown,
+    badge: '7-Day Free Trial',
+    features: [
+      'Everything in Free',
+      'Full lead details + contact info',
+      'Unlimited leads',
+      'Full dashboard + weekly report',
+      'Priority support',
+      'Network Points x2',
+    ],
     gradient: 'from-[#fe5b25] to-[#e04d1c]',
     iconBg: 'bg-white/20 text-white',
     accentColor: 'orange',
   },
-  unlimited: {
-    icon: Crown,
-    features: ['All professions', 'Unlimited zip codes', 'Sub contractor management', 'VIP support', 'AI suggestions', 'Priority delivery', 'Dedicated account manager'],
-    gradient: 'from-zinc-800 to-zinc-900',
-    iconBg: 'bg-white/15 text-white',
-    accentColor: 'zinc',
-  },
 }
 
 const YEARLY_PRICES: Record<string, number> = {
-  starter: 1490,
-  pro: 2490,
-  unlimited: 3990,
+  premium: 7900 * 10, // 10 months for yearly = ~17% discount
 }
 
 function daysRemaining(endDate: string): number {
@@ -93,12 +97,17 @@ export default function Subscription() {
     openPortal,
   } = useSubscriptionBilling()
 
+  const {
+    isPremium,
+    isFree,
+    isLegacy,
+  } = useSubscriptionAccess()
+
   const showSuccess = searchParams.get('success') === 'true'
   const showCanceled = searchParams.get('canceled') === 'true'
   const currentSlug = subscription?.plan?.slug
 
   // Redirect to dashboard after successful payment (3s delay to show success message)
-  // Don't wait for webhook/isActive — Stripe already confirmed payment via ?success=true
   useEffect(() => {
     if (showSuccess) {
       const timer = setTimeout(() => navigate('/', { replace: true }), 3000)
@@ -114,7 +123,9 @@ export default function Subscription() {
     )
   }
 
-  function handlePlanAction(plan: typeof plans[0]) {
+  function handleSubscribe(planSlug: string) {
+    const plan = plans.find(p => p.slug === planSlug)
+    if (!plan) return
     const priceId = billingInterval === 'yearly' ? plan.stripe_yearly_price_id : plan.stripe_price_id
     if (!priceId) return
     if (hasStripeSubscription && isActive) {
@@ -124,33 +135,31 @@ export default function Subscription() {
     }
   }
 
-  function getPlanPrice(plan: typeof plans[0]) {
+  function getPremiumPrice() {
+    const plan = plans.find(p => p.slug === 'premium')
+    if (!plan) return { monthly: 79, yearly: Math.round((7900 * 10) / 12 / 100) }
     if (billingInterval === 'yearly') {
-      const yearlyTotal = YEARLY_PRICES[plan.slug] ?? plan.price_cents * 12 / 100
-      return Math.round(yearlyTotal / 12)
+      const yearlyTotal = YEARLY_PRICES.premium ?? plan.price_cents * 12
+      return { monthly: plan.price_cents / 100, yearly: Math.round(yearlyTotal / 12 / 100) }
     }
-    return plan.price_cents / 100
+    return { monthly: plan.price_cents / 100, yearly: Math.round((YEARLY_PRICES.premium ?? plan.price_cents * 10) / 12 / 100) }
   }
 
-  function getButtonLabel(planSlug: string) {
-    if (planSlug === currentSlug) return null
-    if (!hasStripeSubscription || !isActive) return 'Get Started'
-    const currentIdx = plans.findIndex(p => p.slug === currentSlug)
-    const targetIdx = plans.findIndex(p => p.slug === planSlug)
-    return targetIdx > currentIdx ? 'Upgrade' : 'Downgrade'
-  }
-
-  const isDark = (slug: string) => slug === 'pro' || slug === 'unlimited'
+  const premiumPrice = getPremiumPrice()
+  const displayPrice = billingInterval === 'yearly' ? premiumPrice.yearly : premiumPrice.monthly
 
   return (
     <div className="animate-fade-in max-w-5xl mx-auto space-y-8 pb-16">
       {/* ─── Hero Header ─── */}
       <div className="text-center pt-2 pb-4">
         <h1 className="text-3xl font-bold tracking-tight text-zinc-900 mb-2">
-          Choose your plan
+          {isLegacy ? 'Your Subscription' : 'Choose your plan'}
         </h1>
         <p className="text-base text-zinc-500 max-w-md mx-auto">
-          Scale your lead generation with the right tools for your business
+          {isLegacy
+            ? 'You\'re on a legacy plan with all features included'
+            : 'Scale your lead generation with the right tools for your business'
+          }
         </p>
       </div>
 
@@ -180,9 +189,11 @@ export default function Subscription() {
               <p className="text-sm text-zinc-500">{daysRemaining(subscription.current_period_end)} days remaining</p>
             </div>
           </div>
-          <a href="#plans" className="px-5 py-2.5 rounded-full bg-amber-500 text-white text-sm font-semibold hover:bg-amber-600 transition-colors flex items-center gap-2">
-            Upgrade Now <ArrowRight className="h-4 w-4" />
-          </a>
+          {!isPremium && (
+            <a href="#plans" className="px-5 py-2.5 rounded-full bg-amber-500 text-white text-sm font-semibold hover:bg-amber-600 transition-colors flex items-center gap-2">
+              Upgrade Now <ArrowRight className="h-4 w-4" />
+            </a>
+          )}
         </div>
       )}
 
@@ -197,161 +208,224 @@ export default function Subscription() {
         </div>
       )}
 
-      {/* ─── Billing Interval Toggle ─── */}
-      <div id="plans" className="flex justify-center">
-        <div className="inline-flex items-center gap-1 bg-zinc-100 rounded-full p-1">
-          <button
-            type="button"
-            onClick={() => setBillingInterval('monthly')}
-            className={`px-6 py-2 rounded-full text-sm font-medium transition-all duration-200 ${
-              billingInterval === 'monthly'
-                ? 'bg-white shadow-sm text-zinc-900'
-                : 'text-zinc-500 hover:text-zinc-700'
-            }`}
-          >
-            Monthly
-          </button>
-          <button
-            type="button"
-            onClick={() => setBillingInterval('yearly')}
-            className={`px-6 py-2 rounded-full text-sm font-medium transition-all duration-200 flex items-center gap-2 ${
-              billingInterval === 'yearly'
-                ? 'bg-white shadow-sm text-zinc-900'
-                : 'text-zinc-500 hover:text-zinc-700'
-            }`}
-          >
-            Annual
-            <span className="text-[10px] font-bold text-[#fe5b25] bg-[#fff4ef] px-2 py-0.5 rounded-full">
-              -17%
-            </span>
-          </button>
-        </div>
-      </div>
-
-      {/* ─── Plan Cards ─── */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-        {plans.map((plan) => {
-          const config = PLAN_CONFIG[plan.slug]
-          if (!config) return null
-          const isCurrent = plan.slug === currentSlug
-          const buttonLabel = getButtonLabel(plan.slug)
-          const displayPrice = getPlanPrice(plan)
-          const dark = isDark(plan.slug)
-          const Icon = config.icon
-
-          return (
-            <div
-              key={plan.id}
-              className={[
-                'relative flex flex-col rounded-2xl p-6 transition-all duration-300',
-                'hover:-translate-y-1',
-                dark
-                  ? `bg-gradient-to-br ${config.gradient} text-white shadow-xl`
-                  : 'bg-white border border-zinc-200/60 shadow-sm hover:shadow-lg',
-                isCurrent ? 'ring-2 ring-[#fe5b25] ring-offset-2' : '',
-                plan.slug === 'pro' ? 'md:scale-[1.03]' : '',
-              ].join(' ')}
-            >
-              {/* Badge */}
-              {(config.badge || isCurrent) && (
-                <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                  <span className={`inline-flex items-center gap-1 rounded-full px-3.5 py-1 text-[11px] font-bold shadow-md ${
-                    isCurrent
-                      ? 'bg-[#fe5b25] text-white ring-2 ring-[#ff8a5c] ring-offset-1'
-                      : dark ? 'bg-white text-[#e04d1c]' : 'bg-[#fe5b25] text-white'
-                  }`}>
-                    {isCurrent ? <CheckCircle2 className="h-3 w-3" /> : <Sparkles className="h-3 w-3" />}
-                    {isCurrent ? 'Your Current Plan' : config.badge}
-                  </span>
-                </div>
-              )}
-
-              {/* Plan Name + Icon */}
-              <div className="flex items-center gap-3 mb-5 mt-1">
-                <div className={`h-10 w-10 rounded-xl flex items-center justify-center ${config.iconBg}`}>
-                  <Icon className="h-5 w-5" />
-                </div>
-                <div>
-                  <h3 className={`text-lg font-bold ${dark ? 'text-white' : 'text-zinc-900'}`}>{plan.name}</h3>
-                  {isCurrent && (
-                    <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
-                      dark ? 'bg-white/20 text-white' : 'bg-[#fee8df] text-[#e04d1c]'
-                    }`}>
-                      Current Plan
-                    </span>
-                  )}
-                </div>
-              </div>
-
-              {/* Price */}
-              <div className="mb-1">
-                <span className={`text-4xl font-extrabold tracking-tight ${dark ? 'text-white' : 'text-zinc-900'}`}>
-                  ${displayPrice}
-                </span>
-                <span className={`text-sm ml-1 ${dark ? 'text-white/60' : 'text-zinc-400'}`}>
-                  /mo
-                </span>
-              </div>
-              {billingInterval === 'yearly' && (
-                <p className={`text-xs mb-5 ${dark ? 'text-white/50' : 'text-zinc-400'}`}>
-                  ${YEARLY_PRICES[plan.slug] ?? displayPrice * 12}/year billed annually
-                </p>
-              )}
-              {billingInterval === 'monthly' && <div className="mb-5" />}
-
-              {/* Features */}
-              <ul className="flex-1 space-y-3 mb-7">
-                {config.features.map((feature) => (
-                  <li key={feature} className={`flex items-center gap-2.5 text-sm ${dark ? 'text-white/85' : 'text-zinc-600'}`}>
-                    <div className={`h-4.5 w-4.5 rounded-full flex items-center justify-center shrink-0 ${
-                      dark ? 'bg-white/20' : 'bg-[#fee8df]'
-                    }`}>
-                      <Check className={`h-3 w-3 ${dark ? 'text-white' : 'text-[#fe5b25]'}`} />
-                    </div>
-                    {feature}
-                  </li>
-                ))}
-              </ul>
-
-              {/* CTA Button */}
-              {isCurrent ? (
-                <button
-                  type="button"
-                  disabled
-                  className={`w-full py-3 rounded-full text-sm font-semibold flex items-center justify-center gap-2 cursor-default ${
-                    dark
-                      ? 'bg-white/20 text-white/80 border border-white/10'
-                      : 'bg-zinc-100 text-zinc-500 border border-zinc-200'
-                  }`}
-                >
-                  <Shield className="h-4 w-4" />
-                  Current Plan
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  disabled={actionLoading}
-                  onClick={() => handlePlanAction(plan)}
-                  className={`w-full py-3 rounded-full text-sm font-semibold flex items-center justify-center gap-2 transition-all duration-300 disabled:opacity-50 ${
-                    dark
-                      ? 'bg-white text-zinc-900 hover:bg-white/90 shadow-lg'
-                      : 'bg-zinc-900 text-white hover:bg-zinc-800 shadow-md'
-                  }`}
-                >
-                  {actionLoading ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <>
-                      {buttonLabel}
-                      <ArrowRight className="h-4 w-4" />
-                    </>
-                  )}
-                </button>
-              )}
+      {/* ─── Legacy Plan Banner ─── */}
+      {isLegacy && isActive && (
+        <div className="rounded-2xl p-5 bg-gradient-to-r from-zinc-50 to-slate-50 border border-zinc-200/60 flex items-center gap-4">
+          <div className="h-10 w-10 rounded-xl bg-zinc-800 text-white flex items-center justify-center shrink-0">
+            <Shield className="h-5 w-5" />
+          </div>
+          <div className="flex-1">
+            <div className="flex items-center gap-2 mb-0.5">
+              <p className="text-sm font-semibold text-zinc-900">
+                {subscription?.plan?.name ?? 'Legacy'} Plan
+              </p>
+              <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full bg-zinc-800 text-white">
+                Legacy
+              </span>
             </div>
-          )
-        })}
-      </div>
+            <p className="text-sm text-zinc-500">
+              Legacy plan — all features included. Your plan continues to work as-is.
+            </p>
+          </div>
+          <div className="text-right">
+            <p className="text-xl font-bold text-zinc-900">
+              ${subscription?.plan ? subscription.plan.price_cents / 100 : '—'}
+            </p>
+            <p className="text-xs text-zinc-400">/month</p>
+          </div>
+        </div>
+      )}
+
+      {/* ─── Plan Comparison (Free + Premium) — shown for free users and non-legacy ─── */}
+      {!isLegacy && (
+        <>
+          {/* Billing Interval Toggle */}
+          <div id="plans" className="flex justify-center">
+            <div className="inline-flex items-center gap-1 bg-zinc-100 rounded-full p-1">
+              <button
+                type="button"
+                onClick={() => setBillingInterval('monthly')}
+                className={`px-6 py-2 rounded-full text-sm font-medium transition-all duration-200 ${
+                  billingInterval === 'monthly'
+                    ? 'bg-white shadow-sm text-zinc-900'
+                    : 'text-zinc-500 hover:text-zinc-700'
+                }`}
+              >
+                Monthly
+              </button>
+              <button
+                type="button"
+                onClick={() => setBillingInterval('yearly')}
+                className={`px-6 py-2 rounded-full text-sm font-medium transition-all duration-200 flex items-center gap-2 ${
+                  billingInterval === 'yearly'
+                    ? 'bg-white shadow-sm text-zinc-900'
+                    : 'text-zinc-500 hover:text-zinc-700'
+                }`}
+              >
+                Annual
+                <span className="text-[10px] font-bold text-[#fe5b25] bg-[#fff4ef] px-2 py-0.5 rounded-full">
+                  -17%
+                </span>
+              </button>
+            </div>
+          </div>
+
+          {/* 2-Column Plan Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5 max-w-3xl mx-auto">
+            {/* Free Plan */}
+            {(() => {
+              const config = PLAN_CONFIG.free
+              const Icon = config.icon
+              const isCurrent = isFree && !isLegacy
+
+              return (
+                <div
+                  className={[
+                    'relative flex flex-col rounded-2xl p-6 transition-all duration-300',
+                    'hover:-translate-y-1',
+                    'bg-white border border-zinc-200/60 shadow-sm hover:shadow-lg',
+                    isCurrent ? 'ring-2 ring-slate-400 ring-offset-2' : '',
+                  ].join(' ')}
+                >
+                  {isCurrent && (
+                    <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+                      <span className="inline-flex items-center gap-1 rounded-full px-3.5 py-1 text-[11px] font-bold shadow-md bg-slate-600 text-white">
+                        <CheckCircle2 className="h-3 w-3" />
+                        Your Current Plan
+                      </span>
+                    </div>
+                  )}
+
+                  <div className="flex items-center gap-3 mb-5 mt-1">
+                    <div className={`h-10 w-10 rounded-xl flex items-center justify-center ${config.iconBg}`}>
+                      <Icon className="h-5 w-5" />
+                    </div>
+                    <h3 className="text-lg font-bold text-zinc-900">Free</h3>
+                  </div>
+
+                  <div className="mb-1">
+                    <span className="text-4xl font-extrabold tracking-tight text-zinc-900">$0</span>
+                    <span className="text-sm ml-1 text-zinc-400">/mo</span>
+                  </div>
+                  <p className="text-xs text-zinc-400 mb-5">Free forever</p>
+
+                  <ul className="flex-1 space-y-3 mb-7">
+                    {config.features.map((feature) => (
+                      <li key={feature} className="flex items-center gap-2.5 text-sm text-zinc-600">
+                        <div className="h-4.5 w-4.5 rounded-full flex items-center justify-center shrink-0 bg-slate-100">
+                          <Check className="h-3 w-3 text-slate-500" />
+                        </div>
+                        {feature}
+                      </li>
+                    ))}
+                  </ul>
+
+                  {isCurrent ? (
+                    <button
+                      type="button"
+                      disabled
+                      className="w-full py-3 rounded-full text-sm font-semibold flex items-center justify-center gap-2 cursor-default bg-zinc-100 text-zinc-500 border border-zinc-200"
+                    >
+                      <Shield className="h-4 w-4" />
+                      Current Plan
+                    </button>
+                  ) : (
+                    <div className="h-[46px]" /> // spacer to align with premium button
+                  )}
+                </div>
+              )
+            })()}
+
+            {/* Premium Plan */}
+            {(() => {
+              const config = PLAN_CONFIG.premium
+              const Icon = config.icon
+              const isCurrent = isPremium && !isLegacy
+
+              return (
+                <div
+                  className={[
+                    'relative flex flex-col rounded-2xl p-6 transition-all duration-300',
+                    'hover:-translate-y-1',
+                    `bg-gradient-to-br ${config.gradient} text-white shadow-xl`,
+                    isCurrent ? 'ring-2 ring-[#fe5b25] ring-offset-2' : '',
+                  ].join(' ')}
+                >
+                  <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+                    <span className={`inline-flex items-center gap-1 rounded-full px-3.5 py-1 text-[11px] font-bold shadow-md ${
+                      isCurrent
+                        ? 'bg-[#fe5b25] text-white ring-2 ring-[#ff8a5c] ring-offset-1'
+                        : 'bg-white text-[#e04d1c]'
+                    }`}>
+                      {isCurrent ? <CheckCircle2 className="h-3 w-3" /> : <Sparkles className="h-3 w-3" />}
+                      {isCurrent ? 'Your Current Plan' : config.badge}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-3 mb-5 mt-1">
+                    <div className={`h-10 w-10 rounded-xl flex items-center justify-center ${config.iconBg}`}>
+                      <Icon className="h-5 w-5" />
+                    </div>
+                    <h3 className="text-lg font-bold text-white">Premium</h3>
+                  </div>
+
+                  <div className="mb-1">
+                    <span className="text-4xl font-extrabold tracking-tight text-white">
+                      ${displayPrice}
+                    </span>
+                    <span className="text-sm ml-1 text-white/60">/mo</span>
+                  </div>
+                  {billingInterval === 'yearly' ? (
+                    <p className="text-xs text-white/50 mb-5">
+                      ${YEARLY_PRICES.premium / 100}/year billed annually
+                    </p>
+                  ) : (
+                    <p className="text-xs text-white/50 mb-5">Billed monthly</p>
+                  )}
+
+                  <ul className="flex-1 space-y-3 mb-7">
+                    {config.features.map((feature) => (
+                      <li key={feature} className="flex items-center gap-2.5 text-sm text-white/85">
+                        <div className="h-4.5 w-4.5 rounded-full flex items-center justify-center shrink-0 bg-white/20">
+                          <Check className="h-3 w-3 text-white" />
+                        </div>
+                        {feature}
+                      </li>
+                    ))}
+                  </ul>
+
+                  {isCurrent ? (
+                    <button
+                      type="button"
+                      disabled
+                      className="w-full py-3 rounded-full text-sm font-semibold flex items-center justify-center gap-2 cursor-default bg-white/20 text-white/80 border border-white/10"
+                    >
+                      <Shield className="h-4 w-4" />
+                      Current Plan
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      disabled={actionLoading}
+                      onClick={() => handleSubscribe('premium')}
+                      className="w-full py-3 rounded-full text-sm font-semibold flex items-center justify-center gap-2 transition-all duration-300 disabled:opacity-50 bg-white text-zinc-900 hover:bg-white/90 shadow-lg"
+                    >
+                      {actionLoading ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <>
+                          {hasStripeSubscription && isActive ? 'Upgrade' : 'Start Free Trial'}
+                          <ArrowRight className="h-4 w-4" />
+                        </>
+                      )}
+                    </button>
+                  )}
+                </div>
+              )
+            })()}
+          </div>
+        </>
+      )}
 
       {/* ─── Billing & Invoices Section ─── */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
@@ -374,7 +448,14 @@ export default function Subscription() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-[10px] text-[#fe5b25] uppercase tracking-wider font-bold">Current Plan</p>
-                  <p className="text-lg font-bold text-zinc-900 mt-0.5">{subscription.plan.name}</p>
+                  <p className="text-lg font-bold text-zinc-900 mt-0.5">
+                    {subscription.plan.name}
+                    {isLegacy && (
+                      <span className="ml-2 text-[10px] font-bold uppercase px-2 py-0.5 rounded-full bg-zinc-200 text-zinc-600 align-middle">
+                        Legacy
+                      </span>
+                    )}
+                  </p>
                 </div>
                 <div className="text-right">
                   <p className="text-xl font-bold text-zinc-900">${subscription.plan.price_cents / 100}</p>
