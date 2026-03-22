@@ -56,10 +56,25 @@ export interface ProspectListItem {
   group_names?: string[]
 }
 
+export interface LinkedContractor {
+  user_id: string
+  full_name: string
+  phone: string | null
+  professions: string[]
+  zip_codes: string[]
+  working_days: number[]
+  wa_notify: boolean
+  is_active: boolean
+  preferred_locale: string
+  subscription_status: string | null
+  subscription_plan: string | null
+}
+
 const prospectListKey = ['admin', 'prospects', 'list'] as const
 const detailKey = (id: string) => ['admin', 'prospects', 'detail', id] as const
 const messagesKey = (id: string) => ['admin', 'prospects', 'messages', id] as const
 const eventsKey = (id: string) => ['admin', 'prospects', 'events', id] as const
+const contractorKey = (phone: string) => ['admin', 'prospects', 'contractor', phone] as const
 
 async function fetchProspectList(): Promise<ProspectListItem[]> {
   const pages: ProspectListItem[] = []
@@ -107,6 +122,48 @@ export function useProspectDetailData(id: string | undefined) {
       if (error) throw error
       return data as Prospect
     },
+  })
+
+  // Fetch linked contractor profile (by phone number)
+  const prospectPhone = prospectQuery.data?.phone
+  const contractorQuery = useQuery({
+    queryKey: contractorKey(prospectPhone ?? ''),
+    enabled: Boolean(prospectPhone),
+    queryFn: async () => {
+      // Look up profile by phone, then join contractor data
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('id, full_name, phone, preferred_locale')
+        .eq('phone', prospectPhone)
+        .maybeSingle()
+      if (!profile) return null
+
+      const { data: contractor } = await supabase
+        .from('contractors')
+        .select('user_id, professions, zip_codes, working_days, wa_notify, is_active')
+        .eq('user_id', profile.id)
+        .maybeSingle()
+      if (!contractor) return null
+
+      // Also check subscription status
+      const { data: sub } = await supabase
+        .from('subscriptions')
+        .select('status, plan')
+        .eq('user_id', profile.id)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+
+      return {
+        ...contractor,
+        full_name: profile.full_name,
+        phone: profile.phone,
+        preferred_locale: profile.preferred_locale,
+        subscription_status: sub?.status ?? null,
+        subscription_plan: sub?.plan ?? null,
+      } as LinkedContractor
+    },
+    staleTime: 60_000,
   })
 
   const messagesQuery = useQuery({
@@ -175,10 +232,11 @@ export function useProspectDetailData(id: string | undefined) {
   return {
     prospectList: listQuery.data ?? [],
     prospect: prospectQuery.data ?? null,
+    contractor: contractorQuery.data ?? null,
     messages: messagesQuery.data ?? [],
     events: eventsQuery.data ?? [],
     isListLoading: listQuery.isLoading,
     isDetailLoading: prospectQuery.isLoading || messagesQuery.isLoading || eventsQuery.isLoading,
-    refetchDetail: () => Promise.all([prospectQuery.refetch(), messagesQuery.refetch(), eventsQuery.refetch()]),
+    refetchDetail: () => Promise.all([prospectQuery.refetch(), messagesQuery.refetch(), eventsQuery.refetch(), contractorQuery.refetch()]),
   }
 }

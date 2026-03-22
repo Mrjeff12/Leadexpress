@@ -8,12 +8,13 @@ import {
   type Message,
   type ProspectEvent,
   type ProspectListItem,
+  type LinkedContractor,
 } from '../hooks/useProspectDetailData'
 import {
   ArrowRight, Phone, MessageCircle, Send, Loader2,
   ChevronDown, Check, CheckCheck, CircleDot, Sparkles, DollarSign,
   XCircle, PhoneCall, Edit3, Calendar, X, Plus,
-  AlertTriangle, Zap, Copy, Clock,
+  AlertTriangle, Zap, Copy, Clock, MapPin, Briefcase,
   Search, Inbox, Users
 } from 'lucide-react'
 
@@ -96,7 +97,6 @@ export default function AdminInbox() {
   const [fuDraft, setFuDraft] = useState('')
   const [showQR, setShowQR] = useState(false)
   const [copied, setCopied] = useState(false)
-  const [rightTab, setRightTab] = useState<'crm' | 'info'>('crm')
 
   // Prospect list
   const [listSearch, setListSearch] = useState('')
@@ -105,6 +105,7 @@ export default function AdminInbox() {
 
   const {
     prospect,
+    contractor,
     messages,
     events,
     prospectList,
@@ -510,62 +511,57 @@ export default function AdminInbox() {
           </div>
         </div>
 
-        {/* ═══ RIGHT: Contact Details ══════════════════════════════════════════ */}
+        {/* ═══ RIGHT: Contact Card ══════════════════════════════════════════ */}
         <div className="flex flex-col relative z-10 h-full overflow-hidden bg-white" style={{ borderLeft: `1px solid ${C.border}` }}>
           {loading || !prospect ? (
             <div className="flex items-center justify-center flex-1"><Loader2 className="w-5 h-5 animate-spin text-[#8E8E93]" /></div>
           ) : (
             <div className="flex flex-col h-full overflow-y-auto scrollbar-hide">
 
-              {/* ── Compact Profile Card ── */}
-              <div className="shrink-0 p-4 pb-3 border-b border-black/[0.06]">
+              {/* ── Profile Header ── */}
+              <div className="shrink-0 px-4 pt-4 pb-3">
+                {/* Name + Phone + Actions — single row */}
                 <div className="flex items-center gap-3 mb-3">
-                  <div className="relative">
-                    <Avatar src={prospect.profile_pic_url} name={pName(prospect)} waId={prospect.wa_id || prospect.phone} size={44} />
-                    <div className="absolute -bottom-0.5 -right-0.5 w-5 h-5 rounded-full border-[1.5px] border-white flex items-center justify-center" style={{ background: stg.color }}>
-                      <stg.icon className="w-2.5 h-2.5 text-white" />
-                    </div>
-                  </div>
+                  <Avatar src={prospect.profile_pic_url} name={pName(prospect)} waId={prospect.wa_id || prospect.phone} size={40} />
                   <div className="flex-1 min-w-0">
                     {editingName ? (
                       <div className="flex items-center gap-1.5">
                         <input value={nameDraft} onChange={e => setNameDraft(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') saveName(); if (e.key === 'Escape') setEditingName(false) }} className="w-full text-[14px] font-semibold border-b-2 outline-none bg-transparent" style={{ color: C.dark, borderColor: C.primary }} autoFocus />
-                        <button onClick={saveName} className="p-1 rounded-md bg-[#34C759]/10"><Check className="w-3.5 h-3.5 text-[#34C759]" /></button>
+                        <button onClick={saveName} className="p-1 rounded bg-[#34C759]/10"><Check className="w-3 h-3 text-[#34C759]" /></button>
                       </div>
                     ) : (
-                      <h3 className="text-[15px] font-semibold tracking-tight truncate cursor-pointer hover:opacity-60 transition-opacity" style={{ color: C.dark }} onClick={() => { setEditingName(true); setNameDraft(prospect.display_name ?? '') }}>
-                        {prospect.display_name || <span className="text-[#8E8E93] italic font-normal text-[13px]">{he ? 'הוסף שם...' : 'Add name...'}</span>}
-                      </h3>
+                      <p className="text-[14px] font-semibold truncate cursor-pointer hover:opacity-60 transition-opacity" style={{ color: C.dark }} onClick={() => { setEditingName(true); setNameDraft(prospect.display_name ?? '') }}>
+                        {prospect.display_name || prospect.phone}
+                      </p>
                     )}
-                    <p className="text-[12px] text-[#8E8E93] mt-0.5">{prospect.phone}</p>
+                    {prospect.display_name && <p className="text-[11px] text-[#8E8E93]">{prospect.phone}</p>}
+                  </div>
+                  {/* Inline action icons */}
+                  <div className="flex items-center gap-1 shrink-0">
+                    <a href={`tel:${prospect.phone}`} className="w-7 h-7 rounded-md flex items-center justify-center hover:bg-[#f0f0f0] transition-all"><PhoneCall className="w-3.5 h-3.5 text-[#8E8E93]" /></a>
+                    <a href={`https://wa.me/${prospect.phone.replace(/[^0-9]/g, '')}`} target="_blank" rel="noreferrer" className="w-7 h-7 rounded-md flex items-center justify-center hover:bg-[#34C759]/10 transition-all"><MessageCircle className="w-3.5 h-3.5 text-[#34C759]" /></a>
+                    <button onClick={copyPhone} className="w-7 h-7 rounded-md flex items-center justify-center hover:bg-[#f0f0f0] transition-all">{copied ? <Check className="w-3.5 h-3.5 text-[#34C759]" /> : <Copy className="w-3.5 h-3.5 text-[#8E8E93]" />}</button>
                   </div>
                 </div>
 
-                {/* Quick Actions Row */}
-                <div className="flex items-center gap-1.5 mb-3">
-                  <a href={`tel:${prospect.phone}`} className="flex items-center justify-center w-8 h-8 rounded-lg bg-[#f5f5f5] hover:bg-[#ebebeb] transition-all" title="Call"><PhoneCall className="w-3.5 h-3.5 text-[#1C1C1E]" /></a>
-                  <a href={`https://wa.me/${prospect.phone.replace(/[^0-9]/g, '')}`} target="_blank" rel="noreferrer" className="flex items-center justify-center w-8 h-8 rounded-lg bg-[#34C759]/10 hover:bg-[#34C759]/20 transition-all" title="WhatsApp"><MessageCircle className="w-3.5 h-3.5 text-[#34C759]" /></a>
-                  <button onClick={copyPhone} className="flex items-center justify-center w-8 h-8 rounded-lg bg-[#f5f5f5] hover:bg-[#ebebeb] transition-all" title="Copy">{copied ? <Check className="w-3.5 h-3.5 text-[#34C759]" /> : <Copy className="w-3.5 h-3.5 text-[#1C1C1E]" />}</button>
-                </div>
-
-                {/* Stage Selector */}
-                <div className="relative w-full">
-                  <button onClick={() => setStageMenuOpen(!stageMenuOpen)} className="flex items-center justify-between w-full h-9 px-3 rounded-lg text-[13px] font-medium border border-black/[0.08] transition-all hover:border-black/[0.15] bg-white" style={{ color: stg.color }}>
+                {/* Stage selector — compact inline */}
+                <div className="relative">
+                  <button onClick={() => setStageMenuOpen(!stageMenuOpen)} className="flex items-center justify-between w-full h-8 px-3 rounded-lg text-[12px] font-medium border border-black/[0.08] bg-white hover:border-black/[0.15] transition-all" style={{ color: stg.color }}>
                     <div className="flex items-center gap-2">
                       <div className="w-2 h-2 rounded-full" style={{ background: stg.color }} />
                       {he ? stg.he : stg.label}
                     </div>
-                    <ChevronDown className={`w-3.5 h-3.5 transition-transform ${stageMenuOpen ? 'rotate-180' : ''}`} />
+                    <ChevronDown className={`w-3 h-3 transition-transform ${stageMenuOpen ? 'rotate-180' : ''}`} />
                   </button>
                   {stageMenuOpen && (
                     <>
                       <div className="fixed inset-0 z-40" onClick={() => setStageMenuOpen(false)} />
-                      <div className="absolute top-full mt-1 z-50 w-full rounded-lg border border-black/[0.08] shadow-lg overflow-hidden bg-white py-1">
+                      <div className="absolute top-full mt-1 z-50 w-full rounded-lg border border-black/[0.08] shadow-lg bg-white py-1">
                         {STAGES.map(s => (
-                          <button key={s.key} onClick={() => changeStage(s.key)} className="flex items-center gap-2.5 w-full px-3 py-2 text-[13px] font-medium hover:bg-[#f5f5f5] transition-colors" style={{ color: prospect.stage === s.key ? s.color : C.gray }}>
+                          <button key={s.key} onClick={() => changeStage(s.key)} className="flex items-center gap-2 w-full px-3 py-1.5 text-[12px] font-medium hover:bg-[#f5f5f5] transition-colors" style={{ color: prospect.stage === s.key ? s.color : C.gray }}>
                             <div className="w-2 h-2 rounded-full" style={{ background: s.color }} />
                             {he ? s.he : s.label}
-                            {prospect.stage === s.key && <Check className="w-3.5 h-3.5 ml-auto" style={{ color: s.color }} />}
+                            {prospect.stage === s.key && <Check className="w-3 h-3 ml-auto" style={{ color: s.color }} />}
                           </button>
                         ))}
                       </div>
@@ -573,165 +569,199 @@ export default function AdminInbox() {
                   )}
                 </div>
 
-                {/* Trial Countdown */}
+                {/* Trial status */}
                 {prospect.stage === 'demo_trial' && prospect.trial_ends_at && (
-                  <div className="mt-2 px-3 py-2 rounded-lg bg-[#FF9500]/8 border border-[#FF9500]/15">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[10px] font-semibold uppercase tracking-wider text-[#FF9500]">{he ? 'ניסיון נגמר' : 'Trial ends'}</span>
-                      <span className="text-[12px] font-semibold text-[#FF9500]">{relD(prospect.trial_ends_at, he)}</span>
-                    </div>
+                  <div className="mt-2 flex items-center justify-between px-3 py-1.5 rounded-lg bg-[#FF9500]/8 text-[11px] font-medium text-[#FF9500]">
+                    <span>{he ? 'ניסיון נגמר' : 'Trial ends'}</span>
+                    <span className="font-semibold">{relD(prospect.trial_ends_at, he)}</span>
                   </div>
                 )}
                 {prospect.stage === 'trial_expired' && (
-                  <div className="mt-2 px-3 py-2 rounded-lg bg-[#8E8E93]/8 border border-[#8E8E93]/15 flex items-center gap-1.5">
-                    <Clock className="w-3.5 h-3.5 text-[#8E8E93]" />
-                    <span className="text-[11px] font-medium text-[#8E8E93]">{he ? 'ניסיון הסתיים' : 'Trial ended'}</span>
+                  <div className="mt-2 flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#8E8E93]/8 text-[11px] font-medium text-[#8E8E93]">
+                    <Clock className="w-3 h-3" /> {he ? 'ניסיון הסתיים' : 'Trial ended'}
                   </div>
                 )}
               </div>
 
-              {/* ── Tabs ── */}
-              <div className="shrink-0 flex px-4 border-b border-black/[0.06] bg-[#fafafa]">
-                <button onClick={() => setRightTab('crm')} className={`pb-2.5 pt-3 px-1 text-[11px] font-semibold uppercase tracking-wider border-b-2 transition-colors ${he ? 'ml-5' : 'mr-5'} ${rightTab === 'crm' ? 'border-[#1C1C1E] text-[#1C1C1E]' : 'border-transparent text-[#8E8E93] hover:text-[#1C1C1E]'}`}>
-                  CRM
-                </button>
-                <button onClick={() => setRightTab('info')} className={`pb-2.5 pt-3 px-1 text-[11px] font-semibold uppercase tracking-wider border-b-2 transition-colors ${rightTab === 'info' ? 'border-[#1C1C1E] text-[#1C1C1E]' : 'border-transparent text-[#8E8E93] hover:text-[#1C1C1E]'}`}>
-                  {he ? 'פרטים' : 'Details'}
-                </button>
-              </div>
+              {/* ── Divider ── */}
+              <div className="h-px bg-black/[0.06]" />
 
-              {/* ── Tab Content ── */}
-              <div className="flex-1 overflow-y-auto p-4 scrollbar-hide">
-                {rightTab === 'crm' ? (
-                  <div className="space-y-4">
-                    {/* Follow-up */}
-                    <div>
-                      <div className="text-[10px] font-semibold uppercase tracking-wider mb-2 text-[#8E8E93]">{he ? 'תזכורת מעקב' : 'Follow-up'}</div>
-                      {showFU ? (
-                        <div className="space-y-3 bg-[#fafafa] p-3 rounded-xl border border-black/[0.06]">
-                          <input type="date" value={fuDraft} onChange={e => setFuDraft(e.target.value)} className="w-full h-9 text-[12px] font-medium rounded-lg border border-black/[0.08] px-3 outline-none bg-white focus:ring-2 focus:ring-[#fe5b25]/10 transition-all" />
-                          <div className="flex gap-1.5">
-                            {[1, 3, 7, 14].map(d => <button key={d} onClick={() => setFuDraft(new Date(Date.now() + d * 86400000).toISOString().split('T')[0])} className="flex-1 h-7 rounded-md text-[11px] font-medium bg-white border border-black/[0.06] hover:bg-[#f0f0f0] transition-colors text-[#1C1C1E]">{d}d</button>)}
-                          </div>
-                          <div className="flex gap-1.5">
-                            <button onClick={saveFU} className="flex-1 h-8 rounded-lg text-[12px] font-semibold text-white bg-[#1C1C1E] hover:bg-black transition-colors">{he ? 'שמור' : 'Set'}</button>
-                            {prospect.next_followup_at && <button onClick={clearFU} className="h-8 px-3 rounded-lg text-[12px] font-semibold text-[#FF3B30] bg-[#FF3B30]/8 hover:bg-[#FF3B30]/15 transition-colors">{he ? 'נקה' : 'Clear'}</button>}
-                            <button onClick={() => setShowFU(false)} className="h-8 w-8 flex items-center justify-center rounded-lg bg-white border border-black/[0.06] hover:bg-[#f0f0f0] transition-colors"><X className="w-3.5 h-3.5 text-[#1C1C1E]" /></button>
-                          </div>
-                        </div>
-                      ) : prospect.next_followup_at ? (
-                        <button onClick={() => { setShowFU(true); setFuDraft(prospect.next_followup_at!.split('T')[0]) }} className="flex items-center justify-between w-full p-3 rounded-xl text-[12px] font-medium transition-all hover:bg-[#f5f5f5] bg-white border border-black/[0.06]">
-                          <div className="flex items-center gap-2.5">
-                            <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: fs === 'overdue' ? '#FF3B30' : fs === 'today' ? '#FF9500' : '#34C759', color: 'white' }}>
-                              {fs === 'overdue' ? <AlertTriangle className="w-4 h-4" /> : <Calendar className="w-4 h-4" />}
-                            </div>
-                            <div>
-                              <span className="block text-[13px] font-semibold" style={{ color: fs === 'overdue' ? '#FF3B30' : fs === 'today' ? '#FF9500' : '#34C759' }}>{relD(prospect.next_followup_at, he)}</span>
-                              <span className="text-[10px] text-[#8E8E93]">{fmtFull(prospect.next_followup_at)}</span>
-                            </div>
-                          </div>
-                          <Edit3 className="w-3.5 h-3.5 text-[#8E8E93]" />
-                        </button>
-                      ) : (
-                        <button onClick={() => { setShowFU(true); setFuDraft(new Date(Date.now() + 86400000).toISOString().split('T')[0]) }} className="w-full flex items-center justify-center gap-2 h-10 rounded-xl border border-dashed border-black/[0.1] text-[12px] font-medium hover:bg-[#f5f5f5] transition-all text-[#8E8E93] hover:text-[#1C1C1E]">
-                          <Plus className="w-3.5 h-3.5" /> {he ? 'הגדר תזכורת' : 'Set follow-up'}
-                        </button>
-                      )}
-                    </div>
+              {/* ── Unified Scrollable Content ── */}
+              <div className="flex-1 overflow-y-auto px-4 py-3 space-y-4 scrollbar-hide">
 
-                    {/* Notes */}
-                    <div>
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-[10px] font-semibold uppercase tracking-wider text-[#8E8E93]">{he ? 'הערות' : 'Notes'}</span>
-                        {!editingNotes && (
-                          <button onClick={() => { setEditingNotes(true); setNoteDraft(prospect.notes) }} className="text-[10px] font-semibold text-[#fe5b25] hover:underline">{he ? 'ערוך' : 'Edit'}</button>
-                        )}
+                {/* ── Registered Contractor Info (if onboarding completed) ── */}
+                {contractor && (
+                  <div className="rounded-lg border border-[#34C759]/20 bg-[#34C759]/[0.04] p-3 space-y-3">
+                    <div className="flex items-center gap-2">
+                      <div className="w-5 h-5 rounded-full bg-[#34C759] flex items-center justify-center">
+                        <Check className="w-3 h-3 text-white" />
                       </div>
-
-                      {editingNotes ? (
-                        <div className="bg-[#fafafa] rounded-xl border border-black/[0.06] overflow-hidden">
-                          <textarea value={noteDraft} onChange={e => setNoteDraft(e.target.value)} className="w-full p-3 text-[13px] outline-none resize-none bg-transparent leading-relaxed min-h-[120px]" style={{ color: C.dark }} autoFocus placeholder={he ? 'הערות...' : 'Notes...'} />
-                          <div className="flex gap-1.5 p-2 border-t border-black/[0.04]">
-                            <button onClick={saveNotes} className="flex-1 h-8 rounded-lg text-[12px] font-semibold text-white bg-[#1C1C1E] hover:bg-black transition-colors">{he ? 'שמור' : 'Save'}</button>
-                            <button onClick={() => setEditingNotes(false)} className="px-3 h-8 rounded-lg text-[12px] font-medium bg-white border border-black/[0.06] hover:bg-[#f0f0f0] transition-colors">{he ? 'ביטול' : 'Cancel'}</button>
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="p-3 rounded-xl bg-[#fafafa] border border-black/[0.04] cursor-pointer hover:border-black/[0.1] transition-all min-h-[60px]" onClick={() => { setEditingNotes(true); setNoteDraft(prospect.notes) }}>
-                          <p className="text-[13px] whitespace-pre-wrap leading-relaxed" style={{ color: prospect.notes ? C.dark : '#c7c7cc' }}>
-                            {prospect.notes || (he ? 'לחץ להוספת הערות...' : 'Click to add notes...')}
-                          </p>
-                        </div>
+                      <span className="text-[11px] font-semibold text-[#34C759] uppercase tracking-wider">{he ? 'רשום במערכת' : 'Registered'}</span>
+                      {contractor.subscription_plan && (
+                        <span className="ml-auto text-[10px] font-medium px-1.5 py-0.5 rounded bg-[#FF9500]/10 text-[#FF9500]">
+                          {contractor.subscription_plan}
+                        </span>
                       )}
                     </div>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    {/* Professions */}
-                    {prospect.profession_tags.length > 0 && (
+
+                    {/* Name */}
+                    {contractor.full_name && (
+                      <div className="text-[13px] font-semibold text-[#1C1C1E]">{contractor.full_name}</div>
+                    )}
+
+                    {/* Professions from contractor table */}
+                    {contractor.professions.length > 0 && (
                       <div>
-                        <span className="text-[10px] font-semibold uppercase tracking-wider text-[#8E8E93] block mb-2">{he ? 'תחומי עיסוק' : 'Professions'}</span>
-                        <div className="flex flex-wrap gap-1.5">
-                          {prospect.profession_tags.map(t => (
-                            <span key={t} className="px-2.5 py-1 rounded-md text-[11px] font-medium bg-[#fe5b25]/8 text-[#fe5b25] border border-[#fe5b25]/15">{t}</span>
+                        <div className="text-[10px] text-[#8E8E93] mb-1">{he ? 'מקצועות' : 'Trades'}</div>
+                        <div className="flex flex-wrap gap-1">
+                          {contractor.professions.map(p => (
+                            <span key={p} className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium bg-white text-[#1C1C1E] border border-black/[0.06]">
+                              <Briefcase className="w-2.5 h-2.5 text-[#fe5b25]" />{p}
+                            </span>
                           ))}
                         </div>
                       </div>
                     )}
 
-                    {/* Source Groups */}
-                    <div>
-                      <span className="text-[10px] font-semibold uppercase tracking-wider text-[#8E8E93] block mb-2">{he ? 'קבוצות מקור' : 'Source Groups'}</span>
-                      {(prospect.group_names ?? []).length > 0 ? (
-                        <div className="space-y-1.5">
-                          {(prospect.group_names ?? []).map(g => (
-                            <div key={g} className="flex items-center gap-2.5 px-3 py-2 rounded-lg bg-[#fafafa] border border-black/[0.04]">
-                              <Users className="w-3.5 h-3.5 text-[#fe5b25] shrink-0" />
-                              <span className="text-[12px] font-medium text-[#1C1C1E] truncate">{g}</span>
-                            </div>
+                    {/* Zip Codes / Service Areas */}
+                    {contractor.zip_codes.length > 0 && (
+                      <div>
+                        <div className="text-[10px] text-[#8E8E93] mb-1">{he ? 'אזורי שירות' : 'Service Areas'}</div>
+                        <div className="flex flex-wrap gap-1">
+                          {contractor.zip_codes.map(z => (
+                            <span key={z} className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium bg-white text-[#1C1C1E] border border-black/[0.06]">
+                              <MapPin className="w-2.5 h-2.5 text-[#007AFF]" />{z}
+                            </span>
                           ))}
                         </div>
-                      ) : (
-                        <p className="text-[12px] text-[#c7c7cc]">{he ? 'לא משויך לקבוצות' : 'No groups linked'}</p>
-                      )}
-                    </div>
-
-                    {/* Timeline */}
-                    <div>
-                      <span className="text-[10px] font-semibold uppercase tracking-wider text-[#8E8E93] block mb-2">{he ? 'ציר זמן' : 'Timeline'}</span>
-                      <div className="space-y-1.5">
-                        <div className="flex items-center justify-between px-3 py-2 rounded-lg bg-[#fafafa] border border-black/[0.04]">
-                          <span className="text-[11px] text-[#8E8E93]">{he ? 'נוצר' : 'Created'}</span>
-                          <span className="text-[12px] font-medium text-[#1C1C1E]">{fmtFull(prospect.created_at)}</span>
-                        </div>
-                        <div className="flex items-center justify-between px-3 py-2 rounded-lg bg-[#fafafa] border border-black/[0.04]">
-                          <span className="text-[11px] text-[#8E8E93]">{he ? 'קשר אחרון' : 'Last contact'}</span>
-                          <span className="text-[12px] font-medium text-[#1C1C1E]">{prospect.last_contact_at ? fmtFull(prospect.last_contact_at) : '—'}</span>
-                        </div>
-                        {prospect.next_followup_at && (
-                          <div className="flex items-center justify-between px-3 py-2 rounded-lg bg-[#fafafa] border border-black/[0.04]">
-                            <span className="text-[11px] text-[#8E8E93]">{he ? 'מעקב' : 'Follow-up'}</span>
-                            <span className="text-[12px] font-medium" style={{ color: fs === 'overdue' ? '#FF3B30' : fs === 'today' ? '#FF9500' : '#34C759' }}>{fmtFull(prospect.next_followup_at)}</span>
-                          </div>
-                        )}
-                        {prospect.trial_ends_at && (
-                          <div className="flex items-center justify-between px-3 py-2 rounded-lg bg-[#fafafa] border border-black/[0.04]">
-                            <span className="text-[11px] text-[#8E8E93]">{he ? 'סיום ניסיון' : 'Trial end'}</span>
-                            <span className="text-[12px] font-medium text-[#FF9500]">{fmtFull(prospect.trial_ends_at)}</span>
-                          </div>
-                        )}
                       </div>
-                    </div>
+                    )}
 
-                    {/* WA ID */}
-                    <div>
-                      <span className="text-[10px] font-semibold uppercase tracking-wider text-[#8E8E93] block mb-2">{he ? 'מזהה WhatsApp' : 'WhatsApp ID'}</span>
-                      <div className="px-3 py-2 rounded-lg bg-[#fafafa] border border-black/[0.04]">
-                        <span className="text-[11px] font-mono text-[#8E8E93]">{prospect.wa_id || prospect.phone}</span>
+                    {/* Working Days */}
+                    {contractor.working_days.length > 0 && (
+                      <div>
+                        <div className="text-[10px] text-[#8E8E93] mb-1">{he ? 'ימי עבודה' : 'Working Days'}</div>
+                        <div className="flex gap-1">
+                          {['Su','Mo','Tu','We','Th','Fr','Sa'].map((d, i) => (
+                            <span key={d} className={`w-6 h-6 rounded flex items-center justify-center text-[9px] font-semibold ${contractor.working_days.includes(i) ? 'bg-[#1C1C1E] text-white' : 'bg-black/[0.04] text-[#c7c7cc]'}`}>
+                              {d}
+                            </span>
+                          ))}
+                        </div>
                       </div>
+                    )}
+
+                    {/* Status indicators */}
+                    <div className="flex items-center gap-3 text-[10px] pt-1 border-t border-[#34C759]/10">
+                      <span className={`flex items-center gap-1 ${contractor.is_active ? 'text-[#34C759]' : 'text-[#FF3B30]'}`}>
+                        <div className={`w-1.5 h-1.5 rounded-full ${contractor.is_active ? 'bg-[#34C759]' : 'bg-[#FF3B30]'}`} />
+                        {contractor.is_active ? (he ? 'פעיל' : 'Active') : (he ? 'לא פעיל' : 'Inactive')}
+                      </span>
+                      <span className={`flex items-center gap-1 ${contractor.wa_notify ? 'text-[#34C759]' : 'text-[#8E8E93]'}`}>
+                        <MessageCircle className="w-2.5 h-2.5" />
+                        {contractor.wa_notify ? (he ? 'התראות פעילות' : 'Notifications on') : (he ? 'התראות כבויות' : 'Notifications off')}
+                      </span>
                     </div>
                   </div>
                 )}
+
+                {/* Professions (from prospect tags — shown when no contractor profile) */}
+                {!contractor && prospect.profession_tags.length > 0 && (
+                  <div>
+                    <div className="text-[10px] font-semibold uppercase tracking-wider text-[#8E8E93] mb-1.5">{he ? 'מקצוע' : 'Profession'}</div>
+                    <div className="flex flex-wrap gap-1.5">
+                      {prospect.profession_tags.map(t => (
+                        <span key={t} className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-[#fe5b25]/8 text-[#fe5b25]">{t}</span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Source Groups */}
+                {(prospect.group_names ?? []).length > 0 && (
+                  <div>
+                    <div className="text-[10px] font-semibold uppercase tracking-wider text-[#8E8E93] mb-1.5">{he ? 'קבוצות' : 'Groups'}</div>
+                    <div className="space-y-1">
+                      {(prospect.group_names ?? []).map(g => (
+                        <div key={g} className="flex items-center gap-2 text-[12px] text-[#1C1C1E]">
+                          <Users className="w-3 h-3 text-[#8E8E93] shrink-0" />
+                          <span className="truncate">{g}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Key Dates */}
+                <div>
+                  <div className="text-[10px] font-semibold uppercase tracking-wider text-[#8E8E93] mb-1.5">{he ? 'תאריכים' : 'Dates'}</div>
+                  <div className="text-[12px] space-y-1">
+                    <div className="flex justify-between"><span className="text-[#8E8E93]">{he ? 'נוצר' : 'Created'}</span><span className="font-medium text-[#1C1C1E]">{fmtFull(prospect.created_at)}</span></div>
+                    <div className="flex justify-between"><span className="text-[#8E8E93]">{he ? 'קשר אחרון' : 'Last contact'}</span><span className="font-medium text-[#1C1C1E]">{prospect.last_contact_at ? fmtFull(prospect.last_contact_at) : '—'}</span></div>
+                    {prospect.trial_ends_at && <div className="flex justify-between"><span className="text-[#8E8E93]">{he ? 'סיום ניסיון' : 'Trial end'}</span><span className="font-medium text-[#FF9500]">{fmtFull(prospect.trial_ends_at)}</span></div>}
+                  </div>
+                </div>
+
+                {/* Divider */}
+                <div className="h-px bg-black/[0.04]" />
+
+                {/* Follow-up */}
+                <div>
+                  <div className="text-[10px] font-semibold uppercase tracking-wider text-[#8E8E93] mb-1.5">{he ? 'מעקב' : 'Follow-up'}</div>
+                  {showFU ? (
+                    <div className="space-y-2 bg-[#fafafa] p-3 rounded-lg border border-black/[0.06]">
+                      <input type="date" value={fuDraft} onChange={e => setFuDraft(e.target.value)} className="w-full h-8 text-[12px] rounded-md border border-black/[0.08] px-2.5 outline-none bg-white focus:ring-2 focus:ring-[#fe5b25]/10 transition-all" />
+                      <div className="flex gap-1">
+                        {[1, 3, 7, 14].map(d => <button key={d} onClick={() => setFuDraft(new Date(Date.now() + d * 86400000).toISOString().split('T')[0])} className="flex-1 h-6 rounded text-[10px] font-medium bg-white border border-black/[0.06] hover:bg-[#f0f0f0] transition-colors text-[#1C1C1E]">{d}d</button>)}
+                      </div>
+                      <div className="flex gap-1.5">
+                        <button onClick={saveFU} className="flex-1 h-7 rounded-md text-[11px] font-semibold text-white bg-[#1C1C1E]">{he ? 'שמור' : 'Save'}</button>
+                        {prospect.next_followup_at && <button onClick={clearFU} className="h-7 px-2 rounded-md text-[11px] font-medium text-[#FF3B30] bg-[#FF3B30]/8">{he ? 'נקה' : 'Clear'}</button>}
+                        <button onClick={() => setShowFU(false)} className="h-7 w-7 flex items-center justify-center rounded-md bg-white border border-black/[0.06]"><X className="w-3 h-3" /></button>
+                      </div>
+                    </div>
+                  ) : prospect.next_followup_at ? (
+                    <button onClick={() => { setShowFU(true); setFuDraft(prospect.next_followup_at!.split('T')[0]) }} className="flex items-center justify-between w-full px-3 py-2 rounded-lg text-[12px] hover:bg-[#f5f5f5] transition-all border border-black/[0.04]">
+                      <div className="flex items-center gap-2">
+                        <Calendar className="w-3.5 h-3.5" style={{ color: fs === 'overdue' ? '#FF3B30' : fs === 'today' ? '#FF9500' : '#34C759' }} />
+                        <span className="font-medium" style={{ color: fs === 'overdue' ? '#FF3B30' : fs === 'today' ? '#FF9500' : '#34C759' }}>{relD(prospect.next_followup_at, he)}</span>
+                      </div>
+                      <span className="text-[10px] text-[#8E8E93]">{fmtFull(prospect.next_followup_at)}</span>
+                    </button>
+                  ) : (
+                    <button onClick={() => { setShowFU(true); setFuDraft(new Date(Date.now() + 86400000).toISOString().split('T')[0]) }} className="w-full flex items-center justify-center gap-1.5 h-8 rounded-lg border border-dashed border-black/[0.1] text-[11px] font-medium text-[#8E8E93] hover:text-[#1C1C1E] hover:bg-[#f5f5f5] transition-all">
+                      <Plus className="w-3 h-3" /> {he ? 'הגדר תזכורת' : 'Set follow-up'}
+                    </button>
+                  )}
+                </div>
+
+                {/* Notes */}
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-[10px] font-semibold uppercase tracking-wider text-[#8E8E93]">{he ? 'הערות' : 'Notes'}</span>
+                    {!editingNotes && <button onClick={() => { setEditingNotes(true); setNoteDraft(prospect.notes) }} className="text-[10px] font-medium text-[#fe5b25] hover:underline">{he ? 'ערוך' : 'Edit'}</button>}
+                  </div>
+                  {editingNotes ? (
+                    <div className="rounded-lg border border-black/[0.06] overflow-hidden">
+                      <textarea value={noteDraft} onChange={e => setNoteDraft(e.target.value)} className="w-full p-2.5 text-[12px] outline-none resize-none bg-[#fafafa] leading-relaxed min-h-[80px]" style={{ color: C.dark }} autoFocus placeholder={he ? 'הערות...' : 'Notes...'} />
+                      <div className="flex gap-1.5 p-2 border-t border-black/[0.04] bg-white">
+                        <button onClick={saveNotes} className="flex-1 h-7 rounded-md text-[11px] font-semibold text-white bg-[#1C1C1E]">{he ? 'שמור' : 'Save'}</button>
+                        <button onClick={() => setEditingNotes(false)} className="px-3 h-7 rounded-md text-[11px] font-medium border border-black/[0.06]">{he ? 'ביטול' : 'Cancel'}</button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="p-2.5 rounded-lg bg-[#fafafa] border border-black/[0.04] cursor-pointer hover:border-black/[0.1] transition-all min-h-[50px]" onClick={() => { setEditingNotes(true); setNoteDraft(prospect.notes) }}>
+                      <p className="text-[12px] whitespace-pre-wrap leading-relaxed" style={{ color: prospect.notes ? C.dark : '#c7c7cc' }}>
+                        {prospect.notes || (he ? 'לחץ להוספת הערות...' : 'Click to add notes...')}
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                {/* WA ID */}
+                <div className="text-[10px] text-[#c7c7cc] font-mono pt-2 border-t border-black/[0.04]">
+                  ID: {prospect.wa_id || prospect.phone}
+                </div>
               </div>
             </div>
           )}
