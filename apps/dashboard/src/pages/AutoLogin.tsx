@@ -1,19 +1,15 @@
 import { useEffect, useState } from 'react'
-import { useNavigate, useSearchParams } from 'react-router-dom'
+import { useSearchParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { Loader2, CheckCircle, XCircle } from 'lucide-react'
 
-/**
- * /auto-login?token=xxx
- *
- * Exchanges a one-time magic token (from WhatsApp) for a Supabase session.
- * Flow: token → Edge Function validates → returns user_id → sign in → redirect
- */
+const SUPA_URL = import.meta.env.VITE_SUPABASE_URL || 'https://zyytzwlvtuhgbjpalbgd.supabase.co'
+
 export default function AutoLogin() {
   const [params] = useSearchParams()
-  const navigate = useNavigate()
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading')
   const [error, setError] = useState('')
+  const [debug, setDebug] = useState('')
 
   useEffect(() => {
     const token = params.get('token')
@@ -22,25 +18,32 @@ export default function AutoLogin() {
       setError('No token provided')
       return
     }
-
     exchangeToken(token)
-  }, [params])
+  }, [])
 
   async function exchangeToken(token: string) {
     try {
-      // Exchange token via Edge Function
-      const { data, error: fnError } = await supabase.functions.invoke('magic-login', {
-        body: { action: 'exchange', token },
+      setDebug('Exchanging token...')
+
+      // Direct fetch to Edge Function (bypassing supabase.functions.invoke)
+      const res = await fetch(`${SUPA_URL}/functions/v1/magic-login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'exchange', token }),
       })
 
-      if (fnError || data?.error) {
+      const data = await res.json()
+      setDebug(`Response: type=${data.type}, hasToken=${!!data.access_token}, error=${data.error || 'none'}`)
+
+      if (data.error) {
         setStatus('error')
-        setError(data?.error || fnError?.message || 'Token exchange failed')
+        setError(data.error)
         return
       }
 
-      // Session type: set tokens directly
-      if (data?.type === 'session' && data?.access_token) {
+      if (data.access_token && data.refresh_token) {
+        setDebug('Setting session...')
+
         const { error: sessErr } = await supabase.auth.setSession({
           access_token: data.access_token,
           refresh_token: data.refresh_token,
@@ -49,33 +52,27 @@ export default function AutoLogin() {
         if (sessErr) {
           setStatus('error')
           setError('Session error: ' + sessErr.message)
+          setDebug('setSession failed: ' + sessErr.message)
           return
         }
 
+        setDebug('Session set! Redirecting...')
         setStatus('success')
-        const redirectPath = data?.redirect_path || '/'
-        // Full page reload to ensure AuthProvider picks up the new session
+
         setTimeout(() => {
-          window.location.href = redirectPath
+          window.location.href = data.redirect_path || '/'
         }, 1500)
         return
       }
 
-      // Legacy redirect type (fallback)
-      if (data?.type === 'redirect' && data?.action_link) {
-        setStatus('success')
-        setTimeout(() => {
-          window.location.href = data.action_link
-        }, 1000)
-        return
-      }
-
       setStatus('error')
-      setError('Unexpected response')
+      setError('No session tokens received')
+      setDebug('Full response: ' + JSON.stringify(data))
 
     } catch (err) {
       setStatus('error')
       setError(String(err))
+      setDebug('Exception: ' + String(err))
     }
   }
 
@@ -123,6 +120,9 @@ export default function AutoLogin() {
           </a>
         </div>
       )}
+
+      {/* Debug info — remove after testing */}
+      <p className="mt-8 text-xs text-slate-600 max-w-md text-center break-all">{debug}</p>
     </div>
   )
 }
