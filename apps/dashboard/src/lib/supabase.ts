@@ -13,7 +13,7 @@ if (!url || !key) {
 
 export const supabase = createClient(url, key, {
   auth: {
-    flowType: 'pkce',
+    flowType: 'implicit',
     // Bypass Navigator Locks API which can deadlock in embedded browsers
     lock: (_name: string, _acquireTimeout: number, fn: () => Promise<any>) => fn(),
   },
