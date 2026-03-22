@@ -66,6 +66,71 @@ function isPublishIntent(text: string): boolean {
     || PUBLISH_TRIGGERS_HE.some(t => lower.includes(t));
 }
 
+// ── Group link detection ─────────────────────────────────────────────────────
+const GROUP_LINK_RE = /https?:\/\/chat\.whatsapp\.com\/([A-Za-z0-9]{10,30})/;
+
+function extractGroupLink(text: string): { url: string; inviteCode: string } | null {
+  const m = text.match(GROUP_LINK_RE);
+  if (!m) return null;
+  return { url: m[0], inviteCode: m[1] };
+}
+
+async function handleGroupLink(phone: string, text: string, userId?: string | null): Promise<boolean> {
+  const link = extractGroupLink(text);
+  if (!link) return false;
+
+  // Check if already submitted
+  const { data: existing } = await supabase
+    .from('contractor_group_scan_requests')
+    .select('id')
+    .eq('invite_code', link.inviteCode)
+    .neq('status', 'archived')
+    .maybeSingle();
+
+  if (existing) {
+    await sendText(phone, `👍 This group was already submitted! We'll process it soon.`);
+    return true;
+  }
+
+  // Find contractor_id — either from userId or by phone lookup
+  let contractorId = userId;
+  if (!contractorId) {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('whatsapp_phone', phone)
+      .maybeSingle();
+    contractorId = profile?.id ?? null;
+    if (!contractorId) {
+      const { data: profileByPhone } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('phone', phone)
+        .maybeSingle();
+      contractorId = profileByPhone?.id ?? null;
+    }
+  }
+
+  if (!contractorId) {
+    await sendText(phone, `Thanks for sharing! Please complete your registration first so we can save this group for you.`);
+    return true;
+  }
+
+  // Save to contractor_group_scan_requests
+  await supabase.from('contractor_group_scan_requests').insert({
+    contractor_id: contractorId,
+    invite_link_raw: link.url,
+    invite_link_normalized: `https://chat.whatsapp.com/${link.inviteCode}`,
+    invite_code: link.inviteCode,
+    status: 'pending',
+    join_method: 'manual',
+  });
+
+  await sendText(phone, `✅ *Group saved!*\n\nOur team will review and join this group to find leads for you.\n\nYou can send more group links anytime!`);
+  console.log(`[groups] Saved group link from ${phone}: ${link.inviteCode}`);
+  return true;
+}
+
 // ── Twilio signature verification ───────────────────────────────────────────
 // Verifies the X-Twilio-Signature header using HMAC-SHA1 and the auth token.
 // See: https://www.twilio.com/docs/usage/security#validating-requests
@@ -206,7 +271,21 @@ async function routeMessage(phone: string, text: string, textLower: string, butt
     return;
   }
 
-  // 2. Check if user has onboarding state
+  // 2. Check for WhatsApp group link (anytime — works for all users)
+  if (GROUP_LINK_RE.test(text)) {
+    // Don't intercept if user is in onboarding groups step (handled by onboardGroups)
+    const { data: obCheck } = await supabase
+      .from('wa_onboard_state')
+      .select('step')
+      .eq('phone', phone)
+      .maybeSingle();
+    if (!obCheck || obCheck.step !== 'groups') {
+      const handled = await handleGroupLink(phone, text);
+      if (handled) return;
+    }
+  }
+
+  // 3. Check if user has onboarding state
   const { data: onboardState } = await supabase
     .from('wa_onboard_state')
     .select('*')
@@ -848,6 +927,10 @@ async function handleOnboardingStep(
       await onboardConfirm(phone, textLower, data);
       break;
 
+    case 'groups':
+      await onboardGroups(phone, text, textLower, data);
+      break;
+
     case 'post_job':
       await handlePostJobMessage(phone, text, state);
       break;
@@ -1106,24 +1189,111 @@ async function onboardConfirm(phone: string, textLower: string, data: Record<str
     }
   }
 
-  // Clear onboarding state
-  await supabase.from('wa_onboard_state').delete().eq('phone', phone);
-
   if (userId) {
-    // Known user completing setup
+    // Known user completing setup — done, no groups step needed
+    await supabase.from('wa_onboard_state').delete().eq('phone', phone);
     await sendText(phone, `✅ *All set!*\n\nYou'll get your first check-in tomorrow morning.\nLeads matching your profile will come straight here.\n\nSend *MENU* anytime for options.`);
     console.log(`[onboard] Complete: ${userId}`);
   } else {
-    // New user from WhatsApp — full account created
+    // New user — transition to groups step to collect WhatsApp group links
+    // Find the newly created userId to pass to groups step
+    const { data: newProfile } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('phone', phone.startsWith('+') ? phone : '+' + phone)
+      .maybeSingle();
+
+    await supabase.from('wa_onboard_state').update({
+      step: 'groups',
+      data: { ...data, newUserId: newProfile?.id ?? null },
+      updated_at: new Date().toISOString(),
+    }).eq('phone', phone);
+
+    await sendText(phone,
+      `✅ *Profile saved!*\n\n` +
+      `🎉 Your 7-day free trial has started!\n\n` +
+      `📱 *One more thing:* Share WhatsApp groups where contractors post jobs.\n` +
+      `Just paste the invite links here — we'll join and find leads for you!\n\n` +
+      `Example: https://chat.whatsapp.com/ABC123...\n\n` +
+      `Type *DONE* when finished (or *SKIP* to do this later).`
+    );
+  }
+}
+
+// ── Onboarding: Groups Step ──────────────────────────────────────────────────
+
+async function onboardGroups(phone: string, text: string, textLower: string, data: Record<string, unknown>): Promise<void> {
+  const userId = (data.userId ?? data.newUserId) as string | null;
+
+  // Check for DONE/SKIP to finish onboarding
+  if (['done', 'skip', 'סיימתי', 'דלג'].includes(textLower)) {
+    await supabase.from('wa_onboard_state').delete().eq('phone', phone);
+
+    // Generate magic link for complete-account page
+    let dashLink = 'https://app.masterleadflow.com';
+    if (userId) {
+      try {
+        const lr = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/magic-login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'generate', user_id: userId, redirect_path: '/complete-account' }),
+        });
+        const ld = await lr.json();
+        if (ld.link) dashLink = ld.link;
+      } catch (_e) { /* fallback to static link */ }
+    }
     await sendText(phone,
       `✅ *You're all set!*\n\n` +
       `🎉 Your 7-day free trial has started.\n` +
       `Leads matching your profile will come straight here!\n\n` +
-      `🗺️ *Fine-tune your service areas:*\n` +
-      `👉 app.masterleadflow.com/settings?tab=areas\n\n` +
+      `📱 *Complete your account:*\n` +
+      `👉 ${dashLink}\n\n` +
       `Send *MENU* anytime for options.`
     );
+    return;
   }
+
+  // Try to extract group link from message
+  const link = extractGroupLink(text);
+  if (link) {
+    if (!userId) {
+      await sendText(phone, `✅ Link received! We'll save it once your account is ready.\n\nSend more links or *DONE* to finish.`);
+      return;
+    }
+
+    // Check duplicate
+    const { data: existing } = await supabase
+      .from('contractor_group_scan_requests')
+      .select('id')
+      .eq('invite_code', link.inviteCode)
+      .neq('status', 'archived')
+      .maybeSingle();
+
+    if (existing) {
+      await sendText(phone, `👍 This group was already saved!\n\nSend more links or *DONE* to finish.`);
+      return;
+    }
+
+    // Save the group
+    await supabase.from('contractor_group_scan_requests').insert({
+      contractor_id: userId,
+      invite_link_raw: link.url,
+      invite_link_normalized: `https://chat.whatsapp.com/${link.inviteCode}`,
+      invite_code: link.inviteCode,
+      status: 'pending',
+      join_method: 'manual',
+    });
+
+    await sendText(phone, `✅ *Group saved!*\n\nSend more group links or type *DONE* to finish.`);
+    console.log(`[onboard-groups] Saved group from ${phone}: ${link.inviteCode}`);
+    return;
+  }
+
+  // Not a link — remind them
+  await sendText(phone,
+    `Please paste a WhatsApp group invite link (starts with chat.whatsapp.com/...)\n\n` +
+    `Or type *DONE* to skip this step.`
+  );
 }
 
 // ── Multi-Agent Engine (DB-driven, OpenAI Responses API) ─────────────────────
