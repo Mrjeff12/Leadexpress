@@ -62,6 +62,7 @@ export interface LinkedContractor {
   phone: string | null
   professions: string[]
   zip_codes: string[]
+  counties: string[]
   working_days: number[]
   wa_notify: boolean
   is_active: boolean
@@ -133,7 +134,7 @@ export function useProspectDetailData(id: string | undefined) {
       // Look up profile by phone, then join contractor data
       const { data: profile } = await supabase
         .from('profiles')
-        .select('id, full_name, phone, preferred_locale')
+        .select('id, full_name, phone, preferred_locale, counties')
         .eq('phone', prospectPhone)
         .maybeSingle()
       if (!profile) return null
@@ -158,6 +159,7 @@ export function useProspectDetailData(id: string | undefined) {
         ...contractor,
         full_name: profile.full_name,
         phone: profile.phone,
+        counties: profile.counties ?? [],
         preferred_locale: profile.preferred_locale,
         subscription_status: sub?.status ?? null,
         subscription_plan: sub?.plan ?? null,
