@@ -15,6 +15,7 @@ export interface Prospect {
   notes: string
   last_contact_at: string | null
   next_followup_at: string | null
+  trial_ends_at: string | null
   created_at: string
   updated_at: string
   group_names?: string[]

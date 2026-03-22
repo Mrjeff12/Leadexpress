@@ -101,6 +101,7 @@ export default function AdminInbox() {
   // Prospect list
   const [listSearch, setListSearch] = useState('')
   const [filterStage, setFilterStage] = useState<string>('all')
+  const [displayLimit, setDisplayLimit] = useState(50)
 
   const {
     prospect,
@@ -130,6 +131,9 @@ export default function AdminInbox() {
     const q = listSearch.toLowerCase()
     return list.filter(p => (p.display_name ?? '').toLowerCase().includes(q) || p.phone.includes(q) || p.profession_tags.some(t => t.toLowerCase().includes(q)))
   }, [prospectList, listSearch, filterStage])
+
+  // Reset display limit when filter changes
+  useEffect(() => { setDisplayLimit(50) }, [filterStage, listSearch])
 
   // Select first prospect if none selected and list loads
   useEffect(() => {
@@ -270,7 +274,8 @@ export default function AdminInbox() {
               <div className="flex items-center justify-center py-12"><Loader2 className="w-5 h-5 animate-spin text-[#8E8E93]" /></div>
             ) : filteredList.length === 0 ? (
               <div className="text-center py-12 text-[13px] font-medium text-[#8E8E93]">{he ? 'לא נמצאו תוצאות' : 'No results'}</div>
-            ) : filteredList.map((p, idx) => {
+            ) : (<>
+              {filteredList.slice(0, displayLimit).map((p, idx) => {
               const isActive = p.id === selectedId
               const s = getStage(p.stage)
               return (
@@ -294,7 +299,7 @@ export default function AdminInbox() {
                         <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: s.color }} />
                         <span className="text-[11px] font-bold uppercase tracking-tight text-[#8E8E93]">{he ? s.he : s.label}</span>
                       </div>
-                      
+
                       {p.group_names && p.group_names.length > 0 && (
                         <div className="flex items-center gap-1 min-w-0 bg-[#fe5b25]/[0.05] px-2 py-0.5 rounded-lg" title={p.group_names.join(', ')}>
                           <Users className="w-3 h-3 text-[#fe5b25] shrink-0 opacity-70" />
@@ -310,7 +315,18 @@ export default function AdminInbox() {
                   </div>
                 </button>
               )
-            })}
+              })}
+              {filteredList.length > displayLimit && (
+                <button
+                  onClick={() => setDisplayLimit(prev => prev + 50)}
+                  className="w-full py-4 text-center text-[13px] font-bold text-[#fe5b25] hover:bg-[#fe5b25]/5 rounded-2xl transition-colors"
+                >
+                  {he
+                    ? `הצג עוד ${Math.min(50, filteredList.length - displayLimit)} מתוך ${filteredList.length - displayLimit} נותרים`
+                    : `Show ${Math.min(50, filteredList.length - displayLimit)} more of ${filteredList.length - displayLimit} remaining`}
+                </button>
+              )}
+            </>)}
           </div>
         </div>
 
@@ -561,6 +577,30 @@ export default function AdminInbox() {
                     </>
                   )}
                 </div>
+
+                {/* Trial Countdown */}
+                {prospect.stage === 'demo_trial' && prospect.trial_ends_at && (
+                  <div className="mt-3 px-5 py-3 rounded-2xl bg-[#FF9500]/10 border border-[#FF9500]/20">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-bold uppercase tracking-wider text-[#FF9500]">
+                        {he ? 'ניסיון נגמר' : 'Trial ends'}
+                      </span>
+                      <span className="text-[14px] font-bold text-[#FF9500]">
+                        {relD(prospect.trial_ends_at, he)}
+                      </span>
+                    </div>
+                  </div>
+                )}
+                {prospect.stage === 'trial_expired' && (
+                  <div className="mt-3 px-5 py-3 rounded-2xl bg-[#8E8E93]/10 border border-[#8E8E93]/20">
+                    <div className="flex items-center gap-2">
+                      <Clock className="w-4 h-4 text-[#8E8E93]" />
+                      <span className="text-[12px] font-bold text-[#8E8E93]">
+                        {he ? 'תקופת הניסיון הסתיימה' : 'Trial period has ended'}
+                      </span>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Tabs Header */}
