@@ -3,13 +3,13 @@ import { useLang } from '../i18n/LanguageContext'
 
 const DASHBOARD_URL = 'https://app.leadexpress.co.il'
 
-const PLAN_SLUGS = ['starter', 'pro', 'unlimited']
+const PLAN_SLUGS = ['free', 'premium']
 
 export default function PricingSection() {
   const { t } = useLang()
 
   function handlePlanClick(index: number) {
-    const slug = PLAN_SLUGS[index] || 'starter'
+    const slug = PLAN_SLUGS[index] || 'free'
     window.location.href = `${DASHBOARD_URL}/login?mode=signup&plan=${slug}`
   }
 
@@ -21,7 +21,7 @@ export default function PricingSection() {
           <p className="text-gray-subtle/70">{t.pricing.subtitle}</p>
         </div>
 
-        <div className={`grid sm:grid-cols-2 ${t.pricing.plans.length === 3 ? 'lg:grid-cols-3' : 'lg:grid-cols-4'} gap-6 max-w-4xl mx-auto`}>
+        <div className="grid md:grid-cols-2 gap-8 max-w-3xl mx-auto">
           {t.pricing.plans.map((plan, i) => {
             const isPopular = (plan as any).popular
             return (
@@ -33,10 +33,17 @@ export default function PricingSection() {
                     : 'bg-white border border-dark/5'
                 }`}
               >
+                {isPopular && (
+                  <div className="mb-4">
+                    <span className="text-[10px] font-semibold bg-white text-primary px-2.5 py-0.5 rounded-full">
+                      7-Day Free Trial
+                    </span>
+                  </div>
+                )}
                 <div className="flex items-center justify-between mb-2">
                   <h3 className="text-xl font-bold">{plan.name}</h3>
                   {isPopular && (
-                    <span className="text-[10px] font-semibold bg-white text-primary px-2.5 py-0.5 rounded-full">
+                    <span className="text-[10px] font-semibold bg-white/20 text-white px-2.5 py-0.5 rounded-full">
                       Popular
                     </span>
                   )}
