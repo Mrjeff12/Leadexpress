@@ -13,7 +13,7 @@ import {
   ArrowRight, Phone, MessageCircle, Send, Loader2,
   ChevronDown, Check, CheckCheck, CircleDot, Sparkles, DollarSign,
   XCircle, PhoneCall, Edit3, Calendar, X, Plus,
-  AlertTriangle, Zap, Copy,
+  AlertTriangle, Zap, Copy, Clock,
   Search, Inbox, Users
 } from 'lucide-react'
 
@@ -34,13 +34,14 @@ const C = {
 
 /* ── Stages ─────────────────────────────────────────────────────────── */
 const STAGES = [
-  { key: 'prospect',        label: 'Prospect',        he: 'פרוספקט',     icon: CircleDot,     color: '#5856D6', bg: '#F2F2F7' },
-  { key: 'onboarding',      label: 'Onboarding',      he: 'הרשמה',       icon: Zap,           color: '#007AFF', bg: '#F2F2F7' },
-  { key: 'reached_out',     label: 'Reached Out',     he: 'יצרנו קשר',   icon: Phone,         color: '#fe5b25', bg: '#F2F2F7' },
-  { key: 'in_conversation', label: 'In Conversation', he: 'בשיחה',       icon: MessageCircle, color: '#AF52DE', bg: '#F2F2F7' },
-  { key: 'demo_trial',      label: 'Demo / Trial',    he: 'הדגמה',       icon: Sparkles,      color: '#FF9500', bg: '#F2F2F7' },
-  { key: 'paying',          label: 'Paying',          he: 'משלם',        icon: DollarSign,    color: '#34C759', bg: '#F2F2F7' },
-  { key: 'churned',         label: 'Churned',         he: 'נטש',         icon: XCircle,       color: '#FF3B30', bg: '#F2F2F7' },
+  { key: 'prospect',        label: 'Prospect',        he: 'פרוספקט',       icon: CircleDot,     color: '#5856D6', bg: '#F2F2F7' },
+  { key: 'reached_out',     label: 'Reached Out',     he: 'יצרנו קשר',     icon: Phone,         color: '#fe5b25', bg: '#F2F2F7' },
+  { key: 'in_conversation', label: 'In Conversation', he: 'בשיחה',         icon: MessageCircle, color: '#AF52DE', bg: '#F2F2F7' },
+  { key: 'onboarding',      label: 'Onboarding',      he: 'הרשמה',         icon: Zap,           color: '#007AFF', bg: '#F2F2F7' },
+  { key: 'demo_trial',      label: 'Demo / Trial',    he: 'ניסיון',        icon: Sparkles,      color: '#FF9500', bg: '#F2F2F7' },
+  { key: 'trial_expired',   label: 'Trial Expired',   he: 'ניסיון נגמר',   icon: Clock,         color: '#8E8E93', bg: '#F2F2F7' },
+  { key: 'paying',          label: 'Paying',          he: 'משלם',          icon: DollarSign,    color: '#34C759', bg: '#F2F2F7' },
+  { key: 'churned',         label: 'Churned',         he: 'נטש',           icon: XCircle,       color: '#FF3B30', bg: '#F2F2F7' },
 ] as const
 const getStage = (k: string) => STAGES.find(s => s.key === k) ?? STAGES[0]
 
@@ -181,27 +182,68 @@ export default function AdminInbox() {
         background: C.bg,
       }}
     >
-      {/* ═══ TOP KPI BAR ═══ */}
-      <div className="shrink-0 bg-white/60 backdrop-blur-2xl border-b border-black/[0.03] px-8 py-5 flex items-center justify-between z-20 relative">
-        <div className="flex flex-col">
-          <h1 className="text-2xl font-semibold tracking-tight text-[#1C1C1E]">{he ? 'חדר מלחמה' : 'War Room'}</h1>
-          <div className="flex items-center gap-2 mt-1">
-            <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
-            <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-[#8E8E93]">{he ? 'מרכז שליטה ובקרה' : 'Command Center'}</p>
+      {/* ═══ PIPELINE FUNNEL HEADER ═══ */}
+      <div className="shrink-0 bg-white/60 backdrop-blur-2xl border-b border-black/[0.03] z-20 relative">
+        {/* Top row: Title + Search */}
+        <div className="px-8 pt-5 pb-3 flex items-center justify-between">
+          <div className="flex flex-col">
+            <h1 className="text-2xl font-semibold tracking-tight text-[#1C1C1E]">{he ? 'חדר מלחמה' : 'War Room'}</h1>
+            <div className="flex items-center gap-2 mt-1">
+              <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+              <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-[#8E8E93]">{he ? 'צינור מכירות' : 'Pipeline'}</p>
+            </div>
+          </div>
+          <div className="relative group w-[260px]">
+            <Search className="w-4 h-4 absolute top-1/2 -translate-y-1/2 text-[#8E8E93] transition-colors group-focus-within:text-[#fe5b25]" style={{ left: he ? 'auto' : 14, right: he ? 14 : 'auto' }} strokeWidth={2.5} />
+            <input
+              value={listSearch} onChange={e => setListSearch(e.target.value)}
+              placeholder={he ? 'חיפוש לקוח...' : 'Search clients...'}
+              className="w-full h-10 rounded-2xl border-none text-[14px] outline-none transition-all bg-black/[0.03] focus:bg-white focus:ring-4 focus:ring-[#fe5b25]/5 shadow-inner"
+              style={{ paddingLeft: he ? 14 : 40, paddingRight: he ? 40 : 14, color: C.dark }}
+            />
           </div>
         </div>
-        <div className="flex items-center gap-3 overflow-x-auto no-scrollbar pb-1">
-          {STAGES.map(s => (
-            <div key={s.key} className="flex items-center gap-4 px-5 py-2.5 rounded-[20px] bg-white/40 border border-black/[0.02] shadow-[0_2px_10px_rgba(0,0,0,0.02)] shrink-0 transition-all hover:bg-white/60">
-              <div className="w-9 h-9 rounded-xl flex items-center justify-center shadow-sm" style={{ background: 'white', color: s.color }}>
-                <s.icon className="w-4.5 h-4.5" strokeWidth={2.2} />
+
+        {/* Pipeline stages row */}
+        <div className="px-8 pb-4 flex items-center gap-0 overflow-x-auto no-scrollbar">
+          {STAGES.map((s, idx) => {
+            const count = stageCounts[s.key] || 0
+            const total = prospectList.length || 1
+            const isActive = filterStage === s.key
+            const isDimmed = filterStage !== 'all' && !isActive
+            return (
+              <div key={s.key} className="flex items-center shrink-0">
+                {idx > 0 && (
+                  <div className="w-6 h-[2px] rounded-full mx-0.5" style={{ background: isDimmed ? 'rgba(0,0,0,0.04)' : 'rgba(0,0,0,0.08)' }} />
+                )}
+                <button
+                  onClick={() => setFilterStage(filterStage === s.key ? 'all' : s.key)}
+                  className="flex items-center gap-2.5 px-4 py-2.5 rounded-2xl transition-all cursor-pointer"
+                  style={{
+                    background: isActive ? '#FFFFFF' : 'transparent',
+                    boxShadow: isActive ? '0 4px 20px rgba(0,0,0,0.08)' : 'none',
+                    transform: isActive ? 'scale(1.05)' : isDimmed ? 'scale(0.97)' : 'scale(1)',
+                    opacity: isDimmed ? 0.45 : 1,
+                  }}
+                >
+                  <div
+                    className="w-8 h-8 rounded-xl flex items-center justify-center shadow-sm shrink-0"
+                    style={{ background: isActive ? s.color + '18' : 'white', color: s.color }}
+                  >
+                    <s.icon className="w-4 h-4" strokeWidth={2.2} />
+                  </div>
+                  <div className="flex flex-col items-start">
+                    <span className="text-[18px] font-semibold leading-none" style={{ color: isActive ? s.color : '#1C1C1E' }}>{count}</span>
+                    <span className="text-[9px] font-bold uppercase tracking-widest text-[#8E8E93] mt-0.5 whitespace-nowrap">{he ? s.he : s.label}</span>
+                  </div>
+                  {/* Mini progress bar */}
+                  <div className="w-8 h-1 rounded-full bg-black/[0.04] overflow-hidden self-end mb-1">
+                    <div className="h-full rounded-full transition-all" style={{ width: `${Math.max(5, (count / total) * 100)}%`, background: s.color }} />
+                  </div>
+                </button>
               </div>
-              <div className="flex flex-col">
-                <span className="text-[10px] font-bold uppercase tracking-widest text-[#8E8E93]">{he ? s.he : s.label}</span>
-                <span className="text-xl font-semibold text-[#1C1C1E] leading-none mt-1">{stageCounts[s.key] || 0}</span>
-              </div>
-            </div>
-          ))}
+            )
+          })}
         </div>
       </div>
 
@@ -211,40 +253,14 @@ export default function AdminInbox() {
         {/* ═══ LEFT: Prospect List (Apple Glass Style) ═══════════════════════════════════════ */}
         <div className="flex flex-col relative z-10 h-full overflow-hidden" style={{ borderRight: `1px solid ${C.border}`, background: 'rgba(255,255,255,0.4)', backdropFilter: 'blur(30px)' }}>
           {/* Header */}
-          <div className="shrink-0 p-6 border-b border-black/[0.02]">
-            <div className="space-y-4">
-              <div className="relative group">
-                <Search className="w-4 h-4 absolute top-1/2 -translate-y-1/2 text-[#8E8E93] transition-colors group-focus-within:text-[#fe5b25]" style={{ left: he ? 'auto' : 16, right: he ? 16 : 'auto' }} strokeWidth={2.5} />
-                <input
-                  value={listSearch} onChange={e => setListSearch(e.target.value)}
-                  placeholder={he ? 'חיפוש לקוח...' : 'Search clients...'}
-                  className="w-full h-11 rounded-2xl border-none text-[15px] outline-none transition-all bg-black/[0.03] focus:bg-white focus:ring-4 focus:ring-[#fe5b25]/5 shadow-inner"
-                  style={{ paddingLeft: he ? 16 : 44, paddingRight: he ? 44 : 16, color: C.dark }}
-                />
-              </div>
-              
-              <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
-                <button 
-                  onClick={() => setFilterStage('all')}
-                  className={`shrink-0 px-4 py-2 rounded-xl text-[11px] font-bold uppercase tracking-wider transition-all shadow-sm ${filterStage === 'all' ? 'bg-[#1C1C1E] text-white' : 'bg-white text-[#8E8E93] hover:bg-white/80'}`}
-                >
-                  {he ? 'הכל' : 'All'}
-                </button>
-                {STAGES.map(s => (
-                  <button 
-                    key={s.key}
-                    onClick={() => setFilterStage(s.key)}
-                    className={`shrink-0 px-4 py-2 rounded-xl text-[11px] font-bold uppercase tracking-wider transition-all border shadow-sm`}
-                    style={{
-                      background: filterStage === s.key ? 'white' : 'white/40',
-                      color: filterStage === s.key ? s.color : '#8E8E93',
-                      borderColor: filterStage === s.key ? s.color + '40' : 'transparent'
-                    }}
-                  >
-                    {he ? s.he : s.label}
-                  </button>
-                ))}
-              </div>
+          <div className="shrink-0 p-4 border-b border-black/[0.02]">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-black uppercase tracking-[0.15em] text-[#8E8E93]">
+                {filterStage === 'all' ? (he ? 'כל הלקוחות' : 'All Clients') : (he ? getStage(filterStage).he : getStage(filterStage).label)}
+              </span>
+              <span className="text-[11px] font-bold text-[#8E8E93]">
+                {filteredList.length}
+              </span>
             </div>
           </div>
 
