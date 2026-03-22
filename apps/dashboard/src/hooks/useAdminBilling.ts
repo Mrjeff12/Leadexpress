@@ -177,3 +177,105 @@ export async function issueRefund(chargeId: string, amount?: number) {
     ...(amount ? { amount } : {}),
   })
 }
+
+// ── Coupons ───────────────────────────────────────────────
+
+export interface CouponRow {
+  id: string
+  name: string | null
+  percent_off: number | null
+  amount_off: number | null
+  currency: string | null
+  duration: string
+  duration_in_months: number | null
+  max_redemptions: number | null
+  times_redeemed: number
+  valid: boolean
+  created: number
+}
+
+export function useAdminCoupons() {
+  const [coupons, setCoupons] = useState<CouponRow[]>([])
+  const [loading, setLoading] = useState(true)
+
+  const load = useCallback(async () => {
+    setLoading(true)
+    try {
+      const res = await billingAction<{ data: CouponRow[] }>('coupons')
+      setCoupons(res.data)
+    } catch (err) {
+      console.error('[coupons] Failed to load:', err)
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  useEffect(() => { load() }, [load])
+
+  return { coupons, loading, reload: load }
+}
+
+export async function createCoupon(params: Record<string, unknown>) {
+  return billingAction<{ id: string; name: string; valid: boolean }>('create_coupon', params)
+}
+
+export async function deleteCoupon(couponId: string) {
+  return billingAction<{ id: string; deleted: boolean }>('delete_coupon', { couponId })
+}
+
+// ── Products & Prices ─────────────────────────────────────
+
+export interface PriceRow {
+  id: string
+  unit_amount: number | null
+  currency: string
+  interval: string | null
+  active: boolean
+  nickname: string | null
+}
+
+export interface ProductRow {
+  id: string
+  name: string
+  description: string | null
+  active: boolean
+  created: number
+  images: string[]
+  metadata: Record<string, string>
+  prices: PriceRow[]
+}
+
+export function useAdminProducts() {
+  const [products, setProducts] = useState<ProductRow[]>([])
+  const [loading, setLoading] = useState(true)
+
+  const load = useCallback(async () => {
+    setLoading(true)
+    try {
+      const res = await billingAction<{ data: ProductRow[] }>('products')
+      setProducts(res.data)
+    } catch (err) {
+      console.error('[products] Failed to load:', err)
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  useEffect(() => { load() }, [load])
+
+  return { products, loading, reload: load }
+}
+
+export async function createProduct(name: string, description?: string) {
+  return billingAction<{ id: string; name: string }>('create_product', { name, description })
+}
+
+export async function createPrice(productId: string, unitAmount: number, interval?: string, nickname?: string) {
+  return billingAction<{ id: string; unit_amount: number; active: boolean }>('create_price', {
+    productId, unit_amount: unitAmount, interval, nickname,
+  })
+}
+
+export async function toggleProduct(productId: string, active: boolean) {
+  return billingAction<{ id: string; active: boolean }>('toggle_product', { productId, active })
+}

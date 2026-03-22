@@ -219,6 +219,122 @@ async function handleAlerts() {
 }
 
 // ---------------------------------------------------------------------------
+// Coupons
+// ---------------------------------------------------------------------------
+
+async function handleCoupons() {
+  const coupons = await stripe.coupons.list({ limit: 50 });
+  const data = coupons.data.map((c) => ({
+    id: c.id,
+    name: c.name,
+    percent_off: c.percent_off,
+    amount_off: c.amount_off,
+    currency: c.currency,
+    duration: c.duration,
+    duration_in_months: c.duration_in_months,
+    max_redemptions: c.max_redemptions,
+    times_redeemed: c.times_redeemed,
+    valid: c.valid,
+    created: c.created,
+  }));
+  return { data };
+}
+
+async function handleCreateCoupon(params: Record<string, unknown>) {
+  const couponParams: Stripe.CouponCreateParams = {
+    duration: (params.duration as Stripe.CouponCreateParams["duration"]) || "once",
+  };
+  if (params.name) couponParams.name = params.name as string;
+  if (params.percent_off) couponParams.percent_off = params.percent_off as number;
+  if (params.amount_off) {
+    couponParams.amount_off = params.amount_off as number;
+    couponParams.currency = (params.currency as string) || "usd";
+  }
+  if (params.duration_in_months) couponParams.duration_in_months = params.duration_in_months as number;
+  if (params.max_redemptions) couponParams.max_redemptions = params.max_redemptions as number;
+
+  const coupon = await stripe.coupons.create(couponParams);
+  return { id: coupon.id, name: coupon.name, valid: coupon.valid };
+}
+
+async function handleDeleteCoupon(params: Record<string, unknown>) {
+  if (!params.couponId) throw new Error("couponId is required");
+  const deleted = await stripe.coupons.del(params.couponId as string);
+  return { id: deleted.id, deleted: deleted.deleted };
+}
+
+// ---------------------------------------------------------------------------
+// Products & Prices
+// ---------------------------------------------------------------------------
+
+async function handleProducts() {
+  const [products, prices] = await Promise.all([
+    stripe.products.list({ limit: 50, active: undefined }),
+    stripe.prices.list({ limit: 100, expand: ["data.product"] }),
+  ]);
+
+  const pricesByProduct = new Map<string, Array<{
+    id: string; unit_amount: number | null; currency: string;
+    interval: string | null; active: boolean; nickname: string | null;
+  }>>();
+
+  for (const p of prices.data) {
+    const prodId = typeof p.product === "string" ? p.product : (p.product as Stripe.Product).id;
+    if (!pricesByProduct.has(prodId)) pricesByProduct.set(prodId, []);
+    pricesByProduct.get(prodId)!.push({
+      id: p.id,
+      unit_amount: p.unit_amount,
+      currency: p.currency,
+      interval: p.recurring?.interval ?? null,
+      active: p.active,
+      nickname: p.nickname,
+    });
+  }
+
+  const data = products.data.map((prod) => ({
+    id: prod.id,
+    name: prod.name,
+    description: prod.description,
+    active: prod.active,
+    created: prod.created,
+    images: prod.images,
+    metadata: prod.metadata,
+    prices: pricesByProduct.get(prod.id) || [],
+  }));
+
+  return { data };
+}
+
+async function handleCreateProduct(params: Record<string, unknown>) {
+  if (!params.name) throw new Error("name is required");
+  const product = await stripe.products.create({
+    name: params.name as string,
+    description: (params.description as string) || undefined,
+  });
+  return { id: product.id, name: product.name };
+}
+
+async function handleCreatePrice(params: Record<string, unknown>) {
+  if (!params.productId || !params.unit_amount) throw new Error("productId and unit_amount are required");
+  const price = await stripe.prices.create({
+    product: params.productId as string,
+    unit_amount: params.unit_amount as number,
+    currency: (params.currency as string) || "usd",
+    recurring: params.interval ? { interval: params.interval as Stripe.PriceCreateParams.Recurring.Interval } : undefined,
+    nickname: (params.nickname as string) || undefined,
+  });
+  return { id: price.id, unit_amount: price.unit_amount, active: price.active };
+}
+
+async function handleToggleProduct(params: Record<string, unknown>) {
+  if (!params.productId) throw new Error("productId is required");
+  const product = await stripe.products.update(params.productId as string, {
+    active: params.active as boolean,
+  });
+  return { id: product.id, active: product.active };
+}
+
+// ---------------------------------------------------------------------------
 // Main handler
 // ---------------------------------------------------------------------------
 
@@ -276,6 +392,27 @@ Deno.serve(async (req: Request) => {
         break;
       case "alerts":
         result = await handleAlerts();
+        break;
+      case "coupons":
+        result = await handleCoupons();
+        break;
+      case "create_coupon":
+        result = await handleCreateCoupon(params);
+        break;
+      case "delete_coupon":
+        result = await handleDeleteCoupon(params);
+        break;
+      case "products":
+        result = await handleProducts();
+        break;
+      case "create_product":
+        result = await handleCreateProduct(params);
+        break;
+      case "create_price":
+        result = await handleCreatePrice(params);
+        break;
+      case "toggle_product":
+        result = await handleToggleProduct(params);
         break;
       default:
         return json({ error: `Unknown action: ${action}` }, corsHeaders, 400);

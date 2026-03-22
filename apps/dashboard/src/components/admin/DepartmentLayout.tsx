@@ -32,6 +32,8 @@ const Payments = lazy(() => import('../../pages/admin/Payments'))
 const Revenue = lazy(() => import('../../pages/admin/Revenue'))
 const AllInvoices = lazy(() => import('../../pages/admin/AllInvoices'))
 const Alerts = lazy(() => import('../../pages/admin/Alerts'))
+const Coupons = lazy(() => import('../../pages/admin/Coupons'))
+const Products = lazy(() => import('../../pages/admin/Products'))
 
 // Settings
 const Professions = lazy(() => import('../../pages/admin/Professions'))
@@ -59,6 +61,8 @@ const TAB_COMPONENTS: Record<string, React.LazyExoticComponent<() => React.JSX.E
   'finance/revenue': Revenue,
   'finance/invoices': AllInvoices,
   'finance/alerts': Alerts,
+  'finance/coupons': Coupons,
+  'finance/products': Products,
   // Settings
   'settings/professions': Professions,
   'settings/system': SystemSettings,

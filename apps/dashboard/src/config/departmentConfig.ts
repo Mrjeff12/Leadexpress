@@ -115,6 +115,8 @@ export const departments: DepartmentDef[] = [
       { key: 'revenue', labelEn: 'Revenue', labelHe: 'הכנסות', path: 'revenue' },
       { key: 'invoices', labelEn: 'Invoices', labelHe: 'חשבוניות', path: 'invoices' },
       { key: 'alerts', labelEn: 'Alerts', labelHe: 'התראות', path: 'alerts' },
+      { key: 'coupons', labelEn: 'Coupons', labelHe: 'קופונים', path: 'coupons' },
+      { key: 'products', labelEn: 'Products', labelHe: 'מוצרים', path: 'products' },
     ],
     kpis: [
       { key: 'mrr', labelEn: 'MRR', labelHe: 'MRR', format: 'currency' },
