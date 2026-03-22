@@ -27,6 +27,7 @@ import {
 import CoverageMap from '../components/settings/CoverageMap'
 import ForwardLeadModal from '../components/ForwardLeadModal'
 import UpsellModal from '../components/UpsellModal'
+import NetworkPointsCard from '../components/NetworkPointsCard'
 import { useSubscriptionAccess } from '../hooks/useSubscriptionAccess'
 
 /* ───────────────────── Types ───────────────────── */
@@ -389,6 +390,11 @@ export default function ContractorDashboard() {
               <p className="text-[10px] font-semibold text-stone-400 uppercase tracking-wide mt-0.5">{kpi.label}</p>
             </div>
           ))}
+        </div>
+
+        {/* Network Points */}
+        <div className="mb-5">
+          <NetworkPointsCard />
         </div>
 
         {/* ═══ Lead Filter Preferences Header ═══ */}
