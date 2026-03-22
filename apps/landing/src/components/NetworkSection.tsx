@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import {
   Wrench, Paintbrush, Zap, Thermometer, Home, Hammer,
   TreePine, Droplets, Shield, HardHat, Shovel, Pipette,
@@ -30,8 +30,8 @@ const TelegramIcon = ({ className = '' }: { className?: string }) => (
 const GROUPS = [
   { name: 'NJ Contractors', members: 2340, color: '#25D366', Icon: Home },
   { name: 'FL Plumbers Hub', members: 870, color: '#3b82f6', Icon: Droplets },
-  { name: 'TX Trade Workers', members: 1200, color: '#f59e0b', Icon: HardHat },
-  { name: 'CA Handyman Net', members: 650, color: '#ef4444', Icon: Wrench },
+  { name: 'TX Service Workers', members: 1200, color: '#f59e0b', Icon: HardHat },
+  { name: 'CA Handyman Group', members: 650, color: '#ef4444', Icon: Wrench },
   { name: 'NY Electricians', members: 1580, color: '#8b5cf6', Icon: Zap },
   { name: 'PA HVAC Pros', members: 940, color: '#06b6d4', Icon: Thermometer },
   { name: 'GA Roofers', members: 720, color: '#ec4899', Icon: Shield },
@@ -51,28 +51,9 @@ const PEOPLE = [
   { id: 28 }, { id: 39 }, { id: 16 }, { id: 48 },
 ]
 
-function useCountUp(target: number, duration: number, active: boolean) {
-  const [value, setValue] = useState(0)
-  useEffect(() => {
-    if (!active) return
-    const start = performance.now()
-    let raf: number
-    const tick = (now: number) => {
-      const p = Math.min((now - start) / duration, 1)
-      const eased = 1 - Math.pow(1 - p, 3)
-      setValue(Math.round(target * eased))
-      if (p < 1) raf = requestAnimationFrame(tick)
-    }
-    raf = requestAnimationFrame(tick)
-    return () => cancelAnimationFrame(raf)
-  }, [target, duration, active])
-  return value
-}
-
 export default function NetworkSection() {
   const { t } = useLang()
   const [connected, setConnected] = useState(false)
-  const groupCount = useCountUp(2000, 2000, connected)
 
   useEffect(() => {
     const t = setTimeout(() => setConnected(true), 600)
@@ -97,21 +78,21 @@ export default function NetworkSection() {
           <div className="text-center md:text-start">
             <div className="inline-flex items-center gap-2 bg-[#25D366]/10 text-[#25D366] rounded-full px-4 py-1.5 text-xs font-semibold mb-6">
               <WhatsAppIcon className="w-3.5 h-3.5" />
-              The Intelligence Network
+              {t.hero.badge}
             </div>
 
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-medium leading-[1.15] tracking-[-0.04em] mb-6 text-dark">
-              You're in 3 groups.{' '}
-              <span className="highlight-box">We're in 2,000+.</span>
+              {t.hero.title1}{' '}
+              <span className="highlight-box">{t.hero.titleHighlight}</span>{' '}
+              {t.hero.title2}
             </h1>
 
             <p className="text-base md:text-lg text-gray-subtle/70 max-w-lg mb-8 leading-relaxed">
-              Most contractors are stuck in a few noisy groups — half the chatter isn't even about work.
-              We scan 2,000+ groups with AI and route only the jobs that match your trade, your area, straight to you.
+              {t.hero.subtitle}
             </p>
 
             <div className="flex flex-col sm:flex-row items-center md:items-start gap-4 mb-8">
-              <a href="#pricing" className="group inline-flex items-center justify-center gap-2 rounded-full bg-[#fe5b25] text-white px-8 py-4 text-base font-semibold transition-all duration-300 hover:bg-[#e04d1c] hover:scale-105 hover:shadow-lg hover:shadow-[#fe5b25]/25 active:scale-95">
+              <a href="https://app.leadexpress.co.il" className="group inline-flex items-center justify-center gap-2 rounded-full bg-[#fe5b25] text-white px-8 py-4 text-base font-semibold transition-all duration-300 hover:bg-[#e04d1c] hover:scale-105 hover:shadow-lg hover:shadow-[#fe5b25]/25 active:scale-95">
                 <WhatsAppIcon className="w-5 h-5" />
                 {t.hero.cta1}
                 <ArrowRight size={16} className="transition-transform group-hover:translate-x-1" />
@@ -122,21 +103,12 @@ export default function NetworkSection() {
               </a>
             </div>
 
-            {/* Stats row */}
-            <div className={`flex items-center gap-8 justify-center md:justify-start transition-all duration-700 ${
+            {/* Trusted by line */}
+            <p className={`text-sm text-gray-subtle/50 transition-all duration-700 ${
               connected ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
             }`} style={{ transitionDelay: '1800ms' }}>
-              {[
-                { val: '2,000+', label: 'Groups Scanned' },
-                { val: '12,480+', label: 'Contractors' },
-                { val: '~47/day', label: 'Leads Routed' },
-              ].map((s, i) => (
-                <div key={i} className="text-center md:text-left">
-                  <p className="text-lg font-black text-dark">{s.val}</p>
-                  <p className="text-[10px] text-gray-subtle/50 uppercase tracking-wider">{s.label}</p>
-                </div>
-              ))}
-            </div>
+              {t.hero.trustedBy}
+            </p>
           </div>
 
           {/* Network visualization — right side */}
@@ -209,8 +181,8 @@ export default function NetworkSection() {
                     <FacebookIcon className="w-3.5 h-3.5 md:w-4 md:h-4 text-white/70" />
                     <TelegramIcon className="w-3.5 h-3.5 md:w-4 md:h-4 text-white/70" />
                   </div>
-                  <p className="text-xl md:text-2xl font-black text-white leading-none">{groupCount.toLocaleString()}+</p>
-                  <p className="text-[7px] font-bold text-white/80 uppercase tracking-wider mt-0.5">Groups</p>
+                  <p className="text-lg md:text-xl font-black text-white leading-none">AI</p>
+                  <p className="text-[7px] font-bold text-white/80 uppercase tracking-wider mt-0.5">Filter</p>
                 </div>
               </div>
 
@@ -306,7 +278,7 @@ export default function NetworkSection() {
                       <WhatsAppIcon className="w-4 h-4 text-[#25D366]" />
                     </div>
                     <div>
-                      <p className="text-[11px] font-bold text-dark leading-none">2,000+ Groups</p>
+                      <p className="text-[11px] font-bold text-dark leading-none">Your Groups</p>
                       <p className="text-[9px] text-dark/35 leading-none mt-1">scanned 24/7</p>
                     </div>
                   </div>
@@ -334,7 +306,7 @@ export default function NetworkSection() {
                     </div>
                     <div>
                       <p className="text-[11px] font-bold text-dark leading-none">AI Filters</p>
-                      <p className="text-[9px] text-dark/35 leading-none mt-1">noise removed</p>
+                      <p className="text-[9px] text-dark/35 leading-none mt-1">spam removed</p>
                     </div>
                   </div>
 
@@ -361,7 +333,7 @@ export default function NetworkSection() {
                     </div>
                     <div>
                       <p className="text-[11px] font-bold text-dark leading-none">Your Feed</p>
-                      <p className="text-[9px] text-dark/35 leading-none mt-1">matched jobs only</p>
+                      <p className="text-[9px] text-dark/35 leading-none mt-1">only jobs for you</p>
                     </div>
                   </div>
                 </div>

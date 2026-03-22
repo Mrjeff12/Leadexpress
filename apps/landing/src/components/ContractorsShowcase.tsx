@@ -5,13 +5,13 @@ export default function ContractorsShowcase() {
         {/* Heading */}
         <div className="text-center mb-6 md:mb-8">
           <p className="text-[#fe5b25] text-[11px] font-semibold tracking-widest uppercase mb-2">
-            Trusted by Contractors
+            Built for Contractors
           </p>
           <h2 className="text-2xl md:text-[32px] md:leading-[1.2] font-medium text-dark mb-2">
-            500+ contractors. 50 states. One WhatsApp message away.
+            Every trade. Every area. One WhatsApp message away.
           </h2>
           <p className="text-dark/40 max-w-md mx-auto text-sm">
-            Every trade, every area — contractors trust Lead Express to find their next job.
+            HVAC, plumbing, electrical, roofing — Lead Express watches your groups and sends you only the jobs that fit.
           </p>
         </div>
 
@@ -27,7 +27,7 @@ export default function ContractorsShowcase() {
               <picture>
                 <img
                   src="/ourteam.jpg"
-                  alt="The Lead Express team — powering contractor growth across the US"
+                  alt="The Lead Express team — helping contractors find jobs across the US"
                 className="w-full h-auto block"
                 loading="lazy"
                 />
@@ -43,10 +43,10 @@ export default function ContractorsShowcase() {
             {/* Stats inside the glass card */}
             <div className="mt-2 md:mt-3 grid grid-cols-4 gap-1.5 md:gap-2">
               {[
-                { num: '500+', label: 'Contractors' },
                 { num: '15+', label: 'Trades' },
-                { num: '50K+', label: 'Leads' },
+                { num: '24/7', label: 'Scanning' },
                 { num: '<30s', label: 'Delivery' },
+                { num: '2 min', label: 'Setup' },
               ].map(s => (
                 <div key={s.label} className="bg-white/70 backdrop-blur-sm rounded-lg border border-white/50 py-2.5 px-2 text-center">
                   <p className="text-base md:text-lg font-bold text-dark">{s.num}</p>
