@@ -182,68 +182,64 @@ export default function AdminInbox() {
     <div
       className="animate-fade-in flex flex-col h-full w-full absolute inset-0 overflow-hidden"
       style={{
-        fontFamily: 'Outfit, sans-serif',
+        fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", "Inter", system-ui, sans-serif',
         background: C.bg,
       }}
     >
       {/* ═══ PIPELINE FUNNEL HEADER ═══ */}
-      <div className="shrink-0 bg-white/60 backdrop-blur-2xl border-b border-black/[0.03] z-20 relative">
+      <div className="shrink-0 bg-white/80 backdrop-blur-xl border-b border-black/[0.06] z-20 relative">
         {/* Top row: Title + Search */}
-        <div className="px-8 pt-5 pb-3 flex items-center justify-between">
-          <div className="flex flex-col">
-            <h1 className="text-2xl font-semibold tracking-tight text-[#1C1C1E]">{he ? 'חדר מלחמה' : 'War Room'}</h1>
-            <div className="flex items-center gap-2 mt-1">
+        <div className="px-5 pt-3 pb-2 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <h1 className="text-lg font-semibold tracking-tight text-[#1C1C1E]">{he ? 'חדר מלחמה' : 'War Room'}</h1>
+            <div className="flex items-center gap-1.5">
               <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
-              <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-[#8E8E93]">{he ? 'צינור מכירות' : 'Pipeline'}</p>
+              <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[#8E8E93]">{he ? 'פייפליין' : 'Pipeline'}</p>
             </div>
           </div>
-          <div className="relative group w-[260px]">
-            <Search className="w-4 h-4 absolute top-1/2 -translate-y-1/2 text-[#8E8E93] transition-colors group-focus-within:text-[#fe5b25]" style={{ left: he ? 'auto' : 14, right: he ? 14 : 'auto' }} strokeWidth={2.5} />
+          <div className="relative group">
+            <Search className="w-3.5 h-3.5 absolute top-1/2 -translate-y-1/2 text-[#8E8E93] transition-colors group-focus-within:text-[#fe5b25]" style={{ left: he ? 'auto' : 10, right: he ? 10 : 'auto' }} strokeWidth={2.5} />
             <input
               value={listSearch} onChange={e => setListSearch(e.target.value)}
-              placeholder={he ? 'חיפוש לקוח...' : 'Search clients...'}
-              className="w-full h-10 rounded-2xl border-none text-[14px] outline-none transition-all bg-black/[0.03] focus:bg-white focus:ring-4 focus:ring-[#fe5b25]/5 shadow-inner"
-              style={{ paddingLeft: he ? 14 : 40, paddingRight: he ? 40 : 14, color: C.dark }}
+              placeholder={he ? 'חיפוש...' : 'Search...'}
+              className="w-[180px] h-8 rounded-lg border border-black/[0.06] text-[12px] outline-none transition-all bg-white/60 focus:bg-white focus:ring-2 focus:ring-[#fe5b25]/10 focus:border-[#fe5b25]/30"
+              style={{ paddingLeft: he ? 10 : 30, paddingRight: he ? 30 : 10, color: C.dark }}
             />
           </div>
         </div>
 
-        {/* Pipeline stages row */}
-        <div className="px-8 pb-4 flex items-center gap-0 overflow-x-auto no-scrollbar">
+        {/* Pipeline stages row — all 8 stages fit on screen */}
+        <div className="px-3 pb-3 flex items-center">
           {STAGES.map((s, idx) => {
             const count = stageCounts[s.key] || 0
-            const total = prospectList.length || 1
             const isActive = filterStage === s.key
             const isDimmed = filterStage !== 'all' && !isActive
             return (
-              <div key={s.key} className="flex items-center shrink-0">
+              <div key={s.key} className="flex items-center flex-1 min-w-0">
                 {idx > 0 && (
-                  <div className="w-6 h-[2px] rounded-full mx-0.5" style={{ background: isDimmed ? 'rgba(0,0,0,0.04)' : 'rgba(0,0,0,0.08)' }} />
+                  <div className="w-3 h-[1.5px] rounded-full shrink-0" style={{ background: isDimmed ? 'rgba(0,0,0,0.04)' : 'rgba(0,0,0,0.1)' }} />
                 )}
                 <button
                   onClick={() => setFilterStage(filterStage === s.key ? 'all' : s.key)}
-                  className="flex items-center gap-2.5 px-4 py-2.5 rounded-2xl transition-all cursor-pointer"
+                  className="flex flex-col items-center flex-1 min-w-0 py-1.5 px-1 rounded-xl transition-all cursor-pointer"
                   style={{
                     background: isActive ? '#FFFFFF' : 'transparent',
-                    boxShadow: isActive ? '0 4px 20px rgba(0,0,0,0.08)' : 'none',
-                    transform: isActive ? 'scale(1.05)' : isDimmed ? 'scale(0.97)' : 'scale(1)',
-                    opacity: isDimmed ? 0.45 : 1,
+                    boxShadow: isActive ? '0 2px 12px rgba(0,0,0,0.08)' : 'none',
+                    opacity: isDimmed ? 0.35 : 1,
                   }}
                 >
                   <div
-                    className="w-8 h-8 rounded-xl flex items-center justify-center shadow-sm shrink-0"
-                    style={{ background: isActive ? s.color + '18' : 'white', color: s.color }}
+                    className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0 mb-1"
+                    style={{ background: isActive ? s.color + '15' : 'rgba(0,0,0,0.03)', color: s.color }}
                   >
-                    <s.icon className="w-4 h-4" strokeWidth={2.2} />
+                    <s.icon className="w-3.5 h-3.5" strokeWidth={2.2} />
                   </div>
-                  <div className="flex flex-col items-start">
-                    <span className="text-[18px] font-semibold leading-none" style={{ color: isActive ? s.color : '#1C1C1E' }}>{count}</span>
-                    <span className="text-[9px] font-bold uppercase tracking-widest text-[#8E8E93] mt-0.5 whitespace-nowrap">{he ? s.he : s.label}</span>
-                  </div>
-                  {/* Mini progress bar */}
-                  <div className="w-8 h-1 rounded-full bg-black/[0.04] overflow-hidden self-end mb-1">
-                    <div className="h-full rounded-full transition-all" style={{ width: `${Math.max(5, (count / total) * 100)}%`, background: s.color }} />
-                  </div>
+                  <span className="text-[15px] font-semibold leading-none" style={{ color: isActive ? s.color : '#1C1C1E' }}>
+                    {count.toLocaleString()}
+                  </span>
+                  <span className="text-[8px] font-semibold uppercase tracking-wide text-[#8E8E93] mt-0.5 truncate max-w-full text-center leading-tight">
+                    {he ? s.he : s.label}
+                  </span>
                 </button>
               </div>
             )
@@ -252,7 +248,7 @@ export default function AdminInbox() {
       </div>
 
       {/* ═══ MAIN GRID ═══ */}
-      <div className="flex-1 grid grid-cols-[360px_1fr_340px] relative z-10 overflow-hidden">
+      <div className="flex-1 grid grid-cols-[300px_1fr_300px] relative z-10 overflow-hidden">
         
         {/* ═══ LEFT: Prospect List (Apple Glass Style) ═══════════════════════════════════════ */}
         <div className="flex flex-col relative z-10 h-full overflow-hidden" style={{ borderRight: `1px solid ${C.border}`, background: 'rgba(255,255,255,0.4)', backdropFilter: 'blur(30px)' }}>
