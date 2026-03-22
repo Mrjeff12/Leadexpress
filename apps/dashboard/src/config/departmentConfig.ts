@@ -5,6 +5,7 @@ import {
   Handshake,
   Bot,
   DollarSign,
+  TrendingUp,
   type LucideIcon,
 } from 'lucide-react'
 
@@ -131,10 +132,31 @@ export const departments: DepartmentDef[] = [
     color: '#8b5cf6',
     icon: Bot,
     basePath: 'bot',
-    tabs: [],
+    tabs: [
+      { key: 'agents', labelEn: 'Mission Control', labelHe: 'מרכז שליטה', path: '', fullBleed: true },
+      { key: 'warroom', labelEn: 'War Room', labelHe: 'חדר מלחמה', path: 'warroom', fullBleed: true },
+      { key: 'inbox', labelEn: 'CRM Inbox', labelHe: 'תיבת הודעות', path: 'inbox', fullBleed: true },
+    ],
     kpis: [
       { key: 'activeAgents', labelEn: 'Agents', labelHe: 'סוכנים' },
       { key: 'activeTools', labelEn: 'Tools', labelHe: 'כלים' },
+    ],
+  },
+  {
+    id: 'growth',
+    nameEn: 'Growth',
+    nameHe: 'צמיחה',
+    color: '#22c55e',
+    icon: TrendingUp,
+    basePath: 'growth',
+    tabs: [
+      { key: 'dashboard', labelEn: 'Dashboard', labelHe: 'דשבורד', path: '', fullBleed: true },
+    ],
+    kpis: [
+      { key: 'paying_users', labelEn: 'Paying Users', labelHe: 'משלמים', format: 'number' },
+      { key: 'mrr', labelEn: 'MRR', labelHe: 'MRR', format: 'currency' },
+      { key: 'conversion', labelEn: 'Conversion', labelHe: 'המרה', format: 'percent' },
+      { key: 'groups', labelEn: 'Groups', labelHe: 'קבוצות', format: 'number' },
     ],
   },
   {

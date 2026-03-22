@@ -50,12 +50,12 @@ function useCountUp(target: number, duration: number, active: boolean) {
 
 /* ─── CRM Data (shared by Hero + CRM Section) ─── */
 const CRM_MEMBERS = [
-  { name: 'Mike Rodriguez', id: 33, status: 'interested' as string | null, profession: 'Plumber', location: 'Newark, NJ', msg: 'Sounds interesting, how do I sign up?', time: '10:44', online: true, joined: 'Jan 2024', jobs: 34, unread: 3 },
+  { name: 'Mike Rodriguez', id: 33, status: 'interested' as string | null, profession: 'Plumber', location: 'Newark, NJ', msg: 'Sounds good, how do I sign up?', time: '10:44', online: true, joined: 'Jan 2024', jobs: 34, unread: 3 },
   { name: 'Carlos Martinez', id: 15, status: 'trial' as string | null, profession: 'Electrician', location: 'Jersey City, NJ', msg: 'Thanks bro, I signed up! 🔥', time: '10:30', online: true, joined: 'Feb 2024', jobs: 12, unread: 1 },
   { name: 'James Thompson', id: 60, status: 'subscribed' as string | null, profession: 'General Contractor', location: 'Hoboken, NJ', msg: 'Getting leads every day now 💪', time: '9:15', online: false, joined: 'Nov 2023', jobs: 87, unread: 0 },
   { name: 'David Kim', id: 51, status: 'interested' as string | null, profession: 'HVAC Tech', location: 'Paterson, NJ', msg: 'What areas does it cover?', time: 'Yesterday', online: false, joined: 'Mar 2024', jobs: 5, unread: 2 },
   { name: 'Robert Johnson', id: 11, status: null as string | null, profession: 'Painter', location: 'Elizabeth, NJ', msg: "I'll check it out this weekend", time: 'Yesterday', online: false, joined: 'Mar 2024', jobs: 0, unread: 0 },
-  { name: 'Alex Rivera', id: 22, status: 'subscribed' as string | null, profession: 'Roofer', location: 'Trenton, NJ', msg: 'Been using it for a week, love it', time: 'Tuesday', online: false, joined: 'Dec 2023', jobs: 62, unread: 0 },
+  { name: 'Alex Rivera', id: 22, status: 'subscribed' as string | null, profession: 'Roofer', location: 'Trenton, NJ', msg: 'Using it for a week already, love it', time: 'Tuesday', online: false, joined: 'Dec 2023', jobs: 62, unread: 0 },
   { name: 'Tony Martinez', id: 47, status: 'trial' as string | null, profession: 'Landscaper', location: 'Camden, NJ', msg: '👍', time: 'Monday', online: false, joined: 'Feb 2024', jobs: 8, unread: 0 },
 ]
 
@@ -108,7 +108,7 @@ function PartnerHero() {
           </h1>
 
           <p className="text-base md:text-lg text-gray-subtle/70 max-w-lg mx-auto mb-8 leading-relaxed">
-            Every day, job leads flow through your WhatsApp group. Contractors get work. You get nothing. That changes today.
+            Every day, job leads go through your WhatsApp group. Contractors get work. You get nothing. That changes today.
           </p>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-8">
@@ -137,7 +137,7 @@ function PartnerHero() {
                 </div>
               ))}
             </div>
-            <p className="text-xs text-gray-subtle/50">127 group owners already earning</p>
+            <p className="text-xs text-gray-subtle/50">127 group owners already making money</p>
           </div>
         </div>
 
@@ -269,7 +269,7 @@ function PartnerHero() {
                       </div>
                       <div>
                         <p className="text-[12px] font-semibold text-gray-800">NJ Contractors</p>
-                        <p className="text-[9px] text-gray-400 truncate">583 participants · Mike, Carlos, James, David...</p>
+                        <p className="text-[9px] text-gray-400 truncate">583 members · Mike, Carlos, James, David...</p>
                       </div>
                     </div>
                   ) : (
@@ -291,12 +291,12 @@ function PartnerHero() {
                   <Zap className="w-3.5 h-3.5 text-[#fe5b25] shrink-0" />
                   <span className="text-[10px] text-gray-500 flex-1">
                     {heroView === 'group'
-                      ? <><strong className="text-[#fe5b25]">AI:</strong> 161 members haven't been contacted yet</>
-                      : <><strong className="text-[#fe5b25]">AI:</strong> Nudge with 7-day trial</>
+                      ? <><strong className="text-[#fe5b25]">AI:</strong> 161 members haven't been reached yet</>
+                      : <><strong className="text-[#fe5b25]">AI:</strong> Send them a 7-day free trial offer</>
                     }
                   </span>
                   <button className="px-2.5 py-1 rounded-md bg-[#fe5b25] text-white text-[9px] font-bold animate-pulse">
-                    {heroView === 'group' ? 'Reach Out' : 'Send'}
+                    {heroView === 'group' ? 'Send Message' : 'Send'}
                   </button>
                 </div>
 
@@ -346,9 +346,9 @@ function PartnerHero() {
                   ) : (
                     <>
                       {[
-                        { from: 'me', text: 'Hey! Want to subscribe and get only leads that match your trade, straight from the group? Plus access to a network of 2,000+ different job groups 🔥', time: '10:41', read: true },
-                        { from: 'them', text: 'That sounds amazing, how does it work?', time: '10:43', read: true },
-                        { from: 'me', text: 'Free 7-day trial — we filter leads by your profession and area. You only see what matters to you 🎯', time: '10:44', read: true },
+                        { from: 'me', text: 'Hey! Want to sign up and get only leads that fit your service, straight from the group? Plus you get access to 2,000+ other job groups 🔥', time: '10:41', read: true },
+                        { from: 'them', text: 'That sounds great, how does it work?', time: '10:43', read: true },
+                        { from: 'me', text: 'Free 7-day trial — we filter leads by your job type and area. You only see what fits you 🎯', time: '10:44', read: true },
                         { from: 'them', text: 'Sign me up! 💪', time: '10:45', read: false },
                       ].map((msg, i) => (
                         <div key={i} className={`flex ${msg.from === 'me' ? 'justify-end' : ''}`}>
@@ -373,7 +373,7 @@ function PartnerHero() {
                 <div className="px-4 py-2.5 border-t border-gray-100 flex items-center gap-3 bg-white">
                   <Smile className="w-4 h-4 text-gray-300" />
                   <Paperclip className="w-4 h-4 text-gray-300" />
-                  <div className="flex-1 px-3 py-2 rounded-lg bg-gray-50 text-[11px] text-gray-400">Type a message...</div>
+                  <div className="flex-1 px-3 py-2 rounded-lg bg-gray-50 text-[11px] text-gray-400">Write a message...</div>
                   <div className="w-8 h-8 rounded-full bg-[#25D366] flex items-center justify-center">
                     <Mic className="w-3.5 h-3.5 text-white" />
                   </div>
@@ -411,7 +411,7 @@ function PartnerHero() {
                     <div className="p-3 border-t border-gray-100">
                       <button className="w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-[10px] font-bold text-white bg-[#fe5b25]">
                         <Send className="w-3 h-3" />
-                        Broadcast Message
+                        Send to All
                       </button>
                     </div>
                   </>
@@ -497,11 +497,11 @@ function TheLossSection() {
             The Problem
           </p>
           <h2 className="text-3xl md:text-5xl font-medium text-white mb-4">
-            Every Day, Leads Leave Your Group.{' '}
+            Every Day, Leads Go Through Your Group.{' '}
             <span className="gradient-text">You Get Nothing.</span>
           </h2>
           <p className="text-white/40 max-w-2xl mx-auto text-lg">
-            Everyone is on mute. Jobs get buried. Contractors find work through your community, and you see zero dollars for it.
+            Everyone mutes the group. Jobs get lost in the messages. Contractors find work through your group, and you don't make anything from it.
           </p>
         </div>
 
@@ -511,21 +511,21 @@ function TheLossSection() {
               icon: <MessageCircle size={24} />,
               stat: `~${leadsCount}`,
               unit: 'leads/week',
-              desc: 'Job requests flowing through your group right now',
+              desc: 'Job requests going through your group right now',
               accent: false,
             },
             {
               icon: <DollarSign size={24} />,
               stat: `$${earningsCount}`,
               unit: 'your earnings',
-              desc: 'What you currently make from all that activity',
+              desc: 'What you make right now from all of this',
               accent: false,
             },
             {
               icon: <TrendingUp size={24} />,
               stat: `$${potentialCount}/mo`,
-              unit: 'potential',
-              desc: 'What you could be earning as a Community Partner',
+              unit: 'possible',
+              desc: 'What you could be making as a Community Partner',
               accent: true,
             },
           ].map((card, i) => (
@@ -567,18 +567,18 @@ function PartnerIdentitySection() {
   const features = [
     {
       icon: <Share2 size={24} />,
-      title: 'Your Branded Page',
-      desc: 'A custom partner profile page at leadexpress.co/community/your-name. Share it, own it.',
+      title: 'Your Own Page',
+      desc: 'A personal partner page at leadexpress.co/community/your-name. Share it, it\'s yours.',
     },
     {
       icon: <BadgeCheck size={24} />,
       title: 'Verified Partner Badge',
-      desc: 'Stand out with a verified badge that shows your community trusts Lead Express.',
+      desc: 'Get a verified badge that shows your group works with Lead Express.',
     },
     {
       icon: <LayoutDashboard size={24} />,
       title: 'Partner Dashboard',
-      desc: 'Track every referral, every subscription, every dollar. Real-time analytics just for you.',
+      desc: 'See every referral, every subscription, every dollar. Live numbers, just for you.',
     },
   ]
 
@@ -587,14 +587,14 @@ function PartnerIdentitySection() {
       <div className="max-w-6xl mx-auto px-6">
         <div className="text-center mb-12">
           <p className="text-[#fe5b25] text-[11px] font-semibold tracking-widest uppercase mb-3">
-            Not an Affiliate
+            More Than an Affiliate
           </p>
           <h2 className="text-3xl md:text-5xl font-medium text-dark mb-4">
             You're Not an Affiliate.{' '}
             <span className="highlight-box">You're a Community Partner.</span>
           </h2>
           <p className="text-gray-subtle/60 max-w-2xl mx-auto text-lg">
-            Affiliates get a link. Partners get a platform.
+            Affiliates get a link. Partners get real tools.
           </p>
         </div>
 
@@ -636,7 +636,7 @@ function PartnerIdentitySection() {
               <div className="grid grid-cols-3 gap-2">
                 {[
                   { label: 'Members', value: '2,340' },
-                  { label: 'Active Leads', value: '189' },
+                  { label: 'Open Leads', value: '189' },
                   { label: 'Subscribers', value: '47' },
                 ].map(s => (
                   <div key={s.label} className="bg-white/70 rounded-lg border border-white/50 py-2 text-center">
@@ -680,7 +680,7 @@ function EarningsCalculator() {
             Earnings Calculator
           </p>
           <h2 className="text-3xl md:text-5xl font-medium text-dark mb-4">
-            See What Your Community Is{' '}
+            See What Your Group Is{' '}
             <span className="highlight-box">Worth</span>
           </h2>
         </div>
@@ -719,7 +719,7 @@ function EarningsCalculator() {
                   {/* Conversion Rate */}
                   <div>
                     <div className="flex justify-between items-center mb-3">
-                      <label className="text-sm font-semibold text-dark">Conversion Rate</label>
+                      <label className="text-sm font-semibold text-dark">Sign-up Rate</label>
                       <span className="bg-[#fe5b25]/10 text-[#fe5b25] text-sm font-bold px-3 py-0.5 rounded-full">
                         {convRate}%
                       </span>
@@ -774,11 +774,11 @@ function EarningsCalculator() {
                       ${monthlyEarnings.toLocaleString()}
                     </div>
                     <p className="text-[#fe5b25] text-sm font-medium mb-6">
-                      from {subscribers} subscribers x 15% commission
+                      from {subscribers} subscribers x 15% your commission
                     </p>
 
                     <div className="bg-white/5 rounded-xl p-4 mb-5">
-                      <p className="text-white/40 text-xs mb-1">Annual Projection</p>
+                      <p className="text-white/40 text-xs mb-1">Yearly Estimate</p>
                       <p className="text-2xl font-bold text-[#fe5b25]">
                         ${annualEarnings.toLocaleString()}/year
                       </p>
@@ -825,7 +825,7 @@ function HowPartnershipWorks() {
       num: '01',
       icon: <Link2 size={24} />,
       title: 'Get Your Link',
-      desc: 'Sign up as a partner and get your unique referral link and branded page.',
+      desc: 'Sign up as a partner and get your own referral link and personal page.',
     },
     {
       num: '02',
@@ -837,7 +837,7 @@ function HowPartnershipWorks() {
       num: '03',
       icon: <UserPlus size={24} />,
       title: 'Members Subscribe',
-      desc: 'Group members sign up through your link and start getting leads.',
+      desc: 'Group members sign up with your link and start getting leads.',
     },
     {
       num: '04',
@@ -855,8 +855,8 @@ function HowPartnershipWorks() {
             How It Works
           </p>
           <h2 className="text-3xl md:text-5xl font-medium text-dark mb-4">
-            You Provide the Arena.{' '}
-            <span className="highlight-box">We Provide the Technology.</span>
+            You Have the Group.{' '}
+            <span className="highlight-box">We Have the Technology.</span>
           </h2>
         </div>
 
@@ -893,7 +893,7 @@ function HowPartnershipWorks() {
           <div className="bg-[#ECE5DD] rounded-2xl p-4 shadow-lg">
             <div className="bg-[#dcf8c6] rounded-lg px-3 py-2 ml-auto max-w-[85%] relative shadow-sm">
               <p className="text-[13px] text-[#303030] leading-snug">
-                Hey everyone! I've been using Lead Express to get job leads straight to my WhatsApp. Game changer. If you want to try it, here's my link:
+                Hey everyone! I started using Lead Express to get job leads straight to my WhatsApp. Changed everything for me. If you want to try it, here's my link:
               </p>
               <p className="text-[13px] text-blue-600 underline mt-1">
                 leadexpress.co/join/yossi
@@ -923,14 +923,14 @@ function PartnerVisibilitySection() {
       <div className="max-w-5xl mx-auto px-6">
         <div className="text-center mb-12">
           <p className="text-[#fe5b25] text-[11px] font-semibold tracking-widest uppercase mb-3">
-            Full Transparency
+            You See Everything
           </p>
           <h2 className="text-3xl md:text-5xl font-medium text-white mb-4">
             See Every Lead. Every Subscriber.{' '}
             <span className="gradient-text">Every Dollar.</span>
           </h2>
           <p className="text-white/40 max-w-2xl mx-auto text-lg">
-            Your partner dashboard gives you complete visibility into your community's performance.
+            Your partner dashboard shows you everything about your group's performance.
           </p>
         </div>
 
@@ -940,9 +940,9 @@ function PartnerVisibilitySection() {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
               {[
                 { label: 'Total Earnings', value: '$12,480', icon: <DollarSign size={18} />, trend: '+18%' },
-                { label: 'Active Referrals', value: '47', icon: <Users size={18} />, trend: '+5' },
+                { label: 'Active Members', value: '47', icon: <Users size={18} />, trend: '+5' },
                 { label: 'This Month', value: '$4,485', icon: <TrendingUp size={18} />, trend: '+$820' },
-                { label: 'Commission Rate', value: '15%', icon: <BarChart3 size={18} />, trend: '' },
+                { label: 'Your Commission', value: '15%', icon: <BarChart3 size={18} />, trend: '' },
               ].map((kpi, i) => (
                 <div key={i} className="bg-white/5 border border-white/10 rounded-xl p-4">
                   <div className="flex items-center justify-between mb-2">
@@ -964,10 +964,10 @@ function PartnerVisibilitySection() {
               <p className="text-xs font-semibold text-white/50 mb-3">Recent Activity</p>
               <div className="space-y-2">
                 {[
-                  { text: 'Mike R. subscribed to Pro plan', amount: '+$37.35', time: '2 min ago', type: 'earning' },
-                  { text: 'Withdrawal processed to PayPal', amount: '-$2,500', time: '1 day ago', type: 'withdrawal' },
+                  { text: 'Mike R. signed up for Pro plan', amount: '+$37.35', time: '2 min ago', type: 'earning' },
+                  { text: 'Money sent to your PayPal', amount: '-$2,500', time: '1 day ago', type: 'withdrawal' },
                   { text: 'Dan K. renewed Pro subscription', amount: '+$37.35', time: '2 days ago', type: 'earning' },
-                  { text: 'Alex P. subscribed to Unlimited', amount: '+$59.85', time: '3 days ago', type: 'earning' },
+                  { text: 'Alex P. signed up for Unlimited', amount: '+$59.85', time: '3 days ago', type: 'earning' },
                 ].map((item, i) => (
                   <div key={i} className="flex items-center justify-between py-2 border-b border-white/5 last:border-0">
                     <div className="flex items-center gap-3">
@@ -1002,7 +1002,7 @@ function PartnerSocialProof() {
       <div className="max-w-6xl mx-auto px-6">
         <div className="text-center mb-12">
           <p className="text-[#fe5b25] text-[11px] font-semibold tracking-widest uppercase mb-3">
-            Real Partners, Real Earnings
+            Real Partners, Real Money
           </p>
           <h2 className="text-3xl md:text-5xl font-medium text-dark mb-4">
             Yossi from NJ Already Makes{' '}
@@ -1028,11 +1028,11 @@ function PartnerSocialProof() {
                   </div>
                   <p className="text-sm text-dark/40 mb-4">NJ Contractors Network - 2,340 members</p>
                   <blockquote className="text-base md:text-lg text-dark/80 leading-relaxed italic">
-                    "I've been running this group for 3 years. Zero income from it. Lead Express gave me a partner link, I posted it once, and within a month 23 guys signed up on Pro. That's $2,800 every single month hitting my account — and I didn't change a thing about how I run the group."
+                    "I ran this group for 3 years. Made zero from it. Lead Express gave me a partner link, I posted it once, and in one month 23 guys signed up for Pro. That's $2,800 every month going into my account — and I didn't change anything about how I run the group."
                   </blockquote>
                   <div className="mt-4 flex items-center gap-4">
                     <div className="bg-[#fe5b25]/10 text-[#fe5b25] text-sm font-bold px-3 py-1 rounded-full">
-                      $2,800/mo earnings
+                      $2,800/mo
                     </div>
                     <div className="bg-green-50 text-green-600 text-sm font-bold px-3 py-1 rounded-full">
                       23 referrals on Pro
@@ -1050,7 +1050,7 @@ function PartnerSocialProof() {
                 name: 'Marco Diaz',
                 initials: 'MD',
                 location: 'FL Contractors Hub - 870 members',
-                quote: "Posted the link on Monday, had 12 signups by Friday. That's $1,800/month passive income from a single WhatsApp post.",
+                quote: "Posted the link on Monday, had 12 sign-ups by Friday. That's $1,800/month from one WhatsApp message.",
                 earnings: '$1,800/mo',
                 color: 'bg-blue-400',
               },
@@ -1058,7 +1058,7 @@ function PartnerSocialProof() {
                 name: 'Dave Thompson',
                 initials: 'DT',
                 location: 'TX Trade Workers - 1,200 members',
-                quote: "My group was just for sharing jobs. Now it generates $3,500/month for me. No extra work at all.",
+                quote: "My group was just for sharing jobs. Now it makes me $3,500/month. No extra work at all.",
                 earnings: '$3,500/mo',
                 color: 'bg-amber-400',
               },
@@ -1066,7 +1066,7 @@ function PartnerSocialProof() {
                 name: 'Ahmed Hassan',
                 initials: 'AH',
                 location: 'CA Handyman Network - 650 members',
-                quote: "5 referrals and my own subscription is free. The other 30 referrals earn me $4,485 every month.",
+                quote: "5 referrals and my own subscription is free. The other 30 referrals make me $4,485 every month.",
                 earnings: '$4,485/mo',
                 color: 'bg-green-400',
               },
@@ -1126,7 +1126,7 @@ function PartnerTiersSection() {
             </h2>
 
             <p className="text-white/45 max-w-xl mx-auto text-lg mb-10 leading-relaxed">
-              No fees. No commitments. Connect your WhatsApp group, share your link, and start earning 15% recurring commission on every contractor who subscribes.
+              No fees. No commitments. Connect your WhatsApp group, share your link, and start making 15% on every contractor who signs up.
             </p>
 
             {/* Speed steps */}
@@ -1156,7 +1156,7 @@ function PartnerTiersSection() {
               href="https://app.leadexpress.co.il/partner/join"
               className="group inline-flex items-center justify-center gap-3 rounded-full bg-gradient-to-r from-[#fe5b25] to-[#e04d1c] text-white px-12 py-5 text-lg font-semibold transition-all duration-300 hover:scale-105 hover:shadow-[0_8px_40px_rgba(254,91,37,0.35)] active:scale-95"
             >
-              Start Earning Now — It's Free
+              Start Making Money — It's Free
               <ArrowRight size={20} className="transition-transform group-hover:translate-x-1" />
             </a>
 
@@ -1164,7 +1164,7 @@ function PartnerTiersSection() {
             <div className="flex items-center justify-center gap-6 mt-8 text-white/25 text-xs">
               <span className="flex items-center gap-1.5"><Shield size={13} /> No fees ever</span>
               <span className="flex items-center gap-1.5"><Clock size={13} /> 5-minute setup</span>
-              <span className="flex items-center gap-1.5"><DollarSign size={13} /> 15% recurring</span>
+              <span className="flex items-center gap-1.5"><DollarSign size={13} /> 15% every month</span>
             </div>
           </div>
         </div>
@@ -1181,36 +1181,36 @@ function PartnerFAQ() {
 
   const faqs = [
     {
-      q: 'How much can I actually earn?',
-      a: 'You earn 15% of every subscription payment made by someone you referred. If you refer 10 people on the $49/mo plan, that\'s $73.50/month in recurring income. And it keeps coming as long as they stay subscribed.',
+      q: 'How much can I actually make?',
+      a: 'You get 15% of every subscription payment from someone you brought in. If you bring 10 people on the $49/mo plan, that\'s $73.50/month coming to you. And it keeps coming as long as they stay subscribed.',
     },
     {
       q: 'Do I need to do anything after sharing my link?',
-      a: 'Nope. Share your link once, and the system handles everything. Tracking, attribution, payments - it\'s all automatic. You just watch the dashboard.',
+      a: 'No. Share your link once, and the system does everything. Tracking, payments - it\'s all automatic. You just check the dashboard.',
     },
     {
       q: 'When do I get paid?',
-      a: 'Commissions enter a 14-day pending period after each payment. Once approved, they\'re added to your balance. You can withdraw anytime once you hit $50.',
+      a: 'After each payment, there is a 14-day waiting period. Once it\'s approved, the money goes to your balance. You can take it out anytime once you reach $50.',
     },
     {
       q: 'Can I be a partner if I\'m already a Lead Express subscriber?',
-      a: 'Absolutely! In fact, most partners are. You can use your commission to offset your own subscription, or once you hit 5 referrals, your subscription becomes completely FREE.',
+      a: 'Yes! Most partners are. You can use your earnings to pay for your own subscription, or once you get 5 referrals, your subscription becomes completely FREE.',
     },
     {
       q: 'What if someone I referred gets a refund?',
-      a: 'If a referred subscriber gets a refund, the corresponding commission is reversed (clawed back). This keeps everything fair for both sides.',
+      a: 'If someone you referred gets a refund, that commission is taken back. This keeps things fair for everyone.',
     },
     {
       q: 'Can I link multiple WhatsApp groups?',
-      a: 'Yes! You can link as many groups as you want. Each group shows separate analytics in your partner dashboard so you can see which communities perform best.',
+      a: 'Yes! You can link as many groups as you want. Each group shows separate numbers in your dashboard so you can see which groups do best.',
     },
     {
       q: 'Is there a limit to how much I can earn?',
-      a: 'No cap. The more people you refer, the more you earn. Some of our top partners make over $1,000/month from their communities.',
+      a: 'No limit. The more people you bring in, the more you make. Some of our top partners make over $1,000/month from their groups.',
     },
     {
       q: 'How is this different from a regular affiliate program?',
-      a: 'You\'re not just an affiliate with a link. You get a branded partner page, verified badge, full analytics dashboard, wallet system, and you\'re featured in our community directory. You\'re a partner, not a promoter.',
+      a: 'You\'re not just someone with a link. You get your own partner page, a verified badge, a full dashboard, a wallet system, and you show up in our partner directory. You\'re a partner, not just a promoter.',
     },
   ]
 
@@ -1266,16 +1266,16 @@ function PartnerCTA() {
       <div className="max-w-4xl mx-auto px-6 text-center">
         <div className="inline-flex items-center gap-2 bg-[#fe5b25]/10 border border-[#fe5b25]/20 text-[#fe5b25] rounded-full px-4 py-1.5 text-xs font-semibold mb-6">
           <Zap className="w-3.5 h-3.5" />
-          Start Earning Today
+          Start Making Money Today
         </div>
 
         <h2 className="text-3xl md:text-5xl lg:text-6xl font-medium text-white mb-6 leading-tight">
-          Your Community.{' '}
-          <span className="gradient-text">Your Revenue.</span>
+          Your Group.{' '}
+          <span className="gradient-text">Your Money.</span>
         </h2>
 
         <p className="text-white/40 max-w-xl mx-auto text-lg mb-10 leading-relaxed">
-          Your WhatsApp group is already generating value. Sign up in 5 minutes, share your link, and start earning 15% on every referral — forever.
+          Your WhatsApp group is already making money — just not for you. Sign up in 5 minutes, share your link, and start getting 15% on every referral — every month.
         </p>
 
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-8">
@@ -1284,21 +1284,21 @@ function PartnerCTA() {
             className="group inline-flex items-center justify-center gap-3 rounded-full bg-gradient-to-r from-[#fe5b25] to-[#e04d1c] text-white px-10 py-4 text-lg font-semibold transition-all duration-300 hover:scale-105 hover:shadow-lg hover:shadow-[#fe5b25]/25 active:scale-95"
           >
             <Zap size={18} />
-            Start Earning Now — It's Free
+            Start Making Money — It's Free
             <ArrowRight size={18} className="transition-transform group-hover:translate-x-1" />
           </a>
           <Link
             to="/community"
             className="inline-flex items-center justify-center gap-2 rounded-full border border-white/20 text-white/70 px-8 py-4 text-base font-semibold transition-all duration-300 hover:border-white/40 hover:text-white hover:scale-105 active:scale-95"
           >
-            View Partner Directory
+            See All Partners
           </Link>
         </div>
 
         <div className="flex items-center justify-center gap-6 text-white/30 text-xs">
           <span className="flex items-center gap-1"><Shield size={12} /> No fees ever</span>
           <span className="flex items-center gap-1"><Clock size={12} /> 5-minute setup</span>
-          <span className="flex items-center gap-1"><CreditCard size={12} /> 15% recurring</span>
+          <span className="flex items-center gap-1"><CreditCard size={12} /> 15% every month</span>
         </div>
       </div>
     </section>
@@ -1317,10 +1317,10 @@ function OurTeamSection() {
             The People Behind Lead Express
           </p>
           <h2 className="text-2xl md:text-[32px] md:leading-[1.2] font-medium text-dark mb-2">
-            A team obsessed with helping contractors grow.
+            A team focused on helping contractors grow.
           </h2>
           <p className="text-dark/40 max-w-md mx-auto text-sm">
-            We build the technology. You build the community. Together, everyone wins.
+            We build the technology. You run the group. Together, everyone wins.
           </p>
         </div>
 
@@ -1337,7 +1337,7 @@ function OurTeamSection() {
               <div className="absolute inset-x-0 bottom-0 h-1/4 bg-gradient-to-t from-black/50 to-transparent" />
               <div className="absolute inset-x-0 bottom-0 px-4 py-3 md:px-6 md:py-4">
                 <p className="text-white/90 text-xs md:text-sm font-medium tracking-wide">
-                  Your partners in growth — from Tel Aviv to every US state.
+                  Working with you — from Tel Aviv to every US state.
                 </p>
               </div>
             </div>

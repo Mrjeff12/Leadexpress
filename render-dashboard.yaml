@@ -1,0 +1,14 @@
+services:
+  - type: static_site
+    name: mlf-dashboard
+    buildCommand: pnpm install --no-frozen-lockfile && cd apps/dashboard && pnpm run build
+    staticPublishPath: apps/dashboard/dist
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    envVars:
+      - key: VITE_SUPABASE_URL
+        value: https://zyytzwlvtuhgbjpalbgd.supabase.co
+      - key: VITE_SUPABASE_ANON_KEY
+        value: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp5eXR6d2x2dHVoZ2JqcGFsYmdkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDIwODg5NjIsImV4cCI6MjA1NzY2NDk2Mn0.DcVnpJGkStBGnLjxF2ScFIDGKwwrF3G3NeGZW_xKmQk

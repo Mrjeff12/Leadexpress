@@ -35,6 +35,7 @@ const C = {
 /* ── Stages ─────────────────────────────────────────────────────────── */
 const STAGES = [
   { key: 'prospect',        label: 'Prospect',        he: 'פרוספקט',     icon: CircleDot,     color: '#5856D6', bg: '#F2F2F7' },
+  { key: 'onboarding',      label: 'Onboarding',      he: 'הרשמה',       icon: Zap,           color: '#007AFF', bg: '#F2F2F7' },
   { key: 'reached_out',     label: 'Reached Out',     he: 'יצרנו קשר',   icon: Phone,         color: '#fe5b25', bg: '#F2F2F7' },
   { key: 'in_conversation', label: 'In Conversation', he: 'בשיחה',       icon: MessageCircle, color: '#AF52DE', bg: '#F2F2F7' },
   { key: 'demo_trial',      label: 'Demo / Trial',    he: 'הדגמה',       icon: Sparkles,      color: '#FF9500', bg: '#F2F2F7' },

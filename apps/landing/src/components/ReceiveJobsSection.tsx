@@ -34,7 +34,7 @@ interface MatchedLead {
 }
 
 const matchedLeads: MatchedLead[] = [
-  { icon: Snowflake, iconColor: '#0284c7', trade: 'HVAC Repair', location: 'Miami, FL 33130', price: '$400–700' },
+  { icon: Snowflake, iconColor: '#0284c7', trade: 'AC Repair', location: 'Miami, FL 33130', price: '$400–700' },
   { icon: Wrench, iconColor: '#7c3aed', trade: 'Plumbing', location: 'Boca Raton, FL 33431', price: '$250–500' },
   { icon: Zap, iconColor: '#f59e0b', trade: 'Electrical', location: 'Fort Lauderdale, FL 33301', price: '$300–600' },
 ]
@@ -406,7 +406,7 @@ export default function ReceiveJobsSection() {
               2,000+ groups. Only <span className="highlight-box">your jobs</span>.
             </h2>
             <p className="text-gray-subtle/70 text-base md:text-lg leading-relaxed max-w-2xl mx-auto">
-              Our AI scans thousands of WhatsApp groups 24/7 and sends only the jobs that match your trade, area, and availability.
+              Our AI checks thousands of WhatsApp groups 24/7 and sends you only the jobs that fit your service, area, and schedule.
             </p>
           </div>
 
@@ -498,7 +498,7 @@ export default function ReceiveJobsSection() {
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z" /><path d="M2 17l10 5 10-5" /><path d="M2 12l10 5 10-5" /></svg>
                       </div>
                       <div>
-                        <div className="text-[11px] font-bold text-[#fe5b25]">Lead Found!</div>
+                        <div className="text-[11px] font-bold text-[#fe5b25]">New Lead!</div>
                         <div className="text-[8px] text-[#8696a0]">Lead Express</div>
                       </div>
                     </div>
@@ -623,7 +623,7 @@ export default function ReceiveJobsSection() {
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z" /><path d="M2 17l10 5 10-5" /><path d="M2 12l10 5 10-5" /></svg>
                       </div>
                       <div>
-                        <div className="text-[10px] font-bold text-[#fe5b25]">Lead Found!</div>
+                        <div className="text-[10px] font-bold text-[#fe5b25]">New Lead!</div>
                         <div className="text-[7px] text-[#8696a0]">Lead Express</div>
                       </div>
                     </div>
@@ -676,11 +676,11 @@ export default function ReceiveJobsSection() {
           >
             <div className="rjs-stat-pill">
               <span className="rjs-stat-dot" style={{ background: '#25D366' }} />
-              2,000+ Groups Scanned
+              2,000+ Groups Checked
             </div>
             <div className="rjs-stat-pill">
               <span className="rjs-stat-dot" style={{ background: '#fe5b25' }} />
-              AI-Filtered 24/7
+              AI Filtering 24/7
             </div>
             <div className="rjs-stat-pill">
               <span className="rjs-stat-dot" style={{ background: '#0284c7' }} />

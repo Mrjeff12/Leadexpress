@@ -46,8 +46,8 @@
     {
       "name": "Landing Page",
       "runtimeExecutable": "/bin/zsh",
-      "runtimeArgs": ["-c", "export PATH=/Users/bigjeff/.nvm/versions/node/v20.19.6/bin:$PATH && cd apps/landing && npx vite --port 5174"],
-      "port": 5174
+      "runtimeArgs": ["-c", "export PATH=/Users/bigjeff/.nvm/versions/node/v20.19.6/bin:$PATH && cd apps/landing && npx vite --port 5176"],
+      "port": 5176
     }
   ]
 }

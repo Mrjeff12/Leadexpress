@@ -201,28 +201,28 @@ export default function SubcontractorShowcase() {
             }}
           >
             <span className="text-[11px] font-semibold tracking-widest uppercase text-[#fe5b25]">
-              Network Management
+              Manage Your Team
             </span>
             <h2
               className="text-3xl md:text-4xl lg:text-[42px] lg:leading-[1.12] font-bold text-dark"
               style={{ letterSpacing: '-0.04em' }}
             >
-              Your team,
+              Manage your team
               <br />
-              fully managed.
+              in one place.
             </h2>
             <p className="text-dark/50 text-base md:text-lg leading-relaxed max-w-md">
-              Build your subcontractor network, track every job from assignment to
-              payment, and see who performs best — all from one place. Forward leads
-              with a tap, track completion, collect payments.
+              Build your contractor list, follow every job from start to
+              payment, and see who does the best work — all in one place. Send leads
+              with one tap, track when they finish, and collect payments.
             </p>
 
             {/* feature bullets */}
             <div className="flex flex-col gap-3 mt-2">
               {[
-                ['Contractor Profiles', 'Ratings, specializations, and coverage zones per sub'],
-                ['Job Tracking', 'From lead assignment to completion and payment'],
-                ['Revenue Dashboard', 'See earnings, outstanding payments, and top performers'],
+                ['Contractor Profiles', 'Ratings, services, and work areas for each contractor'],
+                ['Job Tracking', 'From sending the lead to finishing the job and getting paid'],
+                ['Earnings Overview', 'See your earnings, unpaid jobs, and best workers'],
               ].map(([title, desc], i) => (
                 <div key={i} className="flex items-start gap-3">
                   <div className="w-6 h-6 rounded-lg bg-[#fe5b25]/20 flex items-center justify-center flex-shrink-0 mt-0.5">

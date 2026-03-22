@@ -69,13 +69,13 @@ export default function HeroOptionA() {
         <div className="text-center mb-6">
           <div className="inline-flex items-center gap-2 bg-[#25D366]/10 text-[#25D366] rounded-full px-4 py-1.5 text-[11px] font-semibold tracking-widest uppercase mb-4">
             <WhatsAppIcon className="w-3.5 h-3.5" />
-            See It In Action
+            See How It Works
           </div>
           <h2 className="text-2xl md:text-3xl font-medium text-dark tracking-[-0.03em] mb-3">
-            From group noise to <span className="highlight-box">your next job.</span>
+            From group spam to <span className="highlight-box">your next job.</span>
           </h2>
           <p className="text-gray-subtle/60 text-base max-w-lg mx-auto">
-            Watch how our AI scans a WhatsApp group, finds the lead, and extracts it for you — in real time.
+            Watch how our AI reads a WhatsApp group, finds the lead, and pulls it out for you — in real time.
           </p>
         </div>
 
@@ -235,7 +235,7 @@ export default function HeroOptionA() {
                                 style={{ boxShadow: '0 4px 16px rgba(254,91,37,0.4)', animation: 'pulseGlow 1.5s ease-in-out infinite' }}
                               >
                                 <svg className="w-2.5 h-2.5 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M21 12a9 9 0 11-6.219-8.56" /></svg>
-                                AI scanning messages...
+                                AI reading messages...
                               </div>
                             </div>
                           </>
@@ -320,7 +320,7 @@ export default function HeroOptionA() {
                       </svg>
                     </div>
                     <div>
-                      <div className="text-[11px] font-bold text-[#fe5b25]">Lead Found!</div>
+                      <div className="text-[11px] font-bold text-[#fe5b25]">New Lead!</div>
                       <div className="text-[8px] text-[#8696a0]">Lead Express</div>
                     </div>
                   </div>

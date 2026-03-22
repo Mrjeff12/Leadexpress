@@ -28,18 +28,18 @@ const scenes: Scene[] = [
     id: 'leads',
     icon: Search,
     label: 'Find Leads',
-    desc: 'AI scans your WhatsApp groups 24/7 and sends matching jobs straight to you.',
+    desc: 'AI checks your WhatsApp groups 24/7 and sends you the right jobs directly.',
     messages: [
       { from: 'agent', type: 'text', text: '🔔 New lead in your area!\n\n📍 Miami, FL 33101\n🔧 Plumbing — Pipe leak\n💰 $300–500\n\nInterested?', time: '08:12' },
       { from: 'user', type: 'voice', duration: '0:03', caption: "Yes, I'm interested!", text: '', time: '08:13' },
-      { from: 'agent', type: 'text', text: '✅ Connecting you now!\n📞 Client: Maria Lopez\n🕐 Expecting your call', time: '08:13' },
+      { from: 'agent', type: 'text', text: '✅ Connecting you now!\n📞 Client: Maria Lopez\n🕐 She is waiting for your call', time: '08:13' },
     ],
   },
   {
     id: 'morning',
     icon: Sun,
     label: 'Morning Check',
-    desc: "Every morning Rebeca asks where you're working and sends overnight leads.",
+    desc: "Every morning Rebeca asks where you're working and sends leads from the night.",
     messages: [
       { from: 'agent', type: 'text', text: '☀️ Good morning! Ready for today?\n\nWhat areas are you available in and what hours?', time: '07:00' },
       { from: 'user', type: 'voice', duration: '0:05', caption: "I'm in Miami today, 9 to 5", text: '', time: '07:02' },
@@ -188,13 +188,13 @@ export default function RebecaScannerSection() {
           <div className="text-center mb-10">
             <div className="inline-flex items-center gap-2 bg-[#25D366]/10 border border-[#25D366]/20 text-[#25D366] text-xs font-semibold px-3 py-1.5 rounded-full mb-4">
               <Bot className="w-3.5 h-3.5" />
-              Rebeca — Your Lead Scout
+              Rebeca — Your Lead Finder
             </div>
             <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold text-gray-900 mb-3">
-              She finds the jobs. <span className="highlight-box">You pick the ones you want.</span>
+              She finds the jobs. <span className="highlight-box">You choose what you want.</span>
             </h2>
             <p className="text-gray-500 text-base md:text-lg max-w-2xl mx-auto leading-relaxed">
-              Rebeca scans 2,000+ WhatsApp groups 24/7, filters for your trade and area, and delivers matched leads straight to your WhatsApp.
+              Rebeca checks 2,000+ WhatsApp groups 24/7, looks for your service and area, and sends the right leads directly to your WhatsApp.
             </p>
           </div>
 
@@ -237,10 +237,10 @@ export default function RebecaScannerSection() {
                     <div className="pb-5">
                       <div className="inline-flex items-center gap-1.5 bg-white/20 backdrop-blur-sm text-white text-[11px] font-semibold px-2.5 py-1 rounded-full mb-2">
                         <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
-                        Scanning 24/7
+                        Working 24/7
                       </div>
                       <h3 className="text-white text-xl font-bold leading-tight">Rebeca</h3>
-                      <p className="text-white/60 text-sm mt-1">Your lead scout</p>
+                      <p className="text-white/60 text-sm mt-1">Your lead finder</p>
                     </div>
                   </div>
                 </div>

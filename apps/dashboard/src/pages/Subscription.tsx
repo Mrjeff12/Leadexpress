@@ -60,10 +60,6 @@ const PLAN_CONFIG: Record<string, {
   },
 }
 
-const YEARLY_PRICES: Record<string, number> = {
-  premium: 7900 * 10, // 10 months for yearly = ~17% discount
-}
-
 function daysRemaining(endDate: string): number {
   const diff = new Date(endDate).getTime() - Date.now()
   return Math.max(0, Math.ceil(diff / 86_400_000))
@@ -105,8 +101,6 @@ export default function Subscription() {
 
   const showSuccess = searchParams.get('success') === 'true'
   const showCanceled = searchParams.get('canceled') === 'true'
-  const currentSlug = subscription?.plan?.slug
-
   // Redirect to dashboard after successful payment (3s delay to show success message)
   useEffect(() => {
     if (showSuccess) {
@@ -138,11 +132,8 @@ export default function Subscription() {
   function getPremiumPrice() {
     const plan = plans.find(p => p.slug === 'premium')
     if (!plan) return { monthly: 79, yearly: Math.round((7900 * 10) / 12 / 100) }
-    if (billingInterval === 'yearly') {
-      const yearlyTotal = YEARLY_PRICES.premium ?? plan.price_cents * 12
-      return { monthly: plan.price_cents / 100, yearly: Math.round(yearlyTotal / 12 / 100) }
-    }
-    return { monthly: plan.price_cents / 100, yearly: Math.round((YEARLY_PRICES.premium ?? plan.price_cents * 10) / 12 / 100) }
+    const yearlyTotal = plan.price_cents * 10 // 10 months = ~17% discount
+    return { monthly: plan.price_cents / 100, yearly: Math.round(yearlyTotal / 12 / 100) }
   }
 
   const premiumPrice = getPremiumPrice()
@@ -304,7 +295,7 @@ export default function Subscription() {
                   </div>
 
                   <div className="mb-1">
-                    <span className="text-4xl font-extrabold tracking-tight text-zinc-900">$0</span>
+                    <span className="text-4xl font-extrabold tracking-tight text-zinc-900">${plans.find(p => p.slug === 'free')?.price_cents === 0 ? '0' : ((plans.find(p => p.slug === 'free')?.price_cents ?? 0) / 100)}</span>
                     <span className="text-sm ml-1 text-zinc-400">/mo</span>
                   </div>
                   <p className="text-xs text-zinc-400 mb-5">Free forever</p>
@@ -377,7 +368,7 @@ export default function Subscription() {
                   </div>
                   {billingInterval === 'yearly' ? (
                     <p className="text-xs text-white/50 mb-5">
-                      ${YEARLY_PRICES.premium / 100}/year billed annually
+                      ${(plans.find(p => p.slug === 'premium')?.price_cents ?? 7900) * 10 / 100}/year billed annually
                     </p>
                   ) : (
                     <p className="text-xs text-white/50 mb-5">Billed monthly</p>

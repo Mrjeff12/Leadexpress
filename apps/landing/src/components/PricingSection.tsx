@@ -1,12 +1,29 @@
+import { useEffect, useState } from 'react'
 import { Check } from 'lucide-react'
 import { useLang } from '../i18n/LanguageContext'
+import { supabase } from '../lib/supabase'
 
 const DASHBOARD_URL = 'https://app.leadexpress.co.il'
 
 const PLAN_SLUGS = ['free', 'premium']
 
+type DbPlan = { slug: string; price_cents: number; name: string }
+
 export default function PricingSection() {
   const { t } = useLang()
+  const [dbPlans, setDbPlans] = useState<DbPlan[] | null>(null)
+
+  useEffect(() => {
+    if (!supabase) return
+    supabase
+      .from('plans')
+      .select('slug, price_cents, name')
+      .eq('is_active', true)
+      .order('price_cents')
+      .then(({ data }) => {
+        if (data) setDbPlans(data)
+      })
+  }, [])
 
   function handlePlanClick(index: number) {
     const slug = PLAN_SLUGS[index] || 'free'
@@ -24,6 +41,10 @@ export default function PricingSection() {
         <div className="grid md:grid-cols-2 gap-8 max-w-3xl mx-auto">
           {t.pricing.plans.map((plan, i) => {
             const isPopular = (plan as any).popular
+            const dbPlan = dbPlans?.find(p => p.slug === PLAN_SLUGS[i])
+            const displayPrice = dbPlan
+              ? dbPlan.price_cents === 0 ? '$0' : `$${dbPlan.price_cents / 100}`
+              : plan.price
             return (
               <div
                 key={i}
@@ -53,7 +74,7 @@ export default function PricingSection() {
                 </p>
 
                 <div className="mb-6">
-                  <span className="text-4xl font-bold">{plan.price}</span>
+                  <span className="text-4xl font-bold">{displayPrice}</span>
                   <span className={`text-sm ${isPopular ? 'text-white/60' : 'text-gray-subtle/50'}`}>
                     {plan.period}
                   </span>

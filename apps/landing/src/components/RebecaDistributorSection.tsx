@@ -28,24 +28,24 @@ const scenes: Scene[] = [
     id: 'distribute',
     icon: Share2,
     label: 'Publish Jobs',
-    desc: "Got a job you can't take? Tell Rebeca and she'll find the right contractor.",
+    desc: "Got a job you can't do? Tell Rebeca and she'll find the right contractor.",
     messages: [
-      { from: 'user', type: 'voice', duration: '0:06', caption: "Got an AC job I can't take, can you send it out?", text: '', time: '14:20' },
-      { from: 'agent', type: 'text', text: "📝 Got it! Here's what I'll send:\n\n❄️ AC Installation\n📍 Fort Lauderdale, 33301\n💰 $800–1,200\n\nShould I send to your contractor network?", time: '14:20' },
+      { from: 'user', type: 'voice', duration: '0:06', caption: "I got an AC job I can't do, can you send it out?", text: '', time: '14:20' },
+      { from: 'agent', type: 'text', text: "📝 Got it! Here's what I'll send:\n\n❄️ AC Installation\n📍 Fort Lauderdale, 33301\n💰 $800–1,200\n\nShould I send to your contractors?", time: '14:20' },
       { from: 'user', type: 'text', text: 'Yes, 15% commission', time: '14:21' },
-      { from: 'agent', type: 'text', text: "✅ Sent to 12 contractors!\n💰 Your cut: 15%\n\n3 already responded. I'll keep you posted.", time: '14:21' },
+      { from: 'agent', type: 'text', text: "✅ Sent to 12 contractors!\n💰 Your cut: 15%\n\n3 already answered. I'll update you.", time: '14:21' },
     ],
   },
   {
     id: 'stats',
     icon: BarChart3,
     label: 'Your Stats',
-    desc: 'Ask Rebeca for your weekly stats, update your trades, or adjust your areas.',
+    desc: 'Ask Rebeca for your weekly numbers, change your services, or update your areas.',
     messages: [
       { from: 'user', type: 'voice', duration: '0:04', caption: 'What are my stats this week?', text: '', time: '18:00' },
-      { from: 'agent', type: 'text', text: "📊 This week:\n• 23 new leads\n• 8 claimed\n• $12,400 estimated value\n\nYou're in the top 15% of contractors in FL! 🔥", time: '18:00' },
-      { from: 'user', type: 'text', text: 'Add roofing to my trades', time: '18:02' },
-      { from: 'agent', type: 'text', text: "✅ Roofing added! You'll now receive roofing leads in your coverage areas.", time: '18:02' },
+      { from: 'agent', type: 'text', text: "📊 This week:\n• 23 new leads\n• 8 taken\n• $12,400 total value\n\nYou're in the top 15% of contractors in FL! 🔥", time: '18:00' },
+      { from: 'user', type: 'text', text: 'Add roofing to my services', time: '18:02' },
+      { from: 'agent', type: 'text', text: "✅ Roofing added! You'll now get roofing leads in your work areas.", time: '18:02' },
     ],
   },
 ]
@@ -188,13 +188,13 @@ export default function RebecaDistributorSection() {
           <div className="text-center mb-10">
             <div className="inline-flex items-center gap-2 bg-[#fe5b25]/10 border border-[#fe5b25]/20 text-[#fe5b25] text-xs font-semibold px-3 py-1.5 rounded-full mb-4">
               <Bot className="w-3.5 h-3.5" />
-              Rebeca — Your Distribution Agent
+              Rebeca — Sends Jobs For You
             </div>
             <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold text-gray-900 mb-3">
-              Tell her the job. <span className="highlight-box">She finds the contractor.</span>
+              Tell her about the job. <span className="highlight-box">She finds the right contractor.</span>
             </h2>
             <p className="text-gray-500 text-base md:text-lg max-w-2xl mx-auto leading-relaxed">
-              Got a private job you can't handle? Send Rebeca a voice message — she'll publish it to the right contractors and track responses for you.
+              Got a job you can't do yourself? Send Rebeca a voice message — she'll send it to the right contractors and keep track of who answers.
             </p>
           </div>
 
@@ -237,10 +237,10 @@ export default function RebecaDistributorSection() {
                     <div className="pb-5">
                       <div className="inline-flex items-center gap-1.5 bg-white/20 backdrop-blur-sm text-white text-[11px] font-semibold px-2.5 py-1 rounded-full mb-2">
                         <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
-                        Ready to distribute
+                        Ready to send
                       </div>
                       <h3 className="text-white text-xl font-bold leading-tight">Rebeca</h3>
-                      <p className="text-white/60 text-sm mt-1">Your distribution agent</p>
+                      <p className="text-white/60 text-sm mt-1">Sends jobs for you</p>
                     </div>
                   </div>
                 </div>

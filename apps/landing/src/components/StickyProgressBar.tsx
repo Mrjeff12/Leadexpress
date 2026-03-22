@@ -164,7 +164,7 @@ export default function StickyProgressBar() {
           >
             <div className={`sp-dot ${activePath >= 1 ? (activePath === 2 ? 'sp-dot-done' : 'sp-dot-green') : ''}`} />
             <span className={`sp-label ${activePath >= 1 ? (activePath === 2 ? 'sp-label-green' : 'sp-label-green') : ''}`}>
-              {activePath === 2 ? '✓ ' : ''}We find you jobs
+              {activePath === 2 ? '✓ ' : ''}We find jobs for you
             </span>
           </div>
 

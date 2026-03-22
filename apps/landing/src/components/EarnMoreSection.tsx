@@ -23,7 +23,7 @@ const chatEN: ChatMsg[] = [
     from: 'user',
     type: 'voice',
     duration: '0:05',
-    caption: "Got an AC job I can't take — can you send it out?",
+    caption: "I got an AC job I can't do — can you send it out?",
     text: '',
     time: '14:22',
     step: 0,
@@ -31,7 +31,7 @@ const chatEN: ChatMsg[] = [
   {
     from: 'agent',
     type: 'text',
-    text: "📝 Got it!\n\n❄️ AC Cleaning\n📍 Fort Lauderdale, 33301\n💰 $800–1,200\n\nSending to your network with 15% commission?",
+    text: "📝 Got it!\n\n❄️ AC Cleaning\n📍 Fort Lauderdale, 33301\n💰 $800–1,200\n\nSending to your contractors with 15% commission?",
     time: '14:22',
     step: 1,
   },
@@ -87,10 +87,10 @@ const chatHE: ChatMsg[] = [
 /* ------------------------------------------------------------------ */
 
 const flowStepsEN = [
-  { icon: Mic, label: 'You forward', desc: 'Send a voice message to Rebeca' },
-  { icon: Share2, label: 'Rebeca distributes', desc: 'Matched to contractors near the job' },
-  { icon: Users, label: 'They respond', desc: 'Contractors claim the job in seconds' },
-  { icon: DollarSign, label: 'You earn', desc: 'Commission deposited automatically' },
+  { icon: Mic, label: 'You send it', desc: 'Send a voice message to Rebeca' },
+  { icon: Share2, label: 'Rebeca sends it out', desc: 'Sent to contractors near the job' },
+  { icon: Users, label: 'They answer', desc: 'Contractors take the job in seconds' },
+  { icon: DollarSign, label: 'You earn', desc: 'Commission paid automatically' },
 ]
 
 const flowStepsHE = [
@@ -279,13 +279,13 @@ export default function EarnMoreSection() {
             <h2 className="text-3xl md:text-4xl lg:text-[42px] lg:leading-[1.15] font-bold text-gray-900 mb-3 max-w-3xl mx-auto">
               {isRtl
                 ? 'כל עבודה שאתה לא לוקח? מישהו ברשת יכול.'
-                : "Every job you can't take is money on the table."}
+                : "Every job you can't take is money you're losing."}
             </h2>
 
             <p className="text-gray-500 text-lg md:text-xl max-w-2xl mx-auto leading-relaxed">
               {isRtl
                 ? 'עבודות שנכנסות אליך כל יום ויוצאות בלי שום ערך — עכשיו הן הופכות להכנסה. הודעה קולית אחת לרבקה וזה קורה.'
-                : "Jobs land on your plate every day that you can't do — wrong trade, too far, fully booked. Today they're lost. With us, they're income."}
+                : "Jobs come to you every day that you can't do — wrong service, too far, fully booked. Right now they go to waste. With us, they become income."}
             </p>
 
             {/* Use case cards */}
@@ -293,16 +293,16 @@ export default function EarnMoreSection() {
               {[
                 {
                   emoji: '📍',
-                  titleEN: 'Too far or busy',
+                  titleEN: 'Too far or no time',
                   titleHE: 'רחוק או עסוק',
-                  descEN: 'A lead comes in but you\'re across town or fully booked. Instead of ignoring it — publish it.',
+                  descEN: 'A lead comes in but you\'re on the other side of town or fully booked. Instead of ignoring it — send it out.',
                   descHE: 'נכנס ליד אבל אתה בצד השני של העיר או מלא. במקום להתעלם — תפרסם.',
                 },
                 {
                   emoji: '🔧',
-                  titleEN: 'Not your trade',
+                  titleEN: 'Not your service',
                   titleHE: 'לא המקצוע שלך',
-                  descEN: 'Someone asks for electrical work and you\'re a plumber. That\'s still a job worth money — route it.',
+                  descEN: 'Someone asks for electrical work and you\'re a plumber. That\'s still a job worth money — send it to the right person.',
                   descHE: 'מבקשים חשמל ואתה אינסטלטור. זו עדיין עבודה ששווה כסף — תעביר.',
                 },
                 {
@@ -481,7 +481,7 @@ export default function EarnMoreSection() {
                   <div className="flex items-center gap-2">
                     <Users className="w-4 h-4 text-[#fe5b25]" />
                     <span className="text-sm font-semibold text-gray-900">
-                      {isRtl ? 'הרשת שלך' : 'Your Network'}
+                      {isRtl ? 'הרשת שלך' : 'Your Contractors'}
                     </span>
                   </div>
                   <span className="text-xs text-gray-400">
@@ -548,11 +548,11 @@ export default function EarnMoreSection() {
                     <p className="text-white text-2xl font-bold">$2,340</p>
                   </div>
                   <div className="text-right">
-                    <p className="text-gray-400 text-xs mb-0.5">{isRtl ? 'עבודות שהופצו' : 'Jobs distributed'}</p>
+                    <p className="text-gray-400 text-xs mb-0.5">{isRtl ? 'עבודות שהופצו' : 'Jobs sent out'}</p>
                     <p className="text-white text-2xl font-bold">18</p>
                   </div>
                   <div className="text-right">
-                    <p className="text-gray-400 text-xs mb-0.5">{isRtl ? 'אחוז תפיסה' : 'Claim rate'}</p>
+                    <p className="text-gray-400 text-xs mb-0.5">{isRtl ? 'אחוז תפיסה' : 'Jobs taken'}</p>
                     <p className="text-[#25d366] text-2xl font-bold">89%</p>
                   </div>
                 </div>

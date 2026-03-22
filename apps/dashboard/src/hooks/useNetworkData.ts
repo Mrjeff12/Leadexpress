@@ -42,7 +42,7 @@ export function useNetworkData() {
 
         const [professionsRes, contractorsRes, groupsRes, leadsRes] = await Promise.all([
           supabase.from('professions').select('id, name_en, name_he, emoji, color').eq('is_active', true).order('sort_order'),
-          supabase.from('contractors').select('user_id, professions, profiles!inner(full_name, phone, subscription_status, avatar_url)').eq('is_active', true),
+          supabase.from('contractors').select('user_id, professions, profiles!inner(full_name, phone)').eq('is_active', true),
           supabase.from('groups').select('id', { count: 'exact', head: true }),
           supabase.from('leads').select('id', { count: 'exact', head: true }).gte('created_at', today),
         ])
@@ -72,8 +72,8 @@ export function useNetworkData() {
           full_name: c.profiles?.full_name ?? null,
           phone: c.profiles?.phone ?? null,
           professions: c.professions ?? [],
-          avatar_url: c.profiles?.avatar_url ?? null,
-          subscription_status: c.profiles?.subscription_status ?? null,
+          avatar_url: null,
+          subscription_status: null,
         }))
 
         setData({

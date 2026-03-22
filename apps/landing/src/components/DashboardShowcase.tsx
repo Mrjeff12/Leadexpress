@@ -5,7 +5,7 @@ const kpis = [
   { label: 'Active Jobs', value: 24, prefix: '', suffix: '', color: '#3b82f6' },
   { label: 'Completed', value: 142, prefix: '', suffix: '', color: '#10b981' },
   { label: 'Revenue', value: 48, prefix: '$', suffix: 'K', color: '#fe5b25' },
-  { label: 'Win Rate', value: 87, prefix: '', suffix: '%', color: '#8b5cf6' },
+  { label: 'Success Rate', value: 87, prefix: '', suffix: '%', color: '#8b5cf6' },
 ]
 
 const leads = [
@@ -285,7 +285,7 @@ export default function DashboardShowcase() {
             }}
           >
             <span className="text-[11px] font-semibold tracking-widest uppercase text-[#fe5b25]">
-              Command Center
+              Your Dashboard
             </span>
             <h2
               className="text-3xl md:text-4xl lg:text-[42px] lg:leading-[1.12] font-bold text-dark"
@@ -296,17 +296,16 @@ export default function DashboardShowcase() {
               one dashboard.
             </h2>
             <p className="text-gray-subtle/70 text-base md:text-lg leading-relaxed max-w-md">
-              Track every lead, job, and dollar in real-time. KPI cards update live,
-              the coverage map shows where you operate, and the feed keeps incoming
-              leads flowing — all without switching tabs.
+              See every lead, job, and dollar in real time. Numbers update live,
+              the map shows where you work, and new leads keep coming in — all in one place.
             </p>
 
             {/* feature bullets */}
             <div className="flex flex-col gap-3 mt-2">
               {[
-                ['Live KPIs', 'Revenue, active jobs, and win rate at a glance'],
-                ['Coverage Map', 'See your active ZIP codes highlighted in real-time'],
-                ['Lead Feed', 'New leads appear instantly with profession & urgency'],
+                ['Live Numbers', 'Earnings, active jobs, and success rate in one place'],
+                ['Work Area Map', 'See your active ZIP codes on the map in real time'],
+                ['Lead Feed', 'New leads show up right away with service type and location'],
               ].map(([title, desc], i) => (
                 <div key={i} className="flex items-start gap-3">
                   <div className="w-6 h-6 rounded-lg bg-[#fe5b25]/10 flex items-center justify-center flex-shrink-0 mt-0.5">
@@ -408,7 +407,7 @@ export default function DashboardShowcase() {
                         className="px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider"
                         style={{ background: 'rgba(16,185,129,0.15)', color: '#10b981' }}
                       >
-                        7 Active Zones
+                        7 Active Areas
                       </div>
                     </div>
 
@@ -417,7 +416,7 @@ export default function DashboardShowcase() {
                       className="absolute top-3 left-3 text-[11px] font-semibold uppercase tracking-wider"
                       style={{ color: 'rgba(255,255,255,0.3)' }}
                     >
-                      Coverage Map
+                      Work Area Map
                     </div>
                   </div>
 

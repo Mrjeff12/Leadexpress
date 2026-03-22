@@ -157,12 +157,12 @@ export default function MapSection() {
           <h2 className="text-3xl md:text-5xl font-medium mb-4">
             {isHe
               ? 'תראה לידים נכנסים — מכל 50 המדינות'
-              : 'See leads flow in — across all 50 states'}
+              : 'See leads coming in — from all 50 states'}
           </h2>
           <p className="text-gray-subtle/70 max-w-2xl mx-auto text-lg">
             {isHe
               ? 'הבינה המלאכותית שלנו סורקת אלפי קבוצות וואטסאפ 24/7'
-              : 'Our AI monitors thousands of WhatsApp groups 24/7'}
+              : 'Our AI checks thousands of WhatsApp groups 24/7'}
           </p>
         </div>
 
@@ -230,7 +230,7 @@ export default function MapSection() {
                 {leadsCount.toLocaleString()}
               </div>
               <div className="text-xs text-white/50 font-medium">
-                {isHe ? 'לידים חולצו' : 'leads extracted'}
+                {isHe ? 'לידים חולצו' : 'leads found'}
               </div>
             </div>
           </div>
@@ -245,7 +245,7 @@ export default function MapSection() {
                 {statesCount}
               </div>
               <div className="text-xs text-white/50 font-medium">
-                {isHe ? 'מדינות' : 'states covered'}
+                {isHe ? 'מדינות' : 'states'}
               </div>
             </div>
           </div>
@@ -260,7 +260,7 @@ export default function MapSection() {
                 ${(valueCount / 10).toFixed(1)}M
               </div>
               <div className="text-xs text-white/50 font-medium">
-                {isHe ? 'ערך משוער' : 'estimated value'}
+                {isHe ? 'ערך משוער' : 'total value'}
               </div>
             </div>
           </div>

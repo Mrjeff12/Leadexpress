@@ -172,19 +172,19 @@ export default function BotEditorPanel({
     setBlockedWords(blockedWords.filter((w) => w !== word))
   }
 
-  /* ── Handoff helpers ── */
+  /* ── Handoff helpers (targets stored as slugs in DB) ── */
   const availableHandoffAgents = agents.filter(
-    (a) => a.id !== agent?.id && !handoffTargets.includes(a.id)
+    (a) => a.slug !== agent?.slug && !handoffTargets.includes(a.slug)
   )
 
-  const addHandoff = (targetId: string) => {
-    if (!handoffTargets.includes(targetId)) {
-      setHandoffTargets([...handoffTargets, targetId])
+  const addHandoff = (targetSlug: string) => {
+    if (!handoffTargets.includes(targetSlug)) {
+      setHandoffTargets([...handoffTargets, targetSlug])
     }
   }
 
-  const removeHandoff = (targetId: string) => {
-    setHandoffTargets(handoffTargets.filter((id) => id !== targetId))
+  const removeHandoff = (targetSlug: string) => {
+    setHandoffTargets(handoffTargets.filter((s) => s !== targetSlug))
   }
 
   /* ── Tool toggle ── */
@@ -276,7 +276,6 @@ export default function BotEditorPanel({
                   style={{
                     background: '#161630',
                     border: '1px solid #252550',
-                    focusRingColor: agentColor,
                   }}
                   onFocus={(e) => (e.target.style.borderColor = agentColor)}
                   onBlur={(e) => (e.target.style.borderColor = '#252550')}
@@ -413,12 +412,12 @@ export default function BotEditorPanel({
                 <p className="text-gray-600 text-sm text-center py-4">No handoff targets configured</p>
               )}
               <div className="space-y-2">
-                {handoffTargets.map((targetId) => {
-                  const target = agents.find((a) => a.id === targetId)
+                {handoffTargets.map((targetSlug) => {
+                  const target = agents.find((a) => a.slug === targetSlug)
                   if (!target) return null
                   return (
                     <div
-                      key={targetId}
+                      key={targetSlug}
                       className="flex items-center gap-3 p-3 rounded-lg"
                       style={{ background: '#161630', border: '1px solid #252550' }}
                     >
@@ -436,7 +435,7 @@ export default function BotEditorPanel({
                         <p className="text-[10px] text-gray-500 truncate">{target.slug}</p>
                       </div>
                       <button
-                        onClick={() => removeHandoff(targetId)}
+                        onClick={() => removeHandoff(targetSlug)}
                         className="w-7 h-7 rounded-lg flex items-center justify-center text-gray-500 hover:text-red-400 hover:bg-red-400/10 transition-colors"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
@@ -465,7 +464,7 @@ export default function BotEditorPanel({
                       + Add Handoff...
                     </option>
                     {availableHandoffAgents.map((a) => (
-                      <option key={a.id} value={a.id}>
+                      <option key={a.slug} value={a.slug}>
                         {a.icon} {a.name}
                       </option>
                     ))}

@@ -111,13 +111,14 @@ const CONNECTIONS: { from: string; to: string; width: number; animated?: boolean
 ]
 
 /* ─── Subscription status colors ─── */
-const STATUS_COLORS: Record<string, string> = {
+const _STATUS_COLORS: Record<string, string> = {
   active: '#22c55e',
   trialing: '#3b82f6',
   past_due: '#f59e0b',
   canceled: '#ef4444',
   incomplete: '#9ca3af',
 }
+void _STATUS_COLORS
 
 /* ─── Solar system radii ─── */
 const PROF_RING_R = 155      // professions orbit Clients at this radius

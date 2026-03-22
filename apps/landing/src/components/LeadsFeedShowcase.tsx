@@ -367,7 +367,7 @@ export default function LeadsFeedShowcase() {
                       className="text-[10px] font-bold uppercase tracking-wider"
                       style={{ color: '#10b981' }}
                     >
-                      Scanning 847 groups
+                      Checking 847 groups
                     </span>
                   </div>
                 </div>
@@ -531,7 +531,7 @@ export default function LeadsFeedShowcase() {
             }}
           >
             <span className="text-[11px] font-semibold tracking-widest uppercase text-[#fe5b25]">
-              AI Lead Extraction
+              AI Lead Finder
             </span>
             <h2
               className="text-3xl md:text-4xl lg:text-[42px] lg:leading-[1.12] font-bold text-dark"
@@ -539,20 +539,20 @@ export default function LeadsFeedShowcase() {
             >
               Every lead,
               <br />
-              auto-captured.
+              found automatically.
             </h2>
             <p className="text-gray-subtle/70 text-base md:text-lg leading-relaxed max-w-md">
-              Our AI scans 800+ WhatsApp groups around the clock, extracting leads
-              with profession, location, and urgency — delivered to your feed
-              before competitors even see the message.
+              Our AI reads 800+ WhatsApp groups all day and night, finding leads
+              with service type, location, and how urgent they are — sent to your feed
+              before other contractors even see the message.
             </p>
 
             {/* feature bullets */}
             <div className="flex flex-col gap-3 mt-2">
               {[
-                ['24/7 Scanning', '847 active groups monitored in real-time'],
-                ['Smart Filtering', 'Filter by profession, urgency, or location instantly'],
-                ['AI Extraction', 'Profession, ZIP, and urgency parsed automatically'],
+                ['24/7 Scanning', '847 active groups checked all day and night'],
+                ['Easy Filtering', 'Filter by service type, how urgent, or location right away'],
+                ['AI Finds Leads', 'Service type, ZIP code, and urgency found automatically'],
               ].map(([title, desc], i) => (
                 <div key={i} className="flex items-start gap-3">
                   <div className="w-6 h-6 rounded-lg bg-[#fe5b25]/10 flex items-center justify-center flex-shrink-0 mt-0.5">

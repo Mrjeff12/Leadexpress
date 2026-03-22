@@ -34,7 +34,7 @@ type PipelineStage =
   | 'ai_parsing' | 'ai_parsed' | 'no_lead' | 'lead_created'
   | 'matched' | 'sent' | 'claimed' | 'expired'
 
-interface WAGroup {
+interface _WAGroup {
   id: string
   name: string
   messageCount: number
@@ -67,7 +67,7 @@ interface PipelineEvent {
   createdAt: string
 }
 
-interface WAAccount {
+interface _WAAccount {
   id: string
   label: string
   region: string
@@ -78,13 +78,8 @@ interface WAAccount {
   messagesTotal: number
   qr: string | null
   connectedSince: string | null
-}
-
-interface WAState {
-  status: ConnectionStatus
-  qr: string | null
-  phone: string | null
-  connectedSince: string | null
+  displayName: string | null
+  avatarUrl: string | null
 }
 
 // ── Region config ──────────────────────────────────────────────────────────────
@@ -97,52 +92,6 @@ const REGION_CONFIG: Record<string, { emoji: string; label: string; labelHe: str
   'twilio': { emoji: '💬', label: 'Twilio API', labelHe: 'Twilio רשמי' },
   'green': { emoji: '🟢', label: 'Green API', labelHe: 'Green API אישי' },
 }
-
-// ── Demo data ──────────────────────────────────────────────────────────────────
-const DEMO_ACCOUNTS: WAAccount[] = [
-  { id: 'acc-fl', label: 'Green API (Personal)', region: 'green', phone: '+1 (305) 555-0199', status: 'connected', groupCount: 4, leadsToday: 8, messagesTotal: 342, qr: null, connectedSince: new Date(Date.now() - 86_400_000 * 3).toISOString() },
-  { id: 'acc-twilio', label: 'Twilio API (Official)', region: 'twilio', phone: '+1 (862) 358-2898', status: 'connected', groupCount: 0, leadsToday: 5, messagesTotal: 187, qr: null, connectedSince: new Date(Date.now() - 86_400_000 * 7).toISOString() },
-]
-const DEMO_GROUPS: WAGroup[] = [
-  { id: 'g1', name: 'Miami Home Services 🏠', messageCount: 342, isActive: true, lastMessageAt: new Date(Date.now() - 120_000).toISOString(), totalMembers: 187, knownSellers: 23, knownBuyers: 41, category: 'hvac' },
-  { id: 'g2', name: 'South FL Contractors', messageCount: 189, isActive: true, lastMessageAt: new Date(Date.now() - 600_000).toISOString(), totalMembers: 94, knownSellers: 12, knownBuyers: 28, category: 'renovation' },
-  { id: 'g3', name: 'Broward Handyman Network', messageCount: 94, isActive: true, lastMessageAt: new Date(Date.now() - 3_600_000).toISOString(), totalMembers: 156, knownSellers: 31, knownBuyers: 19, category: 'cleaning' },
-  { id: 'g4', name: 'Palm Beach Renovations', messageCount: 67, isActive: false, lastMessageAt: new Date(Date.now() - 86_400_000).toISOString(), totalMembers: 72, knownSellers: 8, knownBuyers: 15, category: 'renovation' },
-]
-
-const DEMO_MESSAGES: Record<string, WAMessage[]> = {
-  g1: [
-    { id: 'm1', sender: '972501234567', senderName: 'יוסי א.', text: 'מישהו מכיר טכנאי מזגנים באזור מיאמי ביץ? ZIP 33139 צריך תיקון דחוף מזגן מרכזי', timestamp: Date.now() - 60_000, isLead: true, pipelineStage: 'sent', senderClassification: 'buyer' },
-    { id: 'm2', sender: '972509876543', senderName: 'דוד כהן', text: 'שלום! אני טכנאי מזגנים מורשה 15 שנות ניסיון, אזור מיאמי דייד. התקשרו 305-555-0147', timestamp: Date.now() - 120_000, isLead: false, pipelineStage: 'sender_filtered', senderClassification: 'seller' },
-    { id: 'm3', sender: '972507654321', senderName: 'משה לוי', text: '😂😂', timestamp: Date.now() - 180_000, isLead: false, pipelineStage: 'quick_filtered', senderClassification: 'unknown' },
-    { id: 'm4', sender: '972502345678', senderName: 'שרה ג.', text: 'צריכה שיפוץ מטבח באזור Hollywood FL 33020, מישהו יכול לתת הצעת מחיר?', timestamp: Date.now() - 300_000, isLead: true, pipelineStage: 'matched', senderClassification: 'buyer' },
-    { id: 'm5', sender: '972509876543', senderName: 'דוד כהן', text: 'יש לי מבצע התקנת מזגן מרכזי $2500 כולל ציוד. שלחו הודעה 305-555-0147', timestamp: Date.now() - 500_000, isLead: false, pipelineStage: 'sender_filtered', senderClassification: 'seller' },
-    { id: 'm6', sender: '972508765432', senderName: 'אבי ר.', text: 'מחפש מישהו לגדר חצר אחורית, Fort Lauderdale 33301, בערך 40 מטר', timestamp: Date.now() - 900_000, isLead: true, pipelineStage: 'claimed', senderClassification: 'buyer' },
-    { id: 'm7', sender: '972501111111', senderName: 'Admin Bot', text: 'ברוכים הבאים לקבוצה! כללי הקבוצה: ...', timestamp: Date.now() - 1_800_000, isLead: false, pipelineStage: 'quick_filtered', senderClassification: 'bot' },
-  ],
-  g2: [
-    { id: 'm8', sender: '972503456789', senderName: 'רונית ש.', text: 'יש מישהו שעושה ריצוף בקורל גיבלס? ZIP 33134 בערך 50 מ"ר', timestamp: Date.now() - 240_000, isLead: true, pipelineStage: 'ai_parsing', senderClassification: 'buyer' },
-    { id: 'm9', sender: '972504567890', senderName: 'חיים ב.', text: 'בוקר טוב! מי פנוי היום?', timestamp: Date.now() - 600_000, isLead: false, pipelineStage: 'quick_filtered', senderClassification: 'unknown' },
-  ],
-  g3: [
-    { id: 'm10', sender: '972505678901', senderName: 'נתן מ.', text: 'צריך ניקוי גראז׳ Pembroke Pines 33024, גראז׳ כפול מלא חפצים', timestamp: Date.now() - 180_000, isLead: true, pipelineStage: 'lead_created', senderClassification: 'buyer' },
-  ],
-  g4: [],
-}
-
-const DEMO_PIPELINE: PipelineEvent[] = [
-  { id: 'pe1', groupName: 'Miami Home Services 🏠', senderName: 'יוסי א.', stage: 'received', messagePreview: 'מישהו מכיר טכנאי מזגנים באזור מיאמי ביץ?...', createdAt: new Date(Date.now() - 55_000).toISOString() },
-  { id: 'pe2', groupName: 'Miami Home Services 🏠', senderName: 'יוסי א.', stage: 'pattern_matched', detail: { signals: ['zip:33139', 'keyword:מזגנים', 'keyword:תיקון'] }, messagePreview: 'מישהו מכיר טכנאי מזגנים...', createdAt: new Date(Date.now() - 54_000).toISOString() },
-  { id: 'pe3', groupName: 'Miami Home Services 🏠', senderName: 'יוסי א.', stage: 'ai_parsed', detail: { profession: 'hvac', zip: '33139', urgency: 'hot' }, messagePreview: 'מישהו מכיר טכנאי מזגנים...', createdAt: new Date(Date.now() - 52_000).toISOString() },
-  { id: 'pe4', groupName: 'Miami Home Services 🏠', senderName: 'יוסי א.', stage: 'matched', detail: { contractors: 2 }, messagePreview: 'מישהו מכיר טכנאי מזגנים...', createdAt: new Date(Date.now() - 50_000).toISOString() },
-  { id: 'pe5', groupName: 'Miami Home Services 🏠', senderName: 'יוסי א.', stage: 'sent', detail: { via: 'telegram', to: 'Avi R.' }, createdAt: new Date(Date.now() - 48_000).toISOString() },
-  { id: 'pe6', groupName: 'Miami Home Services 🏠', senderName: 'דוד כהן', stage: 'received', messagePreview: 'שלום! אני טכנאי מזגנים מורשה...', createdAt: new Date(Date.now() - 115_000).toISOString() },
-  { id: 'pe7', groupName: 'Miami Home Services 🏠', senderName: 'דוד כהן', stage: 'sender_filtered', detail: { reason: 'known_seller', serviceRatio: 0.85 }, createdAt: new Date(Date.now() - 114_500).toISOString() },
-  { id: 'pe8', groupName: 'Miami Home Services 🏠', senderName: 'משה לוי', stage: 'received', messagePreview: '😂😂', createdAt: new Date(Date.now() - 175_000).toISOString() },
-  { id: 'pe9', groupName: 'Miami Home Services 🏠', senderName: 'משה לוי', stage: 'quick_filtered', detail: { reason: 'too_short', length: 2 }, createdAt: new Date(Date.now() - 174_500).toISOString() },
-  { id: 'pe10', groupName: 'South FL Contractors', senderName: 'רונית ש.', stage: 'received', messagePreview: 'יש מישהו שעושה ריצוף בקורל גיבלס?...', createdAt: new Date(Date.now() - 235_000).toISOString() },
-  { id: 'pe11', groupName: 'South FL Contractors', senderName: 'רונית ש.', stage: 'ai_parsing', detail: { model: 'gpt-4o-mini' }, createdAt: new Date(Date.now() - 234_000).toISOString() },
-]
 
 // ── Stage helpers ──────────────────────────────────────────────────────────────
 const STAGE_CONFIG: Record<PipelineStage, { label: string; labelHe: string; color: string; icon: typeof Zap }> = {
@@ -222,127 +171,69 @@ export default function AdminWhatsApp() {
   const { locale } = useI18n()
   const he = locale === 'he'
   const WA_API = import.meta.env.VITE_WA_LISTENER_URL || ''
-  const IS_DEV = !WA_API
 
-  // ── Connection state ───────────────────────────────────────────────────────
-  const [connState, setConnState] = useState<WAState>({
-    status: 'disconnected', qr: null, phone: null, connectedSince: null,
-  })
-  const [demoStep, setDemoStep] = useState<ConnectionStatus>('disconnected')
-
-  // ── Multi-account state ─────────────────────────────────────────────────────
-  const [accounts, setAccounts] = useState<WAAccount[]>([])
+  // ── UI-only state ──────────────────────────────────────────────────────────
   const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null)
-
-  // ── Monitor state ──────────────────────────────────────────────────────────
-  const [groups, setGroups] = useState<WAGroup[]>([])
   const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null)
-  const [messages, setMessages] = useState<WAMessage[]>([])
-  const [pipeline, setPipeline] = useState<PipelineEvent[]>([])
   const [groupSearch, setGroupSearch] = useState('')
   const [showOnlyLeads, setShowOnlyLeads] = useState(false)
+  const [toggledOffGroups, setToggledOffGroups] = useState<Set<string>>(new Set())
 
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const whatsappData = useAdminWhatsAppData({
     listenerUrl: WA_API,
-    enabled: !IS_DEV,
+    enabled: true,
     selectedGroupId,
   })
-  const status = IS_DEV ? demoStep : whatsappData.connState.status
 
-  // ── Sync React Query data into local UI state ───────────────────────────
+  // ── Derive everything from hook (no local copies = no flicker) ────────────
+  const connState = whatsappData.connState
+  const status = connState.status
+  const accounts = whatsappData.accounts
+  const pipeline = whatsappData.pipeline as PipelineEvent[]
+  const messages = whatsappData.messages as WAMessage[]
+  const groups = whatsappData.groups.map(g => ({
+    ...g,
+    isActive: !toggledOffGroups.has(g.id) && g.isActive,
+  }))
+
+  // Auto-select first account
   useEffect(() => {
-    if (IS_DEV) return
-    setConnState(whatsappData.connState)
-  }, [IS_DEV, whatsappData.connState])
-
-  // ── Load accounts + groups when connected ──────────────────────────────────
-  useEffect(() => {
-    if (IS_DEV) {
-      setAccounts(DEMO_ACCOUNTS)
-      setGroups(DEMO_GROUPS)
-      setPipeline(DEMO_PIPELINE)
-      if (!selectedAccountId) setSelectedAccountId('acc-fl')
-      if (!selectedGroupId) setSelectedGroupId('g1')
-      return
+    if (!selectedAccountId && accounts.length > 0) {
+      setSelectedAccountId(accounts[0].id)
     }
-    
-    // Always set accounts if available (so we can see Twilio even if Green API disconnected)
-    if (whatsappData.accounts) {
-      setAccounts(whatsappData.accounts)
-      if (!selectedAccountId && whatsappData.accounts.length > 0) {
-        setSelectedAccountId(whatsappData.accounts[0].id)
-      }
-    }
+  }, [selectedAccountId, accounts.length])
 
-    if (status !== 'connected' && accounts.length === 0) { setGroups([]); return }
-    
-    setPipeline(whatsappData.pipeline as PipelineEvent[])
-    setGroups((prev) => {
-      const previousActiveById = new Map(prev.map((g) => [g.id, g.isActive]))
-      return (whatsappData.groups as WAGroup[]).map((g) => ({
-        ...g,
-        isActive: previousActiveById.get(g.id) ?? g.isActive,
-      }))
-    })
-  }, [status, IS_DEV, whatsappData.accounts, whatsappData.groups, whatsappData.pipeline])
-
-  // ── Load messages when group selected ──────────────────────────────────────
-  useEffect(() => {
-    if (!selectedGroupId || (status !== 'connected' && accounts.length === 0)) { setMessages([]); return }
-    if (IS_DEV) {
-      setMessages(DEMO_MESSAGES[selectedGroupId] ?? [])
-      return
-    }
-    setMessages(whatsappData.messages as WAMessage[])
-  }, [selectedGroupId, status, accounts.length, IS_DEV, whatsappData.messages])
-
-  // ── Auto-scroll messages ───────────────────────────────────────────────────
+  // Auto-scroll messages
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [messages])
+  }, [messages.length])
 
   // ── Real connection flow (production) ─────────────────────────────────────
   async function startRealConnect() {
     try {
-      setConnState({ status: 'waiting_qr', qr: null, phone: null, connectedSince: null })
       const res = await fetch(`${WA_API}/api/connect`, { method: 'POST' })
       if (!res.ok) throw new Error(`Connection request failed: ${res.status}`)
       // The status polling (useAdminWhatsAppData) will pick up the QR and status changes
     } catch (err) {
       console.error('[AdminWhatsApp] connect error:', err)
-      setConnState({ status: 'disconnected', qr: null, phone: null, connectedSince: null })
       alert(he ? 'שגיאה בחיבור WhatsApp. ודא שהשירות פעיל.' : 'Failed to connect WhatsApp. Make sure the WA listener service is running.')
     }
   }
 
-  // ── Demo connection flow ───────────────────────────────────────────────────
-  function startDemoConnect() {
-    setDemoStep('waiting_qr')
-    setConnState({ status: 'waiting_qr', qr: 'demo-qr', phone: null, connectedSince: null })
-    setTimeout(() => {
-      setDemoStep('connecting')
-      setConnState(prev => ({ ...prev, status: 'connecting', qr: null }))
-    }, 4000)
-    setTimeout(() => {
-      setDemoStep('connected')
-      setConnState({ status: 'connected', qr: null, phone: '+1 (305) 555-0199', connectedSince: new Date().toISOString() })
-    }, 6000)
-  }
+  // (demo flow removed — real data only)
 
   function handleDisconnect() {
-    setDemoStep('disconnected')
-    setConnState({ status: 'disconnected', qr: null, phone: null, connectedSince: null })
-    setGroups([])
-    setMessages([])
-    setPipeline([])
     setSelectedGroupId(null)
   }
 
   const toggleGroupMonitoring = useCallback((groupId: string) => {
-    setGroups(prev => prev.map(g =>
-      g.id === groupId ? { ...g, isActive: !g.isActive } : g
-    ))
+    setToggledOffGroups(prev => {
+      const next = new Set(prev)
+      if (next.has(groupId)) next.delete(groupId)
+      else next.add(groupId)
+      return next
+    })
   }, [])
 
   const selectedGroup = groups.find(g => g.id === selectedGroupId)
@@ -374,7 +265,7 @@ export default function AdminWhatsApp() {
                   <QrCode className="w-12 h-12" style={{ color: 'hsl(40 4% 55%)' }} />
                   <p className="text-xs" style={{ color: 'hsl(40 4% 42%)' }}>{he ? 'לא מחובר' : 'Not connected'}</p>
                 </div>
-                <button onClick={IS_DEV ? startDemoConnect : startRealConnect} className="btn-primary px-6 py-2.5 rounded-lg text-sm font-semibold flex items-center gap-2">
+                <button onClick={startRealConnect} className="btn-primary px-6 py-2.5 rounded-lg text-sm font-semibold flex items-center gap-2">
                   <Smartphone className="w-4 h-4" />
                   {he ? 'חבר WhatsApp' : 'Connect WhatsApp'}
                 </button>
@@ -383,7 +274,7 @@ export default function AdminWhatsApp() {
             {status === 'waiting_qr' && (
               <div className="flex flex-col items-center gap-4">
                 <div className="relative">
-                  {connState.qr && !IS_DEV ? (
+                  {connState.qr ? (
                     <img src={`data:image/png;base64,${connState.qr}`} alt="QR" width={180} height={180} className="rounded-xl" />
                   ) : (
                     <DemoQR size={180} />
@@ -464,7 +355,7 @@ export default function AdminWhatsApp() {
   const aiSavingsPct = pipelineReceived > 0 ? Math.round((pipelineFiltered / pipelineReceived) * 100) : 0
 
   return (
-    <div className="animate-fade-in flex flex-col" style={{ height: 'calc(100vh - 2rem)' }}>
+    <div className="animate-fade-in flex flex-col overflow-y-auto" style={{ maxHeight: 'calc(100vh - 7rem)' }}>
       {/* ── KPI Bar ──────────────────────────────────────────────────────────── */}
       <div className="grid grid-cols-4 gap-3 mb-3">
         {[
@@ -502,16 +393,17 @@ export default function AdminWhatsApp() {
                 boxShadow: isSelected ? '0 2px 8px hsl(155 44% 30% / 0.3)' : 'none',
               }}
             >
-              <span>{region.emoji}</span>
-              <span>{he ? region.labelHe : region.label}</span>
+              {acc.avatarUrl ? (
+                <img src={acc.avatarUrl} alt="" className="w-5 h-5 rounded-full object-cover" />
+              ) : (
+                <span>{region.emoji}</span>
+              )}
+              <span>{acc.displayName ?? (he ? region.labelHe : region.label)}</span>
               <div className="w-1.5 h-1.5 rounded-full" style={{
-                background: acc.status === 'connected' ? (isSelected ? 'hsl(14 90% 80%)' : 'hsl(14 85% 50%)')
+                background: acc.status === 'connected' ? (isSelected ? 'hsl(140 60% 80%)' : '#25D366')
                   : acc.status === 'blocked' ? 'hsl(0 60% 50%)'
                   : 'hsl(40 80% 50%)',
               }} />
-              {acc.status === 'connected' && (
-                <span style={{ opacity: 0.7 }}>{acc.phone}</span>
-              )}
             </button>
           )
         })}
@@ -529,35 +421,80 @@ export default function AdminWhatsApp() {
         </a>
       </div>
 
-      {/* ── Header Row ───────────────────────────────────────────────────────── */}
-      <div className="flex items-center justify-between mb-2">
-        <div className="flex items-center gap-3">
-          <h2 className="text-sm font-semibold" style={{ color: 'hsl(40 8% 10%)' }}>
-            {selectedAccount ? (
-              <>
-                {REGION_CONFIG[selectedAccount.region]?.emoji} {he ? REGION_CONFIG[selectedAccount.region]?.labelHe : REGION_CONFIG[selectedAccount.region]?.label}
-              </>
-            ) : (he ? 'בחר חשבון' : 'Select account')}
-          </h2>
-          <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-medium" style={{ background: 'hsl(152 46% 85% / 0.5)', color: 'hsl(14 99% 57%)' }}>
-            <div className="w-1.5 h-1.5 rounded-full animate-pulse-green" style={{ background: 'hsl(14 85% 50%)' }} />
-            {he ? 'פעיל' : 'Live'}
-          </div>
-          {whatsappData.isFetchingAny && (
-            <div className="flex items-center gap-1.5 text-[10px]" style={{ color: 'hsl(40 4% 55%)' }}>
-              <Loader2 className="w-3 h-3 animate-spin" />
-              {he ? 'מתעדכן' : 'Refreshing'}
+      {/* ── Connected Account Header ─────────────────────────────────────────── */}
+      {selectedAccount && (
+        <div className="glass-panel px-5 py-4 mb-3 flex items-center gap-4">
+          {/* Avatar */}
+          <div className="relative shrink-0">
+            {selectedAccount.avatarUrl ? (
+              <img
+                src={selectedAccount.avatarUrl}
+                alt={selectedAccount.displayName ?? selectedAccount.label}
+                className="w-14 h-14 rounded-full object-cover ring-2 ring-white"
+                style={{ boxShadow: '0 2px 12px rgba(0,0,0,0.1)' }}
+              />
+            ) : (
+              <div className="w-14 h-14 rounded-full flex items-center justify-center text-lg font-bold text-white" style={{ background: 'linear-gradient(135deg, #25D366, #128C7E)' }}>
+                {(selectedAccount.displayName ?? selectedAccount.label)?.[0]?.toUpperCase() ?? 'W'}
+              </div>
+            )}
+            {/* Online indicator */}
+            <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full border-2 border-white flex items-center justify-center"
+              style={{ background: selectedAccount.status === 'connected' ? '#25D366' : selectedAccount.status === 'blocked' ? '#ef4444' : '#f59e0b' }}>
             </div>
-          )}
-          {selectedAccount?.phone && (
-            <span className="text-[10px]" style={{ color: 'hsl(40 4% 55%)' }}>{selectedAccount.phone}</span>
-          )}
+          </div>
+
+          {/* Name & details */}
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2">
+              <h2 className="text-base font-semibold truncate" style={{ color: 'hsl(40 8% 10%)' }}>
+                {selectedAccount.displayName ?? selectedAccount.label}
+              </h2>
+              <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-semibold shrink-0"
+                style={{
+                  background: selectedAccount.status === 'connected' ? '#dcfce7' : '#fef3c7',
+                  color: selectedAccount.status === 'connected' ? '#16a34a' : '#d97706',
+                }}>
+                <div className="w-1.5 h-1.5 rounded-full animate-pulse"
+                  style={{ background: selectedAccount.status === 'connected' ? '#16a34a' : '#d97706' }} />
+                {selectedAccount.status === 'connected' ? (he ? 'מחובר' : 'Connected') : selectedAccount.status}
+              </div>
+            </div>
+            <div className="flex items-center gap-3 mt-1 text-xs" style={{ color: 'hsl(40 4% 55%)' }}>
+              <span className="flex items-center gap-1">
+                <Smartphone className="w-3 h-3" />
+                {selectedAccount.phone ?? '—'}
+              </span>
+              <span>•</span>
+              <span>{REGION_CONFIG[selectedAccount.region]?.emoji} {he ? REGION_CONFIG[selectedAccount.region]?.labelHe : REGION_CONFIG[selectedAccount.region]?.label}</span>
+              <span>•</span>
+              <span className="flex items-center gap-1">
+                <Activity className="w-3 h-3" />
+                {selectedAccount.groupCount} {he ? 'קבוצות' : 'groups'}
+              </span>
+              {selectedAccount.connectedSince && (
+                <>
+                  <span>•</span>
+                  <span>{he ? 'מחובר' : 'Connected'} {timeAgo(selectedAccount.connectedSince, he)}</span>
+                </>
+              )}
+              {whatsappData.isFetchingAny && (
+                <span className="flex items-center gap-1" style={{ color: 'hsl(14 99% 57%)' }}>
+                  <Loader2 className="w-3 h-3 animate-spin" />
+                  {he ? 'מתעדכן' : 'Syncing'}
+                </span>
+              )}
+            </div>
+          </div>
+
+          {/* Disconnect button */}
+          <button onClick={handleDisconnect} className="shrink-0 px-3 py-2 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-all hover:bg-red-50"
+            style={{ color: 'hsl(0 60% 50%)', border: '1px solid hsl(0 50% 88%)' }}>
+            <WifiOff className="w-3.5 h-3.5" />
+            {he ? 'נתק' : 'Disconnect'}
+          </button>
         </div>
-        <button onClick={handleDisconnect} className="btn-ghost px-3 py-1.5 rounded-lg text-xs flex items-center gap-1.5">
-          <WifiOff className="w-3.5 h-3.5" />
-          {he ? 'נתק' : 'Disconnect'}
-        </button>
-      </div>
+      )}
 
       {/* 3-Panel Layout */}
       <div className="flex-1 grid gap-3 min-h-0" style={{ gridTemplateColumns: '280px 1fr 320px' }}>
@@ -756,9 +693,12 @@ export default function AdminWhatsApp() {
               {he ? 'פייפליין חי' : 'Live Pipeline'}
             </h2>
             <div className="ms-auto flex items-center gap-1">
-              <div className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: 'hsl(14 85% 50%)' }} />
+              <div className="w-1.5 h-1.5 rounded-full" style={{
+                background: whatsappData.source === 'api' ? 'hsl(14 85% 50%)' : 'hsl(40 80% 50%)',
+                animation: whatsappData.source === 'api' ? 'pulse 2s infinite' : 'none',
+              }} />
               <span className="text-[10px]" style={{ color: 'hsl(40 4% 55%)' }}>
-                {he ? 'זמן אמת' : 'Real-time'}
+                {whatsappData.source === 'api' ? (he ? 'זמן אמת' : 'Real-time') : (he ? 'מ-DB' : 'From DB')}
               </span>
             </div>
           </div>
@@ -823,9 +763,21 @@ export default function AdminWhatsApp() {
             })}
 
             {pipeline.length === 0 && (
-              <div className="flex flex-col items-center justify-center h-full gap-2" style={{ color: 'hsl(40 4% 55%)' }}>
-                <Activity className="w-8 h-8 opacity-20" />
-                <p className="text-xs">{he ? 'ממתין להודעות...' : 'Waiting for messages...'}</p>
+              <div className="flex flex-col items-center justify-center h-full gap-3" style={{ color: 'hsl(40 4% 55%)' }}>
+                {whatsappData.source === 'supabase' ? (
+                  <>
+                    <WifiOff className="w-8 h-8 opacity-20" />
+                    <p className="text-xs font-medium">{he ? 'שירות WA Listener לא פעיל' : 'WA Listener Service Offline'}</p>
+                    <p className="text-[10px] text-center max-w-[200px]" style={{ color: 'hsl(40 4% 65%)' }}>
+                      {he ? 'הנתונים מגיעים מה-DB. הפעל את ה-wa-listener לצפייה בזמן אמת.' : 'Data from DB. Start wa-listener for real-time view.'}
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <Activity className="w-8 h-8 opacity-20" />
+                    <p className="text-xs">{he ? 'ממתין להודעות...' : 'Waiting for messages...'}</p>
+                  </>
+                )}
               </div>
             )}
           </div>

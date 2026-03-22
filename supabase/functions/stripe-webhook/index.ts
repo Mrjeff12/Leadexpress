@@ -90,6 +90,17 @@ Deno.serve(async (req: Request) => {
         break;
       }
 
+      // ── Plan/Price sync events ─────────────────────────────────────
+      case "product.updated":
+        await handleProductUpdated(event.data.object as Stripe.Product);
+        break;
+      case "price.updated":
+        await handlePriceUpdated(event.data.object as Stripe.Price);
+        break;
+      case "price.created":
+        await handlePriceCreated(event.data.object as Stripe.Price);
+        break;
+
       default:
         console.log(`[webhook] Unhandled event: ${event.type}`);
     }
@@ -320,6 +331,151 @@ async function handleChargeRefunded(charge: Stripe.Charge) {
     }
   } catch (err) {
     console.error("[webhook] Commission clawback error (non-blocking):", err);
+  }
+}
+
+// ── Plan / Price Sync Handlers ────────────────────────────────────────────
+
+async function handleProductUpdated(product: Stripe.Product) {
+  const { data: plan, error: lookupErr } = await supabase
+    .from("plans")
+    .select("id, name, is_active")
+    .eq("stripe_product_id", product.id)
+    .maybeSingle();
+
+  if (lookupErr) {
+    console.error("[webhook] product.updated — lookup error:", lookupErr.message);
+    return;
+  }
+
+  if (!plan) {
+    console.log(`[webhook] product.updated — no plan found for product ${product.id}, skipping`);
+    return;
+  }
+
+  const updates: Record<string, unknown> = { name: product.name };
+  if (!product.active) {
+    updates.is_active = false;
+  }
+
+  const { error: updateErr } = await supabase
+    .from("plans")
+    .update(updates)
+    .eq("id", plan.id);
+
+  if (updateErr) {
+    console.error("[webhook] product.updated — failed to update plan:", updateErr.message);
+  } else {
+    console.log(
+      `[webhook] product.updated — plan ${plan.id} synced: name="${product.name}", active=${product.active}`,
+    );
+  }
+}
+
+async function handlePriceUpdated(price: Stripe.Price) {
+  const productId = typeof price.product === "string" ? price.product : price.product?.id;
+  if (!productId) {
+    console.warn("[webhook] price.updated — no product ID on price, skipping");
+    return;
+  }
+
+  const { data: plan, error: lookupErr } = await supabase
+    .from("plans")
+    .select("id, stripe_price_id, stripe_yearly_price_id, price_cents")
+    .eq("stripe_product_id", productId)
+    .maybeSingle();
+
+  if (lookupErr) {
+    console.error("[webhook] price.updated — lookup error:", lookupErr.message);
+    return;
+  }
+
+  if (!plan) {
+    console.log(`[webhook] price.updated — no plan found for product ${productId}, skipping`);
+    return;
+  }
+
+  if (!price.active) {
+    console.warn(
+      `[webhook] price.updated — price ${price.id} is now inactive (plan ${plan.id})`,
+    );
+  }
+
+  if (price.id === plan.stripe_price_id) {
+    const { error: updateErr } = await supabase
+      .from("plans")
+      .update({ price_cents: price.unit_amount })
+      .eq("id", plan.id);
+
+    if (updateErr) {
+      console.error("[webhook] price.updated — failed to update price_cents:", updateErr.message);
+    } else {
+      console.log(
+        `[webhook] price.updated — plan ${plan.id} price_cents updated to ${price.unit_amount}`,
+      );
+    }
+  } else if (price.id === plan.stripe_yearly_price_id) {
+    console.log(
+      `[webhook] price.updated — yearly price ${price.id} updated for plan ${plan.id} (tracked separately)`,
+    );
+  } else {
+    console.log(
+      `[webhook] price.updated — price ${price.id} does not match plan ${plan.id} monthly/yearly price IDs, skipping`,
+    );
+  }
+}
+
+async function handlePriceCreated(price: Stripe.Price) {
+  const productId = typeof price.product === "string" ? price.product : price.product?.id;
+  if (!productId) {
+    console.warn("[webhook] price.created — no product ID on price, skipping");
+    return;
+  }
+
+  const { data: plan, error: lookupErr } = await supabase
+    .from("plans")
+    .select("id, stripe_price_id, stripe_yearly_price_id")
+    .eq("stripe_product_id", productId)
+    .maybeSingle();
+
+  if (lookupErr) {
+    console.error("[webhook] price.created — lookup error:", lookupErr.message);
+    return;
+  }
+
+  if (!plan) {
+    console.log(`[webhook] price.created — no plan found for product ${productId}, skipping`);
+    return;
+  }
+
+  const interval = price.recurring?.interval;
+  const updates: Record<string, unknown> = {};
+
+  if (interval === "month" && !plan.stripe_price_id) {
+    updates.stripe_price_id = price.id;
+    updates.price_cents = price.unit_amount;
+  } else if (interval === "year" && !plan.stripe_yearly_price_id) {
+    updates.stripe_yearly_price_id = price.id;
+  }
+
+  if (Object.keys(updates).length === 0) {
+    console.log(
+      `[webhook] price.created — price ${price.id} (interval=${interval}) not auto-linked to plan ${plan.id} (slots already filled or one-time price)`,
+    );
+    return;
+  }
+
+  const { error: updateErr } = await supabase
+    .from("plans")
+    .update(updates)
+    .eq("id", plan.id);
+
+  if (updateErr) {
+    console.error("[webhook] price.created — failed to update plan:", updateErr.message);
+  } else {
+    console.log(
+      `[webhook] price.created — plan ${plan.id} linked: ${JSON.stringify(updates)}`,
+    );
   }
 }
 

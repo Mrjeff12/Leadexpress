@@ -16,7 +16,7 @@ import '@xyflow/react/dist/style.css'
 import { Plus, Rocket, Loader2, Bot, Wrench, Clock } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import BotAgentNode, { type BotAgentNodeData } from '../../components/admin/BotAgentNode'
-import BotEditorPanel from '../../components/admin/BotEditorPanel'
+import BotEditorPanel, { type BotAgent as EditorBotAgent, type BotTool as EditorBotTool } from '../../components/admin/BotEditorPanel'
 
 /* ─── Types ─────────────────────────────────────────────────────── */
 
@@ -25,6 +25,9 @@ interface BotTool {
   slug: string
   name: string
   description: string
+  parameters?: any
+  handler_type?: string
+  is_active?: boolean
 }
 
 interface BotAgentTool {
@@ -39,7 +42,14 @@ interface BotAgent {
   icon: string
   color: string
   model: string
-  system_prompt: string
+  instructions: string
+  temperature?: number
+  guardrails?: {
+    max_tokens?: number
+    pii_filter?: boolean
+    blocked_words?: string[]
+    language_lock?: string
+  }
   is_active: boolean
   is_entry_point: boolean
   handoff_targets: string[]
@@ -60,7 +70,8 @@ const nodeTypes = { botAgent: BotAgentNode }
 
 /* ─── Debounced position saver ──────────────────────────────────── */
 
-function useDebouncedPositionSave(delay = 800) {
+function useDebouncedPositionSave(delay?: number) {
+  delay = delay ?? 800
   const pending = useRef<Map<string, { x: number; y: number }>>(new Map())
   const timer = useRef<ReturnType<typeof setTimeout>>()
 
@@ -199,7 +210,7 @@ function BotMissionControlInner() {
   const [nodes, setNodes, onNodesChange] = useNodesState<Node>([])
   const [edges, setEdges] = useEdgesState<Edge>([])
 
-  const savePosition = useDebouncedPositionSave()
+  const savePosition = useDebouncedPositionSave(800)
 
   /* ── Fetch data ──────────────────────────────────────────────── */
 
@@ -310,7 +321,7 @@ function BotMissionControlInner() {
           icon: input.icon,
           color: input.color,
           model: 'gpt-4o-mini',
-          system_prompt: '',
+          instructions: '',
           is_active: false,
           is_entry_point: false,
           handoff_targets: [],
@@ -485,10 +496,34 @@ function BotMissionControlInner() {
             style={{ background: BG_BAR, borderColor: BORDER_SUBTLE }}
           >
             <BotEditorPanel
-              agent={selectedAgent}
-              agents={agents}
-              tools={tools}
-              onSave={handleSaveAgent}
+              agent={(() => {
+                const full = agents.find(a => a.id === selectedAgent.id)
+                if (!full) return null
+                return {
+                  id: full.id,
+                  slug: full.slug,
+                  name: full.name,
+                  description: full.description,
+                  instructions: full.instructions,
+                  model: full.model,
+                  temperature: full.temperature ?? 0.7,
+                  handoff_targets: full.handoff_targets,
+                  guardrails: full.guardrails ?? {},
+                  color: full.color,
+                  icon: full.icon,
+                  is_active: full.is_active,
+                  is_entry_point: full.is_entry_point,
+                  position_x: full.position_x,
+                  position_y: full.position_y,
+                } as EditorBotAgent
+              })()}
+              agents={agents as unknown as EditorBotAgent[]}
+              tools={tools.map(t => {
+                const fullAgent = agents.find(a => a.id === selectedAgent?.id)
+                const assignedSlugs = fullAgent?.bot_agent_tools?.map(at => at.bot_tools?.slug) ?? []
+                return { ...t, parameters: t.parameters ?? {}, handler_type: t.handler_type ?? 'api', is_active: t.is_active ?? true, assigned: assignedSlugs.includes(t.slug) } as EditorBotTool
+              })}
+              onSave={handleSaveAgent as (agent: Partial<EditorBotAgent>) => void}
               onClose={() => setSelectedAgent(null)}
             />
           </div>

@@ -8,6 +8,7 @@ import ErrorBoundary from './components/ErrorBoundary'
 import Sidebar from './components/Sidebar'
 import ImpersonationBanner from './components/ImpersonationBanner'
 import Login from './pages/Login'
+import AutoLogin from './pages/AutoLogin'
 import RequireSubscription from './components/Paywall'
 import SubscriptionBanner from './components/SubscriptionBanner'
 import { supabase } from './lib/supabase'
@@ -204,6 +205,7 @@ function App() {
                 <Routes>
                   <Route path="/portal/job/:token" element={<JobPortal />} />
                   <Route path="/login" element={<Login />} />
+                  <Route path="/auto-login" element={<AutoLogin />} />
                   <Route path="/admin/*" element={
                     <RequireAuth><RequireAdmin><AdminLayout /></RequireAdmin></RequireAuth>
                   } />

@@ -35,6 +35,9 @@ const Alerts = lazy(() => import('../../pages/admin/Alerts'))
 const Coupons = lazy(() => import('../../pages/admin/Coupons'))
 const Products = lazy(() => import('../../pages/admin/Products'))
 
+// Growth
+const GrowthDashboard = lazy(() => import('../../pages/admin/GrowthDashboard'))
+
 // Settings
 const Professions = lazy(() => import('../../pages/admin/Professions'))
 const SystemSettings = lazy(() => import('../../pages/admin/SystemSettings'))
@@ -63,6 +66,8 @@ const TAB_COMPONENTS: Record<string, React.LazyExoticComponent<() => React.JSX.E
   'finance/alerts': Alerts,
   'finance/coupons': Coupons,
   'finance/products': Products,
+  // Growth
+  'growth/dashboard': GrowthDashboard,
   // Settings
   'settings/professions': Professions,
   'settings/system': SystemSettings,

@@ -8,11 +8,29 @@ const supabase = createClient(
   Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
 );
 
-const TWILIO_SID = Deno.env.get('TWILIO_ACCOUNT_SID')!;
-const TWILIO_TOKEN = Deno.env.get('TWILIO_AUTH_TOKEN')!;
-const TWILIO_FROM = Deno.env.get('TWILIO_WA_FROM') ?? 'whatsapp:+14155238886';
-const TWILIO_URL = `https://api.twilio.com/2010-04-01/Accounts/${TWILIO_SID}/Messages.json`;
-const TWILIO_AUTH = 'Basic ' + btoa(`${TWILIO_SID}:${TWILIO_TOKEN}`);
+// Secrets loaded lazily via RPC (not env vars) — matches production pattern
+let TWILIO_SID = '', TWILIO_TOKEN = '', TWILIO_FROM = '', OPENAI_KEY_OVERRIDE = '';
+let _secretsLoaded = false;
+
+async function loadSecrets() {
+  if (_secretsLoaded) return;
+  const { data } = await supabase.rpc('get_twilio_secrets');
+  if (data) {
+    TWILIO_SID = data.TWILIO_ACCOUNT_SID || '';
+    TWILIO_TOKEN = data.TWILIO_AUTH_TOKEN || '';
+    TWILIO_FROM = data.TWILIO_WA_FROM || '';
+    OPENAI_KEY_OVERRIDE = data.OPENAI_API_KEY || '';
+  }
+  _secretsLoaded = true;
+  console.log('[secrets] loaded, SID=' + TWILIO_SID.substring(0, 6) + '...');
+}
+
+function getTwilioUrl() {
+  return `https://api.twilio.com/2010-04-01/Accounts/${TWILIO_SID}/Messages.json`;
+}
+function getTwilioAuth() {
+  return 'Basic ' + btoa(`${TWILIO_SID}:${TWILIO_TOKEN}`);
+}
 
 // ── Content Template SIDs (Quick Reply Buttons + CTA) ───────────────────────
 const CONTENT = {
@@ -108,6 +126,13 @@ Deno.serve(async (req: Request) => {
     return new Response('Method not allowed', { status: 405 });
   }
 
+  // Load secrets from DB (lazy, cached after first call)
+  await loadSecrets();
+  if (!TWILIO_SID) {
+    console.error('[webhook] No Twilio secrets found');
+    return twiml();
+  }
+
   try {
     // Parse form data into a plain object for both signature verification and field access
     const formData = await req.formData();
@@ -157,8 +182,19 @@ Deno.serve(async (req: Request) => {
 // ── Router ──────────────────────────────────────────────────────────────────
 
 async function routeMessage(phone: string, text: string, textLower: string, buttonPayload: string): Promise<void> {
+  // Resolve prospect for message logging (creates if needed)
+  _currentProspectId = await findOrCreateProspect(phone);
+
+  // Log incoming message
+  if (_currentProspectId && text) {
+    logMessage(_currentProspectId, 'incoming', text);
+  }
+
   // 0. Handle button payloads first (from Quick Reply clicks)
   if (buttonPayload) {
+    if (_currentProspectId && !text) {
+      logMessage(_currentProspectId, 'incoming', `[Button: ${buttonPayload}]`);
+    }
     await handleButtonPayload(phone, buttonPayload, text);
     return;
   }
@@ -189,7 +225,35 @@ async function routeMessage(phone: string, text: string, textLower: string, butt
     // Unknown user — try matching by phone field
     const profileByPhone = await findProfileByPhone(phone);
     if (!profileByPhone) {
-      await sendText(phone, `Welcome! 👋\n\nYou don't have a LeadExpress account yet.\nVisit leadexpress.com to start your free trial.`);
+      // ── AUTO-CREATE PROSPECT + START ONBOARDING ──
+      console.log(`[onboard] New prospect from ${phone}`);
+
+      // Update prospect stage to onboarding
+      if (_currentProspectId) {
+        await supabase.from('prospects')
+          .update({ stage: 'onboarding', last_contact_at: new Date().toISOString() })
+          .eq('id', _currentProspectId);
+      }
+
+      // Start onboarding — store prospectId (not userId) in wa_onboard_state
+      await supabase.from('wa_onboard_state').upsert({
+        phone,
+        step: 'profession',
+        data: {
+          prospectId: _currentProspectId,
+          userId: null,
+          professions: [], cities: [], zipCodes: [], state: '', workingDays: [1,2,3,4,5],
+        },
+        updated_at: new Date().toISOString(),
+      });
+
+      await sendText(phone,
+        `Welcome to MasterLeadFlow! 🔧\n\nLet's set up your profile so we can send you matching job leads.\n\n` +
+        `*Step 1:* What type of work do you do?\n\n` +
+        `1️⃣ ❄️ HVAC / AC\n2️⃣ 🔨 Renovation\n3️⃣ 🧱 Fencing & Railing\n4️⃣ ✨ Cleaning\n` +
+        `5️⃣ 🔑 Locksmith\n6️⃣ 🚰 Plumbing\n7️⃣ ⚡ Electrical\n8️⃣ 📋 Other\n\n` +
+        `Example: *1, 6*`,
+      );
       return;
     }
     // Link WhatsApp and continue
@@ -204,9 +268,23 @@ async function routeMessage(phone: string, text: string, textLower: string, butt
 // ── Button Payload Router ───────────────────────────────────────────────────
 
 async function handleButtonPayload(phone: string, payload: string, _text: string): Promise<void> {
+  // Allow onboarding buttons for prospect-only users (no profile required)
+  if (payload === 'confirm_yes' || payload === 'confirm_redo') {
+    const { data: onboardState } = await supabase
+      .from('wa_onboard_state')
+      .select('*')
+      .eq('phone', phone)
+      .eq('step', 'confirm')
+      .maybeSingle();
+    if (onboardState) {
+      await onboardConfirm(phone, payload === 'confirm_yes' ? 'yes' : 'redo', onboardState.data as Record<string, unknown>);
+      return;
+    }
+  }
+
   const profile = await findProfile(phone) ?? await findProfileByPhone(phone);
   if (!profile) {
-    await sendText(phone, `Please connect your account first. Visit leadexpress.com`);
+    await sendText(phone, `Please connect your account first. Visit masterleadflow.com`);
     return;
   }
 
@@ -359,7 +437,7 @@ async function handleKnownUser(
   // Check subscription (every interaction)
   const hasSub = await checkSubscription(profile.id);
   if (!hasSub) {
-    await sendText(phone, `Hi ${profile.full_name}! Your subscription has expired.\nVisit leadexpress.com to renew.`);
+    await sendText(phone, `Hi ${profile.full_name}! Your subscription has expired.\nVisit masterleadflow.com to renew.`);
     return;
   }
 
@@ -443,7 +521,7 @@ async function handleConnectionCode(phone: string, codePrefix: string): Promise<
     .maybeSingle();
 
   if (!profile) {
-    await sendText(phone, `Invalid connection code. Please try again from your LeadExpress dashboard.`);
+    await sendText(phone, `Invalid connection code. Please try again from your MasterLeadFlow dashboard.`);
     console.log(`[connect] No profile found for code prefix: ${codePrefix}`);
     return;
   }
@@ -699,7 +777,7 @@ async function startOnboarding(phone: string, profile: { id: string; full_name: 
   const firstName = profile.full_name.split(' ')[0];
   await sendText(
     phone,
-    `Welcome to LeadExpress, ${firstName}! 🔧\n\nLet's set up your profile.\n\n*Step 1:* What type of work do you do?\nReply with numbers:\n\n1️⃣ ❄️ HVAC / AC\n2️⃣ 🔨 Renovation\n3️⃣ 🧱 Fencing & Railing\n4️⃣ ✨ Cleaning\n5️⃣ 🔑 Locksmith\n6️⃣ 🚰 Plumbing\n7️⃣ ⚡ Electrical\n8️⃣ 📋 Other\n\nExample: *1, 6*`,
+    `Welcome to MasterLeadFlow, ${firstName}! 🔧\n\nLet's set up your profile.\n\n*Step 1:* What type of work do you do?\nReply with numbers:\n\n1️⃣ ❄️ HVAC / AC\n2️⃣ 🔨 Renovation\n3️⃣ 🧱 Fencing & Railing\n4️⃣ ✨ Cleaning\n5️⃣ 🔑 Locksmith\n6️⃣ 🚰 Plumbing\n7️⃣ ⚡ Electrical\n8️⃣ 📋 Other\n\nExample: *1, 6*`,
   );
 }
 
@@ -945,25 +1023,113 @@ async function onboardConfirm(phone: string, textLower: string, data: Record<str
   }
 
   // Save to DB
-  const userId = data.userId as string;
-  await supabase.from('contractors').update({
-    professions: data.professions,
-    zip_codes: data.zipCodes,
-    wa_notify: true,
-    is_active: true,
-    working_days: data.workingDays,
-  }).eq('user_id', userId);
+  const userId = data.userId as string | null;
+  const prospectId = data.prospectId as string | null;
+
+  if (userId) {
+    // Known user — save to contractors table
+    await supabase.from('contractors').update({
+      professions: data.professions,
+      zip_codes: data.zipCodes,
+      wa_notify: true,
+      is_active: true,
+      working_days: data.workingDays,
+    }).eq('user_id', userId);
+  }
+
+  if (prospectId && !userId) {
+    // ── HYBRID: Auto-create full account from WhatsApp onboarding ──
+    const professions = (data.professions as string[]) || [];
+    const zipCodes = (data.zipCodes as string[]) || [];
+    const workingDays = (data.workingDays as number[]) || [];
+    const cities = (data.cities as string[]) || [];
+
+    try {
+      // 1. Create auth user (phone-based, no password needed)
+      const phoneForAuth = phone.startsWith('+') ? phone : '+' + phone;
+      const { data: authUser, error: authError } = await supabase.auth.admin.createUser({
+        phone: phoneForAuth,
+        phone_confirm: true,
+        user_metadata: { full_name: phone, source: 'whatsapp_onboarding' },
+      });
+
+      if (authError || !authUser?.user) {
+        console.error('[onboard] Auth create error:', authError);
+        // Fallback: save to prospect only
+        await supabase.from('prospects').update({
+          stage: 'in_conversation',
+          profession_tags: professions,
+          notes: `Onboarded via WhatsApp (auth failed). Cities: ${cities.join(', ')}.`,
+          last_contact_at: new Date().toISOString(),
+        }).eq('id', prospectId);
+      } else {
+        const newUserId = authUser.user.id;
+        console.log(`[onboard] Auth user created: ${newUserId}`);
+
+        // 2. Profile created by trigger (handle_new_user), update with phone
+        await supabase.from('profiles').update({
+          whatsapp_phone: phone,
+          phone: phoneForAuth,
+        }).eq('id', newUserId);
+
+        // 3. Create contractor record
+        await supabase.from('contractors').insert({
+          user_id: newUserId,
+          professions,
+          zip_codes: zipCodes,
+          wa_notify: true,
+          is_active: true,
+          working_days: workingDays,
+        });
+
+        // 4. Create 7-day trial subscription (Starter plan)
+        const STARTER_PLAN_ID = 'ceb41e5b-5346-4de2-93e1-ead9ae5fcd57';
+        await supabase.from('subscriptions').insert({
+          user_id: newUserId,
+          plan_id: STARTER_PLAN_ID,
+          status: 'trialing',
+          current_period_end: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+        });
+
+        // 5. Link prospect to auth user
+        await supabase.from('prospects').update({
+          stage: 'demo_trial',
+          user_id: newUserId,
+          profession_tags: professions,
+          last_contact_at: new Date().toISOString(),
+        }).eq('id', prospectId);
+
+        console.log(`[onboard] Full account created: ${newUserId}, trial 7 days`);
+      }
+    } catch (err) {
+      console.error('[onboard] Account creation error:', err);
+    }
+  }
 
   // Clear onboarding state
   await supabase.from('wa_onboard_state').delete().eq('phone', phone);
 
-  await sendText(phone, `✅ *All set!*\n\nYou'll get your first check-in tomorrow morning.\nLeads matching your profile will come straight here.\n\nSend *MENU* anytime for options.`);
-  console.log(`[onboard] Complete: ${userId}`);
+  if (userId) {
+    // Known user completing setup
+    await sendText(phone, `✅ *All set!*\n\nYou'll get your first check-in tomorrow morning.\nLeads matching your profile will come straight here.\n\nSend *MENU* anytime for options.`);
+    console.log(`[onboard] Complete: ${userId}`);
+  } else {
+    // New user from WhatsApp — full account created
+    await sendText(phone,
+      `✅ *You're all set!*\n\n` +
+      `🎉 Your 7-day free trial has started.\n` +
+      `Leads matching your profile will come straight here!\n\n` +
+      `🗺️ *Fine-tune your service areas:*\n` +
+      `👉 app.masterleadflow.com/settings?tab=areas\n\n` +
+      `Send *MENU* anytime for options.`
+    );
+  }
 }
 
 // ── Multi-Agent Engine (DB-driven, OpenAI Responses API) ─────────────────────
 
-const OPENAI_KEY = Deno.env.get('OPENAI_API_KEY') ?? '';
+// Use DB-loaded key if available, fall back to env var
+function getOpenAIKey() { return OPENAI_KEY_OVERRIDE || Deno.env.get('OPENAI_API_KEY') || ''; }
 
 // Cache agents for the lifetime of this Edge Function invocation (~same request)
 let _agentCache: Array<{
@@ -1019,7 +1185,7 @@ async function routeToAgent(text: string, agents: typeof _agentCache): Promise<s
   try {
     const res = await fetch('https://api.openai.com/v1/responses', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${OPENAI_KEY}` },
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getOpenAIKey()}` },
       body: JSON.stringify({
         model: router.model,
         instructions: router.instructions,
@@ -1055,7 +1221,7 @@ async function routeToAgent(text: string, agents: typeof _agentCache): Promise<s
 }
 
 async function handleAI(phone: string, text: string, profile: { id: string; full_name: string }): Promise<void> {
-  if (!OPENAI_KEY) {
+  if (!getOpenAIKey()) {
     await sendText(phone, `Send *MENU* for options.`);
     return;
   }
@@ -1136,7 +1302,7 @@ async function handleAI(phone: string, text: string, profile: { id: string; full
 
     const res = await fetch('https://api.openai.com/v1/responses', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${OPENAI_KEY}` },
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getOpenAIKey()}` },
       body: JSON.stringify(body),
     });
 
@@ -1148,7 +1314,7 @@ async function handleAI(phone: string, text: string, profile: { id: string; full
         delete body.previous_response_id;
         const retry = await fetch('https://api.openai.com/v1/responses', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${OPENAI_KEY}` },
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getOpenAIKey()}` },
           body: JSON.stringify(body),
         });
         if (!retry.ok) {
@@ -1312,23 +1478,27 @@ async function executeAIFunction(phone: string, fnName: string, profile: { id: s
 // ── Post Job Flow ────────────────────────────────────────────────────────────
 // Contractor posts a job from the field → AI collects details → publishes to matching contractors
 
-const POST_JOB_SYSTEM = `You are collecting job details from a contractor who wants to publish work for other contractors.
+const POST_JOB_SYSTEM = `You are Rebeca, a smart AI assistant helping contractors publish jobs to other contractors on the MasterLeadFlow network.
 You speak English and Hebrew — match the user's language.
-Keep responses SHORT (1-2 sentences).
+Keep responses SHORT (1-2 sentences, WhatsApp style).
 
-You need to collect:
-1. profession - What type of work? (hvac, renovation, fencing, cleaning, locksmith, plumbing, electrical, other)
-2. city - Which city/area?
-3. description - What needs to be done? (brief)
-4. urgency - How urgent? (today, this_week, flexible)
-5. budget - Budget estimate? (optional)
+CRITICAL: ANALYZE THE FIRST MESSAGE CAREFULLY. Users often provide ALL details in a single message.
+If you can extract all required fields from the message, call publish_job IMMEDIATELY — do NOT ask questions you already have answers to.
 
-When you have ALL required fields (profession, city, description, urgency), call publish_job.
-If a field is missing, ask for it naturally.
-NEVER include customer phone, address, or personal info in the description.
-If the user provides such info, strip it out.
+Required fields:
+1. profession - Extract from context. Map to: hvac, renovation, fencing, cleaning, locksmith, plumbing, electrical, painting, roofing, flooring, air_duct, other
+   Examples: "תיקון מזגן"→hvac, "AC repair"→hvac, "fence install"→fencing, "deep clean"→cleaning
+2. city - Extract city name from context (e.g. "פורט לוטרדר"→Fort Lauderdale, "מיאמי"→Miami)
+3. description - Summarize the work needed in 1 sentence. Strip ALL personal info (phone, address, names).
+4. urgency - Infer from context: "just finished there"→today, "need someone"→this_week, otherwise→flexible
+5. budget - Optional. Extract if mentioned (e.g. "20% על העבודה"→"20% commission")
 
-IMPORTANT: Extract the profession as one of: hvac, renovation, fencing, cleaning, locksmith, plumbing, electrical, other.`;
+RULES:
+- If ALL required fields can be extracted → call publish_job RIGHT AWAY
+- If only 1-2 fields are missing → ask for just those specific fields
+- NEVER re-ask for information already provided
+- NEVER include customer phone, address, or personal info in the description
+- Be encouraging: "מעולה! מפרסם עכשיו..." / "Great! Publishing now..."`;
 
 const POST_JOB_FUNCTIONS = [
   {
@@ -1337,7 +1507,7 @@ const POST_JOB_FUNCTIONS = [
     parameters: {
       type: 'object',
       properties: {
-        profession: { type: 'string', enum: ['hvac', 'renovation', 'fencing', 'cleaning', 'locksmith', 'plumbing', 'electrical', 'other'] },
+        profession: { type: 'string', enum: ['hvac', 'renovation', 'fencing', 'cleaning', 'locksmith', 'plumbing', 'electrical', 'painting', 'roofing', 'flooring', 'air_duct', 'other'] },
         city: { type: 'string' },
         description: { type: 'string', description: 'Brief job description WITHOUT personal info' },
         urgency: { type: 'string', enum: ['today', 'this_week', 'flexible'] },
@@ -1366,7 +1536,7 @@ async function startPostJob(phone: string, profile: { id: string; full_name: str
 }
 
 async function handlePostJobMessage(phone: string, text: string, state: { data: Record<string, unknown> }): Promise<void> {
-  if (!OPENAI_KEY) {
+  if (!getOpenAIKey()) {
     await sendText(phone, `AI not configured. Send *MENU* for options.`);
     return;
   }
@@ -1383,7 +1553,7 @@ async function handlePostJobMessage(phone: string, text: string, state: { data: 
   try {
     const res = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${OPENAI_KEY}` },
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getOpenAIKey()}` },
       body: JSON.stringify({
         model: 'gpt-4o-mini',
         messages: [
@@ -1530,6 +1700,75 @@ async function findProfileByPhone(phone: string) {
   return data;
 }
 
+// ── Prospect auto-creation + message logging ──────────────────────────────
+
+// Per-request context for message logging (safe: Edge Functions process one request at a time)
+let _currentProspectId: string | null = null;
+
+async function findOrCreateProspect(phone: string): Promise<string | null> {
+  const stripped = phone.replace(/^\+/, '');
+  const waId = stripped + '@c.us';
+
+  // Try existing prospect
+  const { data: existing } = await supabase
+    .from('prospects')
+    .select('id')
+    .eq('wa_id', waId)
+    .maybeSingle();
+
+  if (existing) return existing.id;
+
+  // Also try by phone field
+  const { data: byPhone } = await supabase
+    .from('prospects')
+    .select('id')
+    .or(`phone.eq.+${stripped},phone.eq.${stripped}`)
+    .maybeSingle();
+
+  if (byPhone) return byPhone.id;
+
+  // Create new prospect
+  const { data: created, error } = await supabase
+    .from('prospects')
+    .insert({
+      wa_id: waId,
+      phone: phone.startsWith('+') ? phone : '+' + phone,
+      display_name: phone,
+      stage: 'prospect',
+      source: 'whatsapp_inbound',
+    })
+    .select('id')
+    .single();
+
+  if (error) {
+    console.error('[prospect] Create error:', error);
+    return null;
+  }
+  console.log(`[prospect] Created ${created.id} for ${phone}`);
+  return created.id;
+}
+
+function logMessage(
+  prospectId: string,
+  direction: 'incoming' | 'outgoing',
+  content: string,
+  opts?: { messageType?: string; waMessageId?: string; templateId?: string },
+): void {
+  // Fire-and-forget — never block webhook response
+  supabase.from('prospect_messages').insert({
+    prospect_id: prospectId,
+    direction,
+    message_type: opts?.messageType ?? 'text',
+    content: content || '(empty)',
+    channel: 'twilio',
+    wa_message_id: opts?.waMessageId ?? null,
+    template_id: opts?.templateId ?? null,
+    sent_at: new Date().toISOString(),
+  }).then(({ error }) => {
+    if (error) console.error('[msg-log]', error.message);
+  });
+}
+
 async function checkSubscription(userId: string): Promise<boolean> {
   const { data } = await supabase
     .from('subscriptions')
@@ -1545,9 +1784,9 @@ async function sendText(to: string, body: string): Promise<void> {
   const formData = new URLSearchParams({ From: TWILIO_FROM, To: toWa, Body: body });
 
   try {
-    const res = await fetch(TWILIO_URL, {
+    const res = await fetch(getTwilioUrl(), {
       method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded', Authorization: TWILIO_AUTH },
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded', Authorization: getTwilioAuth() },
       body: formData.toString(),
     });
     if (!res.ok) {
@@ -1556,6 +1795,11 @@ async function sendText(to: string, body: string): Promise<void> {
     }
   } catch (err) {
     console.error(`[twilio] Network error:`, err);
+  }
+
+  // Log outgoing message
+  if (_currentProspectId) {
+    logMessage(_currentProspectId, 'outgoing', body);
   }
 }
 
@@ -1567,9 +1811,9 @@ async function sendButtons(to: string, contentSid: string, vars?: Record<string,
   }
 
   try {
-    const res = await fetch(TWILIO_URL, {
+    const res = await fetch(getTwilioUrl(), {
       method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded', Authorization: TWILIO_AUTH },
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded', Authorization: getTwilioAuth() },
       body: formData.toString(),
     });
     if (!res.ok) {
@@ -1583,6 +1827,12 @@ async function sendButtons(to: string, contentSid: string, vars?: Record<string,
     }
   } catch (err) {
     console.error(`[twilio] Network error:`, err);
+  }
+
+  // Log outgoing button message
+  if (_currentProspectId) {
+    const content = vars ? `[Buttons] ${JSON.stringify(vars)}` : `[Template: ${contentSid}]`;
+    logMessage(_currentProspectId, 'outgoing', content, { templateId: contentSid });
   }
 }
 

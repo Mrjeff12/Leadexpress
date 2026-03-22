@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useI18n } from '../../lib/i18n'
 import { supabase } from '../../lib/supabase'
-import { DollarSign, TrendingUp, BarChart3, Users, Loader2, ArrowUpRight } from 'lucide-react'
+import { DollarSign, TrendingUp, BarChart3, Users, ArrowUpRight } from 'lucide-react'
 
 interface SubRow {
   status: string
