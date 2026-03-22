@@ -4,6 +4,7 @@ import { useI18n } from '../lib/i18n'
 import { supabase } from '../lib/supabase'
 import ForwardLeadModal from '../components/ForwardLeadModal'
 import UpsellModal from '../components/UpsellModal'
+import LeadFeedbackButtons from '../components/LeadFeedbackButtons'
 import {
   ResponsiveContainer,
   AreaChart,
@@ -635,6 +636,11 @@ export default function LeadsFeed() {
                           {senderNames[lead.sender_id || ''] || lead.sender_id?.split('@')[0] || 'Unknown Sender'}
                         </span>
                       </div>
+                    </div>
+
+                    {/* Lead Feedback */}
+                    <div className="mt-3">
+                      <LeadFeedbackButtons leadId={lead.id} />
                     </div>
                   </div>
 
