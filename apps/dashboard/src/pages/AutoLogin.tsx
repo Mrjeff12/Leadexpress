@@ -41,32 +41,16 @@ export default function AutoLogin() {
         return
       }
 
-      if (data.access_token && data.refresh_token) {
-        setDebug('Setting session...')
-
-        const { error: sessErr } = await supabase.auth.setSession({
-          access_token: data.access_token,
-          refresh_token: data.refresh_token,
-        })
-
-        if (sessErr) {
-          setStatus('error')
-          setError('Session error: ' + sessErr.message)
-          setDebug('setSession failed: ' + sessErr.message)
-          return
-        }
-
-        setDebug('Session set! Redirecting...')
+      if (data.verify_url) {
+        setDebug('Redirecting to Supabase auth...')
         setStatus('success')
-
-        setTimeout(() => {
-          window.location.href = data.redirect_path || '/'
-        }, 1500)
+        // Redirect to Supabase verify URL — it handles session creation and redirects back
+        window.location.href = data.verify_url
         return
       }
 
       setStatus('error')
-      setError('No session tokens received')
+      setError('No verify URL received')
       setDebug('Full response: ' + JSON.stringify(data))
 
     } catch (err) {

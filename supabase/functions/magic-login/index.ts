@@ -106,7 +106,7 @@ Deno.serve(async (req: Request) => {
         await supabase.auth.admin.updateUserById(tokenRow.user_id, { email, email_confirm: true });
       }
 
-      // Generate session tokens directly (no redirect dependency)
+      // Generate magic link and extract the token from the URL
       const { data: linkData, error: linkErr } = await supabase.auth.admin.generateLink({
         type: 'magiclink',
         email,
@@ -117,23 +117,16 @@ Deno.serve(async (req: Request) => {
         return json({ error: 'Could not generate session' }, 500);
       }
 
-      // Verify the OTP to get actual session tokens
-      const { data: sessionData, error: sessionErr } = await supabase.auth.verifyOtp({
-        type: 'magiclink',
-        token_hash: linkData.properties.hashed_token,
-      });
+      // Build the Supabase auth verify URL that the client will redirect to
+      // This lets Supabase handle the session creation natively (PKCE compatible)
+      const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+      const redirectTo = `${SITE_URL}${tokenRow.redirect_path || '/'}`;
+      const verifyUrl = `${supabaseUrl}/auth/v1/verify?token=${linkData.properties.hashed_token}&type=magiclink&redirect_to=${encodeURIComponent(redirectTo)}`;
 
-      if (sessionErr || !sessionData?.session) {
-        console.error('[magic-login] Session error:', sessionErr);
-        return json({ error: 'Could not create session' }, 500);
-      }
-
-      // Return tokens — client calls setSession()
       return json({
         redirect_path: tokenRow.redirect_path,
-        access_token: sessionData.session.access_token,
-        refresh_token: sessionData.session.refresh_token,
-        type: 'session',
+        verify_url: verifyUrl,
+        type: 'redirect',
       });
     }
 
