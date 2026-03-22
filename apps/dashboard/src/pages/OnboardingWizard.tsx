@@ -1,11 +1,13 @@
 import { useState } from 'react'
 import { useContractorSettings } from '../hooks/useContractorSettings'
+import { useContractorGroupLinks } from '../hooks/useContractorGroupLinks'
 import { useSubscriptionAccess } from '../hooks/useSubscriptionAccess'
 import { PROFESSIONS } from '../lib/professions'
 import { DAY_KEYS, DAY_LABELS, type DayKey } from '../lib/working-hours'
 import { useI18n } from '../lib/i18n'
 import { useToast } from '../components/hooks/use-toast'
 import CoverageMap from '../components/settings/CoverageMap'
+import GroupLinksPanel from '../components/settings/GroupLinksPanel'
 import {
   ArrowRight,
   ArrowLeft,
@@ -16,6 +18,7 @@ import {
   Loader2,
   X,
   Zap,
+  Link,
 } from 'lucide-react'
 
 export default function OnboardingWizard() {
@@ -35,6 +38,8 @@ export default function OnboardingWizard() {
     setWorkingHours,
     save,
   } = useContractorSettings()
+
+  const { links: groupLinks, addLink: addGroupLink, removeLink: removeGroupLink } = useContractorGroupLinks()
 
   const [step, setStep] = useState(0)
   // Track transition direction for slide animation
@@ -62,6 +67,13 @@ export default function OnboardingWizard() {
         : "Mark your zones and we'll match you with nearby leads",
     },
     {
+      label: he ? 'קבוצות WhatsApp' : 'Your Groups',
+      icon: Link,
+      desc: he
+        ? 'שתף לינקים של קבוצות WhatsApp שלך ונתחיל לסרוק עבודות'
+        : "Share your WhatsApp group links and we'll start scanning for jobs",
+    },
+    {
       label: he ? 'שעות עבודה' : 'Schedule',
       icon: Clock,
       desc: he
@@ -73,6 +85,7 @@ export default function OnboardingWizard() {
   function canNext(): boolean {
     if (step === 0) return professions.length > 0
     if (step === 1) return zipCodes.length > 0
+    // Step 2 (groups) is optional — always allow proceeding
     return true
   }
 
@@ -137,7 +150,7 @@ export default function OnboardingWizard() {
         <div
           className="h-full transition-all duration-500 ease-out"
           style={{
-            width: `${((step + 1) / 3) * 100}%`,
+            width: `${((step + 1) / steps.length) * 100}%`,
             background: 'linear-gradient(90deg, #fe5b25, #ff8a5c)',
           }}
         />
@@ -149,7 +162,7 @@ export default function OnboardingWizard() {
           {he ? 'בוא נגדיר את החשבון שלך' : "Let's set up your account"}
         </h2>
         <p className="text-xs text-zinc-400 mt-0.5">
-          {he ? '3 שלבים קצרים — תסיים תוך שניות' : 'Just 3 quick steps — you\'ll be done in seconds'}
+          {he ? '4 שלבים קצרים — תסיים תוך שניות' : 'Just 4 quick steps — you\'ll be done in seconds'}
         </p>
       </div>
 
@@ -329,15 +342,45 @@ export default function OnboardingWizard() {
             </div>
           )}
 
-          {/* ─── Step 2: Working Hours ─── */}
+          {/* ─── Step 2: WhatsApp Groups ─── */}
           {visibleStep === 2 && (
+            <div className="space-y-5">
+              <div className="text-center">
+                <h1 className="text-2xl font-bold text-zinc-900">
+                  {he ? 'קבוצות WhatsApp שלך' : 'Your WhatsApp Groups'}
+                </h1>
+                <p className="text-sm text-zinc-500 mt-1">
+                  {steps[2].desc}
+                </p>
+              </div>
+
+              <GroupLinksPanel
+                links={groupLinks}
+                onAdd={addGroupLink}
+                onRemove={removeGroupLink}
+                compact
+                he={he}
+              />
+
+              {groupLinks.length === 0 && (
+                <p className="text-xs text-amber-600 text-center bg-amber-50 border border-amber-100 rounded-xl px-4 py-2.5">
+                  {he
+                    ? 'אפשר לדלג, אבל הוספת קבוצות = יותר עבודות בשבילך.'
+                    : 'You can skip this, but adding groups means more jobs for you.'}
+                </p>
+              )}
+            </div>
+          )}
+
+          {/* ─── Step 3: Working Hours ─── */}
+          {visibleStep === 3 && (
             <div className="space-y-5">
               <div className="text-center">
                 <h1 className="text-2xl font-bold text-zinc-900">
                   {he ? 'שעות העבודה שלך' : 'Your working hours'}
                 </h1>
                 <p className="text-sm text-zinc-500 mt-1">
-                  {steps[2].desc}
+                  {steps[3].desc}
                 </p>
               </div>
 
@@ -450,7 +493,7 @@ export default function OnboardingWizard() {
             <div />
           )}
 
-          {step < 2 ? (
+          {step < 3 ? (
             <button
               type="button"
               disabled={!canNext() || animating}
