@@ -9,6 +9,7 @@ import Sidebar from './components/Sidebar'
 import ImpersonationBanner from './components/ImpersonationBanner'
 import Login from './pages/Login'
 import AutoLogin from './pages/AutoLogin'
+const CompleteAccount = lazy(() => import('./pages/CompleteAccount'))
 import RequireSubscription from './components/Paywall'
 import SubscriptionBanner from './components/SubscriptionBanner'
 import { supabase } from './lib/supabase'
@@ -206,6 +207,7 @@ function App() {
                   <Route path="/portal/job/:token" element={<JobPortal />} />
                   <Route path="/login" element={<Login />} />
                   <Route path="/auto-login" element={<AutoLogin />} />
+                  <Route path="/complete-account" element={<RequireAuth><CompleteAccount /></RequireAuth>} />
                   <Route path="/admin/*" element={
                     <RequireAuth><RequireAdmin><AdminLayout /></RequireAdmin></RequireAuth>
                   } />
