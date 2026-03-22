@@ -604,8 +604,8 @@ export default function AdminInbox() {
                       )}
                     </div>
 
-                    {/* Name */}
-                    {contractor.full_name && (
+                    {/* Name — only show if it's a real name, not just a phone number */}
+                    {contractor.full_name && !/^\+?\d+$/.test(contractor.full_name) && (
                       <div className="text-[13px] font-semibold text-[#1C1C1E]">{contractor.full_name}</div>
                     )}
 
@@ -624,20 +624,29 @@ export default function AdminInbox() {
                     )}
 
                     {/* Service Areas — State + Counties */}
-                    {contractor.counties.length > 0 && (
-                      <div>
-                        <div className="text-[10px] text-[#8E8E93] mb-1">{he ? 'אזור שירות' : 'Service Area'}</div>
-                        <div className="flex items-center gap-1.5 mb-1.5">
-                          <MapPin className="w-3 h-3 text-[#007AFF]" />
-                          <span className="text-[12px] font-semibold text-[#1C1C1E]">Florida</span>
+                    {(contractor.counties.length > 0 || contractor.zip_codes.length > 0) && (() => {
+                      // Derive state from zip code prefix
+                      const zipToState: Record<string, string> = { '33': 'Florida', '34': 'Florida', '32': 'Florida', '10': 'New York', '11': 'New York', '12': 'New York', '75': 'Texas', '76': 'Texas', '77': 'Texas', '90': 'California', '91': 'California', '92': 'California', '93': 'California', '94': 'California', '95': 'California' }
+                      const firstZip = contractor.zip_codes[0] ?? ''
+                      const state = zipToState[firstZip.substring(0, 2)] ?? 'US'
+                      const counties = contractor.counties.length > 0 ? contractor.counties : []
+                      return (
+                        <div>
+                          <div className="text-[10px] text-[#8E8E93] mb-1">{he ? 'אזור שירות' : 'Service Area'}</div>
+                          <div className="flex items-center gap-1.5 mb-1.5">
+                            <MapPin className="w-3 h-3 text-[#007AFF]" />
+                            <span className="text-[12px] font-semibold text-[#1C1C1E]">{state}</span>
+                          </div>
+                          {counties.length > 0 && (
+                            <div className="flex flex-wrap gap-1">
+                              {counties.map(c => (
+                                <span key={c} className="px-2 py-0.5 rounded text-[10px] font-medium bg-[#007AFF]/8 text-[#007AFF]">{c}</span>
+                              ))}
+                            </div>
+                          )}
                         </div>
-                        <div className="flex flex-wrap gap-1">
-                          {contractor.counties.map(c => (
-                            <span key={c} className="px-2 py-0.5 rounded text-[10px] font-medium bg-[#007AFF]/8 text-[#007AFF]">{c}</span>
-                          ))}
-                        </div>
-                      </div>
-                    )}
+                      )
+                    })()}
 
                     {/* Working Days */}
                     {contractor.working_days.length > 0 && (
