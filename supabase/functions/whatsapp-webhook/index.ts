@@ -1225,14 +1225,33 @@ async function onboardCityState(phone: string, textLower: string, data: Record<s
 async function onboardCity(phone: string, textLower: string, data: Record<string, unknown>): Promise<void> {
   const st = data.state as string;
   const cities = STATE_CITIES[st] ?? [];
-  const nums = textLower.match(/\d+/g)?.map(Number).filter(n => n >= 1 && n <= cities.length) ?? [];
 
-  if (nums.length === 0) {
-    await sendText(phone, `Reply with city numbers (1-${cities.length}).`);
-    return;
+  // Try numbers first
+  const nums = textLower.match(/\d+/g)?.map(Number).filter(n => n >= 1 && n <= cities.length) ?? [];
+  let selectedCities: typeof cities = [];
+
+  if (nums.length > 0) {
+    selectedCities = nums.map(n => cities[n - 1]);
+  } else {
+    // Free-text matching — find cities by name
+    const parts = textLower.split(/[,&\n]+|\band\b/).map(s => s.trim()).filter(Boolean);
+    for (const part of parts) {
+      for (const city of cities) {
+        if (city.label.toLowerCase().includes(part) || city.key.includes(part.replace(/\s+/g, '_'))) {
+          if (!selectedCities.includes(city)) selectedCities.push(city);
+        }
+      }
+    }
+    // Also try matching "all" or "everywhere"
+    if (['all', 'everywhere', 'all of them', 'everything'].includes(textLower)) {
+      selectedCities = [...cities];
+    }
   }
 
-  const selectedCities = nums.map(n => cities[n - 1]);
+  if (selectedCities.length === 0) {
+    await sendText(phone, `Hmm, I didn't find that area. Try typing a city name like *Miami* or *Fort Lauderdale*, or use numbers from the list.\n\n✏️ Type or 🎙️ record.`);
+    return;
+  }
   const allZips = [...new Set(selectedCities.flatMap(c => c.zips))];
 
   data.cities = selectedCities.map(c => c.key);
@@ -1252,20 +1271,27 @@ async function onboardWorkingDays(phone: string, textLower: string, data: Record
   const DAY_NAMES = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
   let days: number[];
 
-  if (textLower === '1' || textLower.includes('mon-fri')) {
+  if (textLower === '1' || textLower.includes('mon-fri') || textLower.includes('weekday') || textLower.includes('monday to friday') || textLower.includes('monday through friday')) {
     days = [1,2,3,4,5];
-  } else if (textLower === '2' || textLower.includes('every')) {
+  } else if (textLower === '2' || textLower.includes('every day') || textLower.includes('everyday') || textLower.includes('all week') || textLower.includes('7 days')) {
     days = [0,1,2,3,4,5,6];
-  } else if (textLower === '3') {
-    await sendText(phone, `Reply with day numbers:\n0=Sun, 1=Mon, 2=Tue, 3=Wed, 4=Thu, 5=Fri, 6=Sat\n\nExample: *1,2,3,4,5*`);
+  } else if (textLower === '3' || textLower === 'custom') {
+    await sendText(phone, `Which days do you work?\n\nJust type them, e.g. *Monday, Tuesday, Friday*\n\n✏️ Type or 🎙️ record.`);
     return;
   } else {
+    // Parse day names from free text
+    const dayMap: Record<string, number> = { 'sun': 0, 'sunday': 0, 'mon': 1, 'monday': 1, 'tue': 2, 'tuesday': 2, 'wed': 3, 'wednesday': 3, 'thu': 4, 'thursday': 4, 'fri': 5, 'friday': 5, 'sat': 6, 'saturday': 6 };
+    const foundDays: number[] = [];
+    for (const [name, num] of Object.entries(dayMap)) {
+      if (textLower.includes(name)) foundDays.push(num);
+    }
+    // Also try digit parsing
     const nums = textLower.match(/\d/g)?.map(Number).filter(n => n >= 0 && n <= 6) ?? [];
-    if (nums.length === 0) {
-      await sendText(phone, `Reply *1* for Mon-Fri, *2* for every day, or *3* for custom.`);
+    days = [...new Set([...foundDays, ...nums])].sort();
+    if (days.length === 0) {
+      await sendText(phone, `Just tell me when you work — for example:\n_"Monday to Friday"_ or _"Every day"_ or _"Mon, Wed, Fri"_\n\n✏️ Type or 🎙️ record.`);
       return;
     }
-    days = [...new Set(nums)].sort();
   }
 
   data.workingDays = days;
