@@ -106,7 +106,7 @@ Deno.serve(async (req: Request) => {
         await supabase.auth.admin.updateUserById(tokenRow.user_id, { email, email_confirm: true });
       }
 
-      // Generate magic link and extract the token from the URL
+      // Generate session directly — no redirects, no race conditions
       const { data: linkData, error: linkErr } = await supabase.auth.admin.generateLink({
         type: 'magiclink',
         email,
@@ -117,9 +117,37 @@ Deno.serve(async (req: Request) => {
         return json({ error: 'Could not generate session' }, 500);
       }
 
-      // Build the Supabase auth verify URL that the client will redirect to
-      // This lets Supabase handle the session creation natively (PKCE compatible)
+      // Verify the token server-side to get actual session tokens
       const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+      const verifyRes = await fetch(
+        `${supabaseUrl}/auth/v1/verify?token=${linkData.properties.hashed_token}&type=magiclink`,
+        {
+          method: 'GET',
+          headers: { 'apikey': Deno.env.get('SUPABASE_ANON_KEY')! },
+          redirect: 'manual', // Don't follow redirects — we want the redirect URL with tokens
+        }
+      );
+
+      // Supabase returns a 303 redirect with tokens in the fragment
+      const location = verifyRes.headers.get('location');
+      if (location && location.includes('access_token=')) {
+        // Parse tokens from the redirect URL fragment
+        const fragment = location.split('#')[1] || '';
+        const params = new URLSearchParams(fragment);
+        const accessToken = params.get('access_token');
+        const refreshToken = params.get('refresh_token');
+
+        if (accessToken && refreshToken) {
+          return json({
+            access_token: accessToken,
+            refresh_token: refreshToken,
+            redirect_path: tokenRow.redirect_path || '/',
+            type: 'session',
+          });
+        }
+      }
+
+      // Fallback: return verify URL for redirect-based flow
       const redirectTo = `${SITE_URL}${tokenRow.redirect_path || '/'}`;
       const verifyUrl = `${supabaseUrl}/auth/v1/verify?token=${linkData.properties.hashed_token}&type=magiclink&redirect_to=${encodeURIComponent(redirectTo)}`;
 

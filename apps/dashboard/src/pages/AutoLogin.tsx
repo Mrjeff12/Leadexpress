@@ -41,16 +41,36 @@ export default function AutoLogin() {
         return
       }
 
+      // Direct session — no redirects, no race conditions
+      if (data.type === 'session' && data.access_token && data.refresh_token) {
+        setDebug('Setting session directly...')
+        const { error: sessErr } = await supabase.auth.setSession({
+          access_token: data.access_token,
+          refresh_token: data.refresh_token,
+        })
+        if (sessErr) {
+          setStatus('error')
+          setError(sessErr.message)
+          return
+        }
+        setStatus('success')
+        // Small delay to let AuthProvider pick up the session
+        setTimeout(() => {
+          window.location.href = data.redirect_path || '/'
+        }, 500)
+        return
+      }
+
+      // Fallback: redirect-based flow
       if (data.verify_url) {
         setDebug('Redirecting to Supabase auth...')
         setStatus('success')
-        // Redirect to Supabase verify URL — it handles session creation and redirects back
         window.location.href = data.verify_url
         return
       }
 
       setStatus('error')
-      setError('No verify URL received')
+      setError('No session received')
       setDebug('Full response: ' + JSON.stringify(data))
 
     } catch (err) {
