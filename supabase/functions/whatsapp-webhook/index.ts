@@ -340,7 +340,9 @@ async function routeMessage(phone: string, text: string, textLower: string, butt
       });
 
       await sendText(phone,
-        `Welcome to MasterLeadFlow! 🔧\n\nLet's set up your profile so we can send you matching job leads.\n\n` +
+        `Hey! I'm Rebeca from MasterLeadFlow 👋\n\n` +
+        `I find local job leads for service pros like you.\n` +
+        `Setup takes 60 seconds!\n\n` +
         `*What's your full name?*`,
       );
       return;
@@ -870,11 +872,17 @@ async function startOnboarding(phone: string, profile: { id: string; full_name: 
   if (hasRealName) {
     const firstName = profile.full_name.split(' ')[0];
     await sendText(phone,
-      `Welcome to MasterLeadFlow, ${firstName}! 🔧\n\nLet's set up your profile.\n\n*Step 1:* What type of work do you do?\nReply with numbers:\n\n1️⃣ ❄️ HVAC / AC\n2️⃣ 🔨 Renovation\n3️⃣ 🧱 Fencing & Railing\n4️⃣ ✨ Cleaning\n5️⃣ 🔑 Locksmith\n6️⃣ 🚰 Plumbing\n7️⃣ ⚡ Electrical\n8️⃣ 🎨 Painting\n9️⃣ 🏠 Roofing\n🔟 🪵 Flooring\n1️⃣1️⃣ 💨 Air Duct\n1️⃣2️⃣ 🌿 Landscaping\n1️⃣3️⃣ 📋 Other\n\nExample: *1, 6*\n🎙️ You can also type or record a voice message.`,
+      `Hey ${firstName}! I'm Rebeca from MasterLeadFlow 👋\n\n` +
+      `*Step 1/5* — What services do you offer?\n\n` +
+      `${PROF_LIST_MSG}\n\n` +
+      `✏️ Type or 🎙️ record what you do.`,
     );
   } else {
     await sendText(phone,
-      `Welcome to MasterLeadFlow! 🔧\n\nLet's set up your profile so we can send you matching job leads.\n\n*What's your full name?*`,
+      `Hey! I'm Rebeca from MasterLeadFlow 👋\n\n` +
+      `I find local job leads for service pros like you.\n` +
+      `Setup takes 60 seconds!\n\n` +
+      `*What's your full name?*`,
     );
   }
 }
@@ -889,10 +897,10 @@ async function startOnboardingStep(phone: string, userId: string, step: string):
 
   switch (step) {
     case 'profession':
-      await sendText(phone, `🔧 *Update Trades*\n\n1️⃣ ❄️ HVAC / AC\n2️⃣ 🔨 Renovation\n3️⃣ 🧱 Fencing & Railing\n4️⃣ ✨ Cleaning\n5️⃣ 🔑 Locksmith\n6️⃣ 🚰 Plumbing\n7️⃣ ⚡ Electrical\n8️⃣ 🎨 Painting\n9️⃣ 🏠 Roofing\n🔟 🪵 Flooring\n1️⃣1️⃣ 💨 Air Duct\n1️⃣2️⃣ 🌿 Landscaping\n1️⃣3️⃣ 📋 Other\n\nReply with numbers: e.g. *1, 6*\n🎙️ You can also type or record a voice message.`);
+      await sendText(phone, `🔧 *Update Services*\n\n${PROF_LIST_MSG}\n\n✏️ Type or 🎙️ record what you do.`);
       break;
     case 'city':
-      await sendText(phone, `📍 *Update Areas*\n\nWhich state?\n\n1️⃣ 🌴 Florida\n2️⃣ 🗽 New York\n3️⃣ 🤠 Texas`);
+      await sendText(phone, `📍 *Update Areas*\n\nWhich state do you serve?\n\n🌴 Florida\n🗽 New York\n🤠 Texas\n\n✏️ Type or 🎙️ record.`);
       break;
     case 'working_days':
       await sendText(phone, `📅 *Working Days*\n\n1️⃣ Mon-Fri\n2️⃣ Every day\n3️⃣ Custom`);
@@ -966,8 +974,46 @@ async function handleOnboardingStep(
 
 // ── Onboarding steps ────────────────────────────────────────────────────────
 
-const PROFESSIONS = ['hvac','renovation','fencing','cleaning','locksmith','plumbing','electrical','painting','roofing','flooring','air_duct','landscaping','other'];
-const PROF_LABELS: Record<string, string> = { hvac:'❄️ HVAC', renovation:'🔨 Renovation', fencing:'🧱 Fencing', cleaning:'✨ Cleaning', locksmith:'🔑 Locksmith', plumbing:'🚰 Plumbing', electrical:'⚡ Electrical', painting:'🎨 Painting', roofing:'🏠 Roofing', flooring:'🪵 Flooring', air_duct:'💨 Air Duct', landscaping:'🌿 Landscaping', other:'📋 Other' };
+const PROFESSIONS = ['hvac','air_duct','renovation','plumbing','electrical','painting','roofing','flooring','fencing','cleaning','locksmith','landscaping','chimney','garage_doors','security','windows','other'];
+const PROF_LABELS: Record<string, string> = { hvac:'❄️ HVAC & AC', air_duct:'💨 Air Duct Cleaning', renovation:'🔨 Renovation & Remodeling', plumbing:'🚰 Plumbing', electrical:'⚡ Electrical', painting:'🎨 Painting', roofing:'🏠 Roofing', flooring:'🪵 Flooring', fencing:'🧱 Fencing & Gates', cleaning:'✨ Cleaning', locksmith:'🔑 Locksmith', landscaping:'🌿 Landscaping', chimney:'🧹 Chimney Sweep', garage_doors:'🚪 Garage Doors', security:'🛡️ Security & Cameras', windows:'🪟 Windows & Doors', other:'📋 Other' };
+
+const PROF_LIST_MSG =
+  `❄️ HVAC & AC\n` +
+  `💨 Air Duct Cleaning\n` +
+  `🔨 Renovation & Remodeling\n` +
+  `🚰 Plumbing\n` +
+  `⚡ Electrical\n` +
+  `🎨 Painting\n` +
+  `🏠 Roofing\n` +
+  `🪵 Flooring\n` +
+  `🧱 Fencing & Gates\n` +
+  `✨ Cleaning\n` +
+  `🔑 Locksmith\n` +
+  `🌿 Landscaping\n` +
+  `🧹 Chimney Sweep\n` +
+  `🚪 Garage Doors\n` +
+  `🛡️ Security & Cameras\n` +
+  `🪟 Windows & Doors`;
+
+// Map common text inputs to profession keys
+const PROF_ALIASES: Record<string, string> = {
+  'hvac': 'hvac', 'ac': 'hvac', 'air conditioning': 'hvac', 'heating': 'hvac',
+  'air duct': 'air_duct', 'duct': 'air_duct', 'duct cleaning': 'air_duct', 'ducts': 'air_duct',
+  'renovation': 'renovation', 'remodeling': 'renovation', 'remodel': 'renovation', 'general contractor': 'renovation',
+  'plumbing': 'plumbing', 'plumber': 'plumbing',
+  'electrical': 'electrical', 'electrician': 'electrical', 'electric': 'electrical',
+  'painting': 'painting', 'painter': 'painting', 'paint': 'painting',
+  'roofing': 'roofing', 'roof': 'roofing', 'roofer': 'roofing',
+  'flooring': 'flooring', 'floor': 'flooring', 'floors': 'flooring', 'tile': 'flooring',
+  'fencing': 'fencing', 'fence': 'fencing', 'gates': 'fencing', 'gate': 'fencing', 'railing': 'fencing',
+  'cleaning': 'cleaning', 'cleaner': 'cleaning', 'maid': 'cleaning', 'janitorial': 'cleaning',
+  'locksmith': 'locksmith', 'locks': 'locksmith', 'lock': 'locksmith',
+  'landscaping': 'landscaping', 'landscape': 'landscaping', 'lawn': 'landscaping', 'garden': 'landscaping',
+  'chimney': 'chimney', 'chimney sweep': 'chimney',
+  'garage': 'garage_doors', 'garage door': 'garage_doors', 'garage doors': 'garage_doors',
+  'security': 'security', 'cameras': 'security', 'alarm': 'security', 'cctv': 'security',
+  'windows': 'windows', 'window': 'windows', 'doors': 'windows', 'door': 'windows',
+};
 
 // Convert number to emoji keycaps (works for 1-99)
 const DIGIT_EMOJI = ['0️⃣','1️⃣','2️⃣','3️⃣','4️⃣','5️⃣','6️⃣','7️⃣','8️⃣','9️⃣'];
@@ -978,7 +1024,7 @@ function numEmoji(n: number): string {
 async function onboardFirstName(phone: string, text: string, data: Record<string, unknown>): Promise<void> {
   const name = text.trim();
   if (!name || name.length < 2 || name.length > 50) {
-    await sendText(phone, `Please enter your first name (2-50 characters).`);
+    await sendText(phone, `Hmm, I didn't catch that. What's your full name?`);
     return;
   }
 
@@ -995,22 +1041,51 @@ async function onboardFirstName(phone: string, text: string, data: Record<string
   }
 
   await sendText(phone,
-    `Hi ${name}! 👋\n\n*Step 1:* What type of work do you do?\n\n` +
-    `1️⃣ ❄️ HVAC / AC\n2️⃣ 🔨 Renovation\n3️⃣ 🧱 Fencing & Railing\n4️⃣ ✨ Cleaning\n` +
-    `5️⃣ 🔑 Locksmith\n6️⃣ 🚰 Plumbing\n7️⃣ ⚡ Electrical\n8️⃣ 🎨 Painting\n` +
-    `9️⃣ 🏠 Roofing\n🔟 🪵 Flooring\n1️⃣1️⃣ 💨 Air Duct\n1️⃣2️⃣ 🌿 Landscaping\n1️⃣3️⃣ 📋 Other\n\n` +
-    `Example: *1, 6*\n🎙️ You can also type or record a voice message.`,
+    `Nice to meet you, ${name}! ⚡\n\n` +
+    `*Step 1/5* — What services do you offer?\n\n` +
+    `${PROF_LIST_MSG}\n\n` +
+    `✏️ Type or 🎙️ record what you do.\n` +
+    `_You can pick from the list or describe your own._`,
   );
 }
 
 async function onboardProfession(phone: string, text: string, data: Record<string, unknown>): Promise<void> {
-  const nums = text.match(/\d+/g)?.map(Number).filter(n => n >= 1 && n <= 13) ?? [];
-  if (nums.length === 0) {
-    await sendText(phone, `Reply with numbers 1-13. Example: *1, 6*`);
+  // Try matching numbers first (backward compat)
+  const nums = text.match(/\d+/g)?.map(Number).filter(n => n >= 1 && n <= PROFESSIONS.length) ?? [];
+  let selected: string[] = [];
+
+  if (nums.length > 0) {
+    selected = [...new Set(nums.map(n => PROFESSIONS[n - 1]))];
+  } else {
+    // Free-text matching — split by comma, "and", newline
+    const parts = text.toLowerCase().split(/[,&\n]+|\band\b/).map(s => s.trim()).filter(Boolean);
+    for (const part of parts) {
+      // Check exact alias match first
+      if (PROF_ALIASES[part]) {
+        selected.push(PROF_ALIASES[part]);
+      } else {
+        // Fuzzy — check if any alias is contained in the text
+        for (const [alias, key] of Object.entries(PROF_ALIASES)) {
+          if (part.includes(alias) || alias.includes(part)) {
+            selected.push(key);
+            break;
+          }
+        }
+      }
+    }
+    selected = [...new Set(selected)];
+  }
+
+  if (selected.length === 0) {
+    await sendText(phone,
+      `Hmm, I didn't catch that.\n\n` +
+      `Just tell me what services you offer — for example:\n` +
+      `_"HVAC and plumbing"_ or _"air duct cleaning"_\n\n` +
+      `✏️ Type or 🎙️ record your answer.`,
+    );
     return;
   }
 
-  const selected = nums.map(n => PROFESSIONS[n - 1]);
   (data as Record<string, unknown>).professions = selected;
 
   await supabase.from('wa_onboard_state').update({
@@ -1020,7 +1095,12 @@ async function onboardProfession(phone: string, text: string, data: Record<strin
   }).eq('phone', phone);
 
   const labels = selected.map(k => PROF_LABELS[k] ?? k).join(', ');
-  await sendText(phone, `Got it: ${labels}\n\n*Step 2:* Which state?\n\n1️⃣ 🌴 Florida\n2️⃣ 🗽 New York\n3️⃣ 🤠 Texas\n\n🎙️ You can type or record a voice message.`);
+  await sendText(phone,
+    `Got it: ${labels} 🔧\n\n` +
+    `*Step 2/5* — Which state do you serve?\n\n` +
+    `🌴 Florida\n🗽 New York\n🤠 Texas\n\n` +
+    `✏️ Type or 🎙️ record your answer.`,
+  );
 }
 
 // City-to-ZIP mapping (inline for Edge Function)
@@ -1066,7 +1146,7 @@ async function onboardCityState(phone: string, textLower: string, data: Record<s
   const selectedState = stateMap[textLower];
 
   if (!selectedState) {
-    await sendText(phone, `Reply *1* for Florida, *2* for New York, or *3* for Texas.`);
+    await sendText(phone, `Just type your state — Florida, New York, or Texas.\n\n✏️ Type or 🎙️ record.`);
     return;
   }
 
@@ -1080,7 +1160,7 @@ async function onboardCityState(phone: string, textLower: string, data: Record<s
     updated_at: new Date().toISOString(),
   }).eq('phone', phone);
 
-  await sendText(phone, `*${selectedState}* — select cities:\n\n${cityList}\n\nReply with numbers: e.g. *1, 3, 5*\nOr type/🎙️ record your areas freely.`);
+  await sendText(phone, `*${selectedState}* — pick your areas:\n\n${cityList}\n\n*Step 3/5* — Reply with numbers (e.g. *1, 3, 5*)\n✏️ Or type/🎙️ record your areas.`);
 }
 
 async function onboardCity(phone: string, textLower: string, data: Record<string, unknown>): Promise<void> {
@@ -1106,7 +1186,7 @@ async function onboardCity(phone: string, textLower: string, data: Record<string
   }).eq('phone', phone);
 
   const labels = selectedCities.map(c => c.label).join(', ');
-  await sendText(phone, `Selected: ${labels} (${allZips.length} ZIPs)\n\n*Step 3:* Working days?\n\n1️⃣ Mon-Fri\n2️⃣ Every day\n3️⃣ Custom\n\n🎙️ You can type or record a voice message.`);
+  await sendText(phone, `📍 ${labels}\n\n*Step 4/5* — When do you work?\n\n1️⃣ Mon–Fri\n2️⃣ Every day\n3️⃣ Custom\n\n✏️ Type or 🎙️ record your answer.`);
 }
 
 async function onboardWorkingDays(phone: string, textLower: string, data: Record<string, unknown>): Promise<void> {
@@ -1150,16 +1230,12 @@ async function onboardWorkingDays(phone: string, textLower: string, data: Record
   const zipCount = ((data.zipCodes as string[]) ?? []).length;
 
   await sendText(phone,
-    `📋 *Your Profile Summary*\n` +
-    `━━━━━━━━━━━━━━━━━━━━\n\n` +
-    `🔧 *Trades*\n${profs}\n\n` +
-    `📍 *State*\n${stateLabel}\n\n` +
-    `🏙️ *Cities*\n${cityNames}\n` +
-    `_(${zipCount} ZIP codes covered)_\n\n` +
-    `📅 *Working Days*\n${dayLabels}\n\n` +
-    `━━━━━━━━━━━━━━━━━━━━\n\n` +
+    `*Step 5/5* — Almost done! Here's your profile:\n\n` +
+    `🔧 ${profs}\n` +
+    `📍 ${stateLabel} — ${cityNames}\n` +
+    `📅 ${dayLabels}\n\n` +
     `✅ Reply *YES* to confirm\n` +
-    `🔄 Reply *REDO* to start over`
+    `🔄 Reply *REDO* to start over`,
   );
 }
 
@@ -1171,7 +1247,7 @@ async function onboardConfirm(phone: string, textLower: string, data: Record<str
       updated_at: new Date().toISOString(),
     }).eq('phone', phone);
 
-    await sendText(phone, `OK! Let's start over.\n\n1️⃣ ❄️ HVAC\n2️⃣ 🔨 Renovation\n3️⃣ 🧱 Fencing\n4️⃣ ✨ Cleaning\n5️⃣ 🔑 Locksmith\n6️⃣ 🚰 Plumbing\n7️⃣ ⚡ Electrical\n8️⃣ 🎨 Painting\n9️⃣ 🏠 Roofing\n🔟 🪵 Flooring\n1️⃣1️⃣ 💨 Air Duct\n1️⃣2️⃣ 🌿 Landscaping\n1️⃣3️⃣ 📋 Other\n\nReply with numbers.\n🎙️ You can also type or record a voice message.`);
+    await sendText(phone, `No problem! Let's start over.\n\n*Step 1/5* — What services do you offer?\n\n${PROF_LIST_MSG}\n\n✏️ Type or 🎙️ record what you do.`);
     return;
   }
 
@@ -1323,11 +1399,17 @@ async function onboardConfirm(phone: string, textLower: string, data: Record<str
 
     await sendText(phone,
       `✅ *Profile saved!*\n\n` +
-      `🎉 Your 7-day free trial has started!\n\n` +
-      `📱 *One more thing:* Share WhatsApp groups where contractors post jobs.\n` +
-      `Just paste the invite links here — we'll join and find leads for you!\n\n` +
-      `Example: https://chat.whatsapp.com/ABC123...\n\n` +
-      `Type *DONE* when finished (or *SKIP* to do this later).`
+      `🎉 Your 7-day free trial is live!\n\n` +
+      `📱 *One more step — this is important!*\n\n` +
+      `Share your WhatsApp contractor groups with me so I can find leads for you.\n\n` +
+      `*How to share a group:*\n` +
+      `1️⃣ Open a WhatsApp group\n` +
+      `2️⃣ Tap the group name at the top\n` +
+      `3️⃣ Scroll down → *Invite via link*\n` +
+      `4️⃣ Tap *Copy link*\n` +
+      `5️⃣ Come back here and paste it\n\n` +
+      `Or just *forward me a group invite* from any chat!\n\n` +
+      `Type *DONE* when finished (or *SKIP* to do this later).`,
     );
   }
 }
@@ -1357,13 +1439,15 @@ async function onboardGroups(phone: string, text: string, textLower: string, dat
         if (ld.link) dashLink = ld.link;
       } catch (_e) { /* fallback to static link */ }
     }
+    const firstName = (data.firstName as string) || '';
     await sendText(phone,
-      `✅ *You're all set!*\n\n` +
-      `🎉 Your 7-day free trial has started.\n` +
-      `Leads matching your profile will come straight here!\n\n` +
-      `📱 *Complete your account:*\n` +
+      `🎉 *You're in${firstName ? ', ' + firstName : ''}!*\n\n` +
+      `Your 7-day free trial is live.\n` +
+      `Leads matching your profile will arrive right here in WhatsApp.\n\n` +
+      `📱 *Open your dashboard:*\n` +
       `👉 ${dashLink}\n\n` +
-      `Send *MENU* anytime for options.`
+      `💡 Tip: You can send me more group links anytime — the more groups, the more leads!\n\n` +
+      `Send *MENU* for options.`,
     );
     return;
   }
