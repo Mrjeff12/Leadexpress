@@ -193,6 +193,7 @@ export default function AdminInbox() {
   // Prospect list
   const [listSearch, setListSearch] = useState('')
   const [filterStage, setFilterStage] = useState<string>('all')
+  const [filterOnboardingStep, setFilterOnboardingStep] = useState<string | null>(null)
   const [displayLimit, setDisplayLimit] = useState(50)
 
   // Group admin tracking — phones of group admins for gold badge
@@ -290,13 +291,17 @@ export default function AdminInbox() {
     } else if (filterStage !== 'all') {
       list = list.filter(p => p.stage === filterStage)
     }
+    // Onboarding sub-step filter
+    if (filterStage === 'onboarding' && filterOnboardingStep) {
+      list = list.filter(p => p.onboarding_step === filterOnboardingStep)
+    }
     if (!listSearch.trim()) return list
     const q = listSearch.toLowerCase()
     return list.filter(p => (p.display_name ?? '').toLowerCase().includes(q) || p.phone.includes(q) || p.profession_tags.some(t => t.toLowerCase().includes(q)))
-  }, [prospectList, listSearch, filterStage, adminPhones])
+  }, [prospectList, listSearch, filterStage, filterOnboardingStep, adminPhones])
 
-  // Reset display limit when filter changes
-  useEffect(() => { setDisplayLimit(50) }, [filterStage, listSearch])
+  // Reset display limit and onboarding step filter when filter changes
+  useEffect(() => { setDisplayLimit(50); if (filterStage !== 'onboarding') setFilterOnboardingStep(null) }, [filterStage, listSearch])
 
   // Select first prospect if none selected and list loads
   useEffect(() => {
@@ -366,6 +371,18 @@ export default function AdminInbox() {
     for (const s of STAGES) counts[s.key] = 0
     for (const p of prospectList) {
       if (counts[p.stage] !== undefined) counts[p.stage]++
+    }
+    return counts
+  }, [prospectList])
+
+  // Onboarding sub-step counts
+  const onboardingStepCounts = useMemo(() => {
+    const counts: Record<string, number> = {}
+    for (const s of ONBOARDING_STEPS) counts[s.key] = 0
+    for (const p of prospectList) {
+      if (p.stage === 'onboarding' && p.onboarding_step && counts[p.onboarding_step] !== undefined) {
+        counts[p.onboarding_step]++
+      }
     }
     return counts
   }, [prospectList])
@@ -495,6 +512,40 @@ export default function AdminInbox() {
           </div>
         </div>
       </div>
+
+      {/* ═══ ONBOARDING SUB-PIPELINE (shown when Onboarding stage is active) ═══ */}
+      {filterStage === 'onboarding' && (
+        <div className="shrink-0 z-20 mx-3 mt-1.5 px-4 py-2 rounded-2xl flex items-center gap-1" style={{ background: 'rgba(255,255,255,0.85)', backdropFilter: C.blur, border: `1px solid ${C.glassBorder}`, boxShadow: '0 2px 12px rgba(0,0,0,0.03)' }}>
+          <Sparkles className="w-3.5 h-3.5 text-amber-500 mr-2 shrink-0" />
+          <span className="text-[10px] font-bold uppercase tracking-wider text-[#8E8E93] mr-3 shrink-0">Steps</span>
+          {ONBOARDING_STEPS.map((s, idx) => {
+            const count = onboardingStepCounts[s.key] || 0
+            const isActive = filterOnboardingStep === s.key
+            const hasStuck = count > 0
+            return (
+              <div key={s.key} className="flex items-center">
+                {idx > 0 && <div className="w-2 h-[1px] bg-black/[0.06] shrink-0" />}
+                <button
+                  onClick={() => setFilterOnboardingStep(filterOnboardingStep === s.key ? null : s.key)}
+                  className="flex items-center gap-1 px-2 py-1 rounded-lg transition-all text-[10px] whitespace-nowrap"
+                  style={{
+                    background: isActive ? '#FF950015' : hasStuck ? '#FF3B3008' : 'transparent',
+                    border: isActive ? '1px solid #FF950030' : '1px solid transparent',
+                  }}
+                >
+                  <span>{s.icon}</span>
+                  <span className={`font-semibold ${isActive ? 'text-[#FF9500]' : hasStuck ? 'text-[#FF3B30]' : 'text-[#8E8E93]'}`}>
+                    {count}
+                  </span>
+                  <span className={`hidden xl:inline ${isActive ? 'text-[#1C1C1E] font-medium' : 'text-[#8E8E93]'}`}>
+                    {s.label}
+                  </span>
+                </button>
+              </div>
+            )
+          })}
+        </div>
+      )}
 
       {/* ═══ MAIN GRID ═══ */}
       <div className="flex-1 grid grid-cols-[320px_1fr_320px] gap-3 p-3 relative z-10 overflow-hidden">
