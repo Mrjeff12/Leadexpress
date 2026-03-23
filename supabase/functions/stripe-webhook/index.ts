@@ -35,18 +35,39 @@ Deno.serve(async (req: Request) => {
       case "checkout.session.completed":
         await handleCheckoutCompleted(event.data.object as Stripe.Checkout.Session);
         break;
-      case "customer.subscription.updated":
-        await handleSubscriptionUpdated(event.data.object as Stripe.Subscription);
+      case "customer.subscription.updated": {
+        const sub = event.data.object as Stripe.Subscription;
+        await handleSubscriptionUpdated(sub);
+        await syncProspectSubStatus(sub.id, event.type, event.id, event.created);
         break;
-      case "customer.subscription.deleted":
-        await handleSubscriptionDeleted(event.data.object as Stripe.Subscription);
+      }
+      case "customer.subscription.deleted": {
+        const sub = event.data.object as Stripe.Subscription;
+        await handleSubscriptionDeleted(sub);
+        await syncProspectSubStatus(sub.id, event.type, event.id, event.created);
         break;
-      case "invoice.payment_succeeded":
-        await handleInvoicePaid(event.data.object as Stripe.Invoice);
+      }
+      case "customer.subscription.paused": {
+        const sub = event.data.object as Stripe.Subscription;
+        await syncProspectSubStatus(sub.id, event.type, event.id, event.created);
         break;
-      case "invoice.payment_failed":
-        await handleInvoiceFailed(event.data.object as Stripe.Invoice);
+      }
+      case "invoice.payment_succeeded": {
+        const inv = event.data.object as Stripe.Invoice;
+        await handleInvoicePaid(inv);
+        if (inv.subscription) {
+          await syncProspectSubStatus(inv.subscription as string, event.type, event.id, event.created);
+        }
         break;
+      }
+      case "invoice.payment_failed": {
+        const inv = event.data.object as Stripe.Invoice;
+        await handleInvoiceFailed(inv);
+        if (inv.subscription) {
+          await syncProspectSubStatus(inv.subscription as string, event.type, event.id, event.created);
+        }
+        break;
+      }
       case "charge.refunded":
         await handleChargeRefunded(event.data.object as Stripe.Charge);
         break;
@@ -112,6 +133,35 @@ Deno.serve(async (req: Request) => {
     headers: { "Content-Type": "application/json" },
   });
 });
+
+// ── Prospect sub-status sync (via handle_stripe_event RPC) ───────────────
+
+async function syncProspectSubStatus(
+  subscriptionId: string,
+  eventType: string,
+  stripeEventId: string,
+  stripeCreated: number,
+) {
+  try {
+    const { data, error } = await supabase.rpc("handle_stripe_event", {
+      p_stripe_subscription_id: subscriptionId,
+      p_event_type: eventType,
+      p_detail: {
+        stripe_event_id: stripeEventId,
+        event_type: eventType,
+        timestamp: stripeCreated,
+      },
+    });
+
+    if (error) {
+      console.error(`[webhook] handle_stripe_event error for ${eventType}:`, error.message);
+    } else if (data) {
+      console.log(`[webhook] Prospect sub-status updated: prospect=${data}, event=${eventType}`);
+    }
+  } catch (err) {
+    console.error(`[webhook] handle_stripe_event exception (non-blocking):`, err);
+  }
+}
 
 // ── Handlers ──────────────────────────────────────────────────────────────
 
