@@ -199,6 +199,23 @@ export function useProspectDetailData(id: string | undefined) {
     refetchInterval: 15_000,
   })
 
+  // Fetch submitted groups (via WhatsApp onboarding)
+  const contractorUserId = contractorQuery.data?.user_id
+  const groupsQuery = useQuery({
+    queryKey: ['admin', 'prospects', 'groups', contractorUserId ?? ''],
+    enabled: Boolean(contractorUserId),
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('contractor_group_scan_requests')
+        .select('id, invite_link_raw, invite_code, group_name, status, created_at')
+        .eq('contractor_id', contractorUserId)
+        .order('created_at', { ascending: false })
+      if (error) throw error
+      return data ?? []
+    },
+    staleTime: 30_000,
+  })
+
   useEffect(() => {
     if (!id) return
 
@@ -235,10 +252,11 @@ export function useProspectDetailData(id: string | undefined) {
     prospectList: listQuery.data ?? [],
     prospect: prospectQuery.data ?? null,
     contractor: contractorQuery.data ?? null,
+    submittedGroups: groupsQuery.data ?? [],
     messages: messagesQuery.data ?? [],
     events: eventsQuery.data ?? [],
     isListLoading: listQuery.isLoading,
     isDetailLoading: prospectQuery.isLoading || messagesQuery.isLoading || eventsQuery.isLoading,
-    refetchDetail: () => Promise.all([prospectQuery.refetch(), messagesQuery.refetch(), eventsQuery.refetch(), contractorQuery.refetch()]),
+    refetchDetail: () => Promise.all([prospectQuery.refetch(), messagesQuery.refetch(), eventsQuery.refetch(), contractorQuery.refetch(), groupsQuery.refetch()]),
   }
 }

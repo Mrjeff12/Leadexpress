@@ -124,6 +124,7 @@ export default function AdminInbox() {
   const {
     prospect,
     contractor,
+    submittedGroups,
     messages,
     events,
     prospectList,
@@ -740,12 +741,30 @@ export default function AdminInbox() {
                 {/* Source Groups */}
                 {(prospect.group_names ?? []).length > 0 && (
                   <div>
-                    <div className="text-[10px] font-semibold uppercase tracking-wider text-[#8E8E93] mb-1.5">{he ? 'קבוצות' : 'Groups'}</div>
+                    <div className="text-[10px] font-semibold uppercase tracking-wider text-[#8E8E93] mb-1.5">{he ? 'קבוצות מקור' : 'Source Groups'}</div>
                     <div className="space-y-1">
                       {(prospect.group_names ?? []).map(g => (
                         <div key={g} className="flex items-center gap-2 text-[12px] text-[#1C1C1E]">
                           <Users className="w-3 h-3 text-[#8E8E93] shrink-0" />
                           <span className="truncate">{g}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Submitted Groups (via WhatsApp) */}
+                {submittedGroups.length > 0 && (
+                  <div>
+                    <div className="text-[10px] font-semibold uppercase tracking-wider text-[#8E8E93] mb-1.5">{he ? 'קבוצות שנשלחו' : 'Submitted Groups'}</div>
+                    <div className="space-y-1.5">
+                      {submittedGroups.map(g => (
+                        <div key={g.id} className="flex items-center gap-2 text-[12px]">
+                          <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${g.status === 'pending' ? 'bg-[#FF9500]' : g.status === 'joined' ? 'bg-[#34C759]' : 'bg-[#8E8E93]'}`} />
+                          <span className="truncate text-[#1C1C1E] flex-1">{g.group_name || g.invite_code}</span>
+                          <span className={`text-[10px] font-medium ${g.status === 'pending' ? 'text-[#FF9500]' : g.status === 'joined' ? 'text-[#34C759]' : 'text-[#8E8E93]'}`}>
+                            {g.status}
+                          </span>
                         </div>
                       ))}
                     </div>
