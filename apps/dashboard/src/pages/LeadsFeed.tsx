@@ -336,24 +336,24 @@ export default function LeadsFeed() {
       {/* ── Header ── */}
       <header className="flex items-end justify-between px-2">
         <div>
-          <h1 className="text-4xl font-light tracking-tight text-black">
+          <h1 className="text-2xl md:text-4xl font-light tracking-tight text-black">
             {he ? 'כל הלידים' : 'Intelligence Feed'}
           </h1>
-          <p className="mt-2 text-sm font-medium text-stone-400 tracking-wide uppercase">
+          <p className="mt-1 md:mt-2 text-xs md:text-sm font-medium text-stone-400 tracking-wide uppercase">
             {he ? 'לידים שחולצו מקבוצות WhatsApp ע"י AI' : 'AI-extracted leads from WhatsApp'}
           </p>
         </div>
-        <div className="flex items-center gap-3 px-4 py-2 rounded-full bg-white/50 backdrop-blur-md border border-black/5 shadow-sm">
+        <div className="flex items-center gap-2 md:gap-3 px-3 md:px-4 py-1.5 md:py-2 rounded-full bg-white/50 backdrop-blur-md border border-black/5 shadow-sm">
           <div className="relative flex h-2 w-2">
             <div className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#fe5b25] opacity-75"></div>
             <div className="relative inline-flex rounded-full h-2 w-2 bg-[#fe5b25]"></div>
           </div>
-          <span className="text-xs font-bold tracking-tight text-black uppercase">{he ? 'זמן אמת' : 'Live Feed'}</span>
+          <span className="text-[10px] md:text-xs font-bold tracking-tight text-black uppercase">{he ? 'זמן אמת' : 'Live Feed'}</span>
         </div>
       </header>
 
       {/* ── KPI Strip ── */}
-      <section className="stagger-kpi grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+      <section className="stagger-kpi grid grid-cols-2 gap-3 sm:grid-cols-2 lg:grid-cols-4 md:gap-6">
         <KpiCard
           icon={Zap}
           label={he ? 'סה"כ לידים' : 'Total Leads'}
@@ -683,7 +683,7 @@ export default function LeadsFeed() {
                 {/* Expanded Section */}
                 {isOpen && (
                   <div className="px-6 pb-8 pt-2 animate-in fade-in slide-in-from-top-2 duration-500">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-6">
                       {/* Original Message */}
                       <div className="rounded-[24px] p-6 bg-black/[0.03] border border-black/5">
                         <div className="flex items-center gap-2 mb-4">
@@ -801,21 +801,21 @@ function KpiCard({
   onClick?: () => void
 }) {
   return (
-    <div 
+    <div
       onClick={onClick}
-      className={`glass-panel group flex flex-col justify-between p-6 min-h-[180px] overflow-hidden transition-all duration-500 ${
+      className={`glass-panel group flex flex-col justify-between p-4 md:p-6 min-h-[120px] md:min-h-[180px] overflow-hidden transition-all duration-500 ${
         onClick ? 'cursor-pointer hover:scale-[1.02]' : ''
       } ${active ? 'ring-2 ring-black/5 bg-white/90' : ''}`}
     >
       <div className="flex items-start justify-between relative z-10">
-        <div 
-          className="w-10 h-10 rounded-[14px] flex items-center justify-center transition-all duration-500 shadow-sm"
-          style={{ 
+        <div
+          className="w-8 h-8 md:w-10 md:h-10 rounded-xl md:rounded-[14px] flex items-center justify-center transition-all duration-500 shadow-sm"
+          style={{
             background: active ? '#000' : `${color}10`,
             color: active ? '#fff' : color,
           }}
         >
-          <Icon className="h-5 w-5" strokeWidth={1.5} />
+          <Icon className="h-4 w-4 md:h-5 md:w-5" strokeWidth={1.5} />
         </div>
         {trend && (
           <span
@@ -831,11 +831,11 @@ function KpiCard({
         )}
       </div>
       
-      <div className="mt-4 relative z-10">
-        <div className="text-[9px] font-bold uppercase tracking-[0.2em] text-stone-400 mb-1">
+      <div className="mt-2 md:mt-4 relative z-10">
+        <div className="text-[9px] font-bold uppercase tracking-[0.2em] text-stone-400 mb-0.5 md:mb-1">
           {label}
         </div>
-        <div className="text-3xl font-light tracking-tighter text-black">
+        <div className="text-2xl md:text-3xl font-light tracking-tighter text-black">
           {value}
         </div>
         <div className="mt-1 text-[11px] font-medium text-stone-400">
