@@ -922,6 +922,8 @@ const IS_PRODUCTION = process.env.NODE_ENV === 'production';
 async function isAuthorized(req: http.IncomingMessage): Promise<{ authorized: boolean; user?: any }> {
   const url = req.url ?? '/';
   if (url === '/api/health' || url.startsWith('/api/health?')) return { authorized: true };
+  // Twilio scanner feedback webhook — no auth (Twilio can't send Bearer tokens)
+  if (url === '/api/scanner-feedback' || url.startsWith('/api/scanner-feedback?')) return { authorized: true };
 
   const authHeader = req.headers['authorization'] ?? '';
   const token = authHeader.replace('Bearer ', '').trim();
@@ -1112,6 +1114,29 @@ export async function startAPI(port = 3001): Promise<void> {
       const groupScanStatusMatch = pathname.match(/^\/api\/group-scan\/([^/]+)\/status$/);
       if (groupScanStatusMatch && req.method === 'PATCH') {
         await handlePatchGroupScanStatus(req, res, groupScanStatusMatch[1], user);
+        return;
+      }
+
+      // POST /api/scanner-feedback — Twilio incoming webhook for scanner replies
+      if (pathname === '/api/scanner-feedback' && req.method === 'POST') {
+        try {
+          const rawBody = await readBody(req);
+          // Twilio sends application/x-www-form-urlencoded
+          const params = new URLSearchParams(rawBody);
+          const from = params.get('From') ?? '';
+          const body = params.get('Body') ?? '';
+
+          logger.info({ from, body }, 'Scanner feedback received');
+
+          const { handleScannerFeedback } = await import('./scanner.js');
+          await handleScannerFeedback(from.replace('whatsapp:', ''), body);
+        } catch (err) {
+          logger.error({ err }, 'Failed to handle scanner feedback');
+        }
+
+        // Twilio expects TwiML response
+        res.writeHead(200, { 'Content-Type': 'text/xml' });
+        res.end('<Response></Response>');
         return;
       }
 

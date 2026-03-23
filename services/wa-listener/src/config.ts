@@ -83,4 +83,8 @@ export const config = {
   polling: {
     intervalMs: 5_000, // poll Green API every 5 seconds
   },
+
+  scanner: {
+    phone: process.env.SCANNER_PHONE ?? '+17542763406',
+  },
 } as const;

@@ -85,6 +85,15 @@ async function deltaSyncJob(): Promise<void> {
       },
       'Watchdog: delta sync completed',
     );
+
+    // Check if any 'joining' groups are now accessible
+    try {
+      const { checkJoinedGroups } = await import('./scanner.js');
+      const joined = await checkJoinedGroups();
+      if (joined > 0) logger.info({ joined }, 'Groups confirmed as joined');
+    } catch (err) {
+      logger.error({ err }, 'Failed to check joined groups');
+    }
   } catch (err) {
     logger.error({ err }, 'Watchdog: delta sync failed');
   }
