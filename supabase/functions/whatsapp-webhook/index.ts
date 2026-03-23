@@ -858,7 +858,7 @@ async function startOnboarding(phone: string, profile: { id: string; full_name: 
   if (hasRealName) {
     const firstName = profile.full_name.split(' ')[0];
     await sendText(phone,
-      `Welcome to MasterLeadFlow, ${firstName}! 🔧\n\nLet's set up your profile.\n\n*Step 1:* What type of work do you do?\nReply with numbers:\n\n1️⃣ ❄️ HVAC / AC\n2️⃣ 🔨 Renovation\n3️⃣ 🧱 Fencing & Railing\n4️⃣ ✨ Cleaning\n5️⃣ 🔑 Locksmith\n6️⃣ 🚰 Plumbing\n7️⃣ ⚡ Electrical\n8️⃣ 📋 Other\n\nExample: *1, 6*\n🎙️ You can also type or record a voice message.`,
+      `Welcome to MasterLeadFlow, ${firstName}! 🔧\n\nLet's set up your profile.\n\n*Step 1:* What type of work do you do?\nReply with numbers:\n\n1️⃣ ❄️ HVAC / AC\n2️⃣ 🔨 Renovation\n3️⃣ 🧱 Fencing & Railing\n4️⃣ ✨ Cleaning\n5️⃣ 🔑 Locksmith\n6️⃣ 🚰 Plumbing\n7️⃣ ⚡ Electrical\n8️⃣ 🎨 Painting\n9️⃣ 🏠 Roofing\n🔟 🪵 Flooring\n1️⃣1️⃣ 💨 Air Duct\n1️⃣2️⃣ 🌿 Landscaping\n1️⃣3️⃣ 📋 Other\n\nExample: *1, 6*\n🎙️ You can also type or record a voice message.`,
     );
   } else {
     await sendText(phone,
@@ -877,7 +877,7 @@ async function startOnboardingStep(phone: string, userId: string, step: string):
 
   switch (step) {
     case 'profession':
-      await sendText(phone, `🔧 *Update Trades*\n\n1️⃣ ❄️ HVAC / AC\n2️⃣ 🔨 Renovation\n3️⃣ 🧱 Fencing & Railing\n4️⃣ ✨ Cleaning\n5️⃣ 🔑 Locksmith\n6️⃣ 🚰 Plumbing\n7️⃣ ⚡ Electrical\n8️⃣ 📋 Other\n\nReply with numbers: e.g. *1, 6*`);
+      await sendText(phone, `🔧 *Update Trades*\n\n1️⃣ ❄️ HVAC / AC\n2️⃣ 🔨 Renovation\n3️⃣ 🧱 Fencing & Railing\n4️⃣ ✨ Cleaning\n5️⃣ 🔑 Locksmith\n6️⃣ 🚰 Plumbing\n7️⃣ ⚡ Electrical\n8️⃣ 🎨 Painting\n9️⃣ 🏠 Roofing\n🔟 🪵 Flooring\n1️⃣1️⃣ 💨 Air Duct\n1️⃣2️⃣ 🌿 Landscaping\n1️⃣3️⃣ 📋 Other\n\nReply with numbers: e.g. *1, 6*\n🎙️ You can also type or record a voice message.`);
       break;
     case 'city':
       await sendText(phone, `📍 *Update Areas*\n\nWhich state?\n\n1️⃣ 🌴 Florida\n2️⃣ 🗽 New York\n3️⃣ 🤠 Texas`);
@@ -954,8 +954,8 @@ async function handleOnboardingStep(
 
 // ── Onboarding steps ────────────────────────────────────────────────────────
 
-const PROFESSIONS = ['hvac','renovation','fencing','cleaning','locksmith','plumbing','electrical','other'];
-const PROF_LABELS: Record<string, string> = { hvac:'❄️ HVAC', renovation:'🔨 Renovation', fencing:'🧱 Fencing', cleaning:'✨ Cleaning', locksmith:'🔑 Locksmith', plumbing:'🚰 Plumbing', electrical:'⚡ Electrical', other:'📋 Other' };
+const PROFESSIONS = ['hvac','renovation','fencing','cleaning','locksmith','plumbing','electrical','painting','roofing','flooring','air_duct','landscaping','other'];
+const PROF_LABELS: Record<string, string> = { hvac:'❄️ HVAC', renovation:'🔨 Renovation', fencing:'🧱 Fencing', cleaning:'✨ Cleaning', locksmith:'🔑 Locksmith', plumbing:'🚰 Plumbing', electrical:'⚡ Electrical', painting:'🎨 Painting', roofing:'🏠 Roofing', flooring:'🪵 Flooring', air_duct:'💨 Air Duct', landscaping:'🌿 Landscaping', other:'📋 Other' };
 
 // Convert number to emoji keycaps (works for 1-99)
 const DIGIT_EMOJI = ['0️⃣','1️⃣','2️⃣','3️⃣','4️⃣','5️⃣','6️⃣','7️⃣','8️⃣','9️⃣'];
@@ -985,15 +985,16 @@ async function onboardFirstName(phone: string, text: string, data: Record<string
   await sendText(phone,
     `Hi ${name}! 👋\n\n*Step 1:* What type of work do you do?\n\n` +
     `1️⃣ ❄️ HVAC / AC\n2️⃣ 🔨 Renovation\n3️⃣ 🧱 Fencing & Railing\n4️⃣ ✨ Cleaning\n` +
-    `5️⃣ 🔑 Locksmith\n6️⃣ 🚰 Plumbing\n7️⃣ ⚡ Electrical\n8️⃣ 📋 Other\n\n` +
+    `5️⃣ 🔑 Locksmith\n6️⃣ 🚰 Plumbing\n7️⃣ ⚡ Electrical\n8️⃣ 🎨 Painting\n` +
+    `9️⃣ 🏠 Roofing\n🔟 🪵 Flooring\n1️⃣1️⃣ 💨 Air Duct\n1️⃣2️⃣ 🌿 Landscaping\n1️⃣3️⃣ 📋 Other\n\n` +
     `Example: *1, 6*\n🎙️ You can also type or record a voice message.`,
   );
 }
 
 async function onboardProfession(phone: string, text: string, data: Record<string, unknown>): Promise<void> {
-  const nums = text.match(/\d+/g)?.map(Number).filter(n => n >= 1 && n <= 8) ?? [];
+  const nums = text.match(/\d+/g)?.map(Number).filter(n => n >= 1 && n <= 13) ?? [];
   if (nums.length === 0) {
-    await sendText(phone, `Reply with numbers 1-8. Example: *1, 6*`);
+    await sendText(phone, `Reply with numbers 1-13. Example: *1, 6*`);
     return;
   }
 
@@ -1155,7 +1156,7 @@ async function onboardConfirm(phone: string, textLower: string, data: Record<str
       updated_at: new Date().toISOString(),
     }).eq('phone', phone);
 
-    await sendText(phone, `OK! Let's start over.\n\n1️⃣ ❄️ HVAC\n2️⃣ 🔨 Renovation\n3️⃣ 🧱 Fencing\n4️⃣ ✨ Cleaning\n5️⃣ 🔑 Locksmith\n6️⃣ 🚰 Plumbing\n7️⃣ ⚡ Electrical\n8️⃣ 📋 Other\n\nReply with numbers.`);
+    await sendText(phone, `OK! Let's start over.\n\n1️⃣ ❄️ HVAC\n2️⃣ 🔨 Renovation\n3️⃣ 🧱 Fencing\n4️⃣ ✨ Cleaning\n5️⃣ 🔑 Locksmith\n6️⃣ 🚰 Plumbing\n7️⃣ ⚡ Electrical\n8️⃣ 🎨 Painting\n9️⃣ 🏠 Roofing\n🔟 🪵 Flooring\n1️⃣1️⃣ 💨 Air Duct\n1️⃣2️⃣ 🌿 Landscaping\n1️⃣3️⃣ 📋 Other\n\nReply with numbers.\n🎙️ You can also type or record a voice message.`);
     return;
   }
 
