@@ -136,7 +136,7 @@ function AppShell() {
             </Routes>
           </div>
         ) : (
-          <div className="max-w-6xl mx-auto px-6 py-8">
+          <div className="max-w-6xl mx-auto px-3 py-4 sm:px-6 sm:py-8">
             <Routes>
               <Route path="/" element={<RequireSubscription><RequireSetup><ContractorDashboard /></RequireSetup></RequireSubscription>} />
               <Route path="/leads" element={<RequireSubscription><RequireSetup><LeadsFeed /></RequireSetup></RequireSubscription>} />

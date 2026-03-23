@@ -20,6 +20,8 @@ import {
   FileText,
   Plus,
   ChevronDown,
+  Menu,
+  X as XIcon,
 } from 'lucide-react'
 import { useState, useEffect, useRef } from 'react'
 
@@ -36,11 +38,15 @@ export default function Sidebar() {
   const location = useLocation()
   const navigate = useNavigate()
   const [collapsed, setCollapsed] = useState(false)
+  const [mobileOpen, setMobileOpen] = useState(false)
   const [isPartner, setIsPartner] = useState(false)
   const [roleOpen, setRoleOpen] = useState(false)
   const roleRef = useRef<HTMLDivElement>(null)
   const isRtl = locale === 'he'
   const inPartnerView = location.pathname.startsWith('/partner')
+
+  // Close mobile drawer on route change
+  useEffect(() => { setMobileOpen(false) }, [location.pathname])
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -101,19 +107,36 @@ export default function Sidebar() {
   const isProfileActive = location.pathname === '/profile' || location.pathname === '/subscription' || location.pathname === '/telegram'
 
   return (
+    <>
+      {/* Mobile hamburger button */}
+      <button
+        onClick={() => setMobileOpen(true)}
+        className="md:hidden fixed top-4 left-4 z-50 w-10 h-10 rounded-xl bg-white/90 backdrop-blur-lg border border-stone-200 shadow-lg flex items-center justify-center"
+        style={isRtl ? { left: 'auto', right: 16 } : {}}
+      >
+        <Menu className="w-5 h-5 text-stone-600" />
+      </button>
+
+      {/* Mobile overlay */}
+      {mobileOpen && (
+        <div className="md:hidden fixed inset-0 bg-black/40 z-40 animate-fade-in" onClick={() => setMobileOpen(false)} />
+      )}
+
     <aside
       className={[
-        'fixed top-0 h-screen z-40 flex flex-col',
+        'fixed top-0 h-screen z-50 flex flex-col',
         isRtl ? 'right-0' : 'left-0',
         collapsed ? 'w-[72px]' : 'w-[252px]',
+        // Mobile: hidden by default, slide in when open
+        mobileOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0',
       ].join(' ')}
       style={{
-        background: 'hsl(0 0% 100% / 0.82)',
+        background: 'hsl(0 0% 100% / 0.95)',
         backdropFilter: 'blur(24px) saturate(140%)',
         WebkitBackdropFilter: 'blur(24px) saturate(140%)',
         borderRight: isRtl ? 'none' : '1px solid hsl(220 8% 93%)',
         borderLeft: isRtl ? '1px solid hsl(220 8% 93%)' : 'none',
-        transition: 'width 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+        transition: 'width 0.3s cubic-bezier(0.4, 0, 0.2, 1), transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
       }}
     >
       {/* Logo */}
@@ -342,14 +365,24 @@ export default function Sidebar() {
       </div>
 
       {/* Collapse toggle */}
+      {/* Collapse toggle — desktop only */}
       <button
         onClick={() => setCollapsed(!collapsed)}
-        className="absolute top-[76px] -end-3 w-6 h-6 rounded-full flex items-center justify-center
+        className="hidden md:flex absolute top-[76px] -end-3 w-6 h-6 rounded-full items-center justify-center
           bg-white shadow-md hover:shadow-lg border border-stone-100
           transition-all hover:scale-110 active:scale-95"
       >
         <CollapseIcon className="w-3 h-3 text-stone-400" />
       </button>
+
+      {/* Mobile close button */}
+      <button
+        onClick={() => setMobileOpen(false)}
+        className="md:hidden absolute top-4 right-4 w-8 h-8 rounded-lg bg-stone-100 flex items-center justify-center"
+      >
+        <XIcon className="w-4 h-4 text-stone-500" />
+      </button>
     </aside>
+    </>
   )
 }

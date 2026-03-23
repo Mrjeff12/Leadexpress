@@ -317,10 +317,30 @@ export default function ContractorDashboard() {
   }
 
   return (
-    <div className="relative" style={{ height: '100vh', minHeight: 600 }}>
+    <div className="relative md:h-screen" style={{ minHeight: 600 }}>
 
-      {/* ════════ FULL-SCREEN MAP (covers entire viewport, behind sidebar) ════════ */}
-      <div className="fixed inset-0 z-0">
+      {/* ════════ MAP ════════ */}
+      {/* Desktop: full-screen fixed | Mobile: compact strip at top */}
+      <div className="hidden md:block fixed inset-0 z-0">
+        <CoverageMap
+          zipCodes={zipCodes}
+          onAddZip={(zip) => {
+            if (planLimits.maxZipCodes > 0 && zipCodes.length >= planLimits.maxZipCodes) {
+              setUpsellContext('zones'); setShowUpsell(true); return
+            }
+            addZipCode(zip); debouncedSave()
+          }}
+          onRemoveZip={(zip) => { removeZipCode(zip); debouncedSave() }}
+          onBatchAddZips={(zips) => {
+            if (planLimits.maxZipCodes > 0 && zipCodes.length >= planLimits.maxZipCodes) {
+              setUpsellContext('zones'); setShowUpsell(true); return
+            }
+            addZipCodes(zips); debouncedSave()
+          }}
+        />
+      </div>
+      {/* Mobile map strip */}
+      <div className="md:hidden relative h-[180px] overflow-hidden rounded-2xl mx-3 mt-14">
         <CoverageMap
           zipCodes={zipCodes}
           onAddZip={(zip) => {
@@ -339,8 +359,8 @@ export default function ContractorDashboard() {
         />
       </div>
 
-      {/* Soft vignette for panel readability */}
-      <div className="fixed inset-0 z-[1] pointer-events-none"
+      {/* Soft vignette for panel readability — desktop only */}
+      <div className="hidden md:block fixed inset-0 z-[1] pointer-events-none"
         style={{
           background: `
             linear-gradient(to right, rgba(255,255,255,0.45) 0%, rgba(255,255,255,0.15) 30%, transparent 50%),
@@ -349,9 +369,9 @@ export default function ContractorDashboard() {
         }}
       />
 
-      {/* ════════ LEFT FLOATING PANEL (Profile + KPIs + Professions + Schedule) ════════ */}
+      {/* ════════ MAIN PANEL (Profile + KPIs + Professions + Schedule) ════════ */}
       <div
-        className="floating-panel p-6 animate-fade-in no-scrollbar"
+        className="floating-panel floating-panel-mobile p-4 md:p-6 animate-fade-in no-scrollbar"
         style={{ top: 24, left: 24, width: 340, maxHeight: 'calc(100vh - 80px)', overflowY: 'auto' }}
       >
         {/* Greeting */}
@@ -664,9 +684,9 @@ export default function ContractorDashboard() {
         <div className="h-2" />
       </div>
 
-      {/* ════════ BOTTOM-RIGHT FLOATING PANEL (Recent Leads) ════════ */}
+      {/* ════════ RECENT LEADS PANEL ════════ */}
       <div
-        className="floating-panel p-5 animate-fade-in"
+        className="floating-panel floating-panel-mobile p-4 md:p-5 animate-fade-in"
         style={{ bottom: 24, right: 24, width: 560, maxHeight: 340, animationDelay: '150ms' }}
       >
         <div className="flex items-center justify-between mb-3">

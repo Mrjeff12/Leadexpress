@@ -449,12 +449,37 @@
   .prof-pill--fencing     { background: hsl(var(--prof-fencing) / 0.08); color: hsl(var(--prof-fencing)); }
   .prof-pill--cleaning    { background: hsl(var(--prof-cleaning) / 0.08); color: hsl(var(--prof-cleaning)); }
 
+  /* ─── Mobile floating panel (full-width card on <768px) ─── */
+  @media (max-width: 767px) {
+    .floating-panel-mobile {
+      position: relative !important;
+      top: auto !important;
+      left: auto !important;
+      right: auto !important;
+      bottom: auto !important;
+      width: auto !important;
+      max-height: none !important;
+      background: hsl(0 0% 100% / 0.85);
+      backdrop-filter: blur(20px) saturate(140%);
+      -webkit-backdrop-filter: blur(20px) saturate(140%);
+      border-radius: 16px;
+      margin: 8px 12px;
+      border: 1px solid hsl(220 8% 93%);
+      box-shadow: 0 4px 20px -4px rgba(0,0,0,0.06);
+    }
+  }
+
   /* ─── Contractor Layout Main Content ─── */
   .contractor-main-content {
-    padding-inline-start: 252px;
+    padding-inline-start: 0;
     transition: padding-inline-start 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }
-  body.contractor-sidebar-collapsed .contractor-main-content {
-    padding-inline-start: 72px;
+  @media (min-width: 768px) {
+    .contractor-main-content {
+      padding-inline-start: 252px;
+    }
+    body.contractor-sidebar-collapsed .contractor-main-content {
+      padding-inline-start: 72px;
+    }
   }
 }
