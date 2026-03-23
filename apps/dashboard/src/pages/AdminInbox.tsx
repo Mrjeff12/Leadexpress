@@ -513,40 +513,6 @@ export default function AdminInbox() {
         </div>
       </div>
 
-      {/* ═══ ONBOARDING SUB-PIPELINE (shown when Onboarding stage is active) ═══ */}
-      {filterStage === 'onboarding' && (
-        <div className="shrink-0 z-20 mx-3 mt-1.5 px-4 py-2 rounded-2xl flex items-center gap-1" style={{ background: 'rgba(255,255,255,0.85)', backdropFilter: C.blur, border: `1px solid ${C.glassBorder}`, boxShadow: '0 2px 12px rgba(0,0,0,0.03)' }}>
-          <Sparkles className="w-3.5 h-3.5 text-amber-500 mr-2 shrink-0" />
-          <span className="text-[10px] font-bold uppercase tracking-wider text-[#8E8E93] mr-3 shrink-0">Steps</span>
-          {ONBOARDING_STEPS.map((s, idx) => {
-            const count = onboardingStepCounts[s.key] || 0
-            const isActive = filterOnboardingStep === s.key
-            const hasStuck = count > 0
-            return (
-              <div key={s.key} className="flex items-center">
-                {idx > 0 && <div className="w-2 h-[1px] bg-black/[0.06] shrink-0" />}
-                <button
-                  onClick={() => setFilterOnboardingStep(filterOnboardingStep === s.key ? null : s.key)}
-                  className="flex items-center gap-1 px-2 py-1 rounded-lg transition-all text-[10px] whitespace-nowrap"
-                  style={{
-                    background: isActive ? '#FF950015' : hasStuck ? '#FF3B3008' : 'transparent',
-                    border: isActive ? '1px solid #FF950030' : '1px solid transparent',
-                  }}
-                >
-                  <span>{s.icon}</span>
-                  <span className={`font-semibold ${isActive ? 'text-[#FF9500]' : hasStuck ? 'text-[#FF3B30]' : 'text-[#8E8E93]'}`}>
-                    {count}
-                  </span>
-                  <span className={`hidden xl:inline ${isActive ? 'text-[#1C1C1E] font-medium' : 'text-[#8E8E93]'}`}>
-                    {s.label}
-                  </span>
-                </button>
-              </div>
-            )
-          })}
-        </div>
-      )}
-
       {/* ═══ MAIN GRID ═══ */}
       <div className="flex-1 grid grid-cols-[320px_1fr_320px] gap-3 p-3 relative z-10 overflow-hidden">
         
@@ -715,6 +681,39 @@ export default function AdminInbox() {
           ) : (
             <div className="shrink-0 flex items-center px-6 h-[72px] rounded-t-3xl" style={{ background: 'rgba(255,255,255,0.9)', backdropFilter: 'blur(24px)', borderBottom: `1px solid ${C.glassBorder}` }}>
               <span className="text-[15px] font-bold text-[#8E8E93] uppercase tracking-widest">{he ? 'בחר לקוח מהרשימה' : 'Select a client'}</span>
+            </div>
+          )}
+
+          {/* ═══ ONBOARDING SUB-PIPELINE (above chat when Onboarding active) ═══ */}
+          {filterStage === 'onboarding' && (
+            <div className="shrink-0 flex items-center gap-1.5 px-5 py-2 border-b border-black/[0.04]" style={{ background: 'linear-gradient(135deg, #FFF8F5, #FFFBF9)' }}>
+              <Sparkles className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+              {ONBOARDING_STEPS.map((s, idx) => {
+                const count = onboardingStepCounts[s.key] || 0
+                const isActive = filterOnboardingStep === s.key
+                const hasStuck = count > 0
+                return (
+                  <div key={s.key} className="flex items-center">
+                    {idx > 0 && <div className="w-3 h-[1px] bg-black/[0.08] shrink-0" />}
+                    <button
+                      onClick={() => setFilterOnboardingStep(filterOnboardingStep === s.key ? null : s.key)}
+                      className="flex items-center gap-1 px-2 py-1 rounded-lg transition-all whitespace-nowrap"
+                      style={{
+                        background: isActive ? '#FF950018' : 'transparent',
+                        boxShadow: isActive ? '0 1px 4px rgba(255,149,0,0.15)' : 'none',
+                      }}
+                    >
+                      <span className="text-[11px]">{s.icon}</span>
+                      <span className={`text-[12px] font-bold ${isActive ? 'text-[#FF9500]' : hasStuck ? 'text-[#FF3B30]' : 'text-[#C7C7CC]'}`}>
+                        {count}
+                      </span>
+                      <span className={`text-[10px] ${isActive ? 'text-[#1C1C1E] font-semibold' : 'text-[#8E8E93]'}`}>
+                        {s.label}
+                      </span>
+                    </button>
+                  </div>
+                )
+              })}
             </div>
           )}
 
