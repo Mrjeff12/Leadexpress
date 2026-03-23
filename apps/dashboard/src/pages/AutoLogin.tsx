@@ -43,21 +43,34 @@ export default function AutoLogin() {
 
       // Direct session — no redirects, no race conditions
       if (data.type === 'session' && data.access_token && data.refresh_token) {
-        setDebug('Setting session directly...')
-        const { error: sessErr } = await supabase.auth.setSession({
-          access_token: data.access_token,
-          refresh_token: data.refresh_token,
-        })
-        if (sessErr) {
+        setDebug('Setting session...')
+        try {
+          const { data: sessData, error: sessErr } = await supabase.auth.setSession({
+            access_token: data.access_token,
+            refresh_token: data.refresh_token,
+          })
+          if (sessErr) {
+            setDebug(`setSession error: ${sessErr.message} | code: ${sessErr.status}`)
+            setStatus('error')
+            setError(sessErr.message)
+            return
+          }
+          if (!sessData?.session) {
+            setDebug('setSession returned no session object')
+            setStatus('error')
+            setError('Session was not created')
+            return
+          }
+          setDebug(`Session OK! user=${sessData.session.user?.id?.slice(0,8)}`)
+          setStatus('success')
+          setTimeout(() => {
+            window.location.href = data.redirect_path || '/'
+          }, 800)
+        } catch (ex) {
+          setDebug(`setSession exception: ${String(ex)}`)
           setStatus('error')
-          setError(sessErr.message)
-          return
+          setError(String(ex))
         }
-        setStatus('success')
-        // Small delay to let AuthProvider pick up the session
-        setTimeout(() => {
-          window.location.href = data.redirect_path || '/'
-        }, 500)
         return
       }
 
