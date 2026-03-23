@@ -45,6 +45,12 @@ const CONTENT = {
   LEAD_CLAIMED:     Deno.env.get('TWILIO_CONTENT_LEAD_CLAIMED')     ?? 'HX7b3697cc66e30d95904dd30e7ec5fb79',
 };
 
+// ── Phone normalization (single source of truth) ────────────────────────────
+function normalizePhone(raw: string): string {
+  const cleaned = raw.replace('whatsapp:', '').replace(/\s/g, '');
+  return cleaned.startsWith('+') ? cleaned : '+' + cleaned;
+}
+
 // ── Redis-like state via Supabase (Edge Functions can't use Redis) ──────────
 // We use a simple key-value approach with the profiles table metadata
 // For onboarding state, we store in a lightweight table or use Supabase Realtime
@@ -1184,66 +1190,97 @@ async function onboardConfirm(phone: string, textLower: string, data: Record<str
     // ── HYBRID: Auto-create full account from WhatsApp onboarding ──
     const professions = (data.professions as string[]) || [];
     const zipCodes = (data.zipCodes as string[]) || [];
-    const workingDays = (data.workingDays as number[]) || [];
+    const workingDays = (data.workingDays as number[]).length > 0 ? (data.workingDays as number[]) : [1,2,3,4,5];
     const cities = (data.cities as string[]) || [];
+    const phoneNorm = normalizePhone(phone);
 
     try {
-      // 1. Create auth user (phone-based, no password needed)
-      const phoneForAuth = phone.startsWith('+') ? phone : '+' + phone;
-      const { data: authUser, error: authError } = await supabase.auth.admin.createUser({
-        phone: phoneForAuth,
-        phone_confirm: true,
-        user_metadata: { full_name: (data.firstName as string) || phone, source: 'whatsapp_onboarding' },
-      });
+      // 0. Idempotency — check if auth user already exists for this phone
+      const { data: existingProfile } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('whatsapp_phone', phone)
+        .maybeSingle();
 
-      if (authError || !authUser?.user) {
-        console.error('[onboard] Auth create error:', authError);
-        // Fallback: save to prospect only
-        await supabase.from('prospects').update({
-          stage: 'in_conversation',
-          profession_tags: professions,
-          notes: `Onboarded via WhatsApp (auth failed). Cities: ${cities.join(', ')}.`,
-          last_contact_at: new Date().toISOString(),
-        }).eq('id', prospectId);
+      if (existingProfile) {
+        console.log(`[onboard] Account already exists for ${phone}, skipping creation`);
+        data.newUserId = existingProfile.id;
       } else {
-        const newUserId = authUser.user.id;
-        console.log(`[onboard] Auth user created: ${newUserId}`);
-
-        // 2. Profile created by trigger (handle_new_user), update with phone + name
-        await supabase.from('profiles').update({
-          whatsapp_phone: phone,
-          phone: phoneForAuth,
-          full_name: (data.firstName as string) || phone,
-        }).eq('id', newUserId);
-
-        // 3. Create contractor record
-        await supabase.from('contractors').insert({
-          user_id: newUserId,
-          professions,
-          zip_codes: zipCodes,
-          wa_notify: true,
-          is_active: true,
-          working_days: workingDays,
+        // 1. Create auth user (phone-based, no password needed)
+        const { data: authUser, error: authError } = await supabase.auth.admin.createUser({
+          phone: phoneNorm,
+          phone_confirm: true,
+          user_metadata: { full_name: (data.firstName as string) || phone, source: 'whatsapp_onboarding' },
         });
 
-        // 4. Create 7-day trial subscription (Starter plan)
-        const STARTER_PLAN_ID = 'ceb41e5b-5346-4de2-93e1-ead9ae5fcd57';
-        await supabase.from('subscriptions').insert({
-          user_id: newUserId,
-          plan_id: STARTER_PLAN_ID,
-          status: 'trialing',
-          current_period_end: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
-        });
+        if (authError || !authUser?.user) {
+          console.error('[onboard] Auth create error:', authError);
+          await supabase.from('prospects').update({
+            stage: 'in_conversation',
+            profession_tags: professions,
+            notes: `Onboarded via WhatsApp (auth failed: ${authError?.message}). Cities: ${cities.join(', ')}.`,
+            last_contact_at: new Date().toISOString(),
+          }).eq('id', prospectId);
+        } else {
+          const newUserId = authUser.user.id;
+          console.log(`[onboard] Auth user created: ${newUserId}`);
 
-        // 5. Link prospect to auth user
-        await supabase.from('prospects').update({
-          stage: 'demo_trial',
-          user_id: newUserId,
-          profession_tags: professions,
-          last_contact_at: new Date().toISOString(),
-        }).eq('id', prospectId);
+          // 2. Profile created by trigger — update with phone + name
+          const { error: profileErr } = await supabase.from('profiles').update({
+            whatsapp_phone: phone,
+            phone: phoneNorm,
+            full_name: (data.firstName as string) || phone,
+          }).eq('id', newUserId);
 
-        console.log(`[onboard] Full account created: ${newUserId}, trial 7 days`);
+          if (profileErr) {
+            console.error('[onboard] Profile update failed, rolling back auth user:', profileErr);
+            await supabase.auth.admin.deleteUser(newUserId);
+            throw new Error('Profile update failed');
+          }
+
+          // 3. Create contractor record
+          const { error: contErr } = await supabase.from('contractors').insert({
+            user_id: newUserId,
+            professions,
+            zip_codes: zipCodes,
+            wa_notify: true,
+            is_active: true,
+            working_days: workingDays,
+          });
+
+          if (contErr) {
+            console.error('[onboard] Contractor insert failed:', contErr);
+            // Don't rollback auth — profile exists, contractor can be created later
+          }
+
+          // 4. Create 7-day trial subscription — lookup plan by slug, not hardcoded ID
+          const { data: plan } = await supabase
+            .from('plans')
+            .select('id')
+            .or('slug.eq.starter,slug.eq.free,name.ilike.%starter%,name.ilike.%free%')
+            .limit(1)
+            .maybeSingle();
+
+          const planId = plan?.id || 'ceb41e5b-5346-4de2-93e1-ead9ae5fcd57'; // fallback
+          await supabase.from('subscriptions').insert({
+            user_id: newUserId,
+            plan_id: planId,
+            status: 'trialing',
+            current_period_end: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+          });
+
+          // 5. Archive prospect — mark as converted
+          await supabase.from('prospects').update({
+            stage: 'converted',
+            user_id: newUserId,
+            profession_tags: professions,
+            notes: `Converted to auth user via WhatsApp onboarding. Cities: ${cities.join(', ')}.`,
+            last_contact_at: new Date().toISOString(),
+          }).eq('id', prospectId);
+
+          data.newUserId = newUserId;
+          console.log(`[onboard] Full account created: ${newUserId}, trial 7 days`);
+        }
       }
     } catch (err) {
       console.error('[onboard] Account creation error:', err);
@@ -1257,16 +1294,9 @@ async function onboardConfirm(phone: string, textLower: string, data: Record<str
     console.log(`[onboard] Complete: ${userId}`);
   } else {
     // New user — transition to groups step to collect WhatsApp group links
-    // Find the newly created userId to pass to groups step
-    const { data: newProfile } = await supabase
-      .from('profiles')
-      .select('id')
-      .eq('phone', phone.startsWith('+') ? phone : '+' + phone)
-      .maybeSingle();
-
     await supabase.from('wa_onboard_state').update({
       step: 'groups',
-      data: { ...data, newUserId: newProfile?.id ?? null },
+      data: { ...data, newUserId: (data.newUserId as string) ?? null },
       updated_at: new Date().toISOString(),
     }).eq('phone', phone);
 

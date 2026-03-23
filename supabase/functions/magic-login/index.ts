@@ -43,12 +43,16 @@ Deno.serve(async (req: Request) => {
         targetUserId = profile.id;
       }
 
+      // Validate redirect_path (prevent open redirect)
+      const safePath = (redirect_path && redirect_path.startsWith('/') && !redirect_path.startsWith('//'))
+        ? redirect_path : '/';
+
       // Create token
       const { data: tokenRow, error } = await supabase
         .from('magic_login_tokens')
         .insert({
           user_id: targetUserId,
-          redirect_path: redirect_path || '/',
+          redirect_path: safePath,
           expires_at: new Date(Date.now() + 60 * 60 * 1000).toISOString(), // 1 hour
         })
         .select('token')

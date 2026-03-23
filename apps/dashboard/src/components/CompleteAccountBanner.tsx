@@ -18,10 +18,11 @@ export default function CompleteAccountBanner() {
     if (!profile?.id) return
 
     // Check if this is a WhatsApp-created account with fake email
-    supabase.auth.getUser().then(({ data }) => {
-      const email = data?.user?.email || ''
-      // Fake emails: wa-XXXX@app.masterleadflow.com
-      if (email.startsWith('wa-') && email.includes('@app.masterleadflow.com')) {
+    supabase.auth.getUser().then(({ data, error }) => {
+      if (error || !data?.user) return
+      const email = data.user.email || ''
+      // Fake emails: wa-XXXX@app.masterleadflow.com or no email set
+      if (!email || (email.startsWith('wa-') && email.includes('@app.masterleadflow.com'))) {
         setNeedsCompletion(true)
       }
     })
