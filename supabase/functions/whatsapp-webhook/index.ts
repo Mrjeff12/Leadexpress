@@ -1404,11 +1404,24 @@ async function onboardConfirm(phone: string, textLower: string, data: Record<str
           const newUserId = authUser.user.id;
           console.log(`[onboard] Auth user created: ${newUserId}`);
 
-          // 2. Profile created by trigger — update with phone + name
+          // 2. Profile created by trigger — update with phone, name, counties
+          // Derive counties from selected cities
+          const CITY_COUNTY: Record<string, string> = {
+            miami:'Miami-Dade County', hialeah:'Miami-Dade County', doral:'Miami-Dade County', homestead:'Miami-Dade County', miami_beach:'Miami-Dade County', coral_gables:'Miami-Dade County', aventura:'Miami-Dade County',
+            fort_lauderdale:'Broward County', hollywood:'Broward County', pembroke_pines:'Broward County', miramar:'Broward County', plantation:'Broward County', sunrise:'Broward County', weston:'Broward County', pompano:'Broward County',
+            boca_raton:'Palm Beach County', west_palm:'Palm Beach County', delray:'Palm Beach County',
+            // NY
+            manhattan:'New York County', brooklyn:'Kings County', queens:'Queens County', bronx:'Bronx County', staten_island:'Richmond County', yonkers:'Westchester County', long_island:'Nassau County',
+            // TX
+            houston:'Harris County', dallas:'Dallas County', san_antonio:'Bexar County', austin:'Travis County',
+          };
+          const selectedCounties = [...new Set(cities.map(c => CITY_COUNTY[c]).filter(Boolean))];
+
           const { error: profileErr } = await supabase.from('profiles').update({
             whatsapp_phone: phone,
             phone: phoneNorm,
             full_name: (data.firstName as string) || phone,
+            counties: selectedCounties.length > 0 ? selectedCounties : null,
           }).eq('id', newUserId);
 
           if (profileErr) {
