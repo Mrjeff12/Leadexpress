@@ -64,6 +64,80 @@ const STAGES = [
 ] as const
 const getStage = (k: string) => STAGES.find(s => s.key === k) ?? STAGES[0]
 
+const SUB_STATUSES: Record<string, { key: string; label: string; he: string; color: string }[]> = {
+  prospect: [
+    { key: 'hot', label: 'Hot', he: 'חם', color: '#FF3B30' },
+    { key: 'warm', label: 'Warm', he: 'רלוונטי', color: '#FF9500' },
+    { key: 'cold', label: 'Cold', he: 'קר', color: '#007AFF' },
+    { key: 'stale', label: 'Stale', he: 'לא פעיל', color: '#8E8E93' },
+    { key: 'invalid', label: 'Invalid', he: 'לא תקין', color: '#C7C7CC' },
+    { key: 'do_not_contact', label: 'DNC', he: 'לא לפנות', color: '#FF3B30' },
+  ],
+  reached_out: [
+    { key: 'not_sent', label: 'Not Sent', he: 'לא נשלח', color: '#C7C7CC' },
+    { key: 'unread', label: 'Unread', he: 'לא נקרא', color: '#FF9500' },
+    { key: 'read_no_reply', label: 'Read', he: 'קרא לא ענה', color: '#FF9500' },
+    { key: 'followup_1', label: 'Follow-up 1', he: 'תזכורת 1', color: '#007AFF' },
+    { key: 'followup_2', label: 'Follow-up 2', he: 'תזכורת 2', color: '#007AFF' },
+    { key: 'no_response', label: 'No Response', he: 'לא מגיב', color: '#8E8E93' },
+    { key: 'not_interested', label: 'Not Interested', he: 'לא מעוניין', color: '#FF3B30' },
+  ],
+  in_conversation: [
+    { key: 'active', label: 'Active', he: 'פעיל', color: '#34C759' },
+    { key: 'asking_price', label: 'Asking Price', he: 'שואל מחיר', color: '#FF9500' },
+    { key: 'hesitating', label: 'Hesitating', he: 'מהסס', color: '#FF9500' },
+    { key: 'waiting_on_us', label: 'Waiting on Us!', he: 'מחכה לנו!', color: '#FF3B30' },
+    { key: 'waiting_on_them', label: 'Waiting', he: 'מחכה לו', color: '#8E8E93' },
+    { key: 'gone_quiet', label: 'Gone Quiet', he: 'נעלם', color: '#8E8E93' },
+    { key: 'scheduled', label: 'Scheduled', he: 'תיאם שיחה', color: '#5856D6' },
+    { key: 'sent_link', label: 'Sent Link', he: 'קיבל לינק', color: '#007AFF' },
+  ],
+  onboarding: [
+    { key: 'first_name', label: 'Name', he: 'שם', color: '#34C759' },
+    { key: 'profession', label: 'Trades', he: 'מקצוע', color: '#34C759' },
+    { key: 'city_state', label: 'State', he: 'מדינה', color: '#007AFF' },
+    { key: 'city', label: 'Cities', he: 'ערים', color: '#007AFF' },
+    { key: 'working_days', label: 'Schedule', he: 'לוז', color: '#5856D6' },
+    { key: 'confirm', label: 'Confirm', he: 'אישור', color: '#FF9500' },
+    { key: 'groups', label: 'Groups', he: 'קבוצות', color: '#FF9500' },
+  ],
+  demo_trial: [
+    { key: 'just_started', label: 'Just Started', he: 'התחיל עכשיו', color: '#007AFF' },
+    { key: 'receiving_leads', label: 'Getting Leads', he: 'מקבל לידים', color: '#34C759' },
+    { key: 'engaged', label: 'Engaged', he: 'פעיל ומעורב', color: '#34C759' },
+    { key: 'no_leads', label: 'No Leads!', he: 'אין לידים!', color: '#FF3B30' },
+    { key: 'inactive', label: 'Inactive', he: 'לא פעיל', color: '#FF9500' },
+    { key: 'expiring', label: 'Expiring', he: 'נגמר בקרוב', color: '#FF9500' },
+    { key: 'wants_to_pay', label: 'Wants to Pay', he: 'רוצה לשלם', color: '#34C759' },
+  ],
+  trial_expired: [
+    { key: 'was_active', label: 'Was Active', he: 'היה פעיל', color: '#FF9500' },
+    { key: 'barely_used', label: 'Barely Used', he: 'בקושי השתמש', color: '#8E8E93' },
+    { key: 'never_used', label: 'Never Used', he: 'לא נכנס', color: '#C7C7CC' },
+    { key: 'payment_failed', label: 'Payment Failed', he: 'תשלום נכשל', color: '#FF3B30' },
+    { key: 'got_offer', label: 'Got Offer', he: 'קיבל הצעה', color: '#5856D6' },
+    { key: 'declined', label: 'Declined', he: 'סירב', color: '#FF3B30' },
+  ],
+  paying: [
+    { key: 'healthy', label: 'Healthy', he: 'מרוצה', color: '#34C759' },
+    { key: 'power_user', label: 'Power User', he: 'משתמש כבד', color: '#34C759' },
+    { key: 'low_usage', label: 'Low Usage', he: 'לא משתמש', color: '#FF9500' },
+    { key: 'low_leads', label: 'Low Leads', he: 'מעט לידים', color: '#FF3B30' },
+    { key: 'support_issue', label: 'Support', he: 'בעיה פתוחה', color: '#FF3B30' },
+    { key: 'payment_failing', label: 'Payment Issue', he: 'תשלום נכשל', color: '#FF3B30' },
+    { key: 'upgrade_candidate', label: 'Upgrade', he: 'לשדרוג', color: '#5856D6' },
+  ],
+  churned: [
+    { key: 'recent', label: 'Recent', he: 'עזב לאחרונה', color: '#FF9500' },
+    { key: 'old', label: 'Old', he: 'עזב מזמן', color: '#8E8E93' },
+    { key: 'payment_failed', label: 'Payment Failed', he: 'נפל בתשלום', color: '#FF3B30' },
+    { key: 'no_value', label: 'No Value', he: 'לא קיבל ערך', color: '#FF9500' },
+    { key: 'seasonal', label: 'Seasonal', he: 'עונתי', color: '#007AFF' },
+    { key: 'competitor', label: 'Competitor', he: 'מתחרה', color: '#FF3B30' },
+    { key: 'closed', label: 'Closed', he: 'סגר עסק', color: '#8E8E93' },
+  ],
+}
+
 const QUICK_REPLIES = [
   { key: 'intro', label: 'Intro', he_label: 'היכרות', en: 'Hi! I\'m from Lead Express. We help contractors get more jobs. Interested?', he: 'שלום! אני מ-Lead Express. מעוניין בשיחה קצרה?' },
   { key: 'followup', label: 'Follow-up', he_label: 'מעקב', en: 'Hey! Following up on my last message.', he: 'היי! עוקב אחרי ההודעה האחרונה.' },
@@ -193,7 +267,7 @@ export default function AdminInbox() {
   // Prospect list
   const [listSearch, setListSearch] = useState('')
   const [filterStage, setFilterStage] = useState<string>('all')
-  const [filterOnboardingStep, setFilterOnboardingStep] = useState<string | null>(null)
+  const [filterSubStatus, setFilterSubStatus] = useState<string | null>(null)
   const [displayLimit, setDisplayLimit] = useState(50)
 
   // Group admin tracking — phones of group admins for gold badge
@@ -291,17 +365,17 @@ export default function AdminInbox() {
     } else if (filterStage !== 'all') {
       list = list.filter(p => p.stage === filterStage)
     }
-    // Onboarding sub-step filter
-    if (filterStage === 'onboarding' && filterOnboardingStep) {
-      list = list.filter(p => p.onboarding_step === filterOnboardingStep)
+    // Sub-status filter
+    if (filterSubStatus) {
+      list = list.filter(p => p.sub_status === filterSubStatus)
     }
     if (!listSearch.trim()) return list
     const q = listSearch.toLowerCase()
     return list.filter(p => (p.display_name ?? '').toLowerCase().includes(q) || p.phone.includes(q) || p.profession_tags.some(t => t.toLowerCase().includes(q)))
-  }, [prospectList, listSearch, filterStage, filterOnboardingStep, adminPhones])
+  }, [prospectList, listSearch, filterStage, filterSubStatus, adminPhones])
 
-  // Reset display limit and onboarding step filter when filter changes
-  useEffect(() => { setDisplayLimit(50); if (filterStage !== 'onboarding') setFilterOnboardingStep(null) }, [filterStage, listSearch])
+  // Reset display limit and sub-status filter when filter changes
+  useEffect(() => { setDisplayLimit(50); setFilterSubStatus(null) }, [filterStage, listSearch])
 
   // Select first prospect if none selected and list loads
   useEffect(() => {
@@ -315,7 +389,23 @@ export default function AdminInbox() {
     const t = text ?? newMessage; if (!t.trim() || !prospect || sending) return; setSending(true)
     try { const url = import.meta.env.VITE_WA_LISTENER_URL || 'http://localhost:3001'; const r = await fetch(`${url}/api/prospects/send`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prospect_id: prospect.id, wa_id: prospect.wa_id, text: t.trim(), wa_account_id: prospect.assigned_wa_account_id, channel: selectedChannel }) }); if (r.ok) { setNewMessage(''); setShowQR(false); if (inputRef.current) { inputRef.current.style.height = 'auto'; inputRef.current.focus(); } if (prospect.stage === 'prospect') await changeStage('reached_out') } else { toast({ title: 'Send failed', description: 'Message could not be sent. Please try again.', variant: 'destructive' }) } } catch { toast({ title: 'Send failed', description: 'Network error. Please check your connection.', variant: 'destructive' }) } finally { setSending(false) }
   }
-  async function changeStage(ns: string) { if (!prospect || prospect.stage === ns) return; const old = prospect.stage; setStageMenuOpen(false); const { error } = await supabase.from('prospects').update({ stage: ns }).eq('id', prospect.id); if (error) { toast({ title: 'Update failed', description: 'Could not change stage.', variant: 'destructive' }); return } await supabase.from('prospect_events').insert({ prospect_id: prospect.id, event_type: 'stage_change', old_value: old, new_value: ns }); await refetchDetail() }
+  async function changeStage(ns: string) { if (!prospect || prospect.stage === ns) return; const old = prospect.stage; setStageMenuOpen(false); const { error } = await supabase.from('prospects').update({ stage: ns, sub_status: null, sub_status_changed_at: null }).eq('id', prospect.id); if (error) { toast({ title: 'Update failed', description: 'Could not change stage.', variant: 'destructive' }); return } await supabase.from('prospect_events').insert({ prospect_id: prospect.id, event_type: 'stage_change', old_value: old, new_value: ns }); await refetchDetail() }
+  async function changeSubStatus(newSub: string) {
+    if (!prospect || prospect.sub_status === newSub) return
+    const old = prospect.sub_status
+    const { error } = await supabase.from('prospects').update({
+      sub_status: newSub,
+      sub_status_changed_at: new Date().toISOString(),
+    }).eq('id', prospect.id)
+    if (error) { toast({ title: 'Update failed', variant: 'destructive' }); return }
+    await supabase.from('prospect_events').insert({
+      prospect_id: prospect.id,
+      event_type: 'sub_status_change',
+      old_value: old || null,
+      new_value: newSub,
+    })
+    await refetchDetail()
+  }
   async function saveNotes() { if (!prospect) return; const { error } = await supabase.from('prospects').update({ notes: noteDraft }).eq('id', prospect.id); if (error) { toast({ title: 'Save failed', description: 'Could not save notes.', variant: 'destructive' }); return } await supabase.from('prospect_events').insert({ prospect_id: prospect.id, event_type: 'note_added', new_value: noteDraft.substring(0, 100) }); setEditingNotes(false); await refetchDetail() }
   async function saveName() { if (!prospect) return; const n = nameDraft.trim() || null; const { error } = await supabase.from('prospects').update({ display_name: n }).eq('id', prospect.id); if (error) { toast({ title: 'Save failed', description: 'Could not update name.', variant: 'destructive' }); return } setEditingName(false); await refetchDetail() }
   async function saveFU() { if (!prospect) return; const v = fuDraft || null; const { error } = await supabase.from('prospects').update({ next_followup_at: v }).eq('id', prospect.id); if (error) { toast({ title: 'Save failed', description: 'Could not set follow-up.', variant: 'destructive' }); return } setShowFU(false); await refetchDetail() }
@@ -375,17 +465,19 @@ export default function AdminInbox() {
     return counts
   }, [prospectList])
 
-  // Onboarding sub-step counts
-  const onboardingStepCounts = useMemo(() => {
+  // Sub-status counts for active stage filter
+  const subStatusCounts = useMemo(() => {
+    const subs = SUB_STATUSES[filterStage]
+    if (!subs) return {} as Record<string, number>
     const counts: Record<string, number> = {}
-    for (const s of ONBOARDING_STEPS) counts[s.key] = 0
+    for (const s of subs) counts[s.key] = 0
     for (const p of prospectList) {
-      if (p.stage === 'onboarding' && p.onboarding_step && counts[p.onboarding_step] !== undefined) {
-        counts[p.onboarding_step]++
+      if (p.stage === filterStage && p.sub_status && counts[p.sub_status] !== undefined) {
+        counts[p.sub_status]++
       }
     }
     return counts
-  }, [prospectList])
+  }, [prospectList, filterStage])
 
   return (
     <div
@@ -599,11 +691,16 @@ export default function AdminInbox() {
                         <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: s.color }} />
                         <span className="text-[11px] font-bold uppercase tracking-tight text-[#8E8E93]">{he ? s.he : s.label}</span>
                       </div>
-                      {p.stage === 'onboarding' && p.onboarding_step && (
-                        <span className="text-[9px] text-amber-600 font-medium bg-amber-50 px-1.5 py-0.5 rounded-md">
-                          {formatOnboardingStep(p.onboarding_step)}
-                        </span>
-                      )}
+                      {p.sub_status && SUB_STATUSES[p.stage] && (() => {
+                        const subDef = SUB_STATUSES[p.stage]?.find(s => s.key === p.sub_status)
+                        if (!subDef) return null
+                        return (
+                          <span className="text-[9px] font-medium px-1.5 py-0.5 rounded-md"
+                            style={{ color: subDef.color, background: subDef.color + '15' }}>
+                            {he ? subDef.he : subDef.label}
+                          </span>
+                        )
+                      })()}
 
                       {p.group_names && p.group_names.length > 0 && (
                         <div className="flex items-center gap-1 min-w-0 bg-[#fe5b25]/[0.05] px-2 py-0.5 rounded-lg" title={p.group_names.join(', ')}>
@@ -684,31 +781,29 @@ export default function AdminInbox() {
             </div>
           )}
 
-          {/* ═══ ONBOARDING SUB-PIPELINE (above chat when Onboarding active) ═══ */}
-          {filterStage === 'onboarding' && (
-            <div className="shrink-0 flex items-center gap-1.5 px-5 py-2 border-b border-black/[0.04]" style={{ background: 'linear-gradient(135deg, #FFF8F5, #FFFBF9)' }}>
-              <Sparkles className="w-3.5 h-3.5 text-amber-500 shrink-0" />
-              {ONBOARDING_STEPS.map((s, idx) => {
-                const count = onboardingStepCounts[s.key] || 0
-                const isActive = filterOnboardingStep === s.key
-                const hasStuck = count > 0
+          {/* ═══ SUB-STATUS PIPELINE (above chat when a stage is selected) ═══ */}
+          {filterStage !== 'all' && filterStage !== 'group_admin' && SUB_STATUSES[filterStage] && (
+            <div className="shrink-0 flex items-center gap-1.5 px-5 py-2 border-b border-black/[0.04] overflow-x-auto scrollbar-hide" style={{ background: 'linear-gradient(135deg, #FFF8F5, #FFFBF9)' }}>
+              {SUB_STATUSES[filterStage]?.map((s, idx) => {
+                const count = subStatusCounts[s.key] || 0
+                const isActive = filterSubStatus === s.key
+                const hasCount = count > 0
                 return (
                   <div key={s.key} className="flex items-center">
                     {idx > 0 && <div className="w-3 h-[1px] bg-black/[0.08] shrink-0" />}
                     <button
-                      onClick={() => setFilterOnboardingStep(filterOnboardingStep === s.key ? null : s.key)}
+                      onClick={() => setFilterSubStatus(filterSubStatus === s.key ? null : s.key)}
                       className="flex items-center gap-1 px-2 py-1 rounded-lg transition-all whitespace-nowrap"
                       style={{
-                        background: isActive ? '#FF950018' : 'transparent',
-                        boxShadow: isActive ? '0 1px 4px rgba(255,149,0,0.15)' : 'none',
+                        background: isActive ? s.color + '18' : 'transparent',
+                        boxShadow: isActive ? `0 1px 4px ${s.color}25` : 'none',
                       }}
                     >
-                      <span className="text-[11px]">{s.icon}</span>
-                      <span className={`text-[12px] font-bold ${isActive ? 'text-[#FF9500]' : hasStuck ? 'text-[#FF3B30]' : 'text-[#C7C7CC]'}`}>
+                      <span className={`text-[12px] font-bold`} style={{ color: isActive ? s.color : hasCount ? s.color : '#C7C7CC' }}>
                         {count}
                       </span>
                       <span className={`text-[10px] ${isActive ? 'text-[#1C1C1E] font-semibold' : 'text-[#8E8E93]'}`}>
-                        {s.label}
+                        {he ? s.he : s.label}
                       </span>
                     </button>
                   </div>
@@ -1148,13 +1243,38 @@ export default function AdminInbox() {
                   </div>
                 )}
 
-                {/* Onboarding Progress */}
-                {prospect?.stage === 'onboarding' && (
+                {/* Sub-Status / Onboarding Progress */}
+                {prospect && SUB_STATUSES[prospect.stage] && (
                   <div className="mb-4">
                     <div className="text-[10px] font-semibold uppercase tracking-wider text-[#8E8E93] mb-2">
-                      {he ? 'התקדמות הרשמה' : 'Onboarding Progress'}
+                      {prospect.stage === 'onboarding' ? (he ? 'התקדמות הרשמה' : 'Onboarding Progress') : (he ? 'סטטוס' : 'Status')}
                     </div>
-                    <OnboardingProgress step={prospect.onboarding_step} startedAt={prospect.onboarding_started_at} lastActivity={prospect.onboarding_last_activity_at} />
+                    {prospect.stage === 'onboarding' ? (
+                      <OnboardingProgress step={prospect.onboarding_step} startedAt={prospect.onboarding_started_at} lastActivity={prospect.onboarding_last_activity_at} />
+                    ) : (
+                      <div className="flex flex-wrap gap-1.5">
+                        {SUB_STATUSES[prospect.stage]?.map(s => {
+                          const isActive = prospect.sub_status === s.key
+                          return (
+                            <button key={s.key} onClick={() => changeSubStatus(s.key)}
+                              className="px-2.5 py-1 rounded-lg text-[10px] font-semibold transition-all"
+                              style={{
+                                background: isActive ? s.color + '20' : 'rgba(0,0,0,0.03)',
+                                color: isActive ? s.color : '#8E8E93',
+                                border: isActive ? `1.5px solid ${s.color}40` : '1.5px solid transparent',
+                                boxShadow: isActive ? `0 2px 8px ${s.color}20` : 'none',
+                              }}>
+                              {he ? s.he : s.label}
+                            </button>
+                          )
+                        })}
+                      </div>
+                    )}
+                    {prospect.sub_status_changed_at && prospect.stage !== 'onboarding' && (
+                      <p className="text-[10px] text-[#8E8E93] mt-1.5">
+                        Changed {new Date(prospect.sub_status_changed_at).toLocaleDateString()}
+                      </p>
+                    )}
                   </div>
                 )}
 

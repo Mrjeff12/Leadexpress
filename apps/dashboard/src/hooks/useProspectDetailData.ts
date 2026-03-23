@@ -22,6 +22,8 @@ export interface Prospect {
   onboarding_step?: string
   onboarding_started_at?: string
   onboarding_last_activity_at?: string
+  sub_status?: string
+  sub_status_changed_at?: string
 }
 
 export interface Message {
@@ -58,6 +60,7 @@ export interface ProspectListItem {
   profile_pic_url: string | null
   group_names?: string[]
   onboarding_step?: string
+  sub_status?: string
 }
 
 export interface LinkedContractor {
@@ -89,7 +92,7 @@ async function fetchProspectList(): Promise<ProspectListItem[]> {
   while (true) {
     const { data, error } = await supabase
       .from('prospect_with_groups')
-      .select('id,phone,display_name,stage,profession_tags,updated_at,last_contact_at,profile_pic_url,group_names,onboarding_step')
+      .select('id,phone,display_name,stage,profession_tags,updated_at,last_contact_at,profile_pic_url,group_names,onboarding_step,sub_status')
       .is('archived_at', null)
       .order('updated_at', { ascending: false })
       .range(from, from + size - 1)
