@@ -107,8 +107,8 @@ function InviteScannerCard({ he }: { he?: boolean }) {
                 type="button"
                 onClick={() => {
                   const msg = he
-                    ? `היי! אני משתמש ב-Lead Express — AI שמוצא לידים בקבוצות WhatsApp. אפשר להוסיף את המספר ${SCANNER_PHONE} לקבוצה? הבוט שקט לגמרי, רק קורא הודעות ומחבר קבלנים ללידים 🤝`
-                    : `Hey! I use Lead Express — an AI that finds leads in WhatsApp groups. Can you add ${SCANNER_PHONE} to the group? The bot is completely silent, it just reads messages and matches contractors with leads 🤝`
+                    ? `היי! תוכל להוסיף את המספר ${SCANNER_PHONE} לקבוצה? 🙏`
+                    : `Hey! Can you add ${SCANNER_PHONE} to the group? 🙏`
                   navigator.clipboard.writeText(msg)
                 }}
                 className="mt-2 text-[10px] font-semibold text-emerald-600 hover:text-emerald-700 transition-colors"
