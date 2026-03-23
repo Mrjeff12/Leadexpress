@@ -236,38 +236,53 @@ Deno.serve(async (req: Request) => {
     let body = params['Body'] ?? '';
     const messageSid = params['MessageSid'] ?? '';
     const buttonPayload = params['ButtonPayload'] ?? '';
+    const numMedia = parseInt(params['NumMedia'] ?? '0', 10);
     const mediaUrl = params['MediaUrl0'] ?? '';
     const mediaType = params['MediaContentType0'] ?? '';
 
+    console.log(`[webhook] numMedia=${numMedia}, mediaType=${mediaType}, hasBody=${!!body}`);
+
     // ── Voice message transcription ──
-    if (mediaUrl && mediaType.startsWith('audio/') && !body) {
+    if (numMedia > 0 && mediaUrl && (mediaType.startsWith('audio/') || mediaType === 'audio/ogg; codecs=opus') && !body) {
       try {
-        console.log(`[webhook] Audio message detected: ${mediaType}, transcribing...`);
+        console.log(`[webhook] Voice message detected: ${mediaType}, URL: ${mediaUrl.substring(0, 60)}...`);
         const audioRes = await fetch(mediaUrl, {
           headers: { 'Authorization': 'Basic ' + btoa(`${TWILIO_SID}:${TWILIO_TOKEN}`) },
         });
+        console.log(`[webhook] Audio download: ${audioRes.status}, size=${audioRes.headers.get('content-length')}`);
         if (audioRes.ok) {
           const audioBlob = await audioRes.blob();
-          const formDataWhisper = new FormData();
-          formDataWhisper.append('file', audioBlob, 'voice.ogg');
-          formDataWhisper.append('model', 'whisper-1');
-          formDataWhisper.append('language', 'en');
+          const whisperForm = new FormData();
+          whisperForm.append('file', new File([audioBlob], 'voice.ogg', { type: 'audio/ogg' }));
+          whisperForm.append('model', 'whisper-1');
+
+          const openaiKey = OPENAI_KEY_OVERRIDE || Deno.env.get('OPENAI_API_KEY') || '';
+          console.log(`[webhook] Sending to Whisper, key=${openaiKey ? 'present' : 'MISSING'}`);
 
           const whisperRes = await fetch('https://api.openai.com/v1/audio/transcriptions', {
             method: 'POST',
-            headers: { 'Authorization': `Bearer ${OPENAI_KEY_OVERRIDE || Deno.env.get('OPENAI_API_KEY') || ''}` },
-            body: formDataWhisper,
+            headers: { 'Authorization': `Bearer ${openaiKey}` },
+            body: whisperForm,
           });
           if (whisperRes.ok) {
             const whisperData = await whisperRes.json();
             body = whisperData.text || '';
-            console.log(`[webhook] Transcribed: "${body.substring(0, 80)}"`);
+            console.log(`[webhook] Transcribed: "${body.substring(0, 100)}"`);
           } else {
-            console.error(`[webhook] Whisper failed: ${whisperRes.status}`);
+            const errText = await whisperRes.text();
+            console.error(`[webhook] Whisper failed: ${whisperRes.status} — ${errText}`);
           }
         }
       } catch (err) {
         console.error('[webhook] Transcription error:', err);
+      }
+      // If transcription failed, ask user to type instead
+      if (!body) {
+        const phone = normalizePhone(from);
+        if (phone) {
+          await sendText(phone, `Sorry, I couldn't understand the voice message. Could you type it instead? ✏️`);
+        }
+        return twiml();
       }
     }
 
@@ -1186,7 +1201,7 @@ async function onboardCityState(phone: string, textLower: string, data: Record<s
 
   data.state = selectedState;
   const cities = STATE_CITIES[selectedState] ?? [];
-  const cityList = cities.map((c, i) => `${numEmoji(i + 1)} ${c.label}`).join('\n');
+  const cityList = cities.map((c, i) => `${i + 1}. ${c.label}`).join('\n');
 
   await supabase.from('wa_onboard_state').update({
     step: 'city',
@@ -1194,7 +1209,7 @@ async function onboardCityState(phone: string, textLower: string, data: Record<s
     updated_at: new Date().toISOString(),
   }).eq('phone', phone);
 
-  await sendText(phone, `*${selectedState}* — pick your areas:\n\n${cityList}\n\n*Step 3/5* — Reply with numbers (e.g. *1, 3, 5*)\n✏️ Or type/🎙️ record your areas.`);
+  await sendText(phone, `*Step 3/5* — Pick your service areas in ${selectedState === 'FL' ? 'Florida' : selectedState === 'NY' ? 'New York' : 'Texas'}:\n\n${cityList}\n\nReply with numbers (e.g. *1, 3, 5*)\n✏️ Or type/🎙️ record your areas.`);
 }
 
 async function onboardCity(phone: string, textLower: string, data: Record<string, unknown>): Promise<void> {
@@ -1220,7 +1235,7 @@ async function onboardCity(phone: string, textLower: string, data: Record<string
   }).eq('phone', phone);
 
   const labels = selectedCities.map(c => c.label).join(', ');
-  await sendText(phone, `📍 ${labels}\n\n*Step 4/5* — When do you work?\n\n1️⃣ Mon–Fri\n2️⃣ Every day\n3️⃣ Custom\n\n✏️ Type or 🎙️ record your answer.`);
+  await sendText(phone, `📍 ${labels}\n\n*Step 4/5* — When do you work?\n\n1. Mon–Fri\n2. Every day\n3. Custom\n\n✏️ Type or 🎙️ record your answer.`);
 }
 
 async function onboardWorkingDays(phone: string, textLower: string, data: Record<string, unknown>): Promise<void> {
