@@ -14,12 +14,18 @@ let _secretsLoaded = false;
 
 async function loadSecrets() {
   if (_secretsLoaded) return;
-  const { data } = await supabase.rpc('get_twilio_secrets');
-  if (data) {
-    TWILIO_SID = data.TWILIO_ACCOUNT_SID || '';
-    TWILIO_TOKEN = data.TWILIO_AUTH_TOKEN || '';
-    TWILIO_FROM = data.TWILIO_WA_FROM || '';
-    OPENAI_KEY_OVERRIDE = data.OPENAI_API_KEY || '';
+  const { data, error } = await supabase.rpc('get_twilio_secrets');
+  if (error || !data) {
+    console.error('[secrets] FATAL: Failed to load secrets:', error);
+    return; // Do NOT mark as loaded — retry on next call
+  }
+  TWILIO_SID = data.TWILIO_ACCOUNT_SID || '';
+  TWILIO_TOKEN = data.TWILIO_AUTH_TOKEN || '';
+  TWILIO_FROM = data.TWILIO_WA_FROM || '';
+  OPENAI_KEY_OVERRIDE = data.OPENAI_API_KEY || '';
+  if (!TWILIO_SID) {
+    console.error('[secrets] FATAL: TWILIO_ACCOUNT_SID is empty after loading');
+    return;
   }
   _secretsLoaded = true;
   console.log('[secrets] loaded, SID=' + TWILIO_SID.substring(0, 6) + '...');
@@ -1177,13 +1183,18 @@ async function onboardConfirm(phone: string, textLower: string, data: Record<str
 
   if (userId) {
     // Known user — save to contractors table
-    await supabase.from('contractors').update({
+    const { error: contUpdateErr } = await supabase.from('contractors').update({
       professions: data.professions,
       zip_codes: data.zipCodes,
       wa_notify: true,
       is_active: true,
       working_days: data.workingDays,
     }).eq('user_id', userId);
+    if (contUpdateErr) {
+      console.error('[onboard] Contractor update failed:', contUpdateErr);
+      await sendText(phone, `⚠️ There was a problem saving your settings. Please try again — reply *YES*.`);
+      return;
+    }
   }
 
   if (prospectId && !userId) {
@@ -1285,6 +1296,9 @@ async function onboardConfirm(phone: string, textLower: string, data: Record<str
       }
     } catch (err) {
       console.error('[onboard] Account creation error:', err);
+      await supabase.from('wa_onboard_state').delete().eq('phone', phone);
+      await sendText(phone, `⚠️ Something went wrong creating your account. Please send *MENU* and try again, or contact support.`);
+      return;
     }
   }
 

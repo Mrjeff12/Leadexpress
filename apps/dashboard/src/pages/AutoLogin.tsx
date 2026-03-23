@@ -31,7 +31,21 @@ export default function AutoLogin() {
         body: JSON.stringify({ action: 'exchange', token }),
       })
 
-      const data = await res.json()
+      if (!res.ok) {
+        setStatus('error')
+        setError(`Login service error (${res.status}). Please request a new link.`)
+        return
+      }
+
+      let data
+      try {
+        data = await res.json()
+      } catch {
+        setStatus('error')
+        setError('Unexpected response from login service. Please try again.')
+        return
+      }
+
       setDebug(`type=${data.type}, hasToken=${!!data.access_token}`)
 
       if (data.error) {
@@ -41,37 +55,46 @@ export default function AutoLogin() {
       }
 
       if (data.type === 'session' && data.access_token && data.refresh_token) {
-        // Write session to localStorage — bypasses setSession() which can hang
-        // in WhatsApp's embedded browser. MUST use window.location.replace()
-        // (not React Router navigate) so AuthProvider re-initializes from localStorage.
+        const user = parseJwt(data.access_token)
+        if (!user.sub && !user.id) {
+          setStatus('error')
+          setError('Invalid session token. Please request a new login link.')
+          return
+        }
+
         const sessionData = {
           access_token: data.access_token,
           refresh_token: data.refresh_token,
           token_type: 'bearer',
           expires_in: 3600,
           expires_at: Math.floor(Date.now() / 1000) + 3600,
-          user: parseJwt(data.access_token),
+          user,
         }
 
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(sessionData))
-        setDebug('Session saved! Redirecting...')
+        try {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(sessionData))
+        } catch {
+          setStatus('error')
+          setError('Could not save your session. Try opening this link in your phone\'s default browser instead of WhatsApp.')
+          return
+        }
+
         setStatus('success')
 
-        // Hard navigate — full page reload so AuthProvider picks up the session
-        // Default to /complete-account for new onboarding users
+        const safePath = (data.redirect_path && data.redirect_path.startsWith('/') && !data.redirect_path.startsWith('//'))
+          ? data.redirect_path : '/complete-account'
         setTimeout(() => {
-          window.location.replace(data.redirect_path || '/complete-account')
+          window.location.replace(safePath)
         }, 600)
         return
       }
 
       setStatus('error')
       setError('No session received')
-      setDebug(JSON.stringify(data).slice(0, 200))
 
     } catch (err) {
       setStatus('error')
-      setError(String(err))
+      setError('Login failed. Please request a new link from WhatsApp.')
     }
   }
 

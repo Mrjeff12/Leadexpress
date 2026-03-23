@@ -114,7 +114,11 @@ Deno.serve(async (req: Request) => {
 
       // Set email if not present
       if (!userData.user.email) {
-        await supabase.auth.admin.updateUserById(tokenRow.user_id, { email, email_confirm: true });
+        const { error: emailErr } = await supabase.auth.admin.updateUserById(tokenRow.user_id, { email, email_confirm: true });
+        if (emailErr) {
+          console.error('[magic-login] Failed to set email for user:', tokenRow.user_id, emailErr);
+          return json({ error: 'Could not prepare account for login' }, 500);
+        }
       }
 
       // Generate session directly using signInWithPassword-like approach
