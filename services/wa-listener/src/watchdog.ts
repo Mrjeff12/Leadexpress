@@ -8,6 +8,7 @@
  *  4. Daily summary      — 24h aggregate stats alert
  *  5. Health log cleanup — prune old health_logs every 24h
  *  6. Prospect scoring   — score_prospects() every 6h
+ *  7. Waiting-on-us      — conversation sub-status + alerts every 5min
  */
 
 import { createClient } from '@supabase/supabase-js';
@@ -205,6 +206,63 @@ async function prospectScoringJob(): Promise<void> {
   }
 }
 
+// ── Job 7: Waiting-on-Us Detection ──────────────────────────────────────
+async function waitingOnUsJob(): Promise<void> {
+  try {
+    // Step 1: Update all conversation sub-statuses via single RPC
+    const { data: counts, error: rpcError } = await supabase.rpc('update_conversation_sub_statuses');
+    if (rpcError) throw rpcError;
+
+    const stats = counts?.[0] || counts;
+    if (stats) {
+      logger.info(
+        {
+          waiting_on_us: stats.waiting_on_us,
+          waiting_on_them: stats.waiting_on_them,
+          active: stats.active,
+          gone_quiet: stats.gone_quiet,
+        },
+        'Watchdog: conversation sub-statuses updated',
+      );
+    }
+
+    // Step 2: Check for alert thresholds on waiting-on-us prospects
+    const { data: waiting, error: detectError } = await supabase.rpc('detect_waiting_on_us');
+    if (detectError) throw detectError;
+    if (!waiting || waiting.length === 0) return;
+
+    for (const w of waiting) {
+      // Warning alert at 4 hours (240 min)
+      if (w.minutes_waiting >= 240 && w.minutes_waiting < 245) {
+        await supabase.rpc('send_alert', {
+          p_account_id: null,
+          p_type: 'custom',
+          p_severity: 'warning',
+          p_title: `⏳ ${w.prospect_name} waiting ${Math.floor(w.minutes_waiting / 60)}h`,
+          p_message: `${w.prospect_name} (${w.prospect_phone}) sent a message ${Math.floor(w.minutes_waiting / 60)} hours ago. Reply ASAP!`,
+          p_channel: 'whatsapp',
+          p_dedupe_minutes: 180,
+        });
+      }
+
+      // CRITICAL alert at 20 hours (1200 min) — 24h window closing
+      if (w.minutes_waiting >= 1200 && w.minutes_waiting < 1205) {
+        await supabase.rpc('send_alert', {
+          p_account_id: null,
+          p_type: 'custom',
+          p_severity: 'critical',
+          p_title: `🚨 24h window closing on ${w.prospect_name}!`,
+          p_message: `${w.prospect_name} (${w.prospect_phone}) has been waiting ${Math.floor(w.minutes_waiting / 60)} hours! You have ~4 hours before the WhatsApp window closes.`,
+          p_channel: 'whatsapp',
+          p_dedupe_minutes: 240,
+        });
+      }
+    }
+  } catch (err) {
+    logger.error({ err }, 'Waiting-on-us detection failed');
+  }
+}
+
 // ── Start / Stop ────────────────────────────────────────────────────────────
 export async function startWatchdog(): Promise<void> {
   logger.info('Starting WATCHDOG scheduler');
@@ -239,7 +297,11 @@ export async function startWatchdog(): Promise<void> {
   }, 10 * 60 * 1000);
   timeouts.push(scoringTimeout);
 
-  logger.info('WATCHDOG scheduler started — sync every 4h, enrichment every 4h+30m, scoring every 6h');
+  // Job 7: Waiting-on-us detection — every 5 minutes
+  timers.push(setInterval(waitingOnUsJob, 5 * 60 * 1000));
+  waitingOnUsJob(); // run immediately
+
+  logger.info('WATCHDOG scheduler started — sync every 4h, enrichment every 4h+30m, scoring every 6h, waiting-on-us every 5m');
 }
 
 export async function stopWatchdog(): Promise<void> {
