@@ -296,6 +296,16 @@ Deno.serve(async (req: Request) => {
       return twiml();
     }
 
+    // Handle empty messages (voice notes that Twilio can't forward, images, etc.)
+    if (!text && !buttonPayload) {
+      // Check if user is in onboarding
+      const { data: onboardState } = await supabase.from('wa_onboard_state').select('step').eq('phone', phone).maybeSingle();
+      if (onboardState) {
+        await sendText(phone, `I can only read text messages right now. Could you type your answer instead? ✏️`);
+      }
+      return twiml();
+    }
+
     // Route message (button payloads take priority over text)
     await routeMessage(phone, text, textLower, buttonPayload);
   } catch (err) {
