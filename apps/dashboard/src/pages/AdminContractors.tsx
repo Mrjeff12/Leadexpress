@@ -86,7 +86,7 @@ function formatDate(dateStr: string): string {
 
 export default function AdminContractors() {
   const { locale } = useI18n()
-  const { impersonate } = useAuth()
+  const { impersonate, profile } = useAuth()
   const navigate = useNavigate()
   const he = locale === 'he'
 
@@ -101,6 +101,24 @@ export default function AdminContractors() {
   const [fetchError, setFetchError] = useState<string | null>(null)
   const [qrModal, setQrModal] = useState<{ contractor: Contractor; token: string; url: string } | null>(null)
   const [copied, setCopied] = useState(false)
+  const [availablePlans, setAvailablePlans] = useState<{ id: string; slug: string; name: string; price_cents: number }[]>([])
+
+  useEffect(() => {
+    supabase.from('plans').select('id, slug, name, price_cents').eq('is_active', true).order('price_cents')
+      .then(({ data }) => { if (data) setAvailablePlans(data) })
+  }, [])
+
+  async function quickChangePlan(userId: string, planId: string, e: React.MouseEvent) {
+    e.stopPropagation()
+    await supabase.from('subscriptions').update({ plan_id: planId }).eq('user_id', userId).in('status', ['active', 'trialing'])
+    await supabase.from('admin_audit_log').insert({
+      admin_user_id: profile?.id,
+      target_user_id: userId,
+      action: 'plan_change',
+      details: { new_plan_id: planId, source: 'bulk_list' },
+    })
+    fetchContractors()
+  }
 
   const fetchContractors = useCallback(async () => {
     setFetchError(null)
@@ -419,29 +437,34 @@ export default function AdminContractors() {
                         </div>
                       </td>
 
-                      {/* Plan */}
-                      <td className="px-5 py-4">
-                        {planConf ? (
-                          <div className="flex flex-col gap-1">
-                            <span
-                              className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] font-semibold w-fit"
-                              style={{ background: planConf.bg, color: planConf.color, border: `1px solid ${planConf.border}` }}
-                            >
-                              <planConf.icon className="w-3 h-3" />
-                              {planConf.label}
-                            </span>
-                            {statusConf && (
-                              <span
-                                className="text-[10px] font-medium px-1.5 py-0.5 rounded w-fit"
-                                style={{ background: statusConf.bg, color: statusConf.color }}
-                              >
-                                {subStatus}
-                              </span>
-                            )}
-                          </div>
-                        ) : (
-                          <span className="text-[11px] font-medium px-2 py-1 rounded-lg" style={{ background: '#F3F4F6', color: '#9CA3AF' }}>
-                            {he ? 'ללא' : 'None'}
+                      {/* Plan — clickable dropdown */}
+                      <td className="px-5 py-4" onClick={e => e.stopPropagation()}>
+                        <select
+                          value={c.profiles?.subscriptions?.[0]?.plans?.slug || ''}
+                          onChange={(e) => {
+                            const plan = availablePlans.find(p => p.slug === e.target.value)
+                            if (plan) quickChangePlan(c.user_id, plan.id, e as any)
+                          }}
+                          className="text-[11px] font-semibold rounded-lg px-2 py-1.5 border cursor-pointer appearance-none bg-no-repeat bg-right pr-6 transition-colors hover:border-indigo-300"
+                          style={{
+                            background: planConf?.bg ?? '#F3F4F6',
+                            color: planConf?.color ?? '#9CA3AF',
+                            borderColor: planConf?.border ?? '#E5E7EB',
+                            backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%239CA3AF' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E")`,
+                            backgroundPosition: 'right 6px center',
+                          }}
+                        >
+                          {!planConf && <option value="">None</option>}
+                          {availablePlans.map(p => (
+                            <option key={p.slug} value={p.slug}>{p.name} — ${p.price_cents / 100}/mo</option>
+                          ))}
+                        </select>
+                        {statusConf && (
+                          <span
+                            className="block text-[10px] font-medium px-1.5 py-0.5 rounded w-fit mt-1"
+                            style={{ background: statusConf.bg, color: statusConf.color }}
+                          >
+                            {subStatus}
                           </span>
                         )}
                       </td>

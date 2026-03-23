@@ -24,6 +24,23 @@ export function startCheckinCron(log: Logger): cron.ScheduledTask {
     async () => {
       log.info('Running daily check-in');
 
+      // Auto-expire ended trials + deactivate their notifications
+      try {
+        const { data: expiredCount } = await supabase.rpc('expire_ended_trials');
+        const { data: deactivatedCount } = await supabase.rpc('deactivate_expired_contractors');
+        if (expiredCount > 0 || deactivatedCount > 0) {
+          log.info({ expiredCount, deactivatedCount }, 'Trial expiry cleanup done');
+        }
+      } catch (err) {
+        log.error({ err }, 'Trial expiry cleanup failed');
+      }
+
+      // Cleanup stale onboarding + expired magic tokens
+      try {
+        await supabase.rpc('cleanup_stale_onboarding');
+        await supabase.rpc('cleanup_expired_magic_tokens');
+      } catch (_) { /* non-critical */ }
+
       const today = new Date().getDay(); // 0=Sun, 1=Mon, ..., 6=Sat
 
       // Reset all contractors' availability from yesterday

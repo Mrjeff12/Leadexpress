@@ -475,15 +475,23 @@ export default function ContractorDetail() {
       return
     }
 
+    const newPlan = availablePlans.find(p => p.id === planId)
+    const oldPlan = contractor.subscription.plan
+
     // If contractor has Stripe subscription, update in Stripe too
-    if (contractor.subscription.stripe_subscription_id) {
-      const newPlan = availablePlans.find(p => p.id === planId)
-      if (newPlan) {
-        await supabase.functions.invoke('update-subscription', {
-          body: { user_id: id, new_price_id: newPlan.slug === 'pro' ? 'price_1TE0hKCrhYJDA3GP55QDwJKA' : 'price_1TE0hNCrhYJDA3GPJQC7qCGR' },
-        })
-      }
+    if (contractor.subscription.stripe_subscription_id && newPlan) {
+      await supabase.functions.invoke('update-subscription', {
+        body: { user_id: id, new_price_id: newPlan.slug === 'pro' ? 'price_1TE0hKCrhYJDA3GP55QDwJKA' : 'price_1TE0hNCrhYJDA3GPJQC7qCGR' },
+      })
     }
+
+    // Audit log
+    await supabase.from('admin_audit_log').insert({
+      admin_user_id: profile?.id,
+      target_user_id: id,
+      action: 'plan_change',
+      details: { old_plan: oldPlan?.name, new_plan: newPlan?.name, old_plan_id: contractor.subscription.plan_id, new_plan_id: planId },
+    })
 
     setChangingPlan(false)
     setShowPlanModal(false)
@@ -503,6 +511,14 @@ export default function ContractorDetail() {
       current_period_end: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
     })
 
+    // Audit log
+    await supabase.from('admin_audit_log').insert({
+      admin_user_id: profile?.id,
+      target_user_id: id,
+      action: 'trial_created',
+      details: { plan: plan.name, plan_id: plan.id, trial_days: 7 },
+    })
+
     setChangingPlan(false)
     setShowPlanModal(false)
     loadContractor()
@@ -513,7 +529,15 @@ export default function ContractorDetail() {
     setToggling(true)
     const newStatus = !contractor.is_active
     const { error } = await supabase.from('contractors').update({ is_active: newStatus }).eq('user_id', id)
-    if (!error) setContractor({ ...contractor, is_active: newStatus })
+    if (!error) {
+      setContractor({ ...contractor, is_active: newStatus })
+      await supabase.from('admin_audit_log').insert({
+        admin_user_id: profile?.id,
+        target_user_id: id,
+        action: newStatus ? 'contractor_activated' : 'contractor_deactivated',
+        details: {},
+      })
+    }
     setToggling(false)
   }
 
@@ -906,6 +930,13 @@ export default function ContractorDetail() {
                 <div className="p-6 space-y-3">
                   {availablePlans.map(p => {
                     const isCurrent = contractor?.subscription?.plan_id === p.id
+                    const currentPlan = contractor?.subscription?.plan
+                    const currentPrice = (currentPlan as any)?.price_cents ?? 0
+                    const diff = p.price_cents - currentPrice
+                    const periodEnd = contractor?.subscription?.current_period_end
+                    const daysLeft = periodEnd ? Math.max(0, Math.ceil((new Date(periodEnd).getTime() - Date.now()) / (1000 * 60 * 60 * 24))) : 0
+                    const proratedDiff = Math.round((diff / 100) * (daysLeft / 30) * 100) / 100
+
                     return (
                       <button
                         key={p.id}
@@ -934,6 +965,12 @@ export default function ContractorDetail() {
                         {isCurrent && (
                           <span className="inline-flex items-center gap-1 mt-2 text-xs font-semibold text-green-600">
                             <CheckCircle2 className="w-3 h-3" /> Current plan
+                          </span>
+                        )}
+                        {!isCurrent && contractor?.subscription && diff !== 0 && (
+                          <span className={`inline-flex items-center gap-1 mt-2 text-xs font-medium ${diff > 0 ? 'text-amber-600' : 'text-green-600'}`}>
+                            {diff > 0 ? '↑' : '↓'} {diff > 0 ? 'Upgrade' : 'Downgrade'}
+                            {daysLeft > 0 && ` · ~$${Math.abs(proratedDiff).toFixed(0)} proration (${daysLeft}d left)`}
                           </span>
                         )}
                       </button>
