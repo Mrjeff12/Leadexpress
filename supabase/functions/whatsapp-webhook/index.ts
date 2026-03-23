@@ -1081,11 +1081,22 @@ async function onboardWorkingDays(phone: string, textLower: string, data: Record
   }).eq('phone', phone);
 
   const profs = (data.professions as string[]).map(k => PROF_LABELS[k] ?? k).join(', ');
+  const cities = (data.cities as string[]) ?? [];
+  const state = (data.state as string) ?? '';
   const dayLabels = days.map(d => DAY_NAMES[d]).join(', ');
-  const zipCount = (data.zipCodes as string[]).length;
+  const stateLabel = state === 'FL' ? 'Florida' : state === 'NY' ? 'New York' : state === 'TX' ? 'Texas' : state;
+  const cityNames = cities.map(c => c.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())).join(', ');
 
-  const summary = `🔧 ${profs}\n📍 ${zipCount} ZIP codes\n📅 ${dayLabels}`;
-  await sendButtons(phone, CONTENT.CONFIRM_PROFILE, { '1': summary });
+  await sendText(phone,
+    `📋 *Your Profile Summary:*\n\n` +
+    `🔧 *Trades:* ${profs}\n` +
+    `📍 *Location:* ${stateLabel}\n` +
+    `🏙️ *Cities:* ${cityNames}\n` +
+    `📅 *Working Days:* ${dayLabels}\n\n` +
+    `──────────────────\n` +
+    `Reply *YES* to confirm ✅\n` +
+    `Reply *REDO* to start over 🔄`
+  );
 }
 
 async function onboardConfirm(phone: string, textLower: string, data: Record<string, unknown>): Promise<void> {
