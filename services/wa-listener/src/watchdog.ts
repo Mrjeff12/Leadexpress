@@ -9,6 +9,7 @@
  *  5. Health log cleanup — prune old health_logs every 24h
  *  6. Prospect scoring   — score_prospects() every 6h
  *  7. Waiting-on-us      — conversation sub-status + alerts every 5min
+ *  8. Auto follow-up     — templated follow-ups every 1h
  */
 
 import { createClient } from '@supabase/supabase-js';
@@ -263,6 +264,16 @@ async function waitingOnUsJob(): Promise<void> {
   }
 }
 
+// ── Job 8: Auto Follow-Up ───────────────────────────────────────────────────
+async function followUpJob(): Promise<void> {
+  try {
+    const { runFollowUpJob } = await import('./auto-followup.js');
+    await runFollowUpJob();
+  } catch (err) {
+    logger.error({ err }, 'Follow-up job failed');
+  }
+}
+
 // ── Start / Stop ────────────────────────────────────────────────────────────
 export async function startWatchdog(): Promise<void> {
   logger.info('Starting WATCHDOG scheduler');
@@ -301,7 +312,14 @@ export async function startWatchdog(): Promise<void> {
   timers.push(setInterval(waitingOnUsJob, 5 * 60 * 1000));
   waitingOnUsJob(); // run immediately
 
-  logger.info('WATCHDOG scheduler started — sync every 4h, enrichment every 4h+30m, scoring every 6h, waiting-on-us every 5m');
+  // Job 8: Auto follow-up — every 1h (15-min initial delay)
+  const followUpTimeout = setTimeout(() => {
+    followUpJob();
+    timers.push(setInterval(followUpJob, 60 * 60 * 1000));
+  }, 15 * 60 * 1000);
+  timeouts.push(followUpTimeout);
+
+  logger.info('WATCHDOG scheduler started — sync every 4h, enrichment every 4h+30m, scoring every 6h, waiting-on-us every 5m, follow-up every 1h');
 }
 
 export async function stopWatchdog(): Promise<void> {
