@@ -334,26 +334,26 @@ export default function LeadsFeed() {
   return (
     <div className="animate-fade-in space-y-10 pb-20 pt-4" style={{ fontFamily: 'Outfit, sans-serif' }}>
       {/* ── Header ── */}
-      <header className="flex items-end justify-between px-2">
+      <header className="flex items-center justify-between px-1">
         <div>
-          <h1 className="text-2xl md:text-4xl font-light tracking-tight text-black">
-            {he ? 'כל הלידים' : 'Intelligence Feed'}
+          <h1 className="text-lg md:text-4xl font-semibold md:font-light tracking-tight text-black">
+            {he ? 'כל הלידים' : 'My Leads'}
           </h1>
-          <p className="mt-1 md:mt-2 text-xs md:text-sm font-medium text-stone-400 tracking-wide uppercase">
-            {he ? 'לידים שחולצו מקבוצות WhatsApp ע"י AI' : 'AI-extracted leads from WhatsApp'}
+          <p className="text-[10px] md:text-sm font-medium text-stone-400 tracking-wide uppercase">
+            {he ? 'לידים שחולצו מקבוצות WhatsApp ע"י AI' : 'AI-extracted from WhatsApp'}
           </p>
         </div>
-        <div className="flex items-center gap-2 md:gap-3 px-3 md:px-4 py-1.5 md:py-2 rounded-full bg-white/50 backdrop-blur-md border border-black/5 shadow-sm">
-          <div className="relative flex h-2 w-2">
+        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/50 backdrop-blur-md border border-black/5 shadow-sm">
+          <div className="relative flex h-1.5 w-1.5">
             <div className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#fe5b25] opacity-75"></div>
-            <div className="relative inline-flex rounded-full h-2 w-2 bg-[#fe5b25]"></div>
+            <div className="relative inline-flex rounded-full h-1.5 w-1.5 bg-[#fe5b25]"></div>
           </div>
-          <span className="text-[10px] md:text-xs font-bold tracking-tight text-black uppercase">{he ? 'זמן אמת' : 'Live Feed'}</span>
+          <span className="text-[9px] md:text-xs font-bold tracking-tight text-black uppercase">Live</span>
         </div>
       </header>
 
       {/* ── KPI Strip ── */}
-      <section className="stagger-kpi grid grid-cols-2 gap-3 sm:grid-cols-2 lg:grid-cols-4 md:gap-6">
+      <section className="stagger-kpi grid grid-cols-4 gap-2 lg:grid-cols-4 md:gap-6">
         <KpiCard
           icon={Zap}
           label={he ? 'סה"כ לידים' : 'Total Leads'}
@@ -395,8 +395,8 @@ export default function LeadsFeed() {
       </section>
 
       {/* ── Search + Filters ── */}
-      <div className="glass-panel p-4 flex items-center gap-4 flex-wrap border-none shadow-xl relative z-20">
-        <div className="relative flex-1 min-w-[300px]">
+      <div className="glass-panel p-2.5 md:p-4 flex items-center gap-2 md:gap-4 flex-wrap border-none shadow-xl relative z-20">
+        <div className="relative flex-1 min-w-0 md:min-w-[300px]">
           <Search className="w-4 h-4 absolute top-1/2 -translate-y-1/2" style={{
             left: he ? 'auto' : 16, right: he ? 16 : 'auto',
             color: '#aaa',
@@ -405,7 +405,7 @@ export default function LeadsFeed() {
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder={he ? 'חפש עיר, ZIP, מקצוע...' : 'Search intelligence...'}
-            className="w-full text-sm rounded-2xl border-none px-6 py-4 outline-none transition-all bg-black/[0.03] focus:bg-black/[0.05] focus:ring-2 focus:ring-black/5"
+            className="w-full text-xs md:text-sm rounded-xl md:rounded-2xl border-none px-4 py-2.5 md:px-6 md:py-4 outline-none transition-all bg-black/[0.03] focus:bg-black/[0.05] focus:ring-2 focus:ring-black/5"
             style={{
               paddingLeft: he ? 16 : 48, paddingRight: he ? 48 : 16,
               color: '#000',
@@ -417,7 +417,7 @@ export default function LeadsFeed() {
         <div className="relative" ref={profRef}>
           <button
             onClick={() => setIsProfOpen(!isProfOpen)}
-            className="flex items-center justify-between gap-3 text-xs font-bold uppercase tracking-widest rounded-2xl border-none px-6 py-4 bg-black text-white hover:bg-stone-800 transition-colors min-w-[220px]"
+            className="flex items-center justify-between gap-2 text-[10px] md:text-xs font-bold uppercase tracking-widest rounded-xl md:rounded-2xl border-none px-3 py-2.5 md:px-6 md:py-4 bg-black text-white hover:bg-stone-800 transition-colors min-w-0 md:min-w-[220px]"
           >
             <span>
               {filterProfs.length === 0 
@@ -471,7 +471,7 @@ export default function LeadsFeed() {
         <div className="relative" ref={dateRef}>
           <button
             onClick={() => setIsDateOpen(!isDateOpen)}
-            className="flex items-center justify-between gap-3 text-xs font-bold uppercase tracking-widest rounded-2xl border-none px-6 py-4 bg-black/[0.03] text-black hover:bg-black/[0.05] transition-colors min-w-[160px]"
+            className="flex items-center justify-between gap-2 text-[10px] md:text-xs font-bold uppercase tracking-widest rounded-xl md:rounded-2xl border-none px-3 py-2.5 md:px-6 md:py-4 bg-black/[0.03] text-black hover:bg-black/[0.05] transition-colors min-w-0 md:min-w-[160px]"
           >
             <span>
               {filterDate === 'all' ? (he ? 'כל הזמנים' : 'All Time') :
@@ -803,19 +803,19 @@ function KpiCard({
   return (
     <div
       onClick={onClick}
-      className={`glass-panel group flex flex-col justify-between p-4 md:p-6 min-h-[120px] md:min-h-[180px] overflow-hidden transition-all duration-500 ${
+      className={`glass-panel group flex flex-col justify-between p-2.5 md:p-6 min-h-0 md:min-h-[180px] overflow-hidden transition-all duration-500 ${
         onClick ? 'cursor-pointer hover:scale-[1.02]' : ''
       } ${active ? 'ring-2 ring-black/5 bg-white/90' : ''}`}
     >
       <div className="flex items-start justify-between relative z-10">
         <div
-          className="w-8 h-8 md:w-10 md:h-10 rounded-xl md:rounded-[14px] flex items-center justify-center transition-all duration-500 shadow-sm"
+          className="w-6 h-6 md:w-10 md:h-10 rounded-lg md:rounded-[14px] flex items-center justify-center transition-all duration-500 shadow-sm"
           style={{
             background: active ? '#000' : `${color}10`,
             color: active ? '#fff' : color,
           }}
         >
-          <Icon className="h-4 w-4 md:h-5 md:w-5" strokeWidth={1.5} />
+          <Icon className="h-3 w-3 md:h-5 md:w-5" strokeWidth={1.5} />
         </div>
         {trend && (
           <span
@@ -831,20 +831,20 @@ function KpiCard({
         )}
       </div>
       
-      <div className="mt-2 md:mt-4 relative z-10">
-        <div className="text-[9px] font-bold uppercase tracking-[0.2em] text-stone-400 mb-0.5 md:mb-1">
+      <div className="mt-1 md:mt-4 relative z-10">
+        <div className="text-[8px] md:text-[9px] font-bold uppercase tracking-[0.15em] text-stone-400 mb-0 md:mb-1">
           {label}
         </div>
-        <div className="text-2xl md:text-3xl font-light tracking-tighter text-black">
+        <div className="text-lg md:text-3xl font-semibold md:font-light tracking-tighter text-black">
           {value}
         </div>
-        <div className="mt-1 text-[11px] font-medium text-stone-400">
+        <div className="hidden md:block mt-1 text-[11px] font-medium text-stone-400">
           {sub}
         </div>
       </div>
 
-      {/* Sparkline Background */}
-      <div className="absolute bottom-0 left-0 right-0 h-12 opacity-20 group-hover:opacity-40 transition-opacity duration-500">
+      {/* Sparkline Background — hidden on mobile */}
+      <div className="hidden md:block absolute bottom-0 left-0 right-0 h-12 opacity-20 group-hover:opacity-40 transition-opacity duration-500">
         {chartData.length > 0 && (
           <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
             <AreaChart data={chartData}>
