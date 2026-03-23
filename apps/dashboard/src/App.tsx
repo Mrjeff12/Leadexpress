@@ -12,6 +12,7 @@ import AutoLogin from './pages/AutoLogin'
 const CompleteAccount = lazy(() => import('./pages/CompleteAccount'))
 import RequireSubscription from './components/Paywall'
 import SubscriptionBanner from './components/SubscriptionBanner'
+import CompleteAccountBanner from './components/CompleteAccountBanner'
 import { supabase } from './lib/supabase'
 import { Globe } from 'lucide-react'
 
@@ -149,6 +150,7 @@ function AppShell() {
     <div className="min-h-screen">
       <div className="le-bg" />
       <div className="le-grain" />
+      <CompleteAccountBanner />
       <SubscriptionBanner />
       <ImpersonationBanner />
       <Sidebar />
