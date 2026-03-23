@@ -34,6 +34,7 @@ export function startCheckinCron(log: Logger): cron.ScheduledTask {
 
       // Fetch WA-enabled contractors with active subscriptions
       // who work today (working_days contains today's day number)
+      // Filter out expired trials (current_period_end in the past)
       const { data: contractors, error } = await supabase
         .from('contractors')
         .select(`
@@ -41,11 +42,12 @@ export function startCheckinCron(log: Logger): cron.ScheduledTask {
           working_days,
           zip_codes,
           profiles!inner(full_name, whatsapp_phone),
-          subscriptions!inner(status)
+          subscriptions!inner(status, current_period_end)
         `)
         .eq('is_active', true)
         .eq('wa_notify', true)
         .in('subscriptions.status', ['active', 'trialing'])
+        .gte('subscriptions.current_period_end', new Date().toISOString())
         .not('profiles.whatsapp_phone', 'is', null)
         .contains('working_days', [today]);
 

@@ -1460,11 +1460,16 @@ async function onboardConfirm(phone: string, textLower: string, data: Record<str
           const { data: plan } = await supabase
             .from('plans')
             .select('id')
-            .or('slug.eq.pro,slug.eq.premium,slug.eq.starter')
+            .eq('slug', 'premium')
             .limit(1)
             .maybeSingle();
 
-          const planId = plan?.id || 'ceb41e5b-5346-4de2-93e1-ead9ae5fcd57'; // fallback
+          // Fallback: try any active plan
+          let planId = plan?.id;
+          if (!planId) {
+            const { data: anyPlan } = await supabase.from('plans').select('id').limit(1).maybeSingle();
+            planId = anyPlan?.id || 'ceb41e5b-5346-4de2-93e1-ead9ae5fcd57';
+          }
           const { error: subErr } = await supabase.from('subscriptions').insert({
             user_id: newUserId,
             plan_id: planId,

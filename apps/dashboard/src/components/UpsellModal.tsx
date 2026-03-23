@@ -20,6 +20,10 @@ interface UpsellModalProps {
 }
 
 const PLAN_FEATURES: Record<string, { en: string[]; he: string[] }> = {
+  premium: {
+    en: ['Unlimited professions', 'Unlimited service areas', 'AI-matched leads', 'WhatsApp notifications', 'Priority lead delivery', 'Sub contractor management'],
+    he: ['מקצועות ללא הגבלה', 'אזורים ללא הגבלה', 'לידים מותאמים ע"י AI', 'התראות WhatsApp', 'משלוח עדיפות', 'ניהול קבלני משנה'],
+  },
   pro: {
     en: ['Up to 3 professions', 'Up to 8 zip codes', 'Priority support', 'Morning digest', 'Advanced analytics'],
     he: ['עד 3 מקצועות', 'עד 8 אזורים', 'תמיכה מועדפת', 'דיווח בוקר', 'אנליטיקה מתקדמת'],
@@ -31,7 +35,9 @@ const PLAN_FEATURES: Record<string, { en: string[]; he: string[] }> = {
 }
 
 const PLAN_ICONS: Record<string, typeof Zap> = {
+  free: Zap,
   starter: Zap,
+  premium: Crown,
   pro: Star,
   unlimited: Crown,
 }
@@ -44,8 +50,9 @@ const CONTEXT_HEADLINES: Record<string, { en: string; he: string }> = {
 }
 
 function getNextPlan(current: string): string {
+  if (current === 'free') return 'premium'
   if (current === 'starter') return 'pro'
-  return 'unlimited'
+  return 'premium'
 }
 
 export default function UpsellModal({ isOpen, onClose, currentPlan = 'starter', context = 'general', currentUsage }: UpsellModalProps) {

@@ -34,11 +34,10 @@ export default function RequireSubscription({ children }: { children: React.Reac
       return false
     }
 
-    // If trial has expired, call server-side function to cancel
+    // If trial has expired, auto-downgrade to free plan
     if (data?.status === 'trialing' && new Date(data.current_period_end) < new Date()) {
       await supabase.rpc('expire_trial')
-      setStatus('inactive')
-      return false
+      // Don't block — let them in as free user
     }
 
     const validStatuses = ['active', 'trialing']
@@ -48,7 +47,9 @@ export default function RequireSubscription({ children }: { children: React.Reac
       return true
     }
 
-    return false // not active yet
+    // No subscription or expired = free tier access (not blocked)
+    setStatus('active')
+    return true
   }, [effectiveUserId])
 
   useEffect(() => {
