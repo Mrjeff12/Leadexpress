@@ -31,6 +31,8 @@ import {
   BarChart3,
   CalendarDays,
   Timer,
+  ArrowUpCircle,
+  Sparkles,
 } from 'lucide-react'
 
 /* ── Design tokens ──────────────────────────────────────────────── */
@@ -307,6 +309,9 @@ export default function ContractorDetail() {
   const [loading, setLoading] = useState(true)
   const [toggling, setToggling] = useState(false)
   const [adminNotes, setAdminNotes] = useState('')
+  const [showPlanModal, setShowPlanModal] = useState(false)
+  const [availablePlans, setAvailablePlans] = useState<{ id: string; slug: string; name: string; price_cents: number; max_counties: number }[]>([])
+  const [changingPlan, setChangingPlan] = useState(false)
 
   useEffect(() => {
     if (!id) return
@@ -334,7 +339,7 @@ export default function ContractorDetail() {
 
     const { data: subData } = await supabase
       .from('subscriptions')
-      .select('id, status, current_period_end, stripe_customer_id, created_at, plans(name, slug, price_cents)')
+      .select('id, plan_id, status, current_period_end, stripe_customer_id, stripe_subscription_id, created_at, plans(name, slug, price_cents)')
       .eq('user_id', id!)
       .order('created_at', { ascending: false })
       .limit(1)
@@ -350,9 +355,11 @@ export default function ContractorDetail() {
       profiles: raw.profiles,
       subscription: sub ? {
         id: sub.id,
+        plan_id: sub.plan_id,
         status: sub.status,
         current_period_end: sub.current_period_end,
         stripe_customer_id: sub.stripe_customer_id,
+        stripe_subscription_id: sub.stripe_subscription_id,
         created_at: sub.created_at,
         plan: sub.plans,
       } : null,
@@ -439,6 +446,66 @@ export default function ContractorDetail() {
         }))
       )
     }
+  }
+
+  async function openPlanModal() {
+    const { data } = await supabase
+      .from('plans')
+      .select('id, slug, name, price_cents, max_counties')
+      .eq('is_active', true)
+      .order('price_cents')
+    if (data) setAvailablePlans(data)
+    setShowPlanModal(true)
+  }
+
+  async function handleChangePlan(planId: string) {
+    if (!id || !contractor?.subscription) return
+    setChangingPlan(true)
+
+    // Update subscription plan in DB
+    const { error } = await supabase
+      .from('subscriptions')
+      .update({ plan_id: planId })
+      .eq('user_id', id)
+      .in('status', ['active', 'trialing'])
+
+    if (error) {
+      console.error('Plan change failed:', error)
+      setChangingPlan(false)
+      return
+    }
+
+    // If contractor has Stripe subscription, update in Stripe too
+    if (contractor.subscription.stripe_subscription_id) {
+      const newPlan = availablePlans.find(p => p.id === planId)
+      if (newPlan) {
+        await supabase.functions.invoke('update-subscription', {
+          body: { user_id: id, new_price_id: newPlan.slug === 'pro' ? 'price_1TE0hKCrhYJDA3GP55QDwJKA' : 'price_1TE0hNCrhYJDA3GPJQC7qCGR' },
+        })
+      }
+    }
+
+    setChangingPlan(false)
+    setShowPlanModal(false)
+    loadContractor()
+  }
+
+  async function handleCreateTrial(planSlug: string) {
+    if (!id) return
+    setChangingPlan(true)
+    const plan = availablePlans.find(p => p.slug === planSlug) || availablePlans[0]
+    if (!plan) { setChangingPlan(false); return }
+
+    await supabase.from('subscriptions').insert({
+      user_id: id,
+      plan_id: plan.id,
+      status: 'trialing',
+      current_period_end: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+    })
+
+    setChangingPlan(false)
+    setShowPlanModal(false)
+    loadContractor()
   }
 
   async function toggleActive() {
@@ -785,15 +852,112 @@ export default function ContractorDetail() {
                       />
                     )}
                   </div>
+
+                  {/* Admin upgrade/change plan button */}
+                  <div className="flex gap-2 mt-4 pt-4" style={{ borderTop: `1px solid ${C.border}` }}>
+                    <button
+                      onClick={openPlanModal}
+                      className="flex-1 flex items-center justify-center gap-1.5 rounded-xl py-2.5 text-sm font-semibold text-white transition-all hover:brightness-110 active:scale-[0.97]"
+                      style={{ background: C.accent }}
+                    >
+                      <ArrowUpCircle className="w-4 h-4" />
+                      {he ? 'שנה חבילה' : 'Change Plan'}
+                    </button>
+                    {contractor.subscription.stripe_customer_id && (
+                      <button
+                        onClick={() => window.open(`https://dashboard.stripe.com/customers/${contractor.subscription.stripe_customer_id}`, '_blank')}
+                        className="rounded-xl px-4 py-2.5 text-sm font-medium transition-all hover:bg-gray-100 active:scale-[0.97]"
+                        style={{ border: `1px solid ${C.border}`, color: C.muted }}
+                      >
+                        Stripe
+                      </button>
+                    )}
+                  </div>
                 </div>
               ) : (
                 <div className="text-center py-8">
                   <Package className="w-10 h-10 mx-auto mb-3" style={{ color: '#E5E7EB' }} />
-                  <p className="text-sm font-medium" style={{ color: C.muted }}>{he ? 'ללא מנוי' : 'No subscription'}</p>
+                  <p className="text-sm font-medium mb-4" style={{ color: C.muted }}>{he ? 'ללא מנוי' : 'No subscription'}</p>
+                  <button
+                    onClick={openPlanModal}
+                    className="inline-flex items-center gap-1.5 rounded-xl px-5 py-2.5 text-sm font-semibold text-white transition-all hover:brightness-110 active:scale-[0.97]"
+                    style={{ background: C.success }}
+                  >
+                    <Sparkles className="w-4 h-4" />
+                    {he ? 'הפעל Trial' : 'Start Trial'}
+                  </button>
                 </div>
               )}
             </div>
           </SectionCard>
+
+          {/* Plan Change Modal */}
+          {showPlanModal && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm" onClick={() => setShowPlanModal(false)}>
+              <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 overflow-hidden" onClick={e => e.stopPropagation()}>
+                <div className="p-6 pb-4" style={{ borderBottom: `1px solid ${C.border}` }}>
+                  <h3 className="text-lg font-bold" style={{ color: C.dark }}>
+                    {he ? 'שנה חבילה' : 'Change Plan'}
+                  </h3>
+                  <p className="text-sm mt-1" style={{ color: C.muted }}>
+                    {contractor?.profile_name || contractor?.full_name}
+                  </p>
+                </div>
+                <div className="p-6 space-y-3">
+                  {availablePlans.map(p => {
+                    const isCurrent = contractor?.subscription?.plan_id === p.id
+                    return (
+                      <button
+                        key={p.id}
+                        onClick={() => contractor?.subscription ? handleChangePlan(p.id) : handleCreateTrial(p.slug)}
+                        disabled={isCurrent || changingPlan}
+                        className={`w-full text-left rounded-xl p-4 transition-all border-2 ${
+                          isCurrent
+                            ? 'border-green-300 bg-green-50 cursor-default'
+                            : 'border-gray-100 hover:border-indigo-300 hover:bg-indigo-50 active:scale-[0.98]'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <span className="text-sm font-bold" style={{ color: C.dark }}>{p.name}</span>
+                            <span className="text-xs ml-2" style={{ color: C.muted }}>
+                              {p.max_counties === -1 ? 'Unlimited' : `${p.max_counties} county`}
+                            </span>
+                          </div>
+                          <div className="text-right">
+                            <span className="text-lg font-bold" style={{ color: C.dark }}>
+                              ${p.price_cents / 100}
+                            </span>
+                            <span className="text-xs" style={{ color: C.muted }}>/mo</span>
+                          </div>
+                        </div>
+                        {isCurrent && (
+                          <span className="inline-flex items-center gap-1 mt-2 text-xs font-semibold text-green-600">
+                            <CheckCircle2 className="w-3 h-3" /> Current plan
+                          </span>
+                        )}
+                      </button>
+                    )
+                  })}
+                  {changingPlan && (
+                    <div className="flex items-center justify-center gap-2 py-2">
+                      <Loader2 className="w-4 h-4 animate-spin" style={{ color: C.accent }} />
+                      <span className="text-sm" style={{ color: C.muted }}>Updating...</span>
+                    </div>
+                  )}
+                </div>
+                <div className="p-4 pt-2" style={{ borderTop: `1px solid ${C.border}` }}>
+                  <button
+                    onClick={() => setShowPlanModal(false)}
+                    className="w-full rounded-xl py-2.5 text-sm font-medium transition-all hover:bg-gray-50"
+                    style={{ color: C.muted }}
+                  >
+                    {he ? 'ביטול' : 'Cancel'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Groups Membership */}
           <SectionCard>
