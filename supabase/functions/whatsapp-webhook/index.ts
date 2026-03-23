@@ -1142,7 +1142,10 @@ async function onboardWorkingDays(phone: string, textLower: string, data: Record
   const state = (data.state as string) ?? '';
   const dayLabels = days.map(d => DAY_NAMES[d]).join(', ');
   const stateLabel = state === 'FL' ? 'Florida' : state === 'NY' ? 'New York' : state === 'TX' ? 'Texas' : state;
-  const cityNames = cities.map(c => c.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())).join(', ');
+  // Look up proper city labels from STATE_CITIES (handles "west_palm" → "West Palm Beach")
+  const stateCities = STATE_CITIES[state] ?? [];
+  const cityLabelMap = Object.fromEntries(stateCities.map(c => [c.key, c.label]));
+  const cityNames = cities.map(c => cityLabelMap[c] || c.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())).join(', ');
 
   const zipCount = ((data.zipCodes as string[]) ?? []).length;
 
@@ -1232,6 +1235,10 @@ async function onboardConfirm(phone: string, textLower: string, data: Record<str
             notes: `Onboarded via WhatsApp (auth failed: ${authError?.message}). Cities: ${cities.join(', ')}.`,
             last_contact_at: new Date().toISOString(),
           }).eq('id', prospectId);
+          // Clean up onboard state and notify user
+          await supabase.from('wa_onboard_state').delete().eq('phone', phone);
+          await sendText(phone, `⚠️ We couldn't create your account right now. Please try again later by sending any message, or contact support.\n\nSend *MENU* anytime.`);
+          return;
         } else {
           const newUserId = authUser.user.id;
           console.log(`[onboard] Auth user created: ${newUserId}`);
@@ -1281,12 +1288,11 @@ async function onboardConfirm(phone: string, textLower: string, data: Record<str
           });
           if (subErr) console.error('[onboard] Subscription insert failed:', subErr);
 
-          // 5. Archive prospect — mark as converted
+          // 5. Link prospect — mark as demo/trial
           await supabase.from('prospects').update({
-            stage: 'converted',
+            stage: 'demo_trial',
             user_id: newUserId,
             profession_tags: professions,
-            notes: `Converted to auth user via WhatsApp onboarding. Cities: ${cities.join(', ')}.`,
             last_contact_at: new Date().toISOString(),
           }).eq('id', prospectId);
 
