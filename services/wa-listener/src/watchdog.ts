@@ -7,6 +7,7 @@
  *  3. Enrichment         — enrichMembers() every 4h + 30min offset
  *  4. Daily summary      — 24h aggregate stats alert
  *  5. Health log cleanup — prune old health_logs every 24h
+ *  6. Prospect scoring   — score_prospects() every 6h
  */
 
 import { createClient } from '@supabase/supabase-js';
@@ -182,6 +183,28 @@ async function healthCleanupJob(): Promise<void> {
   }
 }
 
+// ── Job 6: Prospect Scoring ─────────────────────────────────────────────────
+async function prospectScoringJob(): Promise<void> {
+  logger.info('Watchdog: running prospect scoring');
+  try {
+    const { data, error } = await supabase.rpc('score_prospects');
+    if (error) throw error;
+    const result = data?.[0] || data;
+    logger.info(
+      {
+        scored: result?.scored,
+        hot: result?.hot,
+        warm: result?.warm,
+        cold: result?.cold,
+        stale: result?.stale,
+      },
+      'Watchdog: prospect scoring complete',
+    );
+  } catch (err) {
+    logger.error({ err }, 'Watchdog: prospect scoring failed');
+  }
+}
+
 // ── Start / Stop ────────────────────────────────────────────────────────────
 export async function startWatchdog(): Promise<void> {
   logger.info('Starting WATCHDOG scheduler');
@@ -209,7 +232,14 @@ export async function startWatchdog(): Promise<void> {
   // Job 5: Health cleanup — every 24h
   timers.push(setInterval(healthCleanupJob, 24 * 60 * 60 * 1000));
 
-  logger.info('WATCHDOG scheduler started — sync every 4h, enrichment every 4h+30m');
+  // Job 6: Prospect scoring — every 6h (10-min initial delay)
+  const scoringTimeout = setTimeout(() => {
+    prospectScoringJob();
+    timers.push(setInterval(prospectScoringJob, 6 * 60 * 60 * 1000));
+  }, 10 * 60 * 1000);
+  timeouts.push(scoringTimeout);
+
+  logger.info('WATCHDOG scheduler started — sync every 4h, enrichment every 4h+30m, scoring every 6h');
 }
 
 export async function stopWatchdog(): Promise<void> {
