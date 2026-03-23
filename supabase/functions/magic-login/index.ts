@@ -6,12 +6,12 @@ const supabase = createClient(
   Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
 );
 
+const SITE_URL = Deno.env.get('SITE_URL') || 'https://app.masterleadflow.com';
+
 const CORS = {
-  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Origin': SITE_URL,
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
-
-const SITE_URL = Deno.env.get('SITE_URL') || 'https://app.masterleadflow.com';
 
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
@@ -91,11 +91,18 @@ Deno.serve(async (req: Request) => {
         return json({ error: 'Token expired' }, 401);
       }
 
-      // Mark as used
-      await supabase
+      // Atomic claim — prevents race condition where two requests use the same token
+      const { data: claimed, error: claimErr } = await supabase
         .from('magic_login_tokens')
         .update({ used_at: new Date().toISOString() })
-        .eq('token', token);
+        .eq('token', token)
+        .is('used_at', null)
+        .select('user_id, redirect_path')
+        .maybeSingle();
+
+      if (claimErr || !claimed) {
+        return json({ error: 'Token already used' }, 401);
+      }
 
       // Ensure user has an email (required for Supabase auth)
       const { data: userData } = await supabase.auth.admin.getUserById(tokenRow.user_id);

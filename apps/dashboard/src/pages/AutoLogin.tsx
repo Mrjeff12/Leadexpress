@@ -120,7 +120,7 @@ export default function AutoLogin() {
         </div>
       )}
 
-      <p className="mt-8 text-xs text-slate-600 max-w-md text-center break-all">{debug}</p>
+      {import.meta.env.DEV && <p className="mt-8 text-xs text-slate-600 max-w-md text-center break-all">{debug}</p>}
     </div>
   )
 }

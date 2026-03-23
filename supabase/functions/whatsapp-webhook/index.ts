@@ -231,7 +231,7 @@ Deno.serve(async (req: Request) => {
     const messageSid = params['MessageSid'] ?? '';
     const buttonPayload = params['ButtonPayload'] ?? '';
 
-    const phone = from.replace('whatsapp:', '');
+    const phone = normalizePhone(from);
     const text = body.trim();
     const textLower = text.toLowerCase();
 
@@ -1262,12 +1262,13 @@ async function onboardConfirm(phone: string, textLower: string, data: Record<str
             .maybeSingle();
 
           const planId = plan?.id || 'ceb41e5b-5346-4de2-93e1-ead9ae5fcd57'; // fallback
-          await supabase.from('subscriptions').insert({
+          const { error: subErr } = await supabase.from('subscriptions').insert({
             user_id: newUserId,
             plan_id: planId,
             status: 'trialing',
             current_period_end: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
           });
+          if (subErr) console.error('[onboard] Subscription insert failed:', subErr);
 
           // 5. Archive prospect — mark as converted
           await supabase.from('prospects').update({
