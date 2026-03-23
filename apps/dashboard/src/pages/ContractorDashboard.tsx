@@ -151,6 +151,7 @@ export default function ContractorDashboard() {
   const [leads, setLeads] = useState<Lead[]>([])
   const [contactedCount, setContactedCount] = useState(0)
   const [telegramConnected, setTelegramConnected] = useState(true)
+  const [counties, setCounties] = useState<string[]>([])
   const [forwardLead, setForwardLead] = useState<Lead | null>(null)
   const [showUpsell, setShowUpsell] = useState(false)
   const [sheetExpanded, setSheetExpanded] = useState(false)
@@ -259,12 +260,13 @@ export default function ContractorDashboard() {
 
       const { data: profData } = await supabase
         .from('profiles')
-        .select('telegram_chat_id')
+        .select('telegram_chat_id, counties')
         .eq('id', effectiveUserId)
         .maybeSingle()
 
       if (profData && !cancelled) {
         setTelegramConnected(!!profData.telegram_chat_id)
+        if (profData.counties) setCounties(profData.counties)
       }
 
       // Fetch how many leads this user contacted
@@ -375,7 +377,7 @@ export default function ContractorDashboard() {
       <div
         className="mobile-bottom-sheet md:floating-panel animate-fade-in no-scrollbar"
         data-expanded={sheetExpanded}
-        style={{ top: sheetExpanded ? 0 : 'calc(100vh - 300px)' }}
+        style={{ top: sheetExpanded ? 0 : 'calc(100vh - 260px)' }}
       >
         {/* Mobile drag handle */}
         <button
@@ -385,11 +387,14 @@ export default function ContractorDashboard() {
           <div className="w-10 h-1 rounded-full bg-stone-300" />
           <span className="text-[9px] text-stone-400 mt-1">{sheetExpanded ? 'Tap to close' : 'Tap to expand'}</span>
         </button>
-        {/* Greeting */}
-        <div className="mb-4 md:mb-5">
-          <p className="text-[10px] md:text-[11px] font-semibold text-stone-400 uppercase tracking-[0.1em]">{greeting}</p>
-          <h1 className="text-xl md:text-2xl font-extrabold text-stone-900 tracking-tight leading-tight mt-0.5">
-            {t('dash.welcome')}, {firstName}
+        {/* Greeting — compact on mobile */}
+        <div className="mb-3 md:mb-5">
+          <h1 className="text-lg md:text-2xl font-extrabold text-stone-900 tracking-tight leading-tight">
+            <span className="md:hidden">Hi, {firstName} 👋</span>
+            <span className="hidden md:inline">
+              <span className="block text-[11px] font-semibold text-stone-400 uppercase tracking-[0.1em] mb-1">{greeting}</span>
+              {t('dash.welcome')}, {firstName}
+            </span>
           </h1>
           {/* Plan badge — hidden on mobile (shown in header instead) */}
           <div className="hidden md:flex items-center gap-2 mt-2">
@@ -553,51 +558,60 @@ export default function ContractorDashboard() {
         {/* Divider */}
         <div className="h-px bg-stone-200/40 mb-5" />
 
-        {/* ── Service Areas (ZIP quick add/remove) ── */}
+        {/* ── Service Areas (Counties) ── */}
         <div className="mb-5">
           <div className="flex items-center justify-between mb-3">
             <p className="text-[11px] font-bold text-stone-400 uppercase tracking-[0.12em]">
-              {locale === 'he' ? 'אזורי שירות' : 'Service Areas'}
+              Service Areas
             </p>
-            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-              planLimits.maxZipCodes > 0 && zipCodes.length >= planLimits.maxZipCodes
-                ? 'bg-[#fff4ef] text-[#e04d1c]'
-                : 'bg-stone-100 text-stone-500'
-            }`}>
-              {zipCodes.length}{planLimits.maxZipCodes > 0 ? `/${planLimits.maxZipCodes}` : ''} {locale === 'he' ? 'אזורים' : 'zones'}
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-stone-100 text-stone-500">
+              {counties.length > 0 ? `${counties.length} counties` : `${zipCodes.length} zones`}
             </span>
           </div>
 
-          <form onSubmit={handleAddZip} className="relative mb-3">
-            <input
-              type="text"
-              value={newZip}
-              onChange={(e) => setNewZip(e.target.value)}
-              placeholder={locale === 'he' ? 'הוסף ZIP Code...' : 'Add ZIP Code...'}
-              className="w-full bg-white/50 border border-stone-100 rounded-xl px-3 py-2 text-xs font-bold focus:outline-none focus:ring-2 focus:ring-[#fe5b25]/20 focus:border-[#fe5b25]/50 transition-all"
-            />
-            <button
-              type="submit"
-              disabled={saving || !newZip.trim()}
-              className="absolute right-1.5 top-1.5 w-6 h-6 rounded-lg bg-[#fe5b25] text-white flex items-center justify-center hover:bg-[#e04d1c] disabled:opacity-50 transition-colors"
-            >
-              <span className="text-lg leading-none">+</span>
-            </button>
-          </form>
-
-          <div className="flex flex-wrap gap-1.5 max-h-[80px] overflow-y-auto no-scrollbar">
-            {zipCodes.map((zip) => (
-              <span key={zip} className="group inline-flex items-center gap-1 px-2 py-1 bg-white/40 border border-stone-100 rounded-lg text-[10px] font-mono font-bold text-stone-500">
-                {zip}
+          {counties.length > 0 ? (
+            <div className="flex flex-wrap gap-1.5">
+              {counties.map((county) => (
+                <span key={county} className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-white/60 border border-stone-100 rounded-xl text-[11px] font-semibold text-stone-600">
+                  <MapPin className="w-3 h-3 text-[#fe5b25]" />
+                  {county}
+                </span>
+              ))}
+            </div>
+          ) : (
+            <>
+              <form onSubmit={handleAddZip} className="relative mb-3">
+                <input
+                  type="text"
+                  value={newZip}
+                  onChange={(e) => setNewZip(e.target.value)}
+                  placeholder="Add ZIP Code..."
+                  className="w-full bg-white/50 border border-stone-100 rounded-xl px-3 py-2 text-xs font-bold focus:outline-none focus:ring-2 focus:ring-[#fe5b25]/20 focus:border-[#fe5b25]/50 transition-all"
+                />
                 <button
-                  onClick={() => handleRemoveZip(zip)}
-                  className="w-3.5 h-3.5 rounded-full bg-stone-200/80 text-stone-400 flex items-center justify-center hover:bg-red-500 hover:text-white transition-all opacity-0 group-hover:opacity-100"
+                  type="submit"
+                  disabled={saving || !newZip.trim()}
+                  className="absolute right-1.5 top-1.5 w-6 h-6 rounded-lg bg-[#fe5b25] text-white flex items-center justify-center hover:bg-[#e04d1c] disabled:opacity-50 transition-colors"
                 >
-                  <X className="w-2 h-2" />
+                  <span className="text-lg leading-none">+</span>
                 </button>
-              </span>
-            ))}
-          </div>
+              </form>
+
+              <div className="flex flex-wrap gap-1.5 max-h-[80px] overflow-y-auto no-scrollbar">
+                {zipCodes.map((zip) => (
+                  <span key={zip} className="group inline-flex items-center gap-1 px-2 py-1 bg-white/40 border border-stone-100 rounded-lg text-[10px] font-mono font-bold text-stone-500">
+                    {zip}
+                    <button
+                      onClick={() => handleRemoveZip(zip)}
+                      className="w-3.5 h-3.5 rounded-full bg-stone-200/80 text-stone-400 flex items-center justify-center hover:bg-red-500 hover:text-white transition-all opacity-0 group-hover:opacity-100"
+                    >
+                      <X className="w-2 h-2" />
+                    </button>
+                  </span>
+                ))}
+              </div>
+            </>
+          )}
         </div>
 
         {/* Divider */}
@@ -692,8 +706,9 @@ export default function ContractorDashboard() {
         {/* Divider */}
         <div className="h-px bg-stone-200/40 mb-5" />
 
-        {/* Spacer for panel bottom padding */}
-        <div className="h-2" />
+        {/* Spacer — extra on mobile for tab bar */}
+        <div className="h-2 md:h-2" />
+        <div className="h-20 md:hidden" />
       </div>
 
       {/* ════════ RECENT LEADS — inside bottom sheet on mobile, floating on desktop ════════ */}
