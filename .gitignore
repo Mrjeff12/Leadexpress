@@ -34,3 +34,8 @@ docker-compose.override.yml
 # Temporary
 tmp/
 .tmp/
+
+# Deprecated local sync scripts with hardcoded credentials
+sync-members-local.mjs
+sync-admins-local.mjs
+enrich-admins-local.mjs

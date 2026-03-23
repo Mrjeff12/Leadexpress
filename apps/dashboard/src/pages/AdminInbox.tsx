@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo } from 'react'
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import { useI18n } from '../lib/i18n'
 import { useToast } from '../components/hooks/use-toast'
 import { supabase } from '../lib/supabase'
@@ -15,7 +15,7 @@ import {
   ChevronDown, Check, CheckCheck, CircleDot, Sparkles, DollarSign,
   XCircle, PhoneCall, Edit3, Calendar, X, Plus,
   AlertTriangle, Zap, Copy, Clock, MapPin, Briefcase,
-  Search, Inbox, Users, Timer
+  Search, Inbox, Users, Timer, Crown, LogIn, LogOut as LogOutIcon
 } from 'lucide-react'
 
 /* ── Design tokens ─────────────────────────────────────────────────── */
@@ -121,6 +121,42 @@ export default function AdminInbox() {
   const [filterStage, setFilterStage] = useState<string>('all')
   const [displayLimit, setDisplayLimit] = useState(50)
 
+  // Group admin tracking — phones of group admins for gold badge
+  const [adminPhones, setAdminPhones] = useState<Set<string>>(new Set())
+  const fetchAdmins = useCallback(async () => {
+    try {
+      const { data } = await supabase.rpc('get_group_admins')
+      if (data) {
+        const phones = new Set<string>()
+        for (const a of data as { wa_sender_id: string }[]) {
+          const phone = a.wa_sender_id.replace('@c.us', '')
+          phones.add(phone)
+          phones.add('+' + phone)
+        }
+        setAdminPhones(phones)
+      }
+    } catch { /* silent */ }
+  }, [])
+  useEffect(() => { fetchAdmins() }, [fetchAdmins])
+  const isGroupAdmin = (phone: string) => {
+    const clean = phone.replace(/[\s\-()whatsapp:+]/g, '')
+    return adminPhones.has(clean) || adminPhones.has('+' + clean)
+  }
+
+  // Instance health state
+  const [instanceHealth, setInstanceHealth] = useState<any[]>([])
+  useEffect(() => {
+    supabase.rpc('get_instance_status').then(({ data }) => {
+      if (data) setInstanceHealth(data)
+    })
+    const interval = setInterval(() => {
+      supabase.rpc('get_instance_status').then(({ data }) => {
+        if (data) setInstanceHealth(data)
+      })
+    }, 30_000)
+    return () => clearInterval(interval)
+  }, [])
+
   const {
     prospect,
     contractor,
@@ -133,6 +169,37 @@ export default function AdminInbox() {
     refetchDetail,
   } = useProspectDetailData(selectedId)
 
+  // Group membership info for selected prospect
+  type GroupMembership = {
+    group_name: string; classification: string; joined_group_at: string | null
+    left_group_at: string | null; total_messages: number
+    profile_pic_url: string | null; profile_name: string | null; about: string | null
+  }
+  const [memberships, setMemberships] = useState<GroupMembership[]>([])
+  useEffect(() => {
+    if (!prospect?.wa_id) { setMemberships([]); return }
+    supabase
+      .from('group_members')
+      .select('classification, joined_group_at, left_group_at, total_messages, group_id, profile_pic_url, profile_name, about')
+      .eq('wa_sender_id', prospect.wa_id)
+      .then(async ({ data }) => {
+        if (!data || data.length === 0) { setMemberships([]); return }
+        const groupIds = data.map((m: any) => m.group_id)
+        const { data: groups } = await supabase.from('groups').select('id, name').in('id', groupIds)
+        const nameMap = new Map((groups || []).map((g: any) => [g.id, g.name]))
+        setMemberships(data.map((m: any) => ({
+          group_name: nameMap.get(m.group_id) || 'Unknown',
+          classification: m.classification,
+          joined_group_at: m.joined_group_at,
+          left_group_at: m.left_group_at,
+          total_messages: m.total_messages,
+          profile_pic_url: m.profile_pic_url,
+          profile_name: m.profile_name,
+          about: m.about,
+        })))
+      })
+  }, [prospect?.wa_id])
+
   const chatEnd = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
 
@@ -144,13 +211,15 @@ export default function AdminInbox() {
   /* ── Filtered list ──────────────────────────────────────────────── */
   const filteredList = useMemo(() => {
     let list = prospectList
-    if (filterStage !== 'all') {
+    if (filterStage === 'group_admin') {
+      list = list.filter(p => isGroupAdmin(p.phone))
+    } else if (filterStage !== 'all') {
       list = list.filter(p => p.stage === filterStage)
     }
     if (!listSearch.trim()) return list
     const q = listSearch.toLowerCase()
     return list.filter(p => (p.display_name ?? '').toLowerCase().includes(q) || p.phone.includes(q) || p.profession_tags.some(t => t.toLowerCase().includes(q)))
-  }, [prospectList, listSearch, filterStage])
+  }, [prospectList, listSearch, filterStage, adminPhones])
 
   // Reset display limit when filter changes
   useEffect(() => { setDisplayLimit(50) }, [filterStage, listSearch])
@@ -216,6 +285,8 @@ export default function AdminInbox() {
   }
 
   /* ── Render ─────────────────────────────────────────────────────── */
+  const adminCount = useMemo(() => prospectList.filter(p => isGroupAdmin(p.phone)).length, [prospectList, adminPhones])
+
   const stageCounts = useMemo(() => {
     const counts: Record<string, number> = {}
     for (const s of STAGES) counts[s.key] = 0
@@ -234,6 +305,35 @@ export default function AdminInbox() {
         backgroundImage: 'radial-gradient(at 0% 0%, rgba(254,91,37,0.03) 0, transparent 50%), radial-gradient(at 100% 100%, rgba(255,138,92,0.03) 0, transparent 50%)',
       }}
     >
+      {/* ═══ INSTANCE HEALTH BANNER ═══ */}
+      {instanceHealth.length > 0 && (
+        <div className="flex items-center gap-4 px-4 py-2 mx-3 mt-3 rounded-xl mb-0" style={{ background: 'rgba(28,28,30,0.05)' }}>
+          {instanceHealth.map((inst: any) => (
+            <div key={inst.account_id} className="flex items-center gap-2 text-[11px]">
+              <div className={`w-2 h-2 rounded-full ${
+                inst.status === 'connected' ? 'bg-[#34C759]' :
+                inst.status === 'yellow_card' ? 'bg-amber-500' :
+                'bg-[#FF3B30]'
+              }`} />
+              <span className="font-medium text-[#1C1C1E]">{inst.label || 'Instance'}</span>
+              <span className="text-[#8E8E93] uppercase">{inst.role}</span>
+              {inst.groups_count > 0 && (
+                <span className="text-[#8E8E93]">{inst.groups_count} groups</span>
+              )}
+              {inst.last_sync_at && (
+                <span className="text-[#8E8E93]">synced {new Date(inst.last_sync_at).toLocaleTimeString()}</span>
+              )}
+              {inst.pending_groups_count > 0 && (
+                <span className="text-amber-600 font-semibold">{inst.pending_groups_count} pending groups</span>
+              )}
+              {inst.active_alerts_count > 0 && (
+                <span className="text-[#FF3B30] font-semibold">{inst.active_alerts_count} alerts</span>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+
       {/* ═══ PIPELINE FUNNEL HEADER ═══ */}
       <div className="shrink-0 z-20 relative mx-3 mt-3 rounded-3xl overflow-hidden" style={{ background: C.glass, backdropFilter: C.blur, border: `1px solid ${C.glassBorder}`, boxShadow: C.panelShadow }}>
         {/* Top row: Title + Search */}
@@ -261,7 +361,7 @@ export default function AdminInbox() {
           {STAGES.map((s, idx) => {
             const count = stageCounts[s.key] || 0
             const isActive = filterStage === s.key
-            const isDimmed = filterStage !== 'all' && !isActive
+            const isDimmed = filterStage !== 'all' && !isActive && filterStage !== 'group_admin'
             return (
               <div key={s.key} className="flex items-center flex-1 min-w-0">
                 {idx > 0 && (
@@ -292,6 +392,33 @@ export default function AdminInbox() {
               </div>
             )
           })}
+
+          {/* Group Admin filter */}
+          <div className="flex items-center shrink-0">
+            <div className="w-3 h-[1.5px] rounded-full shrink-0 mx-1" style={{ background: filterStage === 'group_admin' ? 'rgba(0,0,0,0.1)' : 'rgba(0,0,0,0.04)' }} />
+            <button
+              onClick={() => setFilterStage(filterStage === 'group_admin' ? 'all' : 'group_admin')}
+              className="flex flex-col items-center py-1.5 px-3 rounded-xl transition-all cursor-pointer"
+              style={{
+                background: filterStage === 'group_admin' ? '#FFFFFF' : 'transparent',
+                boxShadow: filterStage === 'group_admin' ? '0 4px 16px rgba(245,158,11,0.15)' : 'none',
+                opacity: filterStage !== 'all' && filterStage !== 'group_admin' ? 0.35 : 1,
+              }}
+            >
+              <div
+                className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0 mb-1"
+                style={{ background: filterStage === 'group_admin' ? '#f59e0b15' : 'rgba(0,0,0,0.03)', color: '#f59e0b' }}
+              >
+                <Crown className="w-3.5 h-3.5" strokeWidth={2.2} />
+              </div>
+              <span className="text-[15px] font-semibold leading-none" style={{ color: filterStage === 'group_admin' ? '#f59e0b' : '#1C1C1E' }}>
+                {adminCount}
+              </span>
+              <span className="text-[8px] font-semibold uppercase tracking-wide text-[#8E8E93] mt-0.5 whitespace-nowrap leading-tight">
+                {he ? 'מנהלים' : 'Admins'}
+              </span>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -300,15 +427,41 @@ export default function AdminInbox() {
         
         {/* ═══ LEFT: Prospect List (Apple Glass Style) ═══════════════════════════════════════ */}
         <div className="flex flex-col relative z-10 h-full overflow-hidden rounded-3xl" style={{ background: C.glass, backdropFilter: C.blur, border: `1px solid ${C.glassBorder}`, boxShadow: C.panelShadow }}>
-          {/* Header */}
-          <div className="shrink-0 p-4 border-b border-black/[0.02]">
-            <div className="flex items-center justify-between">
-              <span className="text-[11px] font-black uppercase tracking-[0.15em] text-[#8E8E93]">
-                {filterStage === 'all' ? (he ? 'כל הלקוחות' : 'All Clients') : (he ? getStage(filterStage).he : getStage(filterStage).label)}
-              </span>
-              <span className="text-[11px] font-bold text-[#8E8E93]">
-                {filteredList.length}
-              </span>
+          {/* Header with All / Admins tabs */}
+          <div className="shrink-0 border-b border-black/[0.04]">
+            <div className="flex">
+              <button
+                onClick={() => { if (filterStage === 'group_admin') setFilterStage('all') }}
+                className="flex-1 flex items-center justify-center gap-1.5 py-3 transition-all relative"
+                style={{ color: filterStage !== 'group_admin' ? '#1C1C1E' : '#8E8E93' }}
+              >
+                <Users className="w-3.5 h-3.5" strokeWidth={2.2} />
+                <span className="text-[11px] font-black uppercase tracking-[0.12em]">
+                  {filterStage === 'all' ? (he ? 'כל הלקוחות' : 'All Clients') : filterStage !== 'group_admin' ? (he ? getStage(filterStage).he : getStage(filterStage).label) : (he ? 'כל הלקוחות' : 'All')}
+                </span>
+                <span className="text-[10px] font-bold text-[#8E8E93] bg-black/[0.04] px-1.5 py-0.5 rounded-md">
+                  {filterStage === 'group_admin' ? prospectList.length : filteredList.length}
+                </span>
+                {filterStage !== 'group_admin' && (
+                  <div className="absolute bottom-0 left-2 right-2 h-[2px] rounded-full bg-[#fe5b25]" />
+                )}
+              </button>
+              <button
+                onClick={() => setFilterStage(filterStage === 'group_admin' ? 'all' : 'group_admin')}
+                className="flex-1 flex items-center justify-center gap-1.5 py-3 transition-all relative"
+                style={{ color: filterStage === 'group_admin' ? '#f59e0b' : '#8E8E93' }}
+              >
+                <Crown className="w-3.5 h-3.5" strokeWidth={2.2} />
+                <span className="text-[11px] font-black uppercase tracking-[0.12em]">
+                  {he ? 'מנהלים' : 'Admins'}
+                </span>
+                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md" style={{ background: filterStage === 'group_admin' ? '#f59e0b15' : 'rgba(0,0,0,0.04)', color: filterStage === 'group_admin' ? '#f59e0b' : '#8E8E93' }}>
+                  {adminCount}
+                </span>
+                {filterStage === 'group_admin' && (
+                  <div className="absolute bottom-0 left-2 right-2 h-[2px] rounded-full bg-amber-400" />
+                )}
+              </button>
             </div>
           </div>
 
@@ -330,10 +483,22 @@ export default function AdminInbox() {
                   style={{ direction: he ? 'rtl' : 'ltr' }}
                 >
                   {isActive && <div className="absolute top-0 bottom-0 w-1.5 bg-[#fe5b25] shadow-[0_0_10px_rgba(0,74,255,0.3)]" style={{ [he ? 'right' : 'left']: 0 }} />}
-                  <Avatar src={p.profile_pic_url} name={pName(p)} waId={p.phone} size={48} />
+                  <div className="relative">
+                    <Avatar src={p.profile_pic_url} name={pName(p)} waId={p.phone} size={48} />
+                    {isGroupAdmin(p.phone) && (
+                      <div className="absolute -top-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center bg-amber-400 shadow-sm border-2 border-white">
+                        <Crown className="w-3 h-3 text-white" strokeWidth={2.5} />
+                      </div>
+                    )}
+                  </div>
                   <div className="flex-1 min-w-0 flex flex-col justify-center">
                     <div className="flex items-center justify-between mb-0.5">
-                      <span className="text-[16px] font-semibold truncate text-[#1C1C1E]">{pName(p)}</span>
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <span className="text-[16px] font-semibold truncate text-[#1C1C1E]">{pName(p)}</span>
+                        {isGroupAdmin(p.phone) && (
+                          <span className="text-[8px] px-1.5 py-0.5 rounded-md font-black uppercase tracking-wider bg-amber-100 text-amber-600 shrink-0">Admin</span>
+                        )}
+                      </div>
                       <span className={`text-[10px] font-bold shrink-0 ml-2 uppercase tracking-tight ${isActive ? 'text-[#fe5b25]' : 'text-[#8E8E93]'}`}>
                         {p.last_contact_at ? fmtDate(p.last_contact_at) : ''}
                       </span>
@@ -381,7 +546,13 @@ export default function AdminInbox() {
             <div className="shrink-0 flex items-center gap-4 px-6 h-[72px] z-10 rounded-t-3xl" style={{ background: 'rgba(255,255,255,0.9)', backdropFilter: 'blur(24px)', borderBottom: `1px solid ${C.glassBorder}` }}>
               <div className="relative">
                 <Avatar src={prospect.profile_pic_url} name={pName(prospect)} waId={prospect.wa_id || prospect.phone} size={48} />
-                <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-[#34C759] border-2 border-white shadow-sm" />
+                {isGroupAdmin(prospect.phone) ? (
+                  <div className="absolute -bottom-0.5 -right-0.5 w-5 h-5 rounded-full bg-amber-400 border-2 border-white shadow-sm flex items-center justify-center">
+                    <Crown className="w-3 h-3 text-white" strokeWidth={2.5} />
+                  </div>
+                ) : (
+                  <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-[#34C759] border-2 border-white shadow-sm" />
+                )}
               </div>
               <div className="flex-1 min-w-0">
                 {editingName ? (
@@ -398,6 +569,12 @@ export default function AdminInbox() {
                 <div className="flex items-center gap-2 mt-0.5">
                   <span className="text-[12px] font-bold text-[#8E8E93] tracking-tight">{prospect.phone}</span>
                   <span className="text-[10px] font-black text-[#34C759] uppercase tracking-widest bg-[#34C759]/10 px-1.5 py-0.5 rounded-md">{he ? 'מחובר' : 'Online'}</span>
+                  {isGroupAdmin(prospect.phone) && (
+                    <span className="text-[10px] font-black text-amber-600 uppercase tracking-widest bg-amber-100 px-1.5 py-0.5 rounded-md flex items-center gap-1">
+                      <Crown className="w-3 h-3" strokeWidth={2.5} />
+                      {he ? 'מנהל קבוצה' : 'Group Admin'}
+                    </span>
+                  )}
                 </div>
               </div>
               <div className="flex items-center gap-3">
@@ -749,6 +926,77 @@ export default function AdminInbox() {
                           <span className="truncate">{g}</span>
                         </div>
                       ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Group Membership Activity */}
+                {memberships.length > 0 && (
+                  <div>
+                    <div className="text-[10px] font-semibold uppercase tracking-wider text-[#8E8E93] mb-1.5">{he ? 'פעילות בקבוצות' : 'Group Activity'}</div>
+
+                    {/* WhatsApp Profile (from enrichment — show once from first membership that has data) */}
+                    {(() => {
+                      const enriched = memberships.find(m => m.profile_name || m.about || m.profile_pic_url)
+                      if (!enriched) return null
+                      return (
+                        <div className="flex items-center gap-3 mb-3 p-2.5 rounded-xl bg-white border border-black/[0.04]">
+                          {enriched.profile_pic_url ? (
+                            <img src={enriched.profile_pic_url} alt="" className="w-10 h-10 rounded-full object-cover shrink-0 shadow-sm" />
+                          ) : (
+                            <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center shrink-0">
+                              <Crown className="w-5 h-5 text-amber-500" />
+                            </div>
+                          )}
+                          <div className="flex-1 min-w-0">
+                            {enriched.profile_name && (
+                              <p className="text-[13px] font-semibold text-[#1C1C1E] truncate">{enriched.profile_name}</p>
+                            )}
+                            {enriched.about && (
+                              <p className="text-[11px] text-[#8E8E93] truncate italic">"{enriched.about}"</p>
+                            )}
+                          </div>
+                        </div>
+                      )
+                    })()}
+
+                    <div className="space-y-2">
+                      {memberships.map((m, i) => {
+                        const isLeft = !!m.left_group_at
+                        const isAdmin = m.classification === 'admin'
+                        return (
+                          <div key={i} className="rounded-lg p-2.5" style={{ background: isLeft ? '#FF3B3008' : isAdmin ? '#f59e0b08' : '#34C75908', border: `1px solid ${isLeft ? '#FF3B3015' : isAdmin ? '#f59e0b15' : '#34C75915'}` }}>
+                            <div className="flex items-center justify-between mb-1">
+                              <div className="flex items-center gap-1.5 min-w-0">
+                                {isAdmin && <Crown className="w-3 h-3 text-amber-500 shrink-0" strokeWidth={2.5} />}
+                                <span className="text-[12px] font-semibold text-[#1C1C1E] truncate">{m.group_name}</span>
+                              </div>
+                              {isLeft ? (
+                                <span className="text-[9px] font-bold text-[#FF3B30] bg-[#FF3B30]/10 px-1.5 py-0.5 rounded-md uppercase">{he ? 'עזב' : 'Left'}</span>
+                              ) : isAdmin ? (
+                                <span className="text-[9px] font-bold text-amber-600 bg-amber-100 px-1.5 py-0.5 rounded-md uppercase">{he ? 'מנהל' : 'Admin'}</span>
+                              ) : (
+                                <span className="text-[9px] font-bold text-[#34C759] bg-[#34C759]/10 px-1.5 py-0.5 rounded-md uppercase">{he ? 'פעיל' : 'Active'}</span>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-3 text-[10px] text-[#8E8E93]">
+                              {m.joined_group_at && (
+                                <div className="flex items-center gap-1">
+                                  <LogIn className="w-3 h-3" />
+                                  <span>{he ? 'הצטרף' : 'Joined'} {fmtFull(m.joined_group_at)}</span>
+                                </div>
+                              )}
+                              {m.left_group_at && (
+                                <div className="flex items-center gap-1 text-[#FF3B30]">
+                                  <LogOutIcon className="w-3 h-3" />
+                                  <span>{he ? 'עזב' : 'Left'} {fmtFull(m.left_group_at)}</span>
+                                </div>
+                              )}
+                              <span>{m.total_messages} {he ? 'הודעות' : 'msgs'}</span>
+                            </div>
+                          </div>
+                        )
+                      })}
                     </div>
                   </div>
                 )}

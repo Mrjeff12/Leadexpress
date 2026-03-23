@@ -462,10 +462,45 @@ async function handleImportProspects(req: http.IncomingMessage, res: http.Server
     const participants = groupData.participants ?? [];
     let imported = 0;
     let skipped = 0;
+    let adminsFound = 0;
 
     for (const p of participants) {
       const waId = p.id;
       const phone = '+' + waId.replace('@c.us', '');
+
+      // Classify group admins in group_members table
+      if (p.isAdmin) {
+        adminsFound++;
+        const { data: existingMember } = await supabase
+          .from('group_members')
+          .select('id, classification, manual_override')
+          .eq('group_id', group_id)
+          .eq('wa_sender_id', waId)
+          .maybeSingle();
+
+        if (existingMember) {
+          // Only update if not manually overridden
+          if (!existingMember.manual_override) {
+            await supabase
+              .from('group_members')
+              .update({ classification: 'admin', classified_at: new Date().toISOString() })
+              .eq('id', existingMember.id);
+          }
+        } else {
+          // Insert new member as admin
+          await supabase
+            .from('group_members')
+            .insert({
+              group_id: group_id,
+              wa_sender_id: waId,
+              classification: 'admin',
+              classified_at: new Date().toISOString(),
+              total_messages: 0,
+              lead_messages: 0,
+              service_messages: 0,
+            });
+        }
+      }
 
       // Try to get avatar
       let avatarUrl: string | null = null;
@@ -491,6 +526,7 @@ async function handleImportProspects(req: http.IncomingMessage, res: http.Server
         .maybeSingle();
 
       // Skip known sellers/bots — they're not our target prospects
+      // Note: admins are NOT skipped — they're valuable partner targets
       if (member?.classification === 'seller' || member?.classification === 'bot') {
         skipped++;
         continue;
@@ -538,11 +574,21 @@ async function handleImportProspects(req: http.IncomingMessage, res: http.Server
       imported++;
     }
 
+    // Sync known_admins count on the group
+    if (adminsFound > 0) {
+      await supabase
+        .from('groups')
+        .update({ known_admins: adminsFound })
+        .eq('id', group_id);
+      logger.info({ group_id, adminsFound }, 'Synced group admin count');
+    }
+
     jsonResponse(res, 200, {
       success: true,
       total_participants: participants.length,
       imported,
       skipped_sellers_bots: skipped,
+      admins_found: adminsFound,
     });
   } catch (err) {
     logger.error({ err }, 'Error in handleImportProspects');

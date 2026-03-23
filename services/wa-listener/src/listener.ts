@@ -211,9 +211,42 @@ async function routeToProspectChat(body: GreenNotification['body']): Promise<voi
     .eq('id', prospect.id);
 }
 
+// ── Group invite link scanner ─────────────────────────────────────────────────
+const GROUP_LINK_REGEX = /(?:https?:\/\/)?chat\.whatsapp\.com\/([A-Za-z0-9_-]+)/gi;
+
+async function scanForGroupLinks(text: string, groupId: string, senderId: string, messageId: string): Promise<void> {
+  const matches = [...text.matchAll(GROUP_LINK_REGEX)];
+  if (matches.length === 0) return;
+
+  // Lazy import to avoid circular dependency
+  const { resolveGroupUuid } = await import('./smart-filter.js');
+  const groupUuid = await resolveGroupUuid(groupId);
+
+  for (const match of matches) {
+    const inviteCode = match[1];
+    const inviteLink = `https://chat.whatsapp.com/${inviteCode}`;
+
+    try {
+      await supabase.rpc('upsert_pending_group', {
+        p_invite_link: inviteLink,
+        p_invite_code: inviteCode,
+        p_source_group_id: groupUuid,
+        p_source_wa_sender_id: senderId,
+        p_source_wa_message_id: messageId,
+      });
+      logger.info({ inviteCode, groupId, senderId }, 'Group invite link discovered');
+    } catch (err) {
+      logger.error({ err, inviteCode }, 'Failed to save pending group');
+    }
+  }
+}
+
 // ── Process a single notification ────────────────────────────────────────────
 async function processNotification(notif: GreenNotification): Promise<void> {
   const { body } = notif;
+
+  // Touch watchdog silence detector
+  try { const { touchLastNotification } = await import('./watchdog.js'); touchLastNotification(); } catch {}
 
   // Handle state changes
   if (body.typeWebhook === 'stateInstanceChanged') {
@@ -222,8 +255,30 @@ async function processNotification(notif: GreenNotification): Promise<void> {
 
     if (state === 'authorized') {
       setConnected();
+      await supabase.from('wa_accounts')
+        .update({ status: 'connected', connected_since: new Date().toISOString() })
+        .eq('green_api_id', config.greenApi.idInstance);
+
+      // Trigger onboarding after 5-minute warm-up (don't block poll loop)
+      logger.info('Instance authorized — scheduling onboarding in 5 minutes');
+      setTimeout(async () => {
+        try {
+          const { onboardInstance } = await import('./sync-engine.js');
+          await onboardInstance();
+        } catch (err) {
+          logger.error({ err }, 'Onboarding failed');
+        }
+      }, 5 * 60 * 1000);
     } else if (state === 'notAuthorized' || state === 'blocked') {
       setDisconnected();
+      await supabase.from('wa_accounts')
+        .update({ status: state === 'blocked' ? 'blocked' : 'disconnected' })
+        .eq('green_api_id', config.greenApi.idInstance);
+    } else if (state === 'yellowCard') {
+      setConnecting();
+      await supabase.from('wa_accounts')
+        .update({ status: 'yellow_card' })
+        .eq('green_api_id', config.greenApi.idInstance);
     } else {
       setConnecting();
     }
@@ -275,6 +330,9 @@ async function processNotification(notif: GreenNotification): Promise<void> {
     { messageId, groupId: chatId, groupName: body.senderData?.chatName, sender: senderName, textLength: text.length },
     'New group message received'
   );
+
+  // ── Scan for group invite links (before filter — capture even from sellers) ──
+  await scanForGroupLinks(text, chatId, senderId, messageId);
 
   // ── Pipeline: log "received" ────────────────────────────────────────────
   await logPipelineEvent(chatId, messageId, senderId, 'received', {
@@ -421,9 +479,15 @@ async function checkAndConnect(): Promise<void> {
 
     if (state.stateInstance === 'authorized') {
       setConnected();
+      await supabase.from('wa_accounts')
+        .update({ status: 'connected', connected_since: new Date().toISOString() })
+        .eq('green_api_id', config.greenApi.idInstance);
       logger.info('WhatsApp already authorized via Green API');
     } else if (state.stateInstance === 'notAuthorized') {
       setDisconnected();
+      await supabase.from('wa_accounts')
+        .update({ status: 'disconnected' })
+        .eq('green_api_id', config.greenApi.idInstance);
       logger.info('WhatsApp not authorized — QR scan needed via Green API console or dashboard');
 
       // Fetch QR code
@@ -437,6 +501,9 @@ async function checkAndConnect(): Promise<void> {
             logger.info('QR code fetched — display in dashboard or scan via Green API console');
           } else if (qr.type === 'alreadyLogged') {
             setConnected();
+            await supabase.from('wa_accounts')
+              .update({ status: 'connected', connected_since: new Date().toISOString() })
+              .eq('green_api_id', config.greenApi.idInstance);
           }
         }
       } catch (err) {
@@ -444,10 +511,17 @@ async function checkAndConnect(): Promise<void> {
       }
     } else if (state.stateInstance === 'blocked') {
       setDisconnected();
+      await supabase.from('wa_accounts')
+        .update({ status: 'blocked' })
+        .eq('green_api_id', config.greenApi.idInstance);
       logger.error('WhatsApp account is BLOCKED by WhatsApp');
     } else {
       // sleepMode, starting, yellowCard
       setConnecting();
+      const dbStatus = state.stateInstance === 'yellowCard' ? 'yellow_card' : state.stateInstance;
+      await supabase.from('wa_accounts')
+        .update({ status: dbStatus })
+        .eq('green_api_id', config.greenApi.idInstance);
       logger.warn({ state: state.stateInstance }, 'Instance in transitional state');
     }
   } catch (err) {

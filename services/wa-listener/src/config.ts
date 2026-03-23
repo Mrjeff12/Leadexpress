@@ -70,6 +70,11 @@ export const config = {
     heartbeatTtlSeconds: 90,
   },
 
+  alerts: {
+    adminPhone: process.env.ADMIN_ALERT_PHONE ?? '',
+    pollIntervalMs: 10_000,
+  },
+
   dedup: {
     ttlSeconds: 3600, // 1 hour
     keyPrefix: 'wa:dedup:',

@@ -97,11 +97,15 @@ interface MemberRecord {
 const senderCache: Map<string, { data: MemberRecord; expires: number }> = new Map();
 const SENDER_CACHE_TTL_MS = 30_000; // 30 seconds
 
+export function invalidateSenderCache(groupWaId: string, senderId: string): void {
+  senderCache.delete(`${groupWaId}:${senderId}`);
+}
+
 // Group UUID cache (avoid repeated wa_group_id → UUID lookups)
 const groupUuidCache: Map<string, { id: string; expires: number }> = new Map();
 const GROUP_CACHE_TTL_MS = 60_000; // 60 seconds (groups rarely change)
 
-async function resolveGroupUuid(waGroupId: string): Promise<string | null> {
+export async function resolveGroupUuid(waGroupId: string): Promise<string | null> {
   const cached = groupUuidCache.get(waGroupId);
   if (cached && cached.expires > Date.now()) return cached.id;
 
@@ -429,8 +433,8 @@ export async function updateSenderStats(
         .update(updateData)
         .eq('id', existing.id);
     } else {
-      // Insert new member
-      await supabase
+      // Insert new member — use conflict handling for race condition safety
+      const { error: insertErr } = await supabase
         .from('group_members')
         .insert({
           group_id: groupUuid,
@@ -440,7 +444,23 @@ export async function updateSenderStats(
           lead_messages: wasLead ? 1 : 0,
           service_messages: hasPhoneInMessage ? 1 : 0,
           classification: 'unknown',
+          last_seen_at: new Date().toISOString(),
         });
+
+      // If duplicate key, the member was inserted by sync — just update stats
+      if (insertErr && insertErr.code === '23505') {
+        await supabase
+          .from('group_members')
+          .update({
+            total_messages: 1,
+            lead_messages: wasLead ? 1 : 0,
+            service_messages: hasPhoneInMessage ? 1 : 0,
+            display_name: senderName,
+            last_seen_at: new Date().toISOString(),
+          })
+          .eq('group_id', groupUuid)
+          .eq('wa_sender_id', senderId);
+      }
     }
 
     // Invalidate sender cache

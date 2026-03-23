@@ -82,6 +82,22 @@ async function main(): Promise<void> {
     });
   }
 
+  logger.info('Phase 5: startAlertPoller...');
+  const { startAlertPoller } = await import('./alerts.js');
+  await startAlertPoller();
+  await supabase.from('pipeline_events').insert({
+    stage: 'listener_phase',
+    detail: { phase: 5, name: 'startAlertPoller_ok', timestamp: new Date().toISOString() },
+  });
+
+  logger.info('Phase 6: startWatchdog...');
+  const { startWatchdog } = await import('./watchdog.js');
+  await startWatchdog();
+  await supabase.from('pipeline_events').insert({
+    stage: 'listener_phase',
+    detail: { phase: 6, name: 'startWatchdog_ok', timestamp: new Date().toISOString() },
+  });
+
   logger.info('wa-listener service is running');
 }
 
@@ -90,6 +106,10 @@ async function shutdown(signal: string): Promise<void> {
   logger.info({ signal }, 'Received shutdown signal');
 
   try {
+    const { stopWatchdog } = await import('./watchdog.js');
+    await stopWatchdog();
+    const { stopAlertPoller } = await import('./alerts.js');
+    await stopAlertPoller();
     await stopListener();
     await stopAPI();
     await stopHeartbeat();

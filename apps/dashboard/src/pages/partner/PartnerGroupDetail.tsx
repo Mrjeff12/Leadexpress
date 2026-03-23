@@ -204,6 +204,7 @@ export default function PartnerGroupDetail() {
             {[
               { label: he ? 'קונים (מחפשי עבודה)' : 'Buyers (Job Seekers)', count: info.memberBreakdown.buyers, color: '#10b981', total: info.total_members },
               { label: he ? 'מוכרים/ספאמרים' : 'Sellers/Spammers', count: info.memberBreakdown.sellers, color: '#ef4444', total: info.total_members },
+              { label: he ? 'מנהלי קבוצה' : 'Group Admins', count: info.memberBreakdown.admins, color: '#f59e0b', total: info.total_members },
               { label: he ? 'לא מסווגים' : 'Unclassified', count: info.memberBreakdown.unknown, color: '#d4d4d8', total: info.total_members },
             ].map(({ label, count, color, total }, i) => (
               <div key={i}>
@@ -286,6 +287,7 @@ export default function PartnerGroupDetail() {
                 <th className="px-4 py-3 text-start font-medium">{he ? 'סיווג' : 'Type'}</th>
                 <th className="px-4 py-3 text-start font-medium">{he ? 'הודעות' : 'Messages'}</th>
                 <th className="px-4 py-3 text-start font-medium">{he ? 'פעילות' : 'Activity'}</th>
+                <th className="px-4 py-3 text-start font-medium">{he ? 'הצטרף' : 'Joined'}</th>
                 <th className="px-4 py-3 text-start font-medium">{he ? 'נראה לאחרונה' : 'Last Seen'}</th>
               </tr>
             </thead>
@@ -299,11 +301,13 @@ export default function PartnerGroupDetail() {
                     ? { label: he ? 'בינוני' : 'Moderate', color: 'text-amber-600 bg-amber-50' }
                     : { label: he ? 'רדום' : 'Dormant', color: 'text-zinc-400 bg-zinc-50' }
 
+                const isGroupAdmin = m.classification === 'admin'
+
                 return (
-                  <tr key={i} className="border-t border-zinc-50 hover:bg-zinc-50/50 transition-colors">
+                  <tr key={i} className={`border-t border-zinc-50 hover:bg-zinc-50/50 transition-colors ${isGroupAdmin ? 'bg-amber-50/40' : ''}`}>
                     <td className="px-6 py-3">
-                      <span className="text-sm text-zinc-700 font-medium">
-                        {m.display_name || m.wa_sender_id.slice(-6)}
+                      <span className={`text-sm font-medium ${isGroupAdmin ? 'text-amber-700' : 'text-zinc-700'}`}>
+                        {isGroupAdmin && '👑 '}{m.display_name || m.wa_sender_id.slice(-6)}
                       </span>
                     </td>
                     <td className="px-4 py-3">
@@ -318,6 +322,7 @@ export default function PartnerGroupDetail() {
                         {actLevel.label}
                       </span>
                     </td>
+                    <td className="px-4 py-3 text-zinc-400 text-xs">{relativeTime(m.joined_group_at)}</td>
                     <td className="px-4 py-3 text-zinc-400 text-xs">{relativeTime(m.last_seen_at)}</td>
                   </tr>
                 )

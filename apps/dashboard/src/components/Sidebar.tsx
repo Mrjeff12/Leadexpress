@@ -122,7 +122,7 @@ export default function Sidebar() {
         <div className="md:hidden fixed inset-0 bg-black/40 z-40 animate-fade-in" onClick={() => setMobileOpen(false)} />
       )}
 
-    <aside
+      <aside
       className={[
         'fixed top-0 h-screen z-50 flex flex-col',
         isRtl ? 'right-0' : 'left-0',
@@ -383,7 +383,7 @@ export default function Sidebar() {
       >
         <XIcon className="w-4 h-4 text-stone-500" />
       </button>
-    </aside>
+      </aside>
     </>
   )
 }

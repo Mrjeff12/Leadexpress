@@ -2,7 +2,8 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { supabase } from '../../lib/supabase'
 import {
   Radio, Search, RefreshCw, MessageCircle,
-  User, Bot, Phone, Loader2,
+  User, Bot, Phone, Loader2, Shield, Crown,
+  Users, Zap,
 } from 'lucide-react'
 
 /* ═══════════════════════════════════════════════════════════════════
@@ -17,6 +18,7 @@ const RED = '#ef4444'
 const PURPLE = '#8b5cf6'
 const CYAN = '#06b6d4'
 const ORANGE = '#f59e0b'
+const GOLD = '#f59e0b'
 
 /* ═══════════════════════════════════════════════════════════════════
    Types
@@ -42,6 +44,21 @@ interface Conversation {
   messages: TwilioMessage[]
 }
 
+interface GroupAdmin {
+  member_id: string
+  wa_sender_id: string
+  display_name: string | null
+  contact_name: string | null
+  total_messages: number
+  last_seen_at: string | null
+  group_id: string
+  group_name: string
+  group_category: string | null
+  group_status: string
+}
+
+type TabView = 'conversations' | 'admins'
+
 /* ═══════════════════════════════════════════════════════════════════
    Helpers
    ═══════════════════════════════════════════════════════════════════ */
@@ -65,6 +82,17 @@ const phoneHue = (phone: string) => {
   return ((h % 360) + 360) % 360
 }
 
+const relativeTime = (dateStr: string | null): string => {
+  if (!dateStr) return 'Never'
+  const diff = Date.now() - new Date(dateStr).getTime()
+  const hours = Math.floor(diff / (1000 * 60 * 60))
+  if (hours < 1) return 'Just now'
+  if (hours < 24) return `${hours}h ago`
+  const days = Math.floor(hours / 24)
+  if (days < 7) return `${days}d ago`
+  return `${Math.floor(days / 7)}w ago`
+}
+
 /* ═══════════════════════════════════════════════════════════════════
    Main Component
    ═══════════════════════════════════════════════════════════════════ */
@@ -76,7 +104,54 @@ export default function ChatWarRoom() {
   const [refreshing, setRefreshing] = useState(false)
   const [search, setSearch] = useState('')
   const [profiles, setProfiles] = useState<Record<string, string>>({})
+  const [activeTab, setActiveTab] = useState<TabView>('conversations')
+  const [admins, setAdmins] = useState<GroupAdmin[]>([])
+  const [adminPhones, setAdminPhones] = useState<Set<string>>(new Set())
+  const [syncing, setSyncing] = useState(false)
   const chatEndRef = useRef<HTMLDivElement>(null)
+
+  /* ── Fetch group admins from DB ──────────────────────────────── */
+  const fetchAdmins = useCallback(async () => {
+    try {
+      const { data, error } = await supabase.rpc('get_group_admins')
+      if (error) {
+        console.error('Failed to fetch admins:', error)
+        return
+      }
+      const adminList = (data || []) as GroupAdmin[]
+      setAdmins(adminList)
+
+      // Build a set of admin phone numbers (without @c.us) for cross-referencing
+      const phones = new Set<string>()
+      for (const a of adminList) {
+        const phone = a.wa_sender_id.replace('@c.us', '')
+        phones.add(phone)
+        phones.add('+' + phone)
+      }
+      setAdminPhones(phones)
+    } catch (e) {
+      console.error('Admin fetch error:', e)
+    }
+  }, [])
+
+  /* ── Sync admins via edge function ───────────────────────────── */
+  const syncAdmins = useCallback(async () => {
+    setSyncing(true)
+    try {
+      const { data, error } = await supabase.functions.invoke('sync-group-admins')
+      if (error) {
+        console.error('Sync error:', error)
+      } else {
+        console.log('Sync result:', data)
+        // Refresh admin list after sync
+        await fetchAdmins()
+      }
+    } catch (e) {
+      console.error('Sync error:', e)
+    } finally {
+      setSyncing(false)
+    }
+  }, [fetchAdmins])
 
   /* ── Fetch Twilio messages via Edge Function ─────────────────── */
   const fetchMessages = useCallback(async (silent = false) => {
@@ -150,11 +225,18 @@ export default function ChatWarRoom() {
 
   useEffect(() => {
     fetchMessages()
-  }, [fetchMessages])
+    fetchAdmins()
+  }, [fetchMessages, fetchAdmins])
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [selectedPhone])
+
+  /* ── Check if phone is a group admin ────────────────────────── */
+  const isAdmin = (phone: string): boolean => {
+    const clean = fmtPhone(phone)
+    return adminPhones.has(clean) || adminPhones.has('+' + clean)
+  }
 
   /* ── Filter conversations ─────────────────────────────────────── */
   const filtered = conversations.filter(c => {
@@ -163,6 +245,16 @@ export default function ChatWarRoom() {
     const name = profiles[fmtPhone(c.phone)] || ''
     return c.phone.includes(q) || name.toLowerCase().includes(q)
       || c.messages.some(m => m.body?.toLowerCase().includes(q))
+  })
+
+  /* ── Filter admins ──────────────────────────────────────────── */
+  const filteredAdmins = admins.filter(a => {
+    if (!search) return true
+    const q = search.toLowerCase()
+    return (a.display_name || '').toLowerCase().includes(q)
+      || (a.contact_name || '').toLowerCase().includes(q)
+      || a.wa_sender_id.includes(q)
+      || (a.group_name || '').toLowerCase().includes(q)
   })
 
   const selected = conversations.find(c => c.phone === selectedPhone)
@@ -209,8 +301,18 @@ export default function ChatWarRoom() {
 
         <div className="flex items-center gap-2">
           <span className="text-[11px] text-slate-500 font-mono">
-            {conversations.length} conversations · {conversations.reduce((s, c) => s + c.messageCount, 0)} messages
+            {conversations.length} conversations · {admins.length} admins
           </span>
+          <button
+            onClick={syncAdmins}
+            disabled={syncing}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-white transition-all hover:brightness-110 disabled:opacity-50"
+            style={{ background: `${GOLD}20`, border: `1px solid ${GOLD}40` }}
+            title="Sync group admins from WhatsApp"
+          >
+            <Zap className={`w-3.5 h-3.5 ${syncing ? 'animate-pulse' : ''}`} style={{ color: GOLD }} />
+            Sync Admins
+          </button>
           <button
             onClick={() => fetchMessages(true)}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-white transition-all hover:brightness-110"
@@ -225,11 +327,37 @@ export default function ChatWarRoom() {
       {/* ── Main Layout ── */}
       <div className="flex flex-1 min-h-0">
 
-        {/* ── Conversation List ── */}
+        {/* ── Left Sidebar ── */}
         <div
           className="w-[340px] shrink-0 flex flex-col border-r overflow-hidden"
           style={{ background: BG_CARD, borderColor: BORDER }}
         >
+          {/* Tab Switcher */}
+          <div className="flex" style={{ borderBottom: `1px solid ${BORDER}` }}>
+            <button
+              onClick={() => setActiveTab('conversations')}
+              className="flex-1 flex items-center justify-center gap-1.5 py-2.5 text-xs font-semibold transition-all"
+              style={{
+                color: activeTab === 'conversations' ? PURPLE : '#64748b',
+                borderBottom: activeTab === 'conversations' ? `2px solid ${PURPLE}` : '2px solid transparent',
+              }}
+            >
+              <MessageCircle className="w-3.5 h-3.5" />
+              Chats ({conversations.length})
+            </button>
+            <button
+              onClick={() => setActiveTab('admins')}
+              className="flex-1 flex items-center justify-center gap-1.5 py-2.5 text-xs font-semibold transition-all"
+              style={{
+                color: activeTab === 'admins' ? GOLD : '#64748b',
+                borderBottom: activeTab === 'admins' ? `2px solid ${GOLD}` : '2px solid transparent',
+              }}
+            >
+              <Crown className="w-3.5 h-3.5" />
+              Admins ({admins.length})
+            </button>
+          </div>
+
           {/* Search */}
           <div className="p-3" style={{ borderBottom: `1px solid ${BORDER}` }}>
             <div className="relative">
@@ -240,79 +368,244 @@ export default function ChatWarRoom() {
                 onChange={e => setSearch(e.target.value)}
                 className="w-full pl-9 pr-3 py-2 rounded-lg text-sm text-white placeholder-slate-600 outline-none"
                 style={{ background: BG, border: `1px solid ${BORDER}` }}
-                placeholder="Search by name, phone, or message..."
+                placeholder={activeTab === 'conversations' ? 'Search chats...' : 'Search admins...'}
               />
             </div>
           </div>
 
-          {/* List */}
+          {/* List content based on active tab */}
           <div className="flex-1 overflow-y-auto">
-            {filtered.map(conv => {
-              const name = getName(conv.phone)
-              const isActive = conv.phone === selectedPhone
-              const isBot = conv.phone === BOT_NUMBER
-              if (isBot) return null
+            {activeTab === 'conversations' ? (
+              /* ── Conversation List ── */
+              <>
+                {filtered.map(conv => {
+                  const name = getName(conv.phone)
+                  const isActive = conv.phone === selectedPhone
+                  const isBot = conv.phone === BOT_NUMBER
+                  if (isBot) return null
+                  const contactIsAdmin = isAdmin(conv.phone)
 
-              return (
-                <button
-                  key={conv.phone}
-                  onClick={() => setSelectedPhone(conv.phone)}
-                  className="w-full flex items-center gap-3 px-4 py-3 text-left transition-all"
-                  style={{
-                    background: isActive ? `${PURPLE}15` : 'transparent',
-                    borderBottom: `1px solid ${BORDER}`,
-                    borderLeft: isActive ? `3px solid ${PURPLE}` : '3px solid transparent',
-                  }}
-                >
-                  {/* Avatar */}
+                  return (
+                    <button
+                      key={conv.phone}
+                      onClick={() => setSelectedPhone(conv.phone)}
+                      className="w-full flex items-center gap-3 px-4 py-3 text-left transition-all"
+                      style={{
+                        background: isActive ? `${PURPLE}15` : 'transparent',
+                        borderBottom: `1px solid ${BORDER}`,
+                        borderLeft: isActive ? `3px solid ${PURPLE}` : '3px solid transparent',
+                      }}
+                    >
+                      {/* Avatar with admin gold ring */}
+                      <div className="relative">
+                        <div
+                          className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold shrink-0"
+                          style={{
+                            background: contactIsAdmin ? `${GOLD}20` : `hsl(${phoneHue(conv.phone)}, 60%, 20%)`,
+                            border: `2px solid ${contactIsAdmin ? GOLD : `hsl(${phoneHue(conv.phone)}, 60%, 40%)`}`,
+                            color: contactIsAdmin ? GOLD : `hsl(${phoneHue(conv.phone)}, 60%, 70%)`,
+                          }}
+                        >
+                          {name ? name[0].toUpperCase() : <User className="w-4 h-4" />}
+                        </div>
+                        {contactIsAdmin && (
+                          <div
+                            className="absolute -top-1 -right-1 w-4 h-4 rounded-full flex items-center justify-center"
+                            style={{ background: GOLD }}
+                          >
+                            <Crown className="w-2.5 h-2.5 text-black" />
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-1.5 min-w-0">
+                            <span className="text-sm font-semibold text-white truncate">
+                              {name || fmtPhone(conv.phone)}
+                            </span>
+                            {contactIsAdmin && (
+                              <span
+                                className="text-[8px] px-1.5 py-0.5 rounded-full font-bold shrink-0 uppercase tracking-wider"
+                                style={{ background: `${GOLD}20`, color: GOLD }}
+                              >
+                                Admin
+                              </span>
+                            )}
+                          </div>
+                          <span className="text-[10px] text-slate-500 shrink-0">
+                            {fmtDate(conv.lastTime)}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between mt-0.5">
+                          <span className="text-xs text-slate-400 truncate max-w-[180px]">
+                            {conv.lastMessage || '...'}
+                          </span>
+                          <span
+                            className="text-[9px] px-1.5 py-0.5 rounded-full font-mono shrink-0"
+                            style={{ background: `${CYAN}15`, color: CYAN }}
+                          >
+                            {conv.messageCount}
+                          </span>
+                        </div>
+                      </div>
+                    </button>
+                  )
+                })}
+
+                {filtered.length === 0 && (
+                  <div className="flex flex-col items-center justify-center py-12 text-slate-600">
+                    <MessageCircle className="w-8 h-8 mb-2 opacity-30" />
+                    <p className="text-sm">No conversations found</p>
+                  </div>
+                )}
+              </>
+            ) : (
+              /* ── Admin List ── */
+              <>
+                {filteredAdmins.map(admin => (
                   <div
-                    className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold shrink-0"
-                    style={{
-                      background: `hsl(${phoneHue(conv.phone)}, 60%, 20%)`,
-                      border: `2px solid hsl(${phoneHue(conv.phone)}, 60%, 40%)`,
-                      color: `hsl(${phoneHue(conv.phone)}, 60%, 70%)`,
-                    }}
+                    key={admin.member_id}
+                    className="flex items-center gap-3 px-4 py-3 transition-all hover:brightness-110"
+                    style={{ borderBottom: `1px solid ${BORDER}` }}
                   >
-                    {name ? name[0].toUpperCase() : <User className="w-4 h-4" />}
-                  </div>
-
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-semibold text-white truncate">
-                        {name || fmtPhone(conv.phone)}
-                      </span>
-                      <span className="text-[10px] text-slate-500 shrink-0">
-                        {fmtDate(conv.lastTime)}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between mt-0.5">
-                      <span className="text-xs text-slate-400 truncate max-w-[180px]">
-                        {conv.lastMessage || '...'}
-                      </span>
-                      <span
-                        className="text-[9px] px-1.5 py-0.5 rounded-full font-mono shrink-0"
-                        style={{ background: `${CYAN}15`, color: CYAN }}
+                    {/* Gold admin avatar */}
+                    <div className="relative">
+                      <div
+                        className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold shrink-0"
+                        style={{
+                          background: `${GOLD}15`,
+                          border: `2px solid ${GOLD}`,
+                          color: GOLD,
+                        }}
                       >
-                        {conv.messageCount}
-                      </span>
+                        {(admin.display_name || admin.contact_name)?.[0]?.toUpperCase() || (
+                          <Shield className="w-4 h-4" />
+                        )}
+                      </div>
+                      <div
+                        className="absolute -top-1 -right-1 w-4 h-4 rounded-full flex items-center justify-center"
+                        style={{ background: GOLD }}
+                      >
+                        <Crown className="w-2.5 h-2.5 text-black" />
+                      </div>
+                    </div>
+
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-sm font-semibold text-white truncate">
+                          {admin.display_name || admin.contact_name || admin.wa_sender_id.replace('@c.us', '')}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2 mt-0.5">
+                        <span
+                          className="text-[9px] px-1.5 py-0.5 rounded-full font-semibold shrink-0"
+                          style={{
+                            background: admin.group_status === 'active' ? `${GREEN}15` : `${ORANGE}15`,
+                            color: admin.group_status === 'active' ? GREEN : ORANGE,
+                          }}
+                        >
+                          {admin.group_name}
+                        </span>
+                        {admin.group_category && (
+                          <span className="text-[9px] text-slate-500">
+                            {admin.group_category}
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2 mt-0.5 text-[10px] text-slate-600">
+                        <span>{admin.wa_sender_id.replace('@c.us', '')}</span>
+                        <span>·</span>
+                        <span>{admin.total_messages} msgs</span>
+                        <span>·</span>
+                        <span>{relativeTime(admin.last_seen_at)}</span>
+                      </div>
                     </div>
                   </div>
-                </button>
-              )
-            })}
+                ))}
 
-            {filtered.length === 0 && (
-              <div className="flex flex-col items-center justify-center py-12 text-slate-600">
-                <MessageCircle className="w-8 h-8 mb-2 opacity-30" />
-                <p className="text-sm">No conversations found</p>
-              </div>
+                {filteredAdmins.length === 0 && (
+                  <div className="flex flex-col items-center justify-center py-12 text-slate-600">
+                    <Crown className="w-8 h-8 mb-2 opacity-30" style={{ color: GOLD }} />
+                    <p className="text-sm">No group admins found</p>
+                    <p className="text-[11px] text-slate-700 mt-1">Click "Sync Admins" to scan groups</p>
+                  </div>
+                )}
+              </>
             )}
           </div>
         </div>
 
-        {/* ── Chat View ── */}
+        {/* ── Chat View / Admin Detail ── */}
         <div className="flex-1 flex flex-col" style={{ background: BG }}>
-          {!selected ? (
+          {activeTab === 'admins' ? (
+            /* Admin summary panel */
+            <div className="flex-1 flex flex-col items-center justify-center p-8">
+              <div className="max-w-md w-full space-y-6">
+                {/* Admin stats */}
+                <div className="text-center">
+                  <div className="relative inline-block mb-4">
+                    <div
+                      className="w-20 h-20 rounded-full flex items-center justify-center"
+                      style={{ background: `${GOLD}15`, border: `3px solid ${GOLD}40` }}
+                    >
+                      <Crown className="w-8 h-8" style={{ color: GOLD }} />
+                    </div>
+                  </div>
+                  <h2 className="text-xl font-bold text-white mb-1">Group Admins</h2>
+                  <p className="text-sm text-slate-500">
+                    {admins.length} admins across {new Set(admins.map(a => a.group_id)).size} groups
+                  </p>
+                </div>
+
+                {/* Group breakdown */}
+                <div
+                  className="rounded-xl p-4 space-y-3"
+                  style={{ background: BG_CARD, border: `1px solid ${BORDER}` }}
+                >
+                  <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-2">
+                    <Users className="w-3.5 h-3.5" />
+                    Admins by Group
+                  </h3>
+                  {Object.entries(
+                    admins.reduce<Record<string, { name: string; count: number; category: string | null }>>(
+                      (acc, a) => {
+                        if (!acc[a.group_id]) {
+                          acc[a.group_id] = { name: a.group_name, count: 0, category: a.group_category }
+                        }
+                        acc[a.group_id].count++
+                        return acc
+                      },
+                      {},
+                    ),
+                  )
+                    .sort(([, a], [, b]) => b.count - a.count)
+                    .map(([groupId, { name, count, category }]) => (
+                      <div key={groupId} className="flex items-center justify-between">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <span className="text-sm text-white truncate">{name}</span>
+                          {category && (
+                            <span className="text-[9px] text-slate-500">{category}</span>
+                          )}
+                        </div>
+                        <span
+                          className="text-[10px] px-2 py-0.5 rounded-full font-bold shrink-0"
+                          style={{ background: `${GOLD}15`, color: GOLD }}
+                        >
+                          {count} {count === 1 ? 'admin' : 'admins'}
+                        </span>
+                      </div>
+                    ))}
+
+                  {admins.length === 0 && (
+                    <p className="text-sm text-slate-600 text-center py-4">
+                      No admins detected yet. Click "Sync Admins" to scan all monitored groups.
+                    </p>
+                  )}
+                </div>
+              </div>
+            </div>
+          ) : !selected ? (
             /* Empty state */
             <div className="flex-1 flex flex-col items-center justify-center text-slate-600">
               <div className="relative mb-4">
@@ -330,20 +623,40 @@ export default function ChatWarRoom() {
                 className="flex items-center gap-3 px-5 py-3 shrink-0"
                 style={{ background: BG_CARD, borderBottom: `1px solid ${BORDER}` }}
               >
-                <div
-                  className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold"
-                  style={{
-                    background: `hsl(${phoneHue(selected.phone)}, 60%, 20%)`,
-                    border: `2px solid hsl(${phoneHue(selected.phone)}, 60%, 40%)`,
-                    color: `hsl(${phoneHue(selected.phone)}, 60%, 70%)`,
-                  }}
-                >
-                  {getName(selected.phone)?.[0]?.toUpperCase() || <User className="w-4 h-4" />}
+                <div className="relative">
+                  <div
+                    className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold"
+                    style={{
+                      background: isAdmin(selected.phone) ? `${GOLD}20` : `hsl(${phoneHue(selected.phone)}, 60%, 20%)`,
+                      border: `2px solid ${isAdmin(selected.phone) ? GOLD : `hsl(${phoneHue(selected.phone)}, 60%, 40%)`}`,
+                      color: isAdmin(selected.phone) ? GOLD : `hsl(${phoneHue(selected.phone)}, 60%, 70%)`,
+                    }}
+                  >
+                    {getName(selected.phone)?.[0]?.toUpperCase() || <User className="w-4 h-4" />}
+                  </div>
+                  {isAdmin(selected.phone) && (
+                    <div
+                      className="absolute -top-1 -right-1 w-4 h-4 rounded-full flex items-center justify-center"
+                      style={{ background: GOLD }}
+                    >
+                      <Crown className="w-2.5 h-2.5 text-black" />
+                    </div>
+                  )}
                 </div>
                 <div className="flex-1">
-                  <h2 className="text-white font-semibold text-sm">
-                    {getName(selected.phone) || fmtPhone(selected.phone)}
-                  </h2>
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-white font-semibold text-sm">
+                      {getName(selected.phone) || fmtPhone(selected.phone)}
+                    </h2>
+                    {isAdmin(selected.phone) && (
+                      <span
+                        className="text-[9px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider"
+                        style={{ background: `${GOLD}20`, color: GOLD }}
+                      >
+                        Group Admin
+                      </span>
+                    )}
+                  </div>
                   <div className="flex items-center gap-2 text-[11px] text-slate-500">
                     <Phone className="w-3 h-3" />
                     {fmtPhone(selected.phone)}
@@ -391,9 +704,9 @@ export default function ChatWarRoom() {
                             {isOutgoing ? (
                               <Bot className="w-3 h-3" style={{ color: PURPLE }} />
                             ) : (
-                              <User className="w-3 h-3" style={{ color: CYAN }} />
+                              <User className="w-3 h-3" style={{ color: isAdmin(selected.phone) ? GOLD : CYAN }} />
                             )}
-                            <span className="text-[9px] font-mono" style={{ color: isOutgoing ? PURPLE : CYAN }}>
+                            <span className="text-[9px] font-mono" style={{ color: isOutgoing ? PURPLE : isAdmin(selected.phone) ? GOLD : CYAN }}>
                               {isOutgoing ? 'Rebeca' : getName(selected.phone) || fmtPhone(selected.phone)}
                             </span>
                           </div>

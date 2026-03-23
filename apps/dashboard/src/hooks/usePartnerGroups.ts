@@ -24,7 +24,7 @@ export interface PartnerGroupRow {
   leadsDetected: number
   activityLevel: 'high' | 'medium' | 'low' | 'dormant'
   spamRatio: number // seller % — partner should know this to clean their group
-  memberBreakdown: { buyers: number; sellers: number; unknown: number }
+  memberBreakdown: { buyers: number; sellers: number; admins: number; unknown: number }
 }
 
 export interface PartnerGroupDetail {
@@ -42,6 +42,7 @@ export interface PartnerMemberRow {
   classification: 'buyer' | 'seller' | 'bot' | 'admin' | 'unknown'
   total_messages: number
   last_seen_at: string | null
+  joined_group_at: string | null
   activityLevel: 'active' | 'moderate' | 'dormant'
 }
 
@@ -174,7 +175,8 @@ async function fetchPartnerGroups(partnerId: string): Promise<PartnerGroupRow[]>
       memberBreakdown: {
         buyers: g.known_buyers || 0,
         sellers: g.known_sellers || 0,
-        unknown: Math.max(0, (g.total_members || 0) - (g.known_buyers || 0) - (g.known_sellers || 0)),
+        admins: g.known_admins || 0,
+        unknown: Math.max(0, (g.total_members || 0) - (g.known_buyers || 0) - (g.known_sellers || 0) - (g.known_admins || 0)),
       },
     }
   })
@@ -237,7 +239,7 @@ async function fetchPartnerGroupDetail(groupId: string): Promise<PartnerGroupDet
   // Members (partner-safe: no lead_messages or service_messages exposed)
   const { data: memberData } = await supabase
     .from('group_members')
-    .select('wa_sender_id, display_name, classification, total_messages, last_seen_at')
+    .select('wa_sender_id, display_name, classification, total_messages, last_seen_at, joined_group_at')
     .eq('group_id', groupId)
     .order('total_messages', { ascending: false })
 
@@ -247,6 +249,7 @@ async function fetchPartnerGroupDetail(groupId: string): Promise<PartnerGroupDet
     classification: m.classification || 'unknown',
     total_messages: m.total_messages || 0,
     last_seen_at: m.last_seen_at,
+    joined_group_at: m.joined_group_at,
     activityLevel: m.total_messages >= 20 ? 'active' : m.total_messages >= 5 ? 'moderate' : 'dormant',
   }))
 
@@ -347,7 +350,8 @@ async function fetchPartnerGroupDetail(groupId: string): Promise<PartnerGroupDet
     memberBreakdown: {
       buyers: group.known_buyers || 0,
       sellers: group.known_sellers || 0,
-      unknown: Math.max(0, (group.total_members || 0) - (group.known_buyers || 0) - (group.known_sellers || 0)),
+      admins: group.known_admins || 0,
+      unknown: Math.max(0, (group.total_members || 0) - (group.known_buyers || 0) - (group.known_sellers || 0) - (group.known_admins || 0)),
     },
   }
 
