@@ -77,7 +77,7 @@ export function useSubscriptionAccess() {
           if (plan?.max_zip_codes != null) setMaxZipCodes(plan.max_zip_codes)
         }
 
-        setCanManageSubs(fetchedPlan === 'unlimited')
+        setCanManageSubs(fetchedPlan === 'premium' || fetchedPlan === 'unlimited')
       } else {
         // No active subscription = free tier
         setPlanName('free')

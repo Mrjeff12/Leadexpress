@@ -3,7 +3,7 @@ import { Check } from 'lucide-react'
 import { useLang } from '../i18n/LanguageContext'
 import { supabase } from '../lib/supabase'
 
-const DASHBOARD_URL = 'https://app.leadexpress.co.il'
+const DASHBOARD_URL = 'https://app.masterleadflow.com'
 
 const PLAN_SLUGS = ['free', 'premium']
 
