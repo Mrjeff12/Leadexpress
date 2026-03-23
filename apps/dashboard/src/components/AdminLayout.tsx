@@ -7,6 +7,7 @@ const DepartmentLayout = lazy(() => import('./admin/DepartmentLayout'))
 const BotMissionControl = lazy(() => import('../pages/admin/BotMissionControl'))
 const ChatWarRoom = lazy(() => import('../pages/admin/ChatWarRoom'))
 const AdminInbox = lazy(() => import('../pages/AdminInbox'))
+const AutomationsFlow = lazy(() => import('../pages/admin/AutomationsFlow'))
 
 export default function AdminLayout() {
   useEffect(() => {
@@ -29,6 +30,7 @@ export default function AdminLayout() {
             <Route path="/bot" element={<BotMissionControl />} />
             <Route path="/bot/warroom" element={<ChatWarRoom />} />
             <Route path="/bot/inbox" element={<AdminInbox />} />
+            <Route path="/bot/automations" element={<AutomationsFlow />} />
             <Route path="/:deptId/*" element={<DepartmentLayout />} />
             <Route path="*" element={<Navigate to="/admin" replace />} />
           </Routes>
