@@ -95,6 +95,80 @@ function buildTimeline(msgs: Message[], evts: ProspectEvent[]): TimelineItem[] {
   return items
 }
 
+/* ── Onboarding helpers ────────────────────────────────────────────── */
+function formatOnboardingStep(step: string): string {
+  const steps: Record<string, string> = {
+    'first_name': '1/7 Name',
+    'profession': '2/7 Trades',
+    'city_state': '3/7 State',
+    'city': '4/7 Cities',
+    'working_days': '5/7 Schedule',
+    'confirm': '6/7 Confirm',
+    'groups': '7/7 Groups',
+  }
+  return steps[step] || step
+}
+
+const ONBOARDING_STEPS = [
+  { key: 'first_name', label: 'Name' },
+  { key: 'profession', label: 'Trades' },
+  { key: 'city_state', label: 'State' },
+  { key: 'city', label: 'Cities' },
+  { key: 'working_days', label: 'Schedule' },
+  { key: 'confirm', label: 'Confirm' },
+  { key: 'groups', label: 'Groups' },
+]
+
+function OnboardingProgress({ step, startedAt, lastActivity }: { step?: string; startedAt?: string; lastActivity?: string }) {
+  const currentIdx = ONBOARDING_STEPS.findIndex(s => s.key === step)
+  const stuckMinutes = lastActivity ? Math.floor((Date.now() - new Date(lastActivity).getTime()) / 60000) : 0
+  const isStuck = stuckMinutes > 30
+
+  return (
+    <div className="space-y-2">
+      {/* Step indicators */}
+      <div className="flex items-center gap-1">
+        {ONBOARDING_STEPS.map((s, i) => {
+          const isDone = i < currentIdx
+          const isCurrent = i === currentIdx
+          return (
+            <div key={s.key} className="flex-1 flex flex-col items-center gap-0.5">
+              <div className={`w-full h-1.5 rounded-full ${
+                isDone ? 'bg-[#34C759]' :
+                isCurrent ? (isStuck ? 'bg-[#FF9500] animate-pulse' : 'bg-[#007AFF]') :
+                'bg-[#E5E5EA]'
+              }`} />
+              <span className={`text-[8px] ${isCurrent ? 'font-bold text-[#1C1C1E]' : 'text-[#8E8E93]'}`}>
+                {s.label}
+              </span>
+            </div>
+          )
+        })}
+      </div>
+
+      {/* Current step label */}
+      {step && (
+        <div className="flex items-center justify-between">
+          <span className="text-[11px] font-semibold text-[#1C1C1E]">
+            {ONBOARDING_STEPS[currentIdx]?.label || step}
+          </span>
+          {isStuck && (
+            <span className="text-[9px] font-bold text-[#FF3B30] bg-[#FF3B30]/10 px-1.5 py-0.5 rounded-md">
+              Stuck {stuckMinutes}m
+            </span>
+          )}
+        </div>
+      )}
+
+      {/* Timeline */}
+      <div className="flex items-center gap-3 text-[10px] text-[#8E8E93]">
+        {startedAt && <span>Started {new Date(startedAt).toLocaleDateString()}</span>}
+        {lastActivity && <span>Last activity {new Date(lastActivity).toLocaleTimeString()}</span>}
+      </div>
+    </div>
+  )
+}
+
 /* ══════════════════════════════════════════════════════════════════════ */
 export default function AdminInbox() {
   const { locale } = useI18n()
@@ -508,6 +582,11 @@ export default function AdminInbox() {
                         <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: s.color }} />
                         <span className="text-[11px] font-bold uppercase tracking-tight text-[#8E8E93]">{he ? s.he : s.label}</span>
                       </div>
+                      {p.stage === 'onboarding' && p.onboarding_step && (
+                        <span className="text-[9px] text-amber-600 font-medium bg-amber-50 px-1.5 py-0.5 rounded-md">
+                          {formatOnboardingStep(p.onboarding_step)}
+                        </span>
+                      )}
 
                       {p.group_names && p.group_names.length > 0 && (
                         <div className="flex items-center gap-1 min-w-0 bg-[#fe5b25]/[0.05] px-2 py-0.5 rounded-lg" title={p.group_names.join(', ')}>
@@ -1016,6 +1095,16 @@ export default function AdminInbox() {
                         </div>
                       ))}
                     </div>
+                  </div>
+                )}
+
+                {/* Onboarding Progress */}
+                {prospect?.stage === 'onboarding' && (
+                  <div className="mb-4">
+                    <div className="text-[10px] font-semibold uppercase tracking-wider text-[#8E8E93] mb-2">
+                      {he ? 'התקדמות הרשמה' : 'Onboarding Progress'}
+                    </div>
+                    <OnboardingProgress step={prospect.onboarding_step} startedAt={prospect.onboarding_started_at} lastActivity={prospect.onboarding_last_activity_at} />
                   </div>
                 )}
 
