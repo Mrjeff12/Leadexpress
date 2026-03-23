@@ -233,9 +233,43 @@ Deno.serve(async (req: Request) => {
     }
 
     const from = params['From'] ?? '';
-    const body = params['Body'] ?? '';
+    let body = params['Body'] ?? '';
     const messageSid = params['MessageSid'] ?? '';
     const buttonPayload = params['ButtonPayload'] ?? '';
+    const mediaUrl = params['MediaUrl0'] ?? '';
+    const mediaType = params['MediaContentType0'] ?? '';
+
+    // ── Voice message transcription ──
+    if (mediaUrl && mediaType.startsWith('audio/') && !body) {
+      try {
+        console.log(`[webhook] Audio message detected: ${mediaType}, transcribing...`);
+        const audioRes = await fetch(mediaUrl, {
+          headers: { 'Authorization': 'Basic ' + btoa(`${TWILIO_SID}:${TWILIO_TOKEN}`) },
+        });
+        if (audioRes.ok) {
+          const audioBlob = await audioRes.blob();
+          const formDataWhisper = new FormData();
+          formDataWhisper.append('file', audioBlob, 'voice.ogg');
+          formDataWhisper.append('model', 'whisper-1');
+          formDataWhisper.append('language', 'en');
+
+          const whisperRes = await fetch('https://api.openai.com/v1/audio/transcriptions', {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${OPENAI_KEY_OVERRIDE || Deno.env.get('OPENAI_API_KEY') || ''}` },
+            body: formDataWhisper,
+          });
+          if (whisperRes.ok) {
+            const whisperData = await whisperRes.json();
+            body = whisperData.text || '';
+            console.log(`[webhook] Transcribed: "${body.substring(0, 80)}"`);
+          } else {
+            console.error(`[webhook] Whisper failed: ${whisperRes.status}`);
+          }
+        }
+      } catch (err) {
+        console.error('[webhook] Transcription error:', err);
+      }
+    }
 
     const phone = normalizePhone(from);
     const text = body.trim();
