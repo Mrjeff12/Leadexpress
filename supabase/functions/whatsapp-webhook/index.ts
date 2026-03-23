@@ -858,7 +858,7 @@ async function startOnboarding(phone: string, profile: { id: string; full_name: 
   if (hasRealName) {
     const firstName = profile.full_name.split(' ')[0];
     await sendText(phone,
-      `Welcome to MasterLeadFlow, ${firstName}! 🔧\n\nLet's set up your profile.\n\n*Step 1:* What type of work do you do?\nReply with numbers:\n\n1️⃣ ❄️ HVAC / AC\n2️⃣ 🔨 Renovation\n3️⃣ 🧱 Fencing & Railing\n4️⃣ ✨ Cleaning\n5️⃣ 🔑 Locksmith\n6️⃣ 🚰 Plumbing\n7️⃣ ⚡ Electrical\n8️⃣ 📋 Other\n\nExample: *1, 6*`,
+      `Welcome to MasterLeadFlow, ${firstName}! 🔧\n\nLet's set up your profile.\n\n*Step 1:* What type of work do you do?\nReply with numbers:\n\n1️⃣ ❄️ HVAC / AC\n2️⃣ 🔨 Renovation\n3️⃣ 🧱 Fencing & Railing\n4️⃣ ✨ Cleaning\n5️⃣ 🔑 Locksmith\n6️⃣ 🚰 Plumbing\n7️⃣ ⚡ Electrical\n8️⃣ 📋 Other\n\nExample: *1, 6*\n🎙️ You can also type or record a voice message.`,
     );
   } else {
     await sendText(phone,
@@ -957,6 +957,12 @@ async function handleOnboardingStep(
 const PROFESSIONS = ['hvac','renovation','fencing','cleaning','locksmith','plumbing','electrical','other'];
 const PROF_LABELS: Record<string, string> = { hvac:'❄️ HVAC', renovation:'🔨 Renovation', fencing:'🧱 Fencing', cleaning:'✨ Cleaning', locksmith:'🔑 Locksmith', plumbing:'🚰 Plumbing', electrical:'⚡ Electrical', other:'📋 Other' };
 
+// Convert number to emoji keycaps (works for 1-99)
+const DIGIT_EMOJI = ['0️⃣','1️⃣','2️⃣','3️⃣','4️⃣','5️⃣','6️⃣','7️⃣','8️⃣','9️⃣'];
+function numEmoji(n: number): string {
+  return String(n).split('').map(d => DIGIT_EMOJI[parseInt(d)]).join('');
+}
+
 async function onboardFirstName(phone: string, text: string, data: Record<string, unknown>): Promise<void> {
   const name = text.trim();
   if (!name || name.length < 2 || name.length > 50) {
@@ -980,7 +986,7 @@ async function onboardFirstName(phone: string, text: string, data: Record<string
     `Hi ${name}! 👋\n\n*Step 1:* What type of work do you do?\n\n` +
     `1️⃣ ❄️ HVAC / AC\n2️⃣ 🔨 Renovation\n3️⃣ 🧱 Fencing & Railing\n4️⃣ ✨ Cleaning\n` +
     `5️⃣ 🔑 Locksmith\n6️⃣ 🚰 Plumbing\n7️⃣ ⚡ Electrical\n8️⃣ 📋 Other\n\n` +
-    `Example: *1, 6*`,
+    `Example: *1, 6*\n🎙️ You can also type or record a voice message.`,
   );
 }
 
@@ -1001,7 +1007,7 @@ async function onboardProfession(phone: string, text: string, data: Record<strin
   }).eq('phone', phone);
 
   const labels = selected.map(k => PROF_LABELS[k] ?? k).join(', ');
-  await sendText(phone, `Got it: ${labels}\n\n*Step 2:* Which state?\n\n1️⃣ 🌴 Florida\n2️⃣ 🗽 New York\n3️⃣ 🤠 Texas`);
+  await sendText(phone, `Got it: ${labels}\n\n*Step 2:* Which state?\n\n1️⃣ 🌴 Florida\n2️⃣ 🗽 New York\n3️⃣ 🤠 Texas\n\n🎙️ You can type or record a voice message.`);
 }
 
 // City-to-ZIP mapping (inline for Edge Function)
@@ -1053,7 +1059,7 @@ async function onboardCityState(phone: string, textLower: string, data: Record<s
 
   data.state = selectedState;
   const cities = STATE_CITIES[selectedState] ?? [];
-  const cityList = cities.map((c, i) => `${i + 1}️⃣ ${c.label}`).join('\n');
+  const cityList = cities.map((c, i) => `${numEmoji(i + 1)} ${c.label}`).join('\n');
 
   await supabase.from('wa_onboard_state').update({
     step: 'city',
@@ -1061,7 +1067,7 @@ async function onboardCityState(phone: string, textLower: string, data: Record<s
     updated_at: new Date().toISOString(),
   }).eq('phone', phone);
 
-  await sendText(phone, `*${selectedState}* — select cities:\n\n${cityList}\n\nReply with numbers: e.g. *1, 3, 5*`);
+  await sendText(phone, `*${selectedState}* — select cities:\n\n${cityList}\n\nReply with numbers: e.g. *1, 3, 5*\nOr type/🎙️ record your areas freely.`);
 }
 
 async function onboardCity(phone: string, textLower: string, data: Record<string, unknown>): Promise<void> {
@@ -1087,7 +1093,7 @@ async function onboardCity(phone: string, textLower: string, data: Record<string
   }).eq('phone', phone);
 
   const labels = selectedCities.map(c => c.label).join(', ');
-  await sendText(phone, `Selected: ${labels} (${allZips.length} ZIPs)\n\n*Step 3:* Working days?\n\n1️⃣ Mon-Fri\n2️⃣ Every day\n3️⃣ Custom`);
+  await sendText(phone, `Selected: ${labels} (${allZips.length} ZIPs)\n\n*Step 3:* Working days?\n\n1️⃣ Mon-Fri\n2️⃣ Every day\n3️⃣ Custom\n\n🎙️ You can type or record a voice message.`);
 }
 
 async function onboardWorkingDays(phone: string, textLower: string, data: Record<string, unknown>): Promise<void> {
