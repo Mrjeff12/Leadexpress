@@ -41,8 +41,9 @@ export default function AutoLogin() {
       }
 
       if (data.type === 'session' && data.access_token && data.refresh_token) {
-        // Write session directly to localStorage — bypasses setSession() which hangs
-        // in WhatsApp's embedded browser due to Navigator Locks API issues
+        // Write session to localStorage — bypasses setSession() which can hang
+        // in WhatsApp's embedded browser. MUST use window.location.replace()
+        // (not React Router navigate) so AuthProvider re-initializes from localStorage.
         const sessionData = {
           access_token: data.access_token,
           refresh_token: data.refresh_token,
@@ -56,9 +57,10 @@ export default function AutoLogin() {
         setDebug('Session saved! Redirecting...')
         setStatus('success')
 
-        // Hard navigate — forces full page reload with session in localStorage
+        // Hard navigate — full page reload so AuthProvider picks up the session
+        // Default to /complete-account for new onboarding users
         setTimeout(() => {
-          window.location.replace(data.redirect_path || '/')
+          window.location.replace(data.redirect_path || '/complete-account')
         }, 600)
         return
       }
