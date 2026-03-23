@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { supabase } from '../lib/supabase'
 import { Loader2, CheckCircle, XCircle } from 'lucide-react'
 
 const SUPA_URL = import.meta.env.VITE_SUPABASE_URL || 'https://zyytzwlvtuhgbjpalbgd.supabase.co'
+const STORAGE_KEY = 'sb-zyytzwlvtuhgbjpalbgd-auth-token'
 
 export default function AutoLogin() {
   const [params] = useSearchParams()
@@ -25,7 +25,6 @@ export default function AutoLogin() {
     try {
       setDebug('Exchanging token...')
 
-      // Direct fetch to Edge Function (bypassing supabase.functions.invoke)
       const res = await fetch(`${SUPA_URL}/functions/v1/magic-login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -33,7 +32,7 @@ export default function AutoLogin() {
       })
 
       const data = await res.json()
-      setDebug(`Response: type=${data.type}, hasToken=${!!data.access_token}, error=${data.error || 'none'}`)
+      setDebug(`type=${data.type}, hasToken=${!!data.access_token}`)
 
       if (data.error) {
         setStatus('error')
@@ -41,55 +40,36 @@ export default function AutoLogin() {
         return
       }
 
-      // Direct session — no redirects, no race conditions
       if (data.type === 'session' && data.access_token && data.refresh_token) {
-        setDebug('Setting session...')
-        try {
-          const { data: sessData, error: sessErr } = await supabase.auth.setSession({
-            access_token: data.access_token,
-            refresh_token: data.refresh_token,
-          })
-          if (sessErr) {
-            setDebug(`setSession error: ${sessErr.message} | code: ${sessErr.status}`)
-            setStatus('error')
-            setError(sessErr.message)
-            return
-          }
-          if (!sessData?.session) {
-            setDebug('setSession returned no session object')
-            setStatus('error')
-            setError('Session was not created')
-            return
-          }
-          setDebug(`Session OK! user=${sessData.session.user?.id?.slice(0,8)}`)
-          setStatus('success')
-          setTimeout(() => {
-            window.location.href = data.redirect_path || '/'
-          }, 800)
-        } catch (ex) {
-          setDebug(`setSession exception: ${String(ex)}`)
-          setStatus('error')
-          setError(String(ex))
+        // Write session directly to localStorage — bypasses setSession() which hangs
+        // in WhatsApp's embedded browser due to Navigator Locks API issues
+        const sessionData = {
+          access_token: data.access_token,
+          refresh_token: data.refresh_token,
+          token_type: 'bearer',
+          expires_in: 3600,
+          expires_at: Math.floor(Date.now() / 1000) + 3600,
+          user: parseJwt(data.access_token),
         }
-        return
-      }
 
-      // Fallback: redirect-based flow
-      if (data.verify_url) {
-        setDebug('Redirecting to Supabase auth...')
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(sessionData))
+        setDebug('Session saved! Redirecting...')
         setStatus('success')
-        window.location.href = data.verify_url
+
+        // Hard navigate — forces full page reload with session in localStorage
+        setTimeout(() => {
+          window.location.replace(data.redirect_path || '/')
+        }, 600)
         return
       }
 
       setStatus('error')
       setError('No session received')
-      setDebug('Full response: ' + JSON.stringify(data))
+      setDebug(JSON.stringify(data).slice(0, 200))
 
     } catch (err) {
       setStatus('error')
       setError(String(err))
-      setDebug('Exception: ' + String(err))
     }
   }
 
@@ -115,8 +95,8 @@ export default function AutoLogin() {
       {status === 'success' && (
         <div className="flex flex-col items-center gap-4">
           <CheckCircle className="w-12 h-12 text-green-500" />
-          <p className="text-white text-lg font-semibold">Welcome to MasterLeadFlow!</p>
-          <p className="text-slate-400 text-sm">Redirecting to your dashboard...</p>
+          <p className="text-white text-lg font-semibold">Welcome!</p>
+          <p className="text-slate-400 text-sm">Redirecting...</p>
         </div>
       )}
 
@@ -138,8 +118,27 @@ export default function AutoLogin() {
         </div>
       )}
 
-      {/* Debug info — remove after testing */}
       <p className="mt-8 text-xs text-slate-600 max-w-md text-center break-all">{debug}</p>
     </div>
   )
+}
+
+// Decode JWT payload to extract user info
+function parseJwt(token: string) {
+  try {
+    const base64Url = token.split('.')[1]
+    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/')
+    const payload = JSON.parse(atob(base64))
+    return {
+      id: payload.sub,
+      email: payload.email,
+      phone: payload.phone,
+      role: payload.role,
+      aud: payload.aud,
+      app_metadata: payload.app_metadata || {},
+      user_metadata: payload.user_metadata || {},
+    }
+  } catch {
+    return {}
+  }
 }
