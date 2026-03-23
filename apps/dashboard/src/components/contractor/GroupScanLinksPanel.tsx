@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useI18n } from '../../lib/i18n'
 import { useContractorGroupScanLinks, type GroupScanStatus } from '../../hooks/useContractorGroupScanLinks'
-import { Plus, Link as LinkIcon, CheckCircle2, XCircle, Clock, ShieldAlert, Users } from 'lucide-react'
+import { Plus, Link as LinkIcon, CheckCircle2, XCircle, Clock, ShieldAlert, Users, UserPlus, Copy, Check } from 'lucide-react'
 
 const StatusBadge = ({ status, locale }: { status: GroupScanStatus; locale: string }) => {
   switch (status) {
@@ -40,6 +40,94 @@ const StatusBadge = ({ status, locale }: { status: GroupScanStatus; locale: stri
         </span>
       )
   }
+}
+
+const SCANNER_PHONE = '+1 (754) 276-3406'
+const SCANNER_PHONE_RAW = '17542763406'
+
+function InviteToGroupCard({ locale }: { locale: string }) {
+  const [copied, setCopied] = useState(false)
+  const [copiedMsg, setCopiedMsg] = useState(false)
+  const [expanded, setExpanded] = useState(false)
+  const he = locale === 'he'
+
+  const adminMessage = he
+    ? `היי! אני משתמש ב-Lead Express — AI שמוצא לידים בקבוצות WhatsApp. אפשר להוסיף את המספר ${SCANNER_PHONE} לקבוצה? הבוט שקט לגמרי, רק קורא הודעות ומחבר קבלנים ללידים 🤝`
+    : `Hey! I use Lead Express — an AI that finds leads in WhatsApp groups. Can you add ${SCANNER_PHONE} to the group? The bot is completely silent, it just reads messages and matches contractors with leads 🤝`
+
+  return (
+    <div className="rounded-xl border border-dashed border-stone-200 bg-stone-50/50 overflow-hidden mb-4">
+      <button
+        type="button"
+        onClick={() => setExpanded(!expanded)}
+        className="w-full flex items-center gap-3 px-3 py-2.5 text-left hover:bg-stone-100/50 transition-colors"
+      >
+        <div className="w-7 h-7 rounded-full bg-emerald-100 flex items-center justify-center flex-shrink-0">
+          <UserPlus className="w-3.5 h-3.5 text-emerald-600" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-[11px] font-bold text-stone-700">
+            {he ? 'אין לי לינק? הזמן אותנו לקבוצה' : "No invite link? Add us to the group"}
+          </p>
+          <p className="text-[9px] text-stone-400">
+            {he ? 'בקש מהמנהל להוסיף את המספר שלנו' : 'Ask the admin to add our number'}
+          </p>
+        </div>
+        <span className="text-stone-300 text-sm">{expanded ? '▴' : '▾'}</span>
+      </button>
+
+      {expanded && (
+        <div className="px-3 pb-3 space-y-2.5 border-t border-stone-100">
+          {/* Number */}
+          <div className="mt-2.5 flex items-center gap-2 p-2.5 rounded-xl bg-white border border-stone-200">
+            <div className="flex-1">
+              <p className="text-[9px] uppercase font-bold text-stone-400 tracking-wider">
+                {he ? 'המספר שלנו' : 'Our WhatsApp number'}
+              </p>
+              <p className="text-base font-bold text-stone-900 tracking-wide" dir="ltr">{SCANNER_PHONE}</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => { navigator.clipboard.writeText(SCANNER_PHONE_RAW); setCopied(true); setTimeout(() => setCopied(false), 2000) }}
+              className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[10px] font-bold transition-all text-white"
+              style={{ background: copied ? '#22c55e' : '#fe5b25' }}
+            >
+              {copied ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+              {copied ? (he ? 'הועתק!' : 'Copied!') : (he ? 'העתק' : 'Copy')}
+            </button>
+          </div>
+
+          {/* Steps */}
+          <div className="space-y-1">
+            <p className="text-[10px] font-bold text-stone-600">{he ? 'איך להוסיף:' : 'How to add us:'}</p>
+            {(he ? [
+              '1️⃣ העתק את המספר',
+              '2️⃣ פתח קבוצה → הגדרות → הוסף משתתפים',
+              '3️⃣ הדבק את המספר והוסף',
+              '💡 רק אדמין יכול? שלח לו את ההודעה:',
+            ] : [
+              '1️⃣ Copy the number above',
+              '2️⃣ Open group → Settings → Add participants',
+              '3️⃣ Paste number and add',
+              '💡 Only admin can add? Send them this:',
+            ]).map((s, i) => <p key={i} className="text-[10px] text-stone-500">{s}</p>)}
+          </div>
+
+          {/* Admin message */}
+          <div className="p-2.5 rounded-lg bg-emerald-50 border border-emerald-100">
+            <p className="text-[10px] text-emerald-800 leading-relaxed">{`"${adminMessage}"`}</p>
+            <button
+              type="button"
+              onClick={() => { navigator.clipboard.writeText(adminMessage); setCopiedMsg(true); setTimeout(() => setCopiedMsg(false), 2000) }}
+              className="mt-1.5 text-[9px] font-bold text-emerald-600 hover:text-emerald-700 transition-colors"
+            >
+              {copiedMsg ? '✅ הועתק!' : '📋 ' + (he ? 'העתק הודעה' : 'Copy message')}
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  )
 }
 
 export default function GroupScanLinksPanel() {
@@ -108,6 +196,9 @@ export default function GroupScanLinksPanel() {
           <p className="text-[10px] text-red-500 mt-1.5 font-medium">{errorMsg}</p>
         )}
       </form>
+
+      {/* Option B: No link — invite scanner */}
+      <InviteToGroupCard locale={locale} />
 
       <div className="space-y-4 max-h-[200px] overflow-y-auto pr-1 custom-scrollbar">
         {loading && data.own.length === 0 && data.admin.length === 0 ? (

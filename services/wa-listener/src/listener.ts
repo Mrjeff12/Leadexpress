@@ -116,10 +116,43 @@ interface GreenQRResponse {
   message: string;
 }
 
+// ── Internal phones (scanners, admin) — skip prospect routing ────────────
+let internalPhones: Set<string> = new Set();
+let internalPhonesCacheExpiry = 0;
+
+async function isInternalPhone(waId: string): Promise<boolean> {
+  const now = Date.now();
+  if (now < internalPhonesCacheExpiry && internalPhones.size > 0) {
+    return internalPhones.has(waId);
+  }
+  try {
+    const { data } = await supabase
+      .from('wa_accounts')
+      .select('internal_phones, phone_number')
+      .eq('is_active', true);
+    const phones = new Set<string>();
+    for (const acc of data ?? []) {
+      if (acc.phone_number) phones.add(acc.phone_number.replace(/\D/g, '') + '@c.us');
+      for (const p of acc.internal_phones ?? []) {
+        phones.add(p.replace(/\D/g, '') + '@c.us');
+      }
+    }
+    internalPhones = phones;
+    internalPhonesCacheExpiry = now + 5 * 60 * 1000; // 5 min cache
+  } catch { /* keep old cache */ }
+  return internalPhones.has(waId);
+}
+
 // ── Route personal messages to prospect CRM ─────────────────────────────
 async function routeToProspectChat(body: GreenNotification['body']): Promise<void> {
   const senderId = body.senderData?.sender ?? body.senderData?.chatId ?? '';
   if (!senderId) return;
+
+  // Skip internal phones (scanners, admin)
+  if (await isInternalPhone(senderId)) {
+    logger.debug({ senderId }, 'Internal phone — skipping prospect routing');
+    return;
+  }
 
   // Check if this sender is a known prospect
   const { data: prospect } = await supabase
