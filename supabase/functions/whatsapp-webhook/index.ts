@@ -317,10 +317,11 @@ async function routeMessage(phone: string, text: string, textLower: string, butt
       // Start onboarding — store prospectId (not userId) in wa_onboard_state
       await supabase.from('wa_onboard_state').upsert({
         phone,
-        step: 'profession',
+        step: 'first_name',
         data: {
           prospectId: _currentProspectId,
           userId: null,
+          firstName: '',
           professions: [], cities: [], zipCodes: [], state: '', workingDays: [1,2,3,4,5],
         },
         updated_at: new Date().toISOString(),
@@ -328,10 +329,7 @@ async function routeMessage(phone: string, text: string, textLower: string, butt
 
       await sendText(phone,
         `Welcome to MasterLeadFlow! 🔧\n\nLet's set up your profile so we can send you matching job leads.\n\n` +
-        `*Step 1:* What type of work do you do?\n\n` +
-        `1️⃣ ❄️ HVAC / AC\n2️⃣ 🔨 Renovation\n3️⃣ 🧱 Fencing & Railing\n4️⃣ ✨ Cleaning\n` +
-        `5️⃣ 🔑 Locksmith\n6️⃣ 🚰 Plumbing\n7️⃣ ⚡ Electrical\n8️⃣ 📋 Other\n\n` +
-        `Example: *1, 6*`,
+        `*What's your first name?*`,
       );
       return;
     }
@@ -846,18 +844,27 @@ async function handlePass(phone: string, leadId: string, userId: string): Promis
 // ── Onboarding ──────────────────────────────────────────────────────────────
 
 async function startOnboarding(phone: string, profile: { id: string; full_name: string }): Promise<void> {
+  // If user already has a real name (not phone number), skip name step
+  const hasRealName = profile.full_name && !profile.full_name.startsWith('+');
+  const firstStep = hasRealName ? 'profession' : 'first_name';
+
   await supabase.from('wa_onboard_state').upsert({
     phone,
-    step: 'profession',
-    data: { userId: profile.id, professions: [], cities: [], zipCodes: [], state: '', workingDays: [1,2,3,4,5] },
+    step: firstStep,
+    data: { userId: profile.id, firstName: hasRealName ? profile.full_name.split(' ')[0] : '', professions: [], cities: [], zipCodes: [], state: '', workingDays: [1,2,3,4,5] },
     updated_at: new Date().toISOString(),
   });
 
-  const firstName = profile.full_name.split(' ')[0];
-  await sendText(
-    phone,
-    `Welcome to MasterLeadFlow, ${firstName}! 🔧\n\nLet's set up your profile.\n\n*Step 1:* What type of work do you do?\nReply with numbers:\n\n1️⃣ ❄️ HVAC / AC\n2️⃣ 🔨 Renovation\n3️⃣ 🧱 Fencing & Railing\n4️⃣ ✨ Cleaning\n5️⃣ 🔑 Locksmith\n6️⃣ 🚰 Plumbing\n7️⃣ ⚡ Electrical\n8️⃣ 📋 Other\n\nExample: *1, 6*`,
-  );
+  if (hasRealName) {
+    const firstName = profile.full_name.split(' ')[0];
+    await sendText(phone,
+      `Welcome to MasterLeadFlow, ${firstName}! 🔧\n\nLet's set up your profile.\n\n*Step 1:* What type of work do you do?\nReply with numbers:\n\n1️⃣ ❄️ HVAC / AC\n2️⃣ 🔨 Renovation\n3️⃣ 🧱 Fencing & Railing\n4️⃣ ✨ Cleaning\n5️⃣ 🔑 Locksmith\n6️⃣ 🚰 Plumbing\n7️⃣ ⚡ Electrical\n8️⃣ 📋 Other\n\nExample: *1, 6*`,
+    );
+  } else {
+    await sendText(phone,
+      `Welcome to MasterLeadFlow! 🔧\n\nLet's set up your profile so we can send you matching job leads.\n\n*What's your first name?*`,
+    );
+  }
 }
 
 async function startOnboardingStep(phone: string, userId: string, step: string): Promise<void> {
@@ -907,6 +914,10 @@ async function handleOnboardingStep(
       }
       break;
 
+    case 'first_name':
+      await onboardFirstName(phone, text, data);
+      break;
+
     case 'profession':
       await onboardProfession(phone, text, data);
       break;
@@ -945,6 +956,33 @@ async function handleOnboardingStep(
 
 const PROFESSIONS = ['hvac','renovation','fencing','cleaning','locksmith','plumbing','electrical','other'];
 const PROF_LABELS: Record<string, string> = { hvac:'❄️ HVAC', renovation:'🔨 Renovation', fencing:'🧱 Fencing', cleaning:'✨ Cleaning', locksmith:'🔑 Locksmith', plumbing:'🚰 Plumbing', electrical:'⚡ Electrical', other:'📋 Other' };
+
+async function onboardFirstName(phone: string, text: string, data: Record<string, unknown>): Promise<void> {
+  const name = text.trim();
+  if (!name || name.length < 2 || name.length > 50) {
+    await sendText(phone, `Please enter your first name (2-50 characters).`);
+    return;
+  }
+
+  // Save name and move to profession
+  await supabase.from('wa_onboard_state').update({
+    step: 'profession',
+    data: { ...data, firstName: name },
+    updated_at: new Date().toISOString(),
+  }).eq('phone', phone);
+
+  // Update prospect display_name if we have a prospect
+  if (data.prospectId) {
+    await supabase.from('prospects').update({ display_name: name }).eq('id', data.prospectId);
+  }
+
+  await sendText(phone,
+    `Hi ${name}! 👋\n\n*Step 1:* What type of work do you do?\n\n` +
+    `1️⃣ ❄️ HVAC / AC\n2️⃣ 🔨 Renovation\n3️⃣ 🧱 Fencing & Railing\n4️⃣ ✨ Cleaning\n` +
+    `5️⃣ 🔑 Locksmith\n6️⃣ 🚰 Plumbing\n7️⃣ ⚡ Electrical\n8️⃣ 📋 Other\n\n` +
+    `Example: *1, 6*`,
+  );
+}
 
 async function onboardProfession(phone: string, text: string, data: Record<string, unknown>): Promise<void> {
   const nums = text.match(/\d+/g)?.map(Number).filter(n => n >= 1 && n <= 8) ?? [];
@@ -1148,7 +1186,7 @@ async function onboardConfirm(phone: string, textLower: string, data: Record<str
       const { data: authUser, error: authError } = await supabase.auth.admin.createUser({
         phone: phoneForAuth,
         phone_confirm: true,
-        user_metadata: { full_name: phone, source: 'whatsapp_onboarding' },
+        user_metadata: { full_name: (data.firstName as string) || phone, source: 'whatsapp_onboarding' },
       });
 
       if (authError || !authUser?.user) {
@@ -1164,10 +1202,11 @@ async function onboardConfirm(phone: string, textLower: string, data: Record<str
         const newUserId = authUser.user.id;
         console.log(`[onboard] Auth user created: ${newUserId}`);
 
-        // 2. Profile created by trigger (handle_new_user), update with phone
+        // 2. Profile created by trigger (handle_new_user), update with phone + name
         await supabase.from('profiles').update({
           whatsapp_phone: phone,
           phone: phoneForAuth,
+          full_name: (data.firstName as string) || phone,
         }).eq('id', newUserId);
 
         // 3. Create contractor record

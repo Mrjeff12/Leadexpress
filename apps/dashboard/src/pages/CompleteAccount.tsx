@@ -26,6 +26,7 @@ export default function CompleteAccount() {
     zip_codes: string[]
     working_days: number[]
   } | null>(null)
+  const [counties, setCounties] = useState<string[]>([])
   const [sub, setSub] = useState<{ status: string; plan_name: string; current_period_end?: string } | null>(null)
 
   useEffect(() => {
@@ -34,11 +35,13 @@ export default function CompleteAccount() {
   }, [profile?.id])
 
   async function loadData() {
-    const [contRes, subRes] = await Promise.all([
+    const [contRes, subRes, profileRes] = await Promise.all([
       supabase.from('contractors').select('professions, zip_codes, working_days').eq('user_id', profile!.id).maybeSingle(),
       supabase.from('subscriptions').select('status, current_period_end, plans!inner(name)').eq('user_id', profile!.id).in('status', ['active', 'trialing']).maybeSingle(),
+      supabase.from('profiles').select('counties').eq('id', profile!.id).maybeSingle(),
     ])
     if (contRes.data) setContractor(contRes.data)
+    if (profileRes.data?.counties) setCounties(profileRes.data.counties)
     if (subRes.data) {
       const planData = subRes.data.plans as unknown
       const planName = planData ? (Array.isArray(planData) ? (planData[0] as { name: string })?.name : (planData as { name: string })?.name) : 'Free Trial'
@@ -103,10 +106,10 @@ export default function CompleteAccount() {
 
         {/* Header */}
         <div className="text-center mb-6">
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-green-50 border border-green-200 mb-4">
-            <CheckCircle className="w-4 h-4 text-green-600" />
-            <span className="text-green-700 text-sm font-medium">
-              {sub?.status === 'trialing' ? `Free Trial — ${trialDaysLeft} days left` : 'Account Active'}
+          <div className="inline-flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 mb-4 shadow-sm">
+            <span className="text-2xl">🎁</span>
+            <span className="text-green-700 text-base font-bold">
+              {sub?.status === 'trialing' ? `Free Trial — ${trialDaysLeft} days left!` : 'Account Active'}
             </span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight mb-2">
@@ -150,17 +153,21 @@ export default function CompleteAccount() {
               </div>
             )}
 
-            {/* Areas */}
-            {contractor?.zip_codes && contractor.zip_codes.length > 0 && (
+            {/* Areas — show counties if available, otherwise ZIP count */}
+            {(counties.length > 0 || (contractor?.zip_codes && contractor.zip_codes.length > 0)) && (
               <div className="flex items-center gap-3">
                 <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center">
                   <MapPin className="w-4 h-4 text-blue-500" />
                 </div>
-                <div>
+                <div className="flex-1 min-w-0">
                   <p className="text-gray-400 text-xs">Service Areas</p>
-                  <p className="text-gray-900 text-sm font-medium">{contractor.zip_codes.length} ZIP codes</p>
+                  <p className="text-gray-900 text-sm font-medium truncate">
+                    {counties.length > 0
+                      ? counties.join(', ')
+                      : `${contractor!.zip_codes.length} ZIP codes`}
+                  </p>
                 </div>
-                <CheckCircle className="w-4 h-4 text-green-500 ml-auto" />
+                <CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0" />
               </div>
             )}
 
