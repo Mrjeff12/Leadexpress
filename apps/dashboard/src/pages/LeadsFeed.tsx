@@ -332,17 +332,12 @@ export default function LeadsFeed() {
   }, [baseFilteredLeads])
 
   return (
-    <div className="animate-fade-in space-y-10 pb-20 pt-4" style={{ fontFamily: 'Outfit, sans-serif' }}>
+    <div className="animate-fade-in space-y-4 md:space-y-10 pb-20 pt-0 md:pt-4" style={{ fontFamily: 'Outfit, sans-serif' }}>
       {/* ── Header ── */}
-      <header className="flex items-center justify-between px-1">
-        <div>
-          <h1 className="text-lg md:text-4xl font-semibold md:font-light tracking-tight text-black">
-            {he ? 'כל הלידים' : 'My Leads'}
-          </h1>
-          <p className="text-[10px] md:text-sm font-medium text-stone-400 tracking-wide uppercase">
-            {he ? 'לידים שחולצו מקבוצות WhatsApp ע"י AI' : 'AI-extracted from WhatsApp'}
-          </p>
-        </div>
+      <header className="flex items-center justify-between px-1 mb-0 md:mb-0">
+        <h1 className="text-lg md:text-4xl font-semibold md:font-light tracking-tight text-black">
+          {he ? 'כל הלידים' : 'My Leads'}
+        </h1>
         <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/50 backdrop-blur-md border border-black/5 shadow-sm">
           <div className="relative flex h-1.5 w-1.5">
             <div className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#fe5b25] opacity-75"></div>
@@ -352,8 +347,14 @@ export default function LeadsFeed() {
         </div>
       </header>
 
-      {/* ── KPI Strip ── */}
-      <section className="stagger-kpi grid grid-cols-4 gap-2 lg:grid-cols-4 md:gap-6">
+      {/* ── KPI Strip — horizontal compact on mobile ── */}
+      <section className="md:hidden flex gap-1.5 overflow-x-auto no-scrollbar -mx-1 px-1">
+        <KpiCard icon={Zap} label="Total" value={baseFilteredLeads.length} sub="" color="#fe5b25" chartData={[]} />
+        <KpiCard icon={Flame} label="Hot" value={hot} sub="" color="#FF3B30" chartData={[]} active={filterUrg === 'hot'} onClick={() => setFilterUrg(filterUrg === 'hot' ? 'all' : 'hot')} />
+        <KpiCard icon={Zap} label="Warm" value={warm} sub="" color="#FF9500" chartData={[]} active={filterUrg === 'warm'} onClick={() => setFilterUrg(filterUrg === 'warm' ? 'all' : 'warm')} />
+        <KpiCard icon={Snowflake} label="Cold" value={cold} sub="" color="#5AC8FA" chartData={[]} active={filterUrg === 'cold'} onClick={() => setFilterUrg(filterUrg === 'cold' ? 'all' : 'cold')} />
+      </section>
+      <section className="hidden md:grid stagger-kpi grid-cols-4 gap-6">
         <KpiCard
           icon={Zap}
           label={he ? 'סה"כ לידים' : 'Total Leads'}
@@ -803,19 +804,19 @@ function KpiCard({
   return (
     <div
       onClick={onClick}
-      className={`glass-panel group flex flex-col justify-between p-2.5 md:p-6 min-h-0 md:min-h-[180px] overflow-hidden transition-all duration-500 ${
+      className={`glass-panel group flex flex-col justify-between p-2 md:p-6 min-h-0 md:min-h-[180px] min-w-[72px] md:min-w-0 overflow-hidden transition-all duration-500 ${
         onClick ? 'cursor-pointer hover:scale-[1.02]' : ''
       } ${active ? 'ring-2 ring-black/5 bg-white/90' : ''}`}
     >
       <div className="flex items-start justify-between relative z-10">
         <div
-          className="w-6 h-6 md:w-10 md:h-10 rounded-lg md:rounded-[14px] flex items-center justify-center transition-all duration-500 shadow-sm"
+          className="w-5 h-5 md:w-10 md:h-10 rounded-md md:rounded-[14px] flex items-center justify-center transition-all duration-500 shadow-sm"
           style={{
             background: active ? '#000' : `${color}10`,
             color: active ? '#fff' : color,
           }}
         >
-          <Icon className="h-3 w-3 md:h-5 md:w-5" strokeWidth={1.5} />
+          <Icon className="h-2.5 w-2.5 md:h-5 md:w-5" strokeWidth={1.5} />
         </div>
         {trend && (
           <span
@@ -831,12 +832,12 @@ function KpiCard({
         )}
       </div>
       
-      <div className="mt-1 md:mt-4 relative z-10">
-        <div className="text-[8px] md:text-[9px] font-bold uppercase tracking-[0.15em] text-stone-400 mb-0 md:mb-1">
-          {label}
-        </div>
-        <div className="text-lg md:text-3xl font-semibold md:font-light tracking-tighter text-black">
+      <div className="mt-0.5 md:mt-4 relative z-10">
+        <div className="text-[20px] md:text-3xl font-bold md:font-light tracking-tighter text-black leading-none">
           {value}
+        </div>
+        <div className="text-[7px] md:text-[9px] font-bold uppercase tracking-[0.1em] text-stone-400 mt-0.5">
+          {label}
         </div>
         <div className="hidden md:block mt-1 text-[11px] font-medium text-stone-400">
           {sub}
