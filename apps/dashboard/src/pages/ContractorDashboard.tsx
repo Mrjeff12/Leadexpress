@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { useAuth } from '../lib/auth'
 import { useI18n } from '../lib/i18n'
 import { supabase } from '../lib/supabase'
@@ -153,6 +153,7 @@ export default function ContractorDashboard() {
   const [telegramConnected, setTelegramConnected] = useState(true)
   const [forwardLead, setForwardLead] = useState<Lead | null>(null)
   const [showUpsell, setShowUpsell] = useState(false)
+  const [sheetExpanded, setSheetExpanded] = useState(false)
   const [upsellContext, setUpsellContext] = useState<'zones' | 'professions' | 'subs'>('subs')
   const [newZip, setNewZip] = useState('')
   const [showProfPicker, setShowProfPicker] = useState(false)
@@ -339,8 +340,8 @@ export default function ContractorDashboard() {
           }}
         />
       </div>
-      {/* Mobile map strip */}
-      <div className="md:hidden relative h-[180px] overflow-hidden rounded-2xl mx-3 mt-14">
+      {/* Mobile: full-screen map + bottom sheet */}
+      <div className="md:hidden fixed inset-0 z-0">
         <CoverageMap
           zipCodes={zipCodes}
           onAddZip={(zip) => {
@@ -369,18 +370,29 @@ export default function ContractorDashboard() {
         }}
       />
 
-      {/* ════════ MAIN PANEL (Profile + KPIs + Professions + Schedule) ════════ */}
+      {/* ════════ MAIN PANEL ════════ */}
+      {/* Mobile: bottom sheet | Desktop: floating panel */}
       <div
-        className="floating-panel floating-panel-mobile p-4 md:p-6 animate-fade-in no-scrollbar"
-        style={{ top: 24, left: 24, width: 340, maxHeight: 'calc(100vh - 80px)', overflowY: 'auto' }}
+        className="mobile-bottom-sheet md:floating-panel animate-fade-in no-scrollbar"
+        data-expanded={sheetExpanded}
+        style={{ top: sheetExpanded ? 0 : 'calc(100vh - 300px)' }}
       >
+        {/* Mobile drag handle */}
+        <button
+          onClick={() => setSheetExpanded(!sheetExpanded)}
+          className="md:hidden w-full flex flex-col items-center py-3 sticky top-0 bg-white z-10"
+        >
+          <div className="w-10 h-1 rounded-full bg-stone-300" />
+          <span className="text-[9px] text-stone-400 mt-1">{sheetExpanded ? 'Tap to close' : 'Tap to expand'}</span>
+        </button>
         {/* Greeting */}
-        <div className="mb-5">
-          <p className="text-[11px] font-semibold text-stone-400 uppercase tracking-[0.1em]">{greeting}</p>
-          <h1 className="text-2xl font-extrabold text-stone-900 tracking-tight leading-tight mt-1">
+        <div className="mb-4 md:mb-5">
+          <p className="text-[10px] md:text-[11px] font-semibold text-stone-400 uppercase tracking-[0.1em]">{greeting}</p>
+          <h1 className="text-xl md:text-2xl font-extrabold text-stone-900 tracking-tight leading-tight mt-0.5">
             {t('dash.welcome')}, {firstName}
           </h1>
-          <div className="flex items-center gap-2 mt-2">
+          {/* Plan badge — hidden on mobile (shown in header instead) */}
+          <div className="hidden md:flex items-center gap-2 mt-2">
             <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-semibold bg-gradient-to-r from-[#fff4ef] to-[#fff4ef] text-[#c43d10] border border-[#fee8df]">
               <Sparkles className="w-3 h-3" />
               {planName}
@@ -393,21 +405,21 @@ export default function ContractorDashboard() {
         </div>
 
         {/* KPI Strip */}
-        <div className="grid grid-cols-4 gap-2 mb-5">
+        <div className="grid grid-cols-4 gap-1.5 md:gap-2 mb-4 md:mb-5">
           {[
             { value: leadsToday, label: locale === 'he' ? 'היום' : 'Today', icon: Zap, gradient: 'from-amber-400 to-orange-500' },
             { value: leadsWeek, label: locale === 'he' ? 'השבוע' : 'Week', icon: CalendarDays, gradient: 'from-blue-400 to-indigo-500' },
             { value: leadsTotal, label: locale === 'he' ? 'סה"כ' : 'Total', icon: Hash, gradient: 'from-violet-400 to-purple-500' },
             { value: contactedCount, label: locale === 'he' ? 'פניות שלי' : 'My Contacts', icon: Phone, gradient: 'from-[#fe5b25] to-[#e04d1c]' },
           ].map((kpi) => (
-            <div key={kpi.label} className="rounded-2xl bg-white/60 border border-white/80 p-3 text-center">
-              <div className={`w-7 h-7 rounded-xl bg-gradient-to-br ${kpi.gradient} flex items-center justify-center mx-auto mb-1.5`}>
-                <kpi.icon className="w-3.5 h-3.5 text-white" strokeWidth={2.5} />
+            <div key={kpi.label} className="rounded-xl md:rounded-2xl bg-white/60 border border-white/80 p-2 md:p-3 text-center">
+              <div className={`w-6 h-6 md:w-7 md:h-7 rounded-lg md:rounded-xl bg-gradient-to-br ${kpi.gradient} flex items-center justify-center mx-auto mb-1`}>
+                <kpi.icon className="w-3 h-3 md:w-3.5 md:h-3.5 text-white" strokeWidth={2.5} />
               </div>
-              <p className="text-xl font-extrabold text-stone-900 tracking-tight leading-none">
+              <p className="text-lg md:text-xl font-extrabold text-stone-900 tracking-tight leading-none">
                 <AnimatedNumber value={kpi.value} duration={600} />
               </p>
-              <p className="text-[10px] font-semibold text-stone-400 uppercase tracking-wide mt-0.5">{kpi.label}</p>
+              <p className="text-[9px] md:text-[10px] font-semibold text-stone-400 uppercase tracking-wide mt-0.5">{kpi.label}</p>
             </div>
           ))}
         </div>
@@ -684,9 +696,9 @@ export default function ContractorDashboard() {
         <div className="h-2" />
       </div>
 
-      {/* ════════ RECENT LEADS PANEL ════════ */}
+      {/* ════════ RECENT LEADS — inside bottom sheet on mobile, floating on desktop ════════ */}
       <div
-        className="floating-panel floating-panel-mobile p-4 md:p-5 animate-fade-in"
+        className="hidden md:block floating-panel p-5 animate-fade-in"
         style={{ bottom: 24, right: 24, width: 560, maxHeight: 340, animationDelay: '150ms' }}
       >
         <div className="flex items-center justify-between mb-3">
