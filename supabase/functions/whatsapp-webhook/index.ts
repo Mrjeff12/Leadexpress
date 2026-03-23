@@ -329,7 +329,7 @@ async function routeMessage(phone: string, text: string, textLower: string, butt
 
       await sendText(phone,
         `Welcome to MasterLeadFlow! 🔧\n\nLet's set up your profile so we can send you matching job leads.\n\n` +
-        `*What's your first name?*`,
+        `*What's your full name?*`,
       );
       return;
     }
@@ -862,7 +862,7 @@ async function startOnboarding(phone: string, profile: { id: string; full_name: 
     );
   } else {
     await sendText(phone,
-      `Welcome to MasterLeadFlow! 🔧\n\nLet's set up your profile so we can send you matching job leads.\n\n*What's your first name?*`,
+      `Welcome to MasterLeadFlow! 🔧\n\nLet's set up your profile so we can send you matching job leads.\n\n*What's your full name?*`,
     );
   }
 }
