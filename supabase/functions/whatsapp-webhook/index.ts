@@ -1314,10 +1314,21 @@ async function onboardWorkingDays(phone: string, textLower: string, data: Record
 
   const zipCount = ((data.zipCodes as string[]) ?? []).length;
 
+  // Derive counties for display
+  const CITY_COUNTY_DISPLAY: Record<string, string> = {
+    miami:'Miami-Dade', hialeah:'Miami-Dade', doral:'Miami-Dade', homestead:'Miami-Dade', miami_beach:'Miami-Dade', coral_gables:'Miami-Dade', aventura:'Miami-Dade',
+    fort_lauderdale:'Broward', hollywood:'Broward', pembroke_pines:'Broward', miramar:'Broward', plantation:'Broward', sunrise:'Broward', weston:'Broward', pompano:'Broward',
+    boca_raton:'Palm Beach', west_palm:'Palm Beach', delray:'Palm Beach',
+    manhattan:'New York', brooklyn:'Kings', queens:'Queens', bronx:'Bronx', staten_island:'Richmond', yonkers:'Westchester', long_island:'Nassau',
+    houston:'Harris', dallas:'Dallas', san_antonio:'Bexar', austin:'Travis',
+  };
+  const countyNames = [...new Set(cities.map(c => CITY_COUNTY_DISPLAY[c]).filter(Boolean))].join(', ');
+  const areaLine = countyNames ? `${countyNames} County` : `${stateLabel} — ${cityNames}`;
+
   await sendText(phone,
     `*Step 5/5* — Almost done! Here's your profile:\n\n` +
     `🔧 ${profs}\n` +
-    `📍 ${stateLabel} — ${cityNames}\n` +
+    `📍 ${areaLine}\n` +
     `📅 ${dayLabels}\n\n` +
     `✅ Reply *YES* to confirm\n` +
     `🔄 Reply *REDO* to start over`,

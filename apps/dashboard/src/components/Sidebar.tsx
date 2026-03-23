@@ -378,7 +378,8 @@ export default function Sidebar() {
       {/* Mobile close button */}
       <button
         onClick={() => setMobileOpen(false)}
-        className="md:hidden absolute top-4 right-4 w-8 h-8 rounded-lg bg-stone-100 flex items-center justify-center"
+        className="md:hidden absolute top-4 w-8 h-8 rounded-lg bg-stone-100 flex items-center justify-center"
+        style={isRtl ? { left: 16 } : { right: 16 }}
       >
         <XIcon className="w-4 h-4 text-stone-500" />
       </button>
