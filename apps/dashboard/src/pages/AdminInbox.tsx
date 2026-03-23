@@ -603,6 +603,37 @@ export default function AdminInbox() {
             </button>
           </div>
         </div>
+
+        {/* ── Sub-status row (expands below pipeline when a stage is active) ── */}
+        {filterStage !== 'all' && filterStage !== 'group_admin' && SUB_STATUSES[filterStage] && (
+          <div className="px-4 pb-2.5 pt-0 flex items-center justify-center gap-0.5 overflow-x-auto scrollbar-hide border-t border-black/[0.03]">
+            {SUB_STATUSES[filterStage]?.map((s, idx) => {
+              const count = subStatusCounts[s.key] || 0
+              const isActive = filterSubStatus === s.key
+              const hasCount = count > 0
+              return (
+                <div key={s.key} className="flex items-center">
+                  {idx > 0 && <div className="w-2 h-[1px] shrink-0" style={{ background: 'rgba(0,0,0,0.06)' }} />}
+                  <button
+                    onClick={() => setFilterSubStatus(filterSubStatus === s.key ? null : s.key)}
+                    className="flex items-center gap-1 px-2 py-1 rounded-lg transition-all whitespace-nowrap"
+                    style={{
+                      background: isActive ? s.color + '15' : 'transparent',
+                      boxShadow: isActive ? `0 2px 8px ${s.color}20` : 'none',
+                    }}
+                  >
+                    <span className="text-[11px] font-bold" style={{ color: isActive ? s.color : hasCount ? s.color : '#D1D1D6' }}>
+                      {count}
+                    </span>
+                    <span className={`text-[10px] ${isActive ? 'font-semibold text-[#1C1C1E]' : 'text-[#8E8E93]'}`}>
+                      {he ? s.he : s.label}
+                    </span>
+                  </button>
+                </div>
+              )
+            })}
+          </div>
+        )}
       </div>
 
       {/* ═══ MAIN GRID ═══ */}
@@ -778,37 +809,6 @@ export default function AdminInbox() {
           ) : (
             <div className="shrink-0 flex items-center px-6 h-[72px] rounded-t-3xl" style={{ background: 'rgba(255,255,255,0.9)', backdropFilter: 'blur(24px)', borderBottom: `1px solid ${C.glassBorder}` }}>
               <span className="text-[15px] font-bold text-[#8E8E93] uppercase tracking-widest">{he ? 'בחר לקוח מהרשימה' : 'Select a client'}</span>
-            </div>
-          )}
-
-          {/* ═══ SUB-STATUS PIPELINE (above chat when a stage is selected) ═══ */}
-          {filterStage !== 'all' && filterStage !== 'group_admin' && SUB_STATUSES[filterStage] && (
-            <div className="shrink-0 flex items-center gap-1.5 px-5 py-2 border-b border-black/[0.04] overflow-x-auto scrollbar-hide" style={{ background: 'linear-gradient(135deg, #FFF8F5, #FFFBF9)' }}>
-              {SUB_STATUSES[filterStage]?.map((s, idx) => {
-                const count = subStatusCounts[s.key] || 0
-                const isActive = filterSubStatus === s.key
-                const hasCount = count > 0
-                return (
-                  <div key={s.key} className="flex items-center">
-                    {idx > 0 && <div className="w-3 h-[1px] bg-black/[0.08] shrink-0" />}
-                    <button
-                      onClick={() => setFilterSubStatus(filterSubStatus === s.key ? null : s.key)}
-                      className="flex items-center gap-1 px-2 py-1 rounded-lg transition-all whitespace-nowrap"
-                      style={{
-                        background: isActive ? s.color + '18' : 'transparent',
-                        boxShadow: isActive ? `0 1px 4px ${s.color}25` : 'none',
-                      }}
-                    >
-                      <span className={`text-[12px] font-bold`} style={{ color: isActive ? s.color : hasCount ? s.color : '#C7C7CC' }}>
-                        {count}
-                      </span>
-                      <span className={`text-[10px] ${isActive ? 'text-[#1C1C1E] font-semibold' : 'text-[#8E8E93]'}`}>
-                        {he ? s.he : s.label}
-                      </span>
-                    </button>
-                  </div>
-                )
-              })}
             </div>
           )}
 
