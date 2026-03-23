@@ -106,7 +106,12 @@ Deno.serve(async (req: Request) => {
         await supabase.auth.admin.updateUserById(tokenRow.user_id, { email, email_confirm: true });
       }
 
-      // Generate session directly — no redirects, no race conditions
+      // Generate session directly using signInWithPassword-like approach
+      // We use admin API to create a session without any redirects
+      const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+      const anonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
+
+      // Use the admin API to generate a link, then verify it server-side in one go
       const { data: linkData, error: linkErr } = await supabase.auth.admin.generateLink({
         type: 'magiclink',
         email,
@@ -117,45 +122,33 @@ Deno.serve(async (req: Request) => {
         return json({ error: 'Could not generate session' }, 500);
       }
 
-      // Verify the token server-side to get actual session tokens
-      const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-      const verifyRes = await fetch(
-        `${supabaseUrl}/auth/v1/verify?token=${linkData.properties.hashed_token}&type=magiclink`,
-        {
-          method: 'GET',
-          headers: { 'apikey': Deno.env.get('SUPABASE_ANON_KEY')! },
-          redirect: 'manual', // Don't follow redirects — we want the redirect URL with tokens
-        }
-      );
+      // Verify the OTP server-side to get session tokens directly
+      const verifyRes = await fetch(`${supabaseUrl}/auth/v1/verify`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': anonKey,
+        },
+        body: JSON.stringify({
+          token_hash: linkData.properties.hashed_token,
+          type: 'magiclink',
+        }),
+      });
 
-      // Supabase returns a 303 redirect with tokens in the fragment
-      const location = verifyRes.headers.get('location');
-      if (location && location.includes('access_token=')) {
-        // Parse tokens from the redirect URL fragment
-        const fragment = location.split('#')[1] || '';
-        const params = new URLSearchParams(fragment);
-        const accessToken = params.get('access_token');
-        const refreshToken = params.get('refresh_token');
-
-        if (accessToken && refreshToken) {
+      if (verifyRes.ok) {
+        const session = await verifyRes.json();
+        if (session.access_token && session.refresh_token) {
           return json({
-            access_token: accessToken,
-            refresh_token: refreshToken,
+            access_token: session.access_token,
+            refresh_token: session.refresh_token,
             redirect_path: tokenRow.redirect_path || '/',
             type: 'session',
           });
         }
       }
 
-      // Fallback: return verify URL for redirect-based flow
-      const redirectTo = `${SITE_URL}${tokenRow.redirect_path || '/'}`;
-      const verifyUrl = `${supabaseUrl}/auth/v1/verify?token=${linkData.properties.hashed_token}&type=magiclink&redirect_to=${encodeURIComponent(redirectTo)}`;
-
-      return json({
-        redirect_path: tokenRow.redirect_path,
-        verify_url: verifyUrl,
-        type: 'redirect',
-      });
+      console.error('[magic-login] Verify failed:', verifyRes.status, await verifyRes.text());
+      return json({ error: 'Could not create session' }, 500);
     }
 
     return json({ error: 'Invalid action. Use "generate" or "exchange"' }, 400);
