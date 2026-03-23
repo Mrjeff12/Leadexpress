@@ -328,14 +328,12 @@ export default function ContractorDashboard() {
         <CoverageMap
           zipCodes={zipCodes}
           onAddZip={(zip) => {
-            if (planLimits.maxZipCodes > 0 && zipCodes.length >= planLimits.maxZipCodes) {
-              setUpsellContext('zones'); setShowUpsell(true); return
-            }
             addZipCode(zip); debouncedSave()
           }}
           onRemoveZip={(zip) => { removeZipCode(zip); debouncedSave() }}
           onBatchAddZips={(zips) => {
-            if (planLimits.maxZipCodes > 0 && zipCodes.length >= planLimits.maxZipCodes) {
+            // Enforce county limit — each batch = 1 county/city selection
+            if (planLimits.maxCounties > 0 && counties.length >= planLimits.maxCounties) {
               setUpsellContext('zones'); setShowUpsell(true); return
             }
             addZipCodes(zips); debouncedSave()
@@ -347,14 +345,11 @@ export default function ContractorDashboard() {
         <CoverageMap
           zipCodes={zipCodes}
           onAddZip={(zip) => {
-            if (planLimits.maxZipCodes > 0 && zipCodes.length >= planLimits.maxZipCodes) {
-              setUpsellContext('zones'); setShowUpsell(true); return
-            }
             addZipCode(zip); debouncedSave()
           }}
           onRemoveZip={(zip) => { removeZipCode(zip); debouncedSave() }}
           onBatchAddZips={(zips) => {
-            if (planLimits.maxZipCodes > 0 && zipCodes.length >= planLimits.maxZipCodes) {
+            if (planLimits.maxCounties > 0 && counties.length >= planLimits.maxCounties) {
               setUpsellContext('zones'); setShowUpsell(true); return
             }
             addZipCodes(zips); debouncedSave()

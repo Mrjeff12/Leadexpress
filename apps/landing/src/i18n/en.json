@@ -114,31 +114,32 @@
     "yearly": "Yearly",
     "plans": [
       {
-        "name": "Free",
-        "desc": "Start here. See what Lead Express can do.",
-        "price": "$0",
-        "period": "",
-        "cta": "Sign Up Free",
+        "name": "Pro",
+        "desc": "Everything you need for one county.",
+        "price": "$79",
+        "period": "/month",
+        "cta": "Start 7-Day Free Trial",
         "features": [
-          "Unlimited WhatsApp groups",
-          "Lead notifications (preview only)",
-          "Forward jobs via Rebeca",
-          "Earn Network Points",
-          "Lead feedback & ratings"
+          "1 county coverage",
+          "3 professions",
+          "AI WhatsApp assistant",
+          "Full lead details + contact info",
+          "Dashboard + weekly report",
+          "Earn Network Points"
         ]
       },
       {
-        "name": "Premium",
-        "desc": "Full access. Never miss a job.",
-        "price": "$79",
+        "name": "Unlimited",
+        "desc": "Expand everywhere. No limits.",
+        "price": "$129",
         "period": "/month",
         "cta": "Start 7-Day Free Trial",
         "popular": true,
         "features": [
-          "Everything in Free",
-          "Full lead details + contact info",
+          "Unlimited counties",
+          "Unlimited professions",
           "Unlimited leads",
-          "Full dashboard + weekly report",
+          "Everything in Pro",
           "Priority support",
           "Network Points x2"
         ]

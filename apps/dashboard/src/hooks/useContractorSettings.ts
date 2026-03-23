@@ -7,6 +7,7 @@ import { DEFAULT_WORKING_HOURS, type WorkingHours } from '../lib/working-hours'
 interface PlanLimits {
   maxProfessions: number
   maxZipCodes: number
+  maxCounties: number
 }
 
 interface UseContractorSettingsReturn {
@@ -25,7 +26,7 @@ interface UseContractorSettingsReturn {
   save: () => Promise<void>
 }
 
-const DEFAULT_LIMITS: PlanLimits = { maxProfessions: 1, maxZipCodes: 3 }
+const DEFAULT_LIMITS: PlanLimits = { maxProfessions: 3, maxZipCodes: -1, maxCounties: 1 }
 
 export function useContractorSettings(): UseContractorSettingsReturn {
   const { effectiveUserId } = useAuth()
@@ -50,8 +51,9 @@ export function useContractorSettings(): UseContractorSettingsReturn {
         .maybeSingle(),
       supabase
         .from('subscriptions')
-        .select('plans ( max_professions, max_zip_codes )')
+        .select('plans ( max_professions, max_zip_codes, max_counties )')
         .eq('user_id', effectiveUserId)
+        .in('status', ['active', 'trialing'])
         .maybeSingle(),
     ]).then(([contRes, subRes]) => {
       if (contRes.data) {
@@ -67,6 +69,7 @@ export function useContractorSettings(): UseContractorSettingsReturn {
           setPlanLimits({
             maxProfessions: plan.max_professions ?? -1,
             maxZipCodes: plan.max_zip_codes ?? -1,
+            maxCounties: plan.max_counties ?? -1,
           })
         }
       }

@@ -5,7 +5,7 @@ import { supabase } from '../lib/supabase'
 
 const DASHBOARD_URL = 'https://app.masterleadflow.com'
 
-const PLAN_SLUGS = ['free', 'premium']
+const PLAN_SLUGS = ['pro', 'unlimited']
 
 type DbPlan = { slug: string; price_cents: number; name: string }
 

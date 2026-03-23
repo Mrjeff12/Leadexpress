@@ -1268,7 +1268,7 @@ async function onboardConfirm(phone: string, textLower: string, data: Record<str
           const { data: plan } = await supabase
             .from('plans')
             .select('id')
-            .or('slug.eq.premium,slug.eq.starter,name.ilike.%premium%')
+            .or('slug.eq.pro,slug.eq.premium,slug.eq.starter')
             .limit(1)
             .maybeSingle();
 

@@ -103,9 +103,11 @@ export function useSubscriptionAccess() {
   }, [effectiveUserId])
 
   // Derived booleans
-  const isLegacy = planName === 'starter' || planName === 'pro' || planName === 'unlimited'
-  const isPremium = planName === 'premium' || planName === 'pro' || planName === 'unlimited'
-  const isFree = planName === 'free' || (planName === 'starter' && !isPremium)
+  const isLegacy = planName === 'starter' || planName === 'premium'
+  const isPro = planName === 'pro'
+  const isUnlimited = planName === 'unlimited'
+  const isPremium = isPro || isUnlimited || planName === 'premium'
+  const isFree = planName === 'free'
   const canSeeLeadDetails = isPremium || isLegacy
 
   return {
