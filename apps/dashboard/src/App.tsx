@@ -37,7 +37,10 @@ import RequirePartner from './components/RequirePartner'
 /* ─── Auth guard ─── */
 function RequireAuth({ children }: { children: ReactNode }) {
   const { user, loading } = useAuth()
-  if (loading) return <LoadingScreen />
+  // Capture hash tokens ONCE on mount — Supabase clears the hash before session is ready,
+  // so a live DOM read would miss them and redirect to /login prematurely
+  const [hadHashTokens] = useState(() => window.location.hash.includes('access_token='))
+  if (loading || (hadHashTokens && !user)) return <LoadingScreen />
   if (!user) return <Navigate to="/login" replace />
   return <>{children}</>
 }

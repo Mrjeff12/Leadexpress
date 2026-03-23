@@ -15,23 +15,41 @@ import {
   ChevronDown, Check, CheckCheck, CircleDot, Sparkles, DollarSign,
   XCircle, PhoneCall, Edit3, Calendar, X, Plus,
   AlertTriangle, Zap, Copy, Clock, MapPin, Briefcase,
-  Search, Inbox, Users
+  Search, Inbox, Users, Timer
 } from 'lucide-react'
 
 /* ── Design tokens ─────────────────────────────────────────────────── */
 const C = {
-  primary: '#fe5b25', 
-  dark: '#1C1C1E', 
-  cream: '#F2F2F7',
-  border: 'rgba(0,0,0,0.04)', 
-  gray: '#3A3A3C', 
+  primary: '#fe5b25',
+  dark: '#1C1C1E',
+  cream: '#FBFBFD',
+  border: 'rgba(0,0,0,0.04)',
+  gray: '#3A3A3C',
   muted: '#8E8E93',
-  wa: '#34C759', 
-  waDark: '#248A3D', 
-  bg: '#F2F2F7',
-  glass: 'rgba(255, 255, 255, 0.7)',
+  wa: '#34C759',
+  waDark: '#248A3D',
+  bg: '#FBFBFD',
+  glass: 'rgba(255, 255, 255, 0.85)',
+  glassBorder: 'rgba(0,0,0,0.04)',
   card: '#FFFFFF',
+  panelShadow: '0 10px 40px -10px rgba(0,0,0,0.05)',
+  panelRadius: '24px',
+  cardRadius: '16px',
+  hoverShadow: '0 8px 24px rgba(0,0,0,0.06)',
+  blur: 'blur(32px) saturate(180%)',
 }
+
+/* ── WhatsApp Channel Config ─────────────────────────────────────────── */
+const WA_CHANNELS = {
+  green_api: {
+    phone: import.meta.env.VITE_GREEN_API_PHONE || '+972 50-219-3322',
+    pic: import.meta.env.VITE_GREEN_API_PIC || '/logo.jpg',
+  },
+  twilio: {
+    phone: import.meta.env.VITE_TWILIO_WA_PHONE || '+1 (305) 851-6498',
+    pic: import.meta.env.VITE_TWILIO_WA_PIC || '/icon.png',
+  },
+} as const
 
 /* ── Stages ─────────────────────────────────────────────────────────── */
 const STAGES = [
@@ -157,13 +175,40 @@ export default function AdminInbox() {
 
   const stg = prospect ? getStage(prospect.stage) : STAGES[0]
   const fs = prospect ? fuSt(prospect.next_followup_at) : null
+
+  // 24h messaging window — find last incoming message to compute countdown
+  const lastIncoming = useMemo(() => {
+    if (!messages.length) return null
+    for (let i = messages.length - 1; i >= 0; i--) {
+      if (messages[i].direction === 'incoming') return messages[i].sent_at
+    }
+    return null
+  }, [messages])
+
+  const [windowRemaining, setWindowRemaining] = useState<{ h: number; m: number; s: number; expired: boolean } | null>(null)
+  useEffect(() => {
+    if (!lastIncoming) { setWindowRemaining(null); return }
+    function calc() {
+      const end = new Date(lastIncoming!).getTime() + 24 * 60 * 60 * 1000
+      const diff = end - Date.now()
+      if (diff <= 0) return { h: 0, m: 0, s: 0, expired: true }
+      const h = Math.floor(diff / 3600000)
+      const m = Math.floor((diff % 3600000) / 60000)
+      const s = Math.floor((diff % 60000) / 1000)
+      return { h, m, s, expired: false }
+    }
+    setWindowRemaining(calc())
+    const iv = setInterval(() => setWindowRemaining(calc()), 1000)
+    return () => clearInterval(iv)
+  }, [lastIncoming])
   const pName = (p: Prospect | ProspectListItem) => p.display_name || p.phone
 
-  const Avatar = ({ src, name, waId, size = 36 }: { src?: string | null; name: string; waId: string; size?: number }) => {
+  const Avatar = ({ src, name, waId, size = 36, square = false }: { src?: string | null; name: string; waId: string; size?: number; square?: boolean }) => {
     const h = hue(waId)
-    if (src) return <img src={src} alt="" className="rounded-full object-cover shrink-0 shadow-sm border border-black/[0.05]" style={{ width: size, height: size }} />
+    const radius = square ? '25%' : '50%'
+    if (src) return <img src={src} alt="" className="object-cover shrink-0 shadow-sm border border-black/[0.05]" style={{ width: size, height: size, borderRadius: radius }} />
     return (
-      <div className="rounded-full flex items-center justify-center font-bold text-white shrink-0 shadow-sm" style={{ width: size, height: size, fontSize: size * 0.35, background: `linear-gradient(135deg, hsl(${h} 50% 50%), hsl(${h + 30} 45% 45%))` }}>
+      <div className="flex items-center justify-center font-bold text-white shrink-0 shadow-sm" style={{ width: size, height: size, fontSize: size * 0.35, borderRadius: radius, background: `linear-gradient(135deg, hsl(${h} 50% 50%), hsl(${h + 30} 45% 45%))` }}>
         {name[0]?.toUpperCase() ?? '?'}
       </div>
     )
@@ -183,12 +228,13 @@ export default function AdminInbox() {
     <div
       className="animate-fade-in flex flex-col h-full w-full absolute inset-0 overflow-hidden"
       style={{
-        fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", "Inter", system-ui, sans-serif',
+        fontFamily: "'Plus Jakarta Sans', 'Outfit', -apple-system, system-ui, sans-serif",
         background: C.bg,
+        backgroundImage: 'radial-gradient(at 0% 0%, rgba(254,91,37,0.03) 0, transparent 50%), radial-gradient(at 100% 100%, rgba(255,138,92,0.03) 0, transparent 50%)',
       }}
     >
       {/* ═══ PIPELINE FUNNEL HEADER ═══ */}
-      <div className="shrink-0 bg-white/80 backdrop-blur-xl border-b border-black/[0.06] z-20 relative">
+      <div className="shrink-0 z-20 relative mx-3 mt-3 rounded-3xl overflow-hidden" style={{ background: C.glass, backdropFilter: C.blur, border: `1px solid ${C.glassBorder}`, boxShadow: C.panelShadow }}>
         {/* Top row: Title + Search */}
         <div className="px-5 pt-3 pb-2 flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -203,7 +249,7 @@ export default function AdminInbox() {
             <input
               value={listSearch} onChange={e => setListSearch(e.target.value)}
               placeholder={he ? 'חיפוש...' : 'Search...'}
-              className="w-[180px] h-8 rounded-lg border border-black/[0.06] text-[12px] outline-none transition-all bg-white/60 focus:bg-white focus:ring-2 focus:ring-[#fe5b25]/10 focus:border-[#fe5b25]/30"
+              className="w-[180px] h-9 rounded-2xl border border-black/[0.06] text-[12px] outline-none transition-all bg-white/60 focus:bg-white focus:ring-2 focus:ring-[#fe5b25]/10 focus:border-[#fe5b25]/30"
               style={{ paddingLeft: he ? 10 : 30, paddingRight: he ? 30 : 10, color: C.dark }}
             />
           </div>
@@ -225,7 +271,7 @@ export default function AdminInbox() {
                   className="flex flex-col items-center flex-1 min-w-0 py-1.5 px-1 rounded-xl transition-all cursor-pointer"
                   style={{
                     background: isActive ? '#FFFFFF' : 'transparent',
-                    boxShadow: isActive ? '0 2px 12px rgba(0,0,0,0.08)' : 'none',
+                    boxShadow: isActive ? '0 4px 16px rgba(0,0,0,0.06)' : 'none',
                     opacity: isDimmed ? 0.35 : 1,
                   }}
                 >
@@ -249,10 +295,10 @@ export default function AdminInbox() {
       </div>
 
       {/* ═══ MAIN GRID ═══ */}
-      <div className="flex-1 grid grid-cols-[300px_1fr_300px] relative z-10 overflow-hidden">
+      <div className="flex-1 grid grid-cols-[320px_1fr_320px] gap-3 p-3 relative z-10 overflow-hidden">
         
         {/* ═══ LEFT: Prospect List (Apple Glass Style) ═══════════════════════════════════════ */}
-        <div className="flex flex-col relative z-10 h-full overflow-hidden" style={{ borderRight: `1px solid ${C.border}`, background: 'rgba(255,255,255,0.4)', backdropFilter: 'blur(30px)' }}>
+        <div className="flex flex-col relative z-10 h-full overflow-hidden rounded-3xl" style={{ background: C.glass, backdropFilter: C.blur, border: `1px solid ${C.glassBorder}`, boxShadow: C.panelShadow }}>
           {/* Header */}
           <div className="shrink-0 p-4 border-b border-black/[0.02]">
             <div className="flex items-center justify-between">
@@ -279,7 +325,7 @@ export default function AdminInbox() {
                 <button
                   key={`${p.id}-${idx}`}
                   onClick={() => setSelectedId(p.id)}
-                  className={`w-full flex items-center gap-4 p-4 text-left transition-all rounded-3xl relative overflow-hidden group ${isActive ? 'bg-white shadow-[0_8px_30px_rgba(0,0,0,0.06)] scale-[1.02]' : 'hover:bg-white/40 active:scale-[0.98]'}`}
+                  className={`w-full flex items-center gap-3 p-3 text-left transition-all rounded-2xl relative overflow-hidden group ${isActive ? 'bg-white shadow-md ring-2 ring-[#fe5b25]/15' : 'hover:bg-white/60 hover:shadow-sm hover:-translate-y-[1px] active:scale-[0.98]'}`}
                   style={{ direction: he ? 'rtl' : 'ltr' }}
                 >
                   {isActive && <div className="absolute top-0 bottom-0 w-1.5 bg-[#fe5b25] shadow-[0_0_10px_rgba(0,74,255,0.3)]" style={{ [he ? 'right' : 'left']: 0 }} />}
@@ -328,10 +374,10 @@ export default function AdminInbox() {
         </div>
 
         {/* ═══ CENTER: Merged Chat + Timeline ════════════════════════════ */}
-        <div className="flex flex-col relative z-0 shadow-[0_0_50px_rgba(0,0,0,0.05)] h-full overflow-hidden" style={{ background: 'white' }}>
+        <div className="flex flex-col relative z-0 h-full overflow-hidden rounded-3xl" style={{ background: C.card, boxShadow: '0 4px 24px rgba(0,0,0,0.04)', border: `1px solid ${C.glassBorder}` }}>
           {/* Header */}
           {prospect ? (
-            <div className="shrink-0 flex items-center gap-5 px-8 h-[80px] border-b border-black/[0.02] bg-white/80 backdrop-blur-xl z-10">
+            <div className="shrink-0 flex items-center gap-4 px-6 h-[72px] z-10 rounded-t-3xl" style={{ background: 'rgba(255,255,255,0.9)', backdropFilter: 'blur(24px)', borderBottom: `1px solid ${C.glassBorder}` }}>
               <div className="relative">
                 <Avatar src={prospect.profile_pic_url} name={pName(prospect)} waId={prospect.wa_id || prospect.phone} size={48} />
                 <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-[#34C759] border-2 border-white shadow-sm" />
@@ -359,13 +405,13 @@ export default function AdminInbox() {
               </div>
             </div>
           ) : (
-            <div className="shrink-0 flex items-center px-8 h-[80px] border-b border-black/[0.02] bg-white">
+            <div className="shrink-0 flex items-center px-6 h-[72px] rounded-t-3xl" style={{ background: 'rgba(255,255,255,0.9)', backdropFilter: 'blur(24px)', borderBottom: `1px solid ${C.glassBorder}` }}>
               <span className="text-[15px] font-bold text-[#8E8E93] uppercase tracking-widest">{he ? 'בחר לקוח מהרשימה' : 'Select a client'}</span>
             </div>
           )}
 
           {/* Chat + Timeline merged — fills all remaining space */}
-          <div className="flex-1 overflow-y-auto px-8 py-8 space-y-6 scrollbar-hide" style={{ background: '#F2F2F7' }}>
+          <div className="flex-1 overflow-y-auto px-8 py-8 space-y-6 scrollbar-hide" style={{ background: C.cream, backgroundImage: 'radial-gradient(at 50% 0%, rgba(254,91,37,0.02) 0, transparent 50%)' }}>
             {loading ? (
               <div className="flex items-center justify-center h-full"><Loader2 className="w-8 h-8 animate-spin text-[#8E8E93]" /></div>
             ) : !prospect ? (
@@ -396,7 +442,7 @@ export default function AdminInbox() {
 
                     return (
                       <div key={`ev-${ev.id}`}>
-                        {showDateSep && <div className="flex justify-center my-8"><span className="text-[11px] font-black uppercase tracking-[0.2em] px-5 py-2 rounded-full bg-black/[0.04] text-[#8E8E93] shadow-sm">{fmtDate(new Date(item.ts).toISOString())}</span></div>}
+                        {showDateSep && <div className="flex justify-center my-8"><span className="text-[11px] font-semibold px-4 py-1.5 rounded-full bg-black/[0.04] text-[#8E8E93]">{fmtDate(new Date(item.ts).toISOString())}</span></div>}
                         <div className="flex justify-center my-4">
                           <div className="flex items-center gap-3 px-5 py-2.5 rounded-2xl text-[12px] font-bold shadow-sm border border-black/[0.02] bg-white">
                             {ev.event_type === 'stage_change' ? (
@@ -423,18 +469,13 @@ export default function AdminInbox() {
                   const isTwilio = msg.channel === 'twilio'
                   return (
                     <div key={`msg-${msg.id}`}>
-                      {showDateSep && <div className="flex justify-center my-8"><span className="text-[11px] font-black uppercase tracking-[0.2em] px-5 py-2 rounded-full bg-black/[0.04] text-[#8E8E93] shadow-sm">{fmtDate(msg.sent_at)}</span></div>}
+                      {showDateSep && <div className="flex justify-center my-8"><span className="text-[11px] font-semibold px-4 py-1.5 rounded-full bg-black/[0.04] text-[#8E8E93]">{fmtDate(msg.sent_at)}</span></div>}
                       <div className={`flex ${out ? 'justify-end' : 'justify-start'}`}>
-                        <div className={`max-w-[75%] rounded-[28px] px-6 py-4 shadow-sm relative group ${out ? (isTwilio ? 'bg-[#1C1C1E] text-white' : 'bg-[#fe5b25] text-white') : 'bg-white text-[#1C1C1E] border border-black/[0.02]'}`} style={{ borderBottomRightRadius: out ? 6 : 28, borderBottomLeftRadius: out ? 28 : 6 }}>
-                          {/* Channel Badge */}
-                          <div className={`absolute -top-2 ${out ? '-left-2' : '-right-2'} w-6 h-6 rounded-full flex items-center justify-center shadow-sm border-2 border-[#F2F2F7] ${isTwilio ? 'bg-[#fe5b25] text-white' : 'bg-[#34C759] text-white'}`}>
-                            {isTwilio ? <CheckCheck className="w-3 h-3" /> : <MessageCircle className="w-3 h-3" />}
-                          </div>
-                          
-                          <p className="text-[16px] leading-[1.5] whitespace-pre-wrap font-medium text-start" style={{ direction: /[\u0590-\u05FF\u0600-\u06FF]/.test(msg.content) ? 'rtl' : 'ltr' }}>{msg.content}</p>
+                        <div className={`max-w-[70%] rounded-[20px] px-5 py-3 shadow-sm relative group ${out ? 'bg-[#1C1C1E] text-white' : 'bg-white text-[#1C1C1E] border border-black/[0.02]'}`} style={{ borderBottomRightRadius: out ? 6 : 20, borderBottomLeftRadius: out ? 20 : 6 }}>
+                          <p className="text-[14px] leading-[1.55] whitespace-pre-wrap font-medium text-start" style={{ direction: /[\u0590-\u05FF\u0600-\u06FF]/.test(msg.content) ? 'rtl' : 'ltr' }}>{msg.content}</p>
                           <div className={`flex items-center gap-2 mt-2 ${out ? 'justify-end opacity-80' : 'justify-start opacity-40'}`}>
                             <span className="text-[10px] font-bold uppercase tracking-tighter">{fmtTime(msg.sent_at)}</span>
-                            {out && (msg.read_at ? <CheckCheck className="w-3.5 h-3.5 text-white" /> : msg.delivered_at ? <CheckCheck className="w-3.5 h-3.5 text-white/60" /> : <Check className="w-3.5 h-3.5 text-white/60" />)}
+                            {out && (msg.read_at ? <CheckCheck className="w-3.5 h-3.5 text-[#007AFF]" /> : msg.delivered_at ? <CheckCheck className="w-3.5 h-3.5 text-white/60" /> : <Check className="w-3.5 h-3.5 text-white/60" />)}
                           </div>
                         </div>
                       </div>
@@ -448,7 +489,7 @@ export default function AdminInbox() {
 
           {/* Quick replies */}
           {showQR && prospect && (
-            <div className="shrink-0 border-t border-black/[0.02] px-8 py-6 bg-white/90 backdrop-blur-xl absolute bottom-[88px] left-0 right-0 z-20 shadow-[0_-20px_50px_rgba(0,0,0,0.05)]">
+            <div className="shrink-0 px-8 py-6 absolute bottom-[88px] left-0 right-0 z-20 rounded-3xl mx-3 mb-1" style={{ background: 'rgba(255,255,255,0.9)', backdropFilter: 'blur(24px)', border: `1px solid ${C.glassBorder}`, boxShadow: C.panelShadow }}>
               <div className="flex items-center justify-between mb-4">
                 <span className="text-[11px] font-black uppercase tracking-[0.2em] text-[#8E8E93]">{he ? 'תבניות מהירות' : 'Quick Templates'}</span>
                 <button onClick={() => setShowQR(false)} className="p-2 rounded-xl bg-black/[0.03] hover:bg-black/[0.06] transition-colors"><X className="w-4 h-4 text-[#1C1C1E]" /></button>
@@ -465,23 +506,31 @@ export default function AdminInbox() {
           )}
 
           {/* Input Area */}
-          <div className="shrink-0 border-t border-black/[0.02] bg-white z-30 flex flex-col">
+          <div className="shrink-0 z-30 flex flex-col rounded-b-3xl" style={{ background: 'rgba(255,255,255,0.9)', backdropFilter: 'blur(24px)', borderTop: `1px solid ${C.glassBorder}` }}>
             {/* Channel Selector */}
             {prospect && (
-              <div className="flex items-center gap-2 px-8 pt-4 pb-1">
-                <button 
+              <div className="flex items-center gap-3 px-8 pt-4 pb-1">
+                {/* Personal WA (Green API) */}
+                <button
                   onClick={() => setSelectedChannel('green_api')}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12px] font-bold transition-all ${selectedChannel === 'green_api' ? 'bg-[#34C759]/10 text-[#248A3D]' : 'bg-black/[0.03] text-[#8E8E93] hover:bg-black/[0.06]'}`}
+                  className={`flex items-center gap-2 px-3 py-2 rounded-xl text-[12px] font-bold transition-all ${selectedChannel === 'green_api' ? 'bg-[#34C759]/10 text-[#248A3D] ring-1 ring-[#34C759]/30' : 'bg-black/[0.03] text-[#8E8E93] hover:bg-black/[0.06]'}`}
                 >
-                  <MessageCircle className="w-3.5 h-3.5" />
-                  {he ? 'וואטסאפ אישי (Green API)' : 'Personal WA'}
+                  <img src={WA_CHANNELS.green_api.pic} alt="" className="w-6 h-6 rounded-full object-cover border border-black/[0.08]" />
+                  <div className="flex flex-col items-start">
+                    <span className="text-[11px] leading-tight">{he ? 'וואטסאפ אישי' : 'Personal WA'}</span>
+                    <span className="text-[9px] font-normal opacity-70 leading-tight">{WA_CHANNELS.green_api.phone}</span>
+                  </div>
                 </button>
-                <button 
+                {/* Official WA (Twilio) */}
+                <button
                   onClick={() => setSelectedChannel('twilio')}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12px] font-bold transition-all ${selectedChannel === 'twilio' ? 'bg-[#fe5b25]/10 text-[#fe5b25]' : 'bg-black/[0.03] text-[#8E8E93] hover:bg-black/[0.06]'}`}
+                  className={`flex items-center gap-2 px-3 py-2 rounded-xl text-[12px] font-bold transition-all ${selectedChannel === 'twilio' ? 'bg-[#fe5b25]/10 text-[#fe5b25] ring-1 ring-[#fe5b25]/30' : 'bg-black/[0.03] text-[#8E8E93] hover:bg-black/[0.06]'}`}
                 >
-                  <CheckCheck className="w-3.5 h-3.5" />
-                  {he ? 'וואטסאפ רשמי (Twilio)' : 'Official WA'}
+                  <img src={WA_CHANNELS.twilio.pic} alt="" className="w-6 h-6 rounded-full object-cover border border-black/[0.08]" />
+                  <div className="flex flex-col items-start">
+                    <span className="text-[11px] leading-tight">{he ? 'וואטסאפ רשמי' : 'Official WA'}</span>
+                    <span className="text-[9px] font-normal opacity-70 leading-tight">{WA_CHANNELS.twilio.phone}</span>
+                  </div>
                 </button>
               </div>
             )}
@@ -512,7 +561,7 @@ export default function AdminInbox() {
         </div>
 
         {/* ═══ RIGHT: Contact Card ══════════════════════════════════════════ */}
-        <div className="flex flex-col relative z-10 h-full overflow-hidden bg-white" style={{ borderLeft: `1px solid ${C.border}` }}>
+        <div className="flex flex-col relative z-10 h-full overflow-hidden rounded-3xl" style={{ background: C.glass, backdropFilter: C.blur, border: `1px solid ${C.glassBorder}`, boxShadow: C.panelShadow }}>
           {loading || !prospect ? (
             <div className="flex items-center justify-center flex-1"><Loader2 className="w-5 h-5 animate-spin text-[#8E8E93]" /></div>
           ) : (
@@ -522,7 +571,7 @@ export default function AdminInbox() {
               <div className="shrink-0 px-4 pt-4 pb-3">
                 {/* Name + Phone + Actions — single row */}
                 <div className="flex items-center gap-3 mb-3">
-                  <Avatar src={prospect.profile_pic_url} name={pName(prospect)} waId={prospect.wa_id || prospect.phone} size={40} />
+                  <Avatar src={prospect.profile_pic_url} name={pName(prospect)} waId={prospect.wa_id || prospect.phone} size={56} square />
                   <div className="flex-1 min-w-0">
                     {editingName ? (
                       <div className="flex items-center gap-1.5">
@@ -712,6 +761,38 @@ export default function AdminInbox() {
                     {prospect.trial_ends_at && <div className="flex justify-between"><span className="text-[#8E8E93]">{he ? 'סיום ניסיון' : 'Trial end'}</span><span className="font-medium text-[#FF9500]">{fmtFull(prospect.trial_ends_at)}</span></div>}
                   </div>
                 </div>
+
+                {/* 24h Messaging Window */}
+                {windowRemaining && (
+                  <div className={`rounded-lg p-3 ${windowRemaining.expired ? 'bg-[#FF3B30]/[0.06] border border-[#FF3B30]/20' : windowRemaining.h < 4 ? 'bg-[#FF9500]/[0.06] border border-[#FF9500]/20' : 'bg-[#34C759]/[0.06] border border-[#34C759]/20'}`}>
+                    <div className="flex items-center gap-1.5 mb-2">
+                      <Timer className="w-3.5 h-3.5" style={{ color: windowRemaining.expired ? '#FF3B30' : windowRemaining.h < 4 ? '#FF9500' : '#34C759' }} />
+                      <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: windowRemaining.expired ? '#FF3B30' : windowRemaining.h < 4 ? '#FF9500' : '#34C759' }}>
+                        {he ? 'חלון 24 שעות' : '24h Window'}
+                      </span>
+                    </div>
+                    {windowRemaining.expired ? (
+                      <div className="flex items-center gap-1.5">
+                        <AlertTriangle className="w-3.5 h-3.5 text-[#FF3B30]" />
+                        <span className="text-[12px] font-semibold text-[#FF3B30]">{he ? 'החלון נסגר — שלח תבנית בלבד' : 'Window closed — template only'}</span>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-1">
+                        {[
+                          { v: String(windowRemaining.h).padStart(2, '0'), l: he ? 'שע' : 'h' },
+                          { v: String(windowRemaining.m).padStart(2, '0'), l: he ? 'דק' : 'm' },
+                          { v: String(windowRemaining.s).padStart(2, '0'), l: he ? 'שנ' : 's' },
+                        ].map((u, i) => (
+                          <div key={i} className="flex items-baseline gap-0.5">
+                            {i > 0 && <span className="text-[14px] font-bold mx-0.5" style={{ color: windowRemaining.h < 4 ? '#FF9500' : '#34C759' }}>:</span>}
+                            <span className="text-[18px] font-bold tabular-nums" style={{ color: windowRemaining.h < 4 ? '#FF9500' : '#34C759' }}>{u.v}</span>
+                            <span className="text-[9px] font-medium" style={{ color: windowRemaining.h < 4 ? '#FF9500' : '#34C759', opacity: 0.7 }}>{u.l}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 {/* Divider */}
                 <div className="h-px bg-black/[0.04]" />

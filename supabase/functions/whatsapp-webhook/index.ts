@@ -1087,15 +1087,19 @@ async function onboardWorkingDays(phone: string, textLower: string, data: Record
   const stateLabel = state === 'FL' ? 'Florida' : state === 'NY' ? 'New York' : state === 'TX' ? 'Texas' : state;
   const cityNames = cities.map(c => c.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())).join(', ');
 
+  const zipCount = ((data.zipCodes as string[]) ?? []).length;
+
   await sendText(phone,
-    `📋 *Your Profile Summary:*\n\n` +
-    `🔧 *Trades:* ${profs}\n` +
-    `📍 *Location:* ${stateLabel}\n` +
-    `🏙️ *Cities:* ${cityNames}\n` +
-    `📅 *Working Days:* ${dayLabels}\n\n` +
-    `──────────────────\n` +
-    `Reply *YES* to confirm ✅\n` +
-    `Reply *REDO* to start over 🔄`
+    `📋 *Your Profile Summary*\n` +
+    `━━━━━━━━━━━━━━━━━━━━\n\n` +
+    `🔧 *Trades*\n${profs}\n\n` +
+    `📍 *State*\n${stateLabel}\n\n` +
+    `🏙️ *Cities*\n${cityNames}\n` +
+    `_(${zipCount} ZIP codes covered)_\n\n` +
+    `📅 *Working Days*\n${dayLabels}\n\n` +
+    `━━━━━━━━━━━━━━━━━━━━\n\n` +
+    `✅ Reply *YES* to confirm\n` +
+    `🔄 Reply *REDO* to start over`
   );
 }
 
@@ -1246,7 +1250,10 @@ async function onboardGroups(phone: string, text: string, textLower: string, dat
       try {
         const lr = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/magic-login`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
+          },
           body: JSON.stringify({ action: 'generate', user_id: userId, redirect_path: '/complete-account' }),
         });
         const ld = await lr.json();
