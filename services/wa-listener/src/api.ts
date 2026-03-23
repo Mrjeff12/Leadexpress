@@ -386,10 +386,29 @@ async function handleSendProspectMessage(req: http.IncomingMessage, res: http.Se
       detail: { wa_message_id: messageId },
     });
 
-    // Update last_contact_at
+    // Update last_contact_at and set initial sub_status for reached_out prospects
+    const { data: currentProspect } = await supabase
+      .from('prospects')
+      .select('id, stage, sub_status')
+      .eq('id', prospect_id)
+      .single();
+
+    const updateFields: Record<string, string> = {
+      last_contact_at: new Date().toISOString(),
+    };
+
+    // Auto-set initial sub_status when sending to a prospect or reached_out prospect
+    if (currentProspect && (currentProspect.stage === 'prospect' || currentProspect.stage === 'reached_out')) {
+      // Only set if no sub_status yet (don't overwrite existing progress)
+      if (!currentProspect.sub_status) {
+        updateFields.sub_status = 'unread';
+        updateFields.sub_status_changed_at = new Date().toISOString();
+      }
+    }
+
     await supabase
       .from('prospects')
-      .update({ last_contact_at: new Date().toISOString() })
+      .update(updateFields)
       .eq('id', prospect_id);
 
     jsonResponse(res, 200, {
@@ -922,8 +941,9 @@ const IS_PRODUCTION = process.env.NODE_ENV === 'production';
 async function isAuthorized(req: http.IncomingMessage): Promise<{ authorized: boolean; user?: any }> {
   const url = req.url ?? '/';
   if (url === '/api/health' || url.startsWith('/api/health?')) return { authorized: true };
-  // Twilio scanner feedback webhook — no auth (Twilio can't send Bearer tokens)
+  // Twilio webhooks — no auth (Twilio can't send Bearer tokens)
   if (url === '/api/scanner-feedback' || url.startsWith('/api/scanner-feedback?')) return { authorized: true };
+  if (url === '/api/twilio-status' || url.startsWith('/api/twilio-status?')) return { authorized: true };
 
   const authHeader = req.headers['authorization'] ?? '';
   const token = authHeader.replace('Bearer ', '').trim();
@@ -1114,6 +1134,97 @@ export async function startAPI(port = 3001): Promise<void> {
       const groupScanStatusMatch = pathname.match(/^\/api\/group-scan\/([^/]+)\/status$/);
       if (groupScanStatusMatch && req.method === 'PATCH') {
         await handlePatchGroupScanStatus(req, res, groupScanStatusMatch[1], user);
+        return;
+      }
+
+      // POST /api/twilio-status — Twilio message status callback
+      if (pathname === '/api/twilio-status' && req.method === 'POST') {
+        try {
+          const rawBody = await readBody(req);
+          const params = new URLSearchParams(rawBody);
+          const messageSid = params.get('MessageSid') ?? '';
+          const status = params.get('MessageStatus') ?? '';
+          const to = params.get('To') ?? '';
+
+          logger.info({ messageSid, status, to }, 'Twilio status callback');
+
+          // Find the prospect_message by wa_message_id (which stores Twilio SID)
+          const { data: msg } = await supabase
+            .from('prospect_messages')
+            .select('id, prospect_id')
+            .eq('wa_message_id', messageSid)
+            .eq('direction', 'outgoing')
+            .maybeSingle();
+
+          if (msg) {
+            // Update message delivery status
+            const msgUpdate: Record<string, string> = {};
+            if (status === 'delivered') msgUpdate.delivered_at = new Date().toISOString();
+            if (status === 'read') msgUpdate.read_at = new Date().toISOString();
+            if (Object.keys(msgUpdate).length > 0) {
+              await supabase.from('prospect_messages').update(msgUpdate).eq('id', msg.id);
+            }
+
+            // Map Twilio status to sub_status
+            let newSubStatus: string | null = null;
+            if (status === 'failed' || status === 'undelivered') {
+              newSubStatus = 'not_sent';
+            } else if (status === 'delivered') {
+              newSubStatus = 'unread';
+            } else if (status === 'read') {
+              newSubStatus = 'read_no_reply';
+            }
+
+            if (newSubStatus) {
+              // Only update if prospect is still in reached_out stage
+              const { data: prospect } = await supabase
+                .from('prospects')
+                .select('id, stage, sub_status')
+                .eq('id', msg.prospect_id)
+                .single();
+
+              if (prospect && prospect.stage === 'reached_out') {
+                // Don't downgrade: priority-based updates only
+                const PRIORITY: Record<string, number> = {
+                  'not_sent': 0, 'unread': 1, 'read_no_reply': 2,
+                  'followup_1': 3, 'followup_2': 4, 'no_response': 5, 'not_interested': 6
+                };
+
+                const currentPriority = PRIORITY[prospect.sub_status ?? ''] ?? -1;
+                const newPriority = PRIORITY[newSubStatus] ?? -1;
+
+                if (newPriority > currentPriority) {
+                  await supabase.from('prospects').update({
+                    sub_status: newSubStatus,
+                    sub_status_changed_at: new Date().toISOString(),
+                  }).eq('id', prospect.id);
+
+                  logger.info({ prospectId: prospect.id, oldSub: prospect.sub_status, newSub: newSubStatus },
+                    'Auto-updated prospect sub_status from Twilio callback');
+                }
+              }
+
+              // Alert on failure
+              if (status === 'failed' || status === 'undelivered') {
+                await supabase.rpc('send_alert', {
+                  p_account_id: null,
+                  p_type: 'custom',
+                  p_severity: 'warning',
+                  p_title: 'Message delivery failed',
+                  p_message: `Message to ${to} failed (${status}). SID: ${messageSid}`,
+                  p_channel: 'dashboard',
+                  p_dedupe_minutes: 60,
+                });
+              }
+            }
+          }
+        } catch (err) {
+          logger.error({ err }, 'Failed to process Twilio status callback');
+        }
+
+        // Twilio expects TwiML response
+        res.writeHead(200, { 'Content-Type': 'text/xml' });
+        res.end('<Response></Response>');
         return;
       }
 
