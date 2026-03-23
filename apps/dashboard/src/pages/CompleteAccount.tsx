@@ -68,18 +68,22 @@ export default function CompleteAccount() {
     setLoading(true)
     setError('')
 
-    const { error: updateErr } = await supabase.auth.updateUser({
-      email,
-      password,
+    // Use Edge Function to update via admin API (bypasses fake email validation)
+    const { data: fnData, error: fnError } = await supabase.functions.invoke('update-account', {
+      body: { email, password },
     })
 
-    if (updateErr) {
-      setError(updateErr.message)
+    if (fnError || fnData?.error) {
+      setError(fnData?.error || fnError?.message || 'Failed to update account')
       setLoading(false)
       return
     }
 
+    // Update profile table
     await supabase.from('profiles').update({ email }).eq('id', profile!.id)
+
+    // Re-sign in with new credentials
+    await supabase.auth.signInWithPassword({ email, password })
 
     setSuccess(true)
     setLoading(false)
