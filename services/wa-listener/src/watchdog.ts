@@ -10,6 +10,7 @@
  *  6. Prospect scoring   — score_prospects() every 6h
  *  7. Waiting-on-us      — conversation sub-status + alerts every 5min
  *  8. Auto follow-up     — templated follow-ups every 1h
+ *  9. Trial activity     — update trial sub_status + alerts every 1h
  */
 
 import { createClient } from '@supabase/supabase-js';
@@ -274,6 +275,61 @@ async function followUpJob(): Promise<void> {
   }
 }
 
+// ── Job 9: Trial Activity Detection ──────────────────────────────────────────
+async function trialActivityJob(): Promise<void> {
+  try {
+    const { data, error } = await supabase.rpc('update_trial_sub_statuses');
+    if (error) throw error;
+    const r = data?.[0] || data;
+    if (r) {
+      logger.info({ ...r }, 'Trial activity detection complete');
+    }
+
+    // Alert for no_leads prospects
+    const { data: noLeads } = await supabase
+      .from('prospects')
+      .select('id, display_name, phone, profession_tags')
+      .eq('stage', 'demo_trial')
+      .eq('sub_status', 'no_leads')
+      .is('archived_at', null);
+
+    for (const p of noLeads || []) {
+      await supabase.rpc('send_alert', {
+        p_account_id: null,
+        p_type: 'custom',
+        p_severity: 'critical',
+        p_title: `🚨 ${p.display_name || p.phone} has zero leads in trial!`,
+        p_message: `Trial prospect ${p.display_name || p.phone} (${p.phone}) has received no leads. Trades: ${(p.profession_tags || []).join(', ')}. Check area coverage!`,
+        p_channel: 'whatsapp',
+        p_dedupe_minutes: 720, // 12 hours between alerts for same issue
+      });
+    }
+
+    // Alert for expiring trials
+    const { data: expiring } = await supabase
+      .from('prospects')
+      .select('id, display_name, phone, trial_ends_at')
+      .eq('stage', 'demo_trial')
+      .eq('sub_status', 'expiring')
+      .is('archived_at', null);
+
+    for (const p of expiring || []) {
+      const daysLeft = p.trial_ends_at ? Math.ceil((new Date(p.trial_ends_at).getTime() - Date.now()) / 86400000) : '?';
+      await supabase.rpc('send_alert', {
+        p_account_id: null,
+        p_type: 'custom',
+        p_severity: 'warning',
+        p_title: `⏰ ${p.display_name || p.phone} trial expires in ${daysLeft} days`,
+        p_message: `Push for conversion! ${p.display_name || p.phone} (${p.phone})`,
+        p_channel: 'whatsapp',
+        p_dedupe_minutes: 1440, // once per day
+      });
+    }
+  } catch (err) {
+    logger.error({ err }, 'Trial activity detection failed');
+  }
+}
+
 // ── Start / Stop ────────────────────────────────────────────────────────────
 export async function startWatchdog(): Promise<void> {
   logger.info('Starting WATCHDOG scheduler');
@@ -319,7 +375,14 @@ export async function startWatchdog(): Promise<void> {
   }, 15 * 60 * 1000);
   timeouts.push(followUpTimeout);
 
-  logger.info('WATCHDOG scheduler started — sync every 4h, enrichment every 4h+30m, scoring every 6h, waiting-on-us every 5m, follow-up every 1h');
+  // Job 9: Trial activity detection — every 1h (20-min initial delay)
+  const trialTimeout = setTimeout(() => {
+    trialActivityJob();
+    timers.push(setInterval(trialActivityJob, 60 * 60 * 1000));
+  }, 20 * 60 * 1000);
+  timeouts.push(trialTimeout);
+
+  logger.info('WATCHDOG scheduler started — sync every 4h, enrichment every 4h+30m, scoring every 6h, waiting-on-us every 5m, follow-up every 1h, trial activity every 1h');
 }
 
 export async function stopWatchdog(): Promise<void> {
