@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { useI18n } from '../lib/i18n'
 import { useToast } from '../components/hooks/use-toast'
 import { supabase } from '../lib/supabase'
@@ -248,6 +249,7 @@ export default function AdminInbox() {
   const { locale } = useI18n()
   const he = locale === 'he'
   const { toast } = useToast()
+  const [searchParams] = useSearchParams()
 
   /* ── State ──────────────────────────────────────────────────────── */
   const [selectedId, setSelectedId] = useState<string | undefined>(undefined)
@@ -266,8 +268,8 @@ export default function AdminInbox() {
 
   // Prospect list
   const [listSearch, setListSearch] = useState('')
-  const [filterStage, setFilterStage] = useState<string>('all')
-  const [filterSubStatus, setFilterSubStatus] = useState<string | null>(null)
+  const [filterStage, setFilterStage] = useState<string>(searchParams.get('stage') || 'all')
+  const [filterSubStatus, setFilterSubStatus] = useState<string | null>(searchParams.get('sub') || null)
   const [displayLimit, setDisplayLimit] = useState(50)
 
   // Group admin tracking — phones of group admins for gold badge

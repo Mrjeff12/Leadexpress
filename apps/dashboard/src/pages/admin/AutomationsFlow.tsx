@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 import {
   Zap, Phone, MessageCircle, Sparkles, Clock,
@@ -167,9 +168,19 @@ interface ProspectEvent {
 function PipelineVisualization({
   stageCounts,
   subStatusCounts,
+  navigate,
+  selectedAutomation,
+  setSelectedAutomation,
+  templates,
+  setTemplates,
 }: {
   stageCounts: Record<string, number>
   subStatusCounts: Record<string, Record<string, number>>
+  navigate: ReturnType<typeof useNavigate>
+  selectedAutomation: string | null
+  setSelectedAutomation: (v: string | null) => void
+  templates: any[]
+  setTemplates: (v: any[]) => void
 }) {
   /* ─── Compute satellite positions for each hub ─── */
   const satellites = useMemo(() => {
@@ -281,7 +292,8 @@ function PipelineVisualization({
         return (
           <div
             key={hub.id}
-            className="absolute flex flex-col items-center transition-all duration-300 hover:scale-110 hover:-translate-y-1"
+            onClick={() => navigate(`/admin/bot/inbox?stage=${hub.id}`)}
+            className="absolute flex flex-col items-center cursor-pointer hover:scale-105 transition-transform transition-all duration-300 hover:-translate-y-1"
             style={{
               left: `${(hub.x / VW) * 100}%`,
               top: `${(hub.y / VH) * 100}%`,
@@ -321,7 +333,8 @@ function PipelineVisualization({
       {satellites.map((sat, i) => (
         <div
           key={`sat-${sat.hubId}-${sat.key}`}
-          className="absolute flex flex-col items-center transition-all duration-300 hover:scale-110"
+          onClick={() => navigate(`/admin/bot/inbox?stage=${sat.hubId}&sub=${sat.key}`)}
+          className="absolute flex flex-col items-center cursor-pointer hover:scale-110 transition-transform transition-all duration-300"
           style={{
             left: `${(sat.x / VW) * 100}%`,
             top: `${(sat.y / VH) * 100}%`,
@@ -357,7 +370,14 @@ function PipelineVisualization({
         return (
           <div
             key={auto.id}
-            className="absolute flex flex-col items-center transition-all duration-300 hover:scale-110"
+            onClick={() => {
+              setSelectedAutomation(selectedAutomation === auto.name ? null : auto.name)
+              if (auto.name === 'Auto Follow-Up') {
+                supabase.from('message_templates').select('*').eq('is_active', true)
+                  .order('touch_number').then(({ data }) => { if (data) setTemplates(data) })
+              }
+            }}
+            className="absolute flex flex-col items-center cursor-pointer hover:scale-110 transition-transform transition-all duration-300"
             style={{
               left: `${(auto.x / VW) * 100}%`,
               top: `${(auto.y / VH) * 100}%`,
@@ -396,6 +416,123 @@ function PipelineVisualization({
         )
       })}
 
+      {/* ─── Automation detail panel ─── */}
+      {selectedAutomation && (
+        <div className="absolute bottom-24 left-1/2 -translate-x-1/2 w-[600px] bg-white rounded-2xl shadow-2xl border border-black/[0.06] p-5 z-50">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-bold text-[#1C1C1E]">{selectedAutomation}</h3>
+            <button onClick={() => setSelectedAutomation(null)} className="text-[#8E8E93] hover:text-[#1C1C1E]">&#x2715;</button>
+          </div>
+
+          {selectedAutomation === 'Auto Follow-Up' && templates.length > 0 && (
+            <div className="space-y-3">
+              <p className="text-xs font-bold text-[#8E8E93] uppercase tracking-wider">Templates ({templates.length})</p>
+              {templates.map((t: any) => (
+                <div key={t.id} className="p-3 rounded-xl bg-[#F5F5F7] border border-black/[0.04]">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-[11px] font-bold text-[#1C1C1E]">
+                      Touch {t.touch_number} — {t.name}
+                    </span>
+                    <div className="flex items-center gap-2 text-[10px] text-[#8E8E93]">
+                      <span>{t.send_count} sent</span>
+                      <span>{t.reply_count} replies</span>
+                      {t.send_count > 0 && (
+                        <span className="font-bold" style={{ color: (t.reply_count / t.send_count) > 0.1 ? '#34C759' : '#FF9500' }}>
+                          {((t.reply_count / t.send_count) * 100).toFixed(0)}% rate
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <p className="text-[12px] text-[#3A3A3C] leading-relaxed whitespace-pre-line" dir="rtl">
+                    {t.body_template}
+                  </p>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {selectedAutomation === 'Prospect Scoring' && (
+            <div className="space-y-2">
+              <p className="text-xs text-[#8E8E93]">Runs every 6 hours. Classifies prospects by group activity.</p>
+              <div className="grid grid-cols-4 gap-2">
+                {['hot', 'warm', 'cold', 'stale'].map(s => (
+                  <div key={s} className="text-center p-2 rounded-lg bg-[#F5F5F7]">
+                    <p className="text-lg font-bold" style={{ color: s === 'hot' ? '#FF3B30' : s === 'warm' ? '#FF9500' : s === 'cold' ? '#007AFF' : '#8E8E93' }}>
+                      {subStatusCounts['prospect']?.[s] || 0}
+                    </p>
+                    <p className="text-[10px] text-[#8E8E93] uppercase font-bold">{s}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {selectedAutomation === 'Twilio Callbacks' && (
+            <div className="space-y-2">
+              <p className="text-xs text-[#8E8E93]">Real-time. Updates sub-status when prospects read/ignore messages.</p>
+              <div className="grid grid-cols-3 gap-2">
+                {['unread', 'read_no_reply', 'not_sent'].map(s => (
+                  <div key={s} className="text-center p-2 rounded-lg bg-[#F5F5F7]">
+                    <p className="text-lg font-bold">{subStatusCounts['reached_out']?.[s] || 0}</p>
+                    <p className="text-[10px] text-[#8E8E93] uppercase font-bold">{s.replace(/_/g, ' ')}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {selectedAutomation === 'Waiting on Us' && (
+            <div className="space-y-2">
+              <p className="text-xs text-[#8E8E93]">Every 5 min. Detects prospects waiting for our reply.</p>
+              <div className="grid grid-cols-2 gap-2">
+                {['waiting_on_us', 'waiting_on_them'].map(s => (
+                  <div key={s} className="text-center p-3 rounded-lg" style={{ background: s === 'waiting_on_us' ? '#FF3B3010' : '#F5F5F7' }}>
+                    <p className="text-2xl font-bold" style={{ color: s === 'waiting_on_us' ? '#FF3B30' : '#8E8E93' }}>
+                      {subStatusCounts['in_conversation']?.[s] || 0}
+                    </p>
+                    <p className="text-[10px] uppercase font-bold" style={{ color: s === 'waiting_on_us' ? '#FF3B30' : '#8E8E93' }}>
+                      {s.replace(/_/g, ' ')}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {selectedAutomation === 'Trial Activity' && (
+            <div className="space-y-2">
+              <p className="text-xs text-[#8E8E93]">Every hour. Monitors trial engagement and alerts on no leads.</p>
+              <div className="grid grid-cols-3 gap-2">
+                {['engaged', 'no_leads', 'expiring'].map(s => (
+                  <div key={s} className="text-center p-2 rounded-lg bg-[#F5F5F7]">
+                    <p className="text-lg font-bold" style={{ color: s === 'no_leads' ? '#FF3B30' : s === 'expiring' ? '#FF9500' : '#34C759' }}>
+                      {subStatusCounts['demo_trial']?.[s] || 0}
+                    </p>
+                    <p className="text-[10px] text-[#8E8E93] uppercase font-bold">{s.replace(/_/g, ' ')}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {selectedAutomation === 'Stripe Webhooks' && (
+            <div className="space-y-2">
+              <p className="text-xs text-[#8E8E93]">Real-time. Updates status on payment success/failure/cancellation.</p>
+              <div className="grid grid-cols-2 gap-2">
+                {['healthy', 'payment_failing'].map(s => (
+                  <div key={s} className="text-center p-2 rounded-lg bg-[#F5F5F7]">
+                    <p className="text-lg font-bold" style={{ color: s === 'healthy' ? '#34C759' : '#FF3B30' }}>
+                      {subStatusCounts['paying']?.[s] || 0}
+                    </p>
+                    <p className="text-[10px] text-[#8E8E93] uppercase font-bold">{s.replace(/_/g, ' ')}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
       <style>{`
         @keyframes fadeScaleIn {
           from { opacity: 0; transform: translate(-50%, -50%) scale(0.5); }
@@ -430,11 +567,14 @@ function EventBadge({ type }: { type: string }) {
    Main Page
    ═══════════════════════════════════════════════════════════ */
 export default function AutomationsFlow() {
+  const navigate = useNavigate()
   const [stageCounts, setStageCounts] = useState<Record<string, number>>({})
   const [subStatusCounts, setSubStatusCounts] = useState<Record<string, Record<string, number>>>({})
   const [recentEvents, setRecentEvents] = useState<ProspectEvent[]>([])
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
+  const [selectedAutomation, setSelectedAutomation] = useState<string | null>(null)
+  const [templates, setTemplates] = useState<any[]>([])
 
   async function fetchData() {
     // Get stage + sub_status counts via RPC (no 1000 row limit)
@@ -532,7 +672,15 @@ export default function AutomationsFlow() {
 
       {/* ═══════════════ SOLAR SYSTEM PIPELINE ═══════════════ */}
       <div className="flex-1 relative overflow-hidden">
-        <PipelineVisualization stageCounts={stageCounts} subStatusCounts={subStatusCounts} />
+        <PipelineVisualization
+          stageCounts={stageCounts}
+          subStatusCounts={subStatusCounts}
+          navigate={navigate}
+          selectedAutomation={selectedAutomation}
+          setSelectedAutomation={setSelectedAutomation}
+          templates={templates}
+          setTemplates={setTemplates}
+        />
       </div>
 
       {/* ═══════════════ BOTTOM BAR — Recent Events ═══════════════ */}
