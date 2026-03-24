@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '../lib/auth'
+import { supabase } from '../lib/supabase'
 
 export type GroupScanStatus = 'pending' | 'joined' | 'failed' | 'blocked_private' | 'archived'
 
@@ -21,62 +22,54 @@ export interface GroupScanLinksData {
   admin: ContractorGroupScanLink[]
 }
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001'
-
 export function useContractorGroupScanLinks() {
-  const { effectiveUserId, session } = useAuth()
+  const { effectiveUserId } = useAuth()
   const [data, setData] = useState<GroupScanLinksData>({ own: [], admin: [] })
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  const fetchLinks = async () => {
-    if (!effectiveUserId || !session?.access_token) return
+  const fetchLinks = useCallback(async () => {
+    if (!effectiveUserId) return
     try {
       setLoading(true)
-      const res = await fetch(`${API_URL}/api/group-scan/contractor-links?contractor_id=${effectiveUserId}`, {
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`
-        }
-      })
-      if (!res.ok) throw new Error('Failed to fetch links')
-      const json = await res.json()
-      setData(json)
+      const { data: links, error: fetchError } = await supabase
+        .from('contractor_group_scan_requests')
+        .select('*')
+        .eq('contractor_id', effectiveUserId)
+        .order('created_at', { ascending: false })
+
+      if (fetchError) throw fetchError
+      setData({ own: (links ?? []) as ContractorGroupScanLink[], admin: [] })
       setError(null)
     } catch (err: any) {
       setError(err.message)
     } finally {
       setLoading(false)
     }
-  }
+  }, [effectiveUserId])
 
   useEffect(() => {
     fetchLinks()
-    
-    // Poll every 30 seconds to get status updates
     const interval = setInterval(fetchLinks, 30000)
     return () => clearInterval(interval)
-  }, [effectiveUserId])
+  }, [fetchLinks])
 
   const addLink = async (inviteLink: string) => {
-    if (!effectiveUserId || !session?.access_token) return { success: false, error: 'Not authenticated' }
+    if (!effectiveUserId) return { success: false, error: 'Not authenticated' }
     try {
-      const res = await fetch(`${API_URL}/api/group-scan/contractor-links`, {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`
-        },
-        body: JSON.stringify({
-          invite_link: inviteLink,
+      const code = inviteLink.match(/chat\.whatsapp\.com\/([A-Za-z0-9]+)/)?.[1] ?? null
+      const { error: insertError } = await supabase
+        .from('contractor_group_scan_requests')
+        .insert({
           contractor_id: effectiveUserId,
-        }),
-      })
+          invite_link_raw: inviteLink,
+          invite_link_normalized: code ? `https://chat.whatsapp.com/${code}` : inviteLink,
+          invite_code: code,
+          status: 'pending',
+          join_method: 'manual',
+        })
 
-      if (!res.ok) {
-        const errData = await res.json()
-        return { success: false, error: errData.error || 'Failed to add link' }
-      }
-
+      if (insertError) throw insertError
       await fetchLinks()
       return { success: true }
     } catch (err: any) {
