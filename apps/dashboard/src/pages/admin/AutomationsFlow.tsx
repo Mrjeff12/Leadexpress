@@ -437,20 +437,17 @@ export default function AutomationsFlow() {
   const [refreshing, setRefreshing] = useState(false)
 
   async function fetchData() {
-    // Get stage + sub_status counts
-    const { data: prospects } = await supabase
-      .from('prospect_with_groups')
-      .select('stage, sub_status')
-      .is('archived_at', null)
+    // Get stage + sub_status counts via RPC (no 1000 row limit)
+    const { data: rows } = await supabase.rpc('get_pipeline_counts')
 
-    if (prospects) {
+    if (rows) {
       const sc: Record<string, number> = {}
       const ssc: Record<string, Record<string, number>> = {}
-      for (const p of prospects) {
-        sc[p.stage] = (sc[p.stage] || 0) + 1
-        if (p.sub_status) {
-          if (!ssc[p.stage]) ssc[p.stage] = {}
-          ssc[p.stage][p.sub_status] = (ssc[p.stage][p.sub_status] || 0) + 1
+      for (const r of rows as { stage: string; sub_status: string | null; count: number }[]) {
+        sc[r.stage] = (sc[r.stage] || 0) + r.count
+        if (r.sub_status) {
+          if (!ssc[r.stage]) ssc[r.stage] = {}
+          ssc[r.stage][r.sub_status] = r.count
         }
       }
       setStageCounts(sc)
