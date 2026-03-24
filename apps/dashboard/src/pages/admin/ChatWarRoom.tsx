@@ -3,7 +3,7 @@ import { supabase } from '../../lib/supabase'
 import {
   Radio, Search, RefreshCw, MessageCircle,
   User, Bot, Phone, Loader2, Shield, Crown,
-  Users, Zap,
+  Users, Zap, Send, AlertTriangle,
 } from 'lucide-react'
 
 /* ═══════════════════════════════════════════════════════════════════
@@ -109,6 +109,27 @@ export default function ChatWarRoom() {
   const [adminPhones, setAdminPhones] = useState<Set<string>>(new Set())
   const [syncing, setSyncing] = useState(false)
   const chatEndRef = useRef<HTMLDivElement>(null)
+
+  /* ── Marketing message counter ─────────────────────────────── */
+  const [msgStats, setMsgStats] = useState<{
+    today: number; week: number; tier: string; limit: number
+  }>({ today: 0, week: 0, tier: 'Unverified', limit: 250 })
+
+  const fetchMessageStats = useCallback(async () => {
+    try {
+      const { data, error } = await supabase.rpc('get_marketing_message_stats')
+      if (!error && data) {
+        const d = data as { sent_today: number; sent_week: number }
+        // Meta tier logic based on historical volume
+        let tier = 'Unverified'
+        let limit = 250
+        if (d.sent_week > 100000) { tier = 'Tier 3'; limit = 100000 }
+        else if (d.sent_week > 10000) { tier = 'Tier 2'; limit = 10000 }
+        else if (d.sent_week > 1000) { tier = 'Tier 1'; limit = 1000 }
+        setMsgStats({ today: d.sent_today, week: d.sent_week, tier, limit })
+      }
+    } catch { /* silent */ }
+  }, [])
 
   /* ── Fetch group admins from DB ──────────────────────────────── */
   const fetchAdmins = useCallback(async () => {
@@ -226,7 +247,8 @@ export default function ChatWarRoom() {
   useEffect(() => {
     fetchMessages()
     fetchAdmins()
-  }, [fetchMessages, fetchAdmins])
+    fetchMessageStats()
+  }, [fetchMessages, fetchAdmins, fetchMessageStats])
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -300,6 +322,44 @@ export default function ChatWarRoom() {
         </div>
 
         <div className="flex items-center gap-2">
+          {/* Marketing Message Counter */}
+          <div
+            className="flex items-center gap-3 px-3 py-1.5 rounded-lg mr-2"
+            style={{
+              background: msgStats.today >= msgStats.limit * 0.8 ? `${RED}15` : `${CYAN}10`,
+              border: `1px solid ${msgStats.today >= msgStats.limit * 0.8 ? RED : CYAN}30`,
+            }}
+          >
+            <div className="flex items-center gap-1.5">
+              <Send className="w-3.5 h-3.5" style={{ color: CYAN }} />
+              <span className="text-[11px] font-mono text-white">
+                <span style={{ color: CYAN, fontWeight: 700, fontSize: '13px' }}>{msgStats.today}</span>
+                <span className="text-slate-500">/{msgStats.limit}</span>
+              </span>
+              <span className="text-[10px] text-slate-500">today</span>
+            </div>
+            <div style={{ width: 1, height: 16, background: BORDER }} />
+            <div className="flex items-center gap-1.5">
+              <span className="text-[11px] font-mono text-white">
+                <span style={{ fontWeight: 600 }}>{msgStats.week}</span>
+              </span>
+              <span className="text-[10px] text-slate-500">week</span>
+            </div>
+            <div style={{ width: 1, height: 16, background: BORDER }} />
+            <span
+              className="text-[10px] font-semibold px-1.5 py-0.5 rounded"
+              style={{
+                background: msgStats.tier === 'Unverified' ? `${ORANGE}20` : `${GREEN}20`,
+                color: msgStats.tier === 'Unverified' ? ORANGE : GREEN,
+              }}
+            >
+              {msgStats.tier}
+            </span>
+            {msgStats.today >= msgStats.limit * 0.8 && (
+              <AlertTriangle className="w-3.5 h-3.5 animate-pulse" style={{ color: RED }} />
+            )}
+          </div>
+
           <span className="text-[11px] text-slate-500 font-mono">
             {conversations.length} conversations · {admins.length} admins
           </span>

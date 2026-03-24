@@ -134,7 +134,6 @@ export const departments: DepartmentDef[] = [
     basePath: 'bot',
     tabs: [
       { key: 'agents', labelEn: 'Mission Control', labelHe: 'מרכז שליטה', path: '', fullBleed: true },
-      { key: 'warroom', labelEn: 'War Room', labelHe: 'חדר מלחמה', path: 'warroom', fullBleed: true },
       { key: 'inbox', labelEn: 'CRM Inbox', labelHe: 'תיבת הודעות', path: 'inbox', fullBleed: true },
       { key: 'automations', labelEn: 'Automations', labelHe: 'אוטומציות', path: 'automations', fullBleed: true },
     ],

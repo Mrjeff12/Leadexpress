@@ -5,7 +5,6 @@ import AdminSidebar from './admin/AdminSidebar'
 const AdminCanvas = lazy(() => import('./admin/AdminCanvas'))
 const DepartmentLayout = lazy(() => import('./admin/DepartmentLayout'))
 const BotMissionControl = lazy(() => import('../pages/admin/BotMissionControl'))
-const ChatWarRoom = lazy(() => import('../pages/admin/ChatWarRoom'))
 const AdminInbox = lazy(() => import('../pages/AdminInbox'))
 const AutomationsFlow = lazy(() => import('../pages/admin/AutomationsFlow'))
 
@@ -15,9 +14,9 @@ export default function AdminLayout() {
   }, [])
 
   return (
-    <div className="flex h-screen w-screen overflow-hidden">
+    <>
       <AdminSidebar />
-      <div className="flex-1 overflow-hidden">
+      <div className="admin-main-content h-screen overflow-hidden">
         <Suspense
           fallback={
             <div className="flex items-center justify-center h-screen bg-[#faf9f6]">
@@ -28,7 +27,6 @@ export default function AdminLayout() {
           <Routes>
             <Route path="/" element={<AdminCanvas />} />
             <Route path="/bot" element={<BotMissionControl />} />
-            <Route path="/bot/warroom" element={<ChatWarRoom />} />
             <Route path="/bot/inbox" element={<AdminInbox />} />
             <Route path="/bot/automations" element={<AutomationsFlow />} />
             <Route path="/:deptId/*" element={<DepartmentLayout />} />
@@ -36,6 +34,6 @@ export default function AdminLayout() {
           </Routes>
         </Suspense>
       </div>
-    </div>
+    </>
   )
 }

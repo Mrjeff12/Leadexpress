@@ -5,6 +5,8 @@ import { useSubscriptionAccess } from '../hooks/useSubscriptionAccess'
 import { PROFESSIONS } from '../lib/professions'
 import { DAY_KEYS, DAY_LABELS, type DayKey } from '../lib/working-hours'
 import { useI18n } from '../lib/i18n'
+import { useAuth } from '../lib/auth'
+import { supabase } from '../lib/supabase'
 import { useToast } from '../components/hooks/use-toast'
 import CoverageMap from '../components/settings/CoverageMap'
 import GroupLinksPanel from '../components/settings/GroupLinksPanel'
@@ -19,12 +21,14 @@ import {
   X,
   Zap,
   Link,
+  Phone,
 } from 'lucide-react'
 
 export default function OnboardingWizard() {
   const { locale } = useI18n()
   const he = locale === 'he'
   const { toast } = useToast()
+  const { user } = useAuth()
   const { maxProfessions, maxZipCodes } = useSubscriptionAccess()
   const {
     professions,
@@ -41,6 +45,9 @@ export default function OnboardingWizard() {
 
   const { links: groupLinks, addLink: addGroupLink, removeLink: removeGroupLink } = useContractorGroupLinks()
 
+  const [waPhone, setWaPhone] = useState('')
+  const [waCountry, setWaCountry] = useState<'+1' | '+972'>(he ? '+972' : '+1')
+
   const [step, setStep] = useState(0)
   // Track transition direction for slide animation
   const [slideDir, setSlideDir] = useState<'left' | 'right'>('left')
@@ -52,6 +59,13 @@ export default function OnboardingWizard() {
   const maxZips = maxZipCodes
 
   const steps = [
+    {
+      label: 'WhatsApp',
+      icon: Phone,
+      desc: he
+        ? 'הזן את מספר הWhatsApp שלך כדי שנוכל לשלוח לך לידים'
+        : 'Enter your WhatsApp number so we can send you leads',
+    },
     {
       label: he ? 'מקצועות' : 'Trades',
       icon: Sparkles,
@@ -83,14 +97,29 @@ export default function OnboardingWizard() {
   ]
 
   function canNext(): boolean {
-    if (step === 0) return professions.length > 0
-    if (step === 1) return zipCodes.length > 0
-    // Step 2 (groups) is optional — always allow proceeding
+    if (step === 0) return waPhone.replace(/\D/g, '').length >= 10
+    if (step === 1) return professions.length > 0
+    if (step === 2) return zipCodes.length > 0
+    // Step 3 (groups) and Step 4 (schedule) are optional — always allow proceeding
     return true
+  }
+
+  async function saveWhatsAppPhone() {
+    if (!user) return
+    const fullPhone = `${waCountry}${waPhone.replace(/\D/g, '')}`
+    const { error } = await supabase
+      .from('profiles')
+      .update({ whatsapp_phone: fullPhone, phone: fullPhone })
+      .eq('id', user.id)
+    if (error) console.error('Failed to save WhatsApp phone:', error)
   }
 
   function goToStep(target: number) {
     if (target === step || animating) return
+    // Save WhatsApp phone when leaving step 0
+    if (step === 0 && target > 0) {
+      saveWhatsAppPhone()
+    }
     setSlideDir(target > step ? 'left' : 'right')
     setAnimating(true)
     // Start exit animation, then swap content, then enter
@@ -162,7 +191,7 @@ export default function OnboardingWizard() {
           {he ? 'בוא נגדיר את החשבון שלך' : "Let's set up your account"}
         </h2>
         <p className="text-xs text-zinc-400 mt-0.5">
-          {he ? '4 שלבים קצרים — תסיים תוך שניות' : 'Just 4 quick steps — you\'ll be done in seconds'}
+          {he ? '5 שלבים קצרים — תסיים תוך שניות' : 'Just 5 quick steps — you\'ll be done in seconds'}
         </p>
       </div>
 
@@ -224,18 +253,83 @@ export default function OnboardingWizard() {
       {/* ── Content area with slide transition ── */}
       <div className="flex-1 overflow-y-auto px-6 pb-32">
         <div
-          className={`mx-auto ${step === 1 ? 'max-w-5xl' : 'max-w-2xl'}`}
+          className={`mx-auto ${step === 2 ? 'max-w-5xl' : 'max-w-2xl'}`}
           style={slideStyle}
         >
-          {/* ─── Step 0: Professions ─── */}
+          {/* ─── Step 0: WhatsApp Phone ─── */}
           {visibleStep === 0 && (
+            <div className="space-y-5">
+              <div className="text-center">
+                <h1 className="text-2xl font-bold text-zinc-900">
+                  {he ? 'מספר הWhatsApp שלך' : 'Your WhatsApp Number'}
+                </h1>
+                <p className="text-sm text-zinc-500 mt-1">
+                  {steps[0].desc}
+                </p>
+              </div>
+
+              <div className="max-w-sm mx-auto space-y-4">
+                <label className="block text-sm font-semibold text-zinc-700 text-center">
+                  {he ? 'מספר WhatsApp' : 'WhatsApp Number'}
+                </label>
+                <div className="flex gap-2">
+                  <select
+                    value={waCountry}
+                    onChange={(e) => setWaCountry(e.target.value as '+1' | '+972')}
+                    className="rounded-xl border-2 border-zinc-200 bg-white px-3 py-3 text-sm font-semibold text-zinc-700 outline-none focus:border-[#fe5b25] transition-colors"
+                  >
+                    <option value="+1">🇺🇸 +1</option>
+                    <option value="+972">🇮🇱 +972</option>
+                  </select>
+                  <input
+                    type="tel"
+                    placeholder={waCountry === '+972' ? '50-123-4567' : '(555) 123-4567'}
+                    value={waPhone}
+                    onChange={(e) => {
+                      const digits = e.target.value.replace(/\D/g, '')
+                      if (waCountry === '+972') {
+                        // Format: XX-XXX-XXXX
+                        let formatted = digits
+                        if (digits.length > 2) formatted = digits.slice(0, 2) + '-' + digits.slice(2)
+                        if (digits.length > 5) formatted = digits.slice(0, 2) + '-' + digits.slice(2, 5) + '-' + digits.slice(5, 9)
+                        setWaPhone(formatted)
+                      } else {
+                        // Format: (XXX) XXX-XXXX
+                        let formatted = digits
+                        if (digits.length > 3) formatted = '(' + digits.slice(0, 3) + ') ' + digits.slice(3)
+                        if (digits.length > 6) formatted = '(' + digits.slice(0, 3) + ') ' + digits.slice(3, 6) + '-' + digits.slice(6, 10)
+                        setWaPhone(formatted)
+                      }
+                    }}
+                    className="flex-1 rounded-xl border-2 border-zinc-200 bg-white px-4 py-3 text-sm font-semibold text-zinc-700 outline-none focus:border-[#fe5b25] transition-colors placeholder:text-zinc-300"
+                  />
+                </div>
+
+                {waPhone.replace(/\D/g, '').length >= 10 && (
+                  <div className="flex items-center gap-2 justify-center text-sm text-emerald-600 font-medium">
+                    <Check className="w-4 h-4" />
+                    {he ? 'מספר תקין' : 'Looks good!'}
+                  </div>
+                )}
+
+                <div className="rounded-xl bg-[#fff4ef] border border-[#fee8df] px-4 py-3 text-xs text-[#e04d1c] text-center leading-relaxed">
+                  {he
+                    ? 'נשלח לך לידים ישירות בWhatsApp. ודא שזה המספר הנכון.'
+                    : "We'll send leads directly to your WhatsApp. Make sure this is the right number."}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ─── Step 1: Professions ─── */}
+          {visibleStep === 1 && (
             <div className="space-y-5">
               <div className="text-center">
                 <h1 className="text-2xl font-bold text-zinc-900">
                   {he ? 'מה סוג העבודה שלך?' : 'What type of work do you do?'}
                 </h1>
                 <p className="text-sm text-zinc-500 mt-1">
-                  {steps[0].desc}
+                  {steps[1].desc}
                   {maxProf > 0 && (
                     <span className="ml-2 text-[#fe5b25] font-semibold">
                       ({professions.length}/{maxProf})
@@ -278,15 +372,15 @@ export default function OnboardingWizard() {
             </div>
           )}
 
-          {/* ─── Step 1: Service Areas with Map ─── */}
-          {visibleStep === 1 && (
+          {/* ─── Step 2: Service Areas with Map ─── */}
+          {visibleStep === 2 && (
             <div className="space-y-4">
               <div className="text-center">
                 <h1 className="text-2xl font-bold text-zinc-900">
                   {he ? 'אזורי השירות שלך' : 'Your service areas'}
                 </h1>
                 <p className="text-sm text-zinc-500 mt-1">
-                  {steps[1].desc}
+                  {steps[2].desc}
                   {maxZips > 0 && (
                     <span className="ml-2 text-[#fe5b25] font-semibold">
                       ({zipCodes.length}/{maxZips})
@@ -342,15 +436,15 @@ export default function OnboardingWizard() {
             </div>
           )}
 
-          {/* ─── Step 2: WhatsApp Groups ─── */}
-          {visibleStep === 2 && (
+          {/* ─── Step 3: WhatsApp Groups ─── */}
+          {visibleStep === 3 && (
             <div className="space-y-5">
               <div className="text-center">
                 <h1 className="text-2xl font-bold text-zinc-900">
                   {he ? 'קבוצות WhatsApp שלך' : 'Your WhatsApp Groups'}
                 </h1>
                 <p className="text-sm text-zinc-500 mt-1">
-                  {steps[2].desc}
+                  {steps[3].desc}
                 </p>
               </div>
 
@@ -372,15 +466,15 @@ export default function OnboardingWizard() {
             </div>
           )}
 
-          {/* ─── Step 3: Working Hours ─── */}
-          {visibleStep === 3 && (
+          {/* ─── Step 4: Working Hours ─── */}
+          {visibleStep === 4 && (
             <div className="space-y-5">
               <div className="text-center">
                 <h1 className="text-2xl font-bold text-zinc-900">
                   {he ? 'שעות העבודה שלך' : 'Your working hours'}
                 </h1>
                 <p className="text-sm text-zinc-500 mt-1">
-                  {steps[3].desc}
+                  {steps[4].desc}
                 </p>
               </div>
 
@@ -493,7 +587,7 @@ export default function OnboardingWizard() {
             <div />
           )}
 
-          {step < 3 ? (
+          {step < 4 ? (
             <button
               type="button"
               disabled={!canNext() || animating}

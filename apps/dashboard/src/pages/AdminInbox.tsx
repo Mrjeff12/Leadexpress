@@ -270,7 +270,24 @@ export default function AdminInbox() {
   const [listSearch, setListSearch] = useState('')
   const [filterStage, setFilterStage] = useState<string>(searchParams.get('stage') || 'all')
   const [filterSubStatus, setFilterSubStatus] = useState<string | null>(searchParams.get('sub') || null)
+  const [filterCountry, setFilterCountry] = useState<string>('all')
   const [displayLimit, setDisplayLimit] = useState(50)
+
+  // Marketing message counter
+  const [msgStats, setMsgStats] = useState<{ today: number; week: number; tier: string; limit: number }>({ today: 0, week: 0, tier: 'Unverified', limit: 250 })
+  const fetchMsgStats = useCallback(async () => {
+    try {
+      const { data, error } = await supabase.rpc('get_marketing_message_stats')
+      if (!error && data) {
+        const d = data as { sent_today: number; sent_week: number }
+        let tier = 'Unverified', limit = 250
+        if (d.sent_week > 100000) { tier = 'Tier 3'; limit = 100000 }
+        else if (d.sent_week > 10000) { tier = 'Tier 2'; limit = 10000 }
+        else if (d.sent_week > 1000) { tier = 'Tier 1'; limit = 1000 }
+        setMsgStats({ today: d.sent_today, week: d.sent_week, tier, limit })
+      }
+    } catch { /* silent */ }
+  }, [])
 
   // Group admin tracking — phones of group admins for gold badge
   const [adminPhones, setAdminPhones] = useState<Set<string>>(new Set())
@@ -289,6 +306,7 @@ export default function AdminInbox() {
     } catch { /* silent */ }
   }, [])
   useEffect(() => { fetchAdmins() }, [fetchAdmins])
+  useEffect(() => { fetchMsgStats() }, [fetchMsgStats])
   const isGroupAdmin = (phone: string) => {
     const clean = phone.replace(/[\s\-()whatsapp:+]/g, '')
     return adminPhones.has(clean) || adminPhones.has('+' + clean)
@@ -371,10 +389,18 @@ export default function AdminInbox() {
     if (filterSubStatus) {
       list = list.filter(p => p.sub_status === filterSubStatus)
     }
+    // Country filter
+    if (filterCountry === 'US') {
+      list = list.filter(p => p.phone.startsWith('+1') && p.phone.length === 12)
+    } else if (filterCountry === 'IL') {
+      list = list.filter(p => p.phone.startsWith('+972'))
+    } else if (filterCountry === 'OTHER') {
+      list = list.filter(p => !(p.phone.startsWith('+1') && p.phone.length === 12) && !p.phone.startsWith('+972'))
+    }
     if (!listSearch.trim()) return list
     const q = listSearch.toLowerCase()
     return list.filter(p => (p.display_name ?? '').toLowerCase().includes(q) || p.phone.includes(q) || p.profession_tags.some(t => t.toLowerCase().includes(q)))
-  }, [prospectList, listSearch, filterStage, filterSubStatus, adminPhones])
+  }, [prospectList, listSearch, filterStage, filterSubStatus, filterCountry, adminPhones])
 
   // Reset display limit and sub-status filter when filter changes
   useEffect(() => { setDisplayLimit(50); setFilterSubStatus(null) }, [filterStage, listSearch])
@@ -524,20 +550,52 @@ export default function AdminInbox() {
         {/* Top row: Title + Search */}
         <div className="px-5 pt-3 pb-2 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <h1 className="text-lg font-semibold tracking-tight text-[#1C1C1E]">{he ? 'חדר מלחמה' : 'War Room'}</h1>
+            <h1 className="text-lg font-semibold tracking-tight text-[#1C1C1E]">{he ? 'תיבת הודעות' : 'CRM Inbox'}</h1>
             <div className="flex items-center gap-1.5">
               <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
               <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[#8E8E93]">{he ? 'פייפליין' : 'Pipeline'}</p>
             </div>
+            {/* Marketing message counter */}
+            <div className="flex items-center gap-2 ml-3 px-2.5 py-1 rounded-xl" style={{ background: msgStats.today >= msgStats.limit * 0.8 ? 'rgba(239,68,68,0.08)' : 'rgba(0,0,0,0.03)', border: `1px solid ${msgStats.today >= msgStats.limit * 0.8 ? 'rgba(239,68,68,0.2)' : 'rgba(0,0,0,0.06)'}` }}>
+              <Send className="w-3 h-3 text-[#8E8E93]" strokeWidth={2.5} />
+              <span className="text-[11px] font-mono font-semibold" style={{ color: C.primary }}>{msgStats.today}</span>
+              <span className="text-[10px] text-[#8E8E93]">/ {msgStats.limit} {he ? 'היום' : 'today'}</span>
+              <span className="text-[9px] font-medium px-1.5 py-0.5 rounded-md" style={{ background: msgStats.tier === 'Unverified' ? 'rgba(245,158,11,0.1)' : 'rgba(34,197,94,0.1)', color: msgStats.tier === 'Unverified' ? '#f59e0b' : '#22c55e' }}>{msgStats.tier}</span>
+              {msgStats.today >= msgStats.limit * 0.8 && <AlertTriangle className="w-3 h-3 text-red-500 animate-pulse" />}
+            </div>
           </div>
-          <div className="relative group">
-            <Search className="w-3.5 h-3.5 absolute top-1/2 -translate-y-1/2 text-[#8E8E93] transition-colors group-focus-within:text-[#fe5b25]" style={{ left: he ? 'auto' : 10, right: he ? 10 : 'auto' }} strokeWidth={2.5} />
-            <input
-              value={listSearch} onChange={e => setListSearch(e.target.value)}
-              placeholder={he ? 'חיפוש...' : 'Search...'}
-              className="w-[180px] h-9 rounded-2xl border border-black/[0.06] text-[12px] outline-none transition-all bg-white/60 focus:bg-white focus:ring-2 focus:ring-[#fe5b25]/10 focus:border-[#fe5b25]/30"
-              style={{ paddingLeft: he ? 10 : 30, paddingRight: he ? 30 : 10, color: C.dark }}
-            />
+          <div className="flex items-center gap-2">
+            {/* Country filter */}
+            <div className="flex items-center gap-1 bg-black/[0.03] rounded-xl p-0.5">
+              {[
+                { key: 'all', label: 'All', flag: '🌍' },
+                { key: 'US', label: 'US', flag: '🇺🇸' },
+                { key: 'IL', label: 'IL', flag: '🇮🇱' },
+              ].map(c => (
+                <button
+                  key={c.key}
+                  onClick={() => setFilterCountry(filterCountry === c.key ? 'all' : c.key)}
+                  className="flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-semibold transition-all"
+                  style={{
+                    background: filterCountry === c.key ? 'white' : 'transparent',
+                    color: filterCountry === c.key ? C.primary : '#8E8E93',
+                    boxShadow: filterCountry === c.key ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                  }}
+                >
+                  <span>{c.flag}</span>
+                  <span>{c.label}</span>
+                </button>
+              ))}
+            </div>
+            <div className="relative group">
+              <Search className="w-3.5 h-3.5 absolute top-1/2 -translate-y-1/2 text-[#8E8E93] transition-colors group-focus-within:text-[#fe5b25]" style={{ left: he ? 'auto' : 10, right: he ? 10 : 'auto' }} strokeWidth={2.5} />
+              <input
+                value={listSearch} onChange={e => setListSearch(e.target.value)}
+                placeholder={he ? 'חיפוש...' : 'Search...'}
+                className="w-[180px] h-9 rounded-2xl border border-black/[0.06] text-[12px] outline-none transition-all bg-white/60 focus:bg-white focus:ring-2 focus:ring-[#fe5b25]/10 focus:border-[#fe5b25]/30"
+                style={{ paddingLeft: he ? 10 : 30, paddingRight: he ? 30 : 10, color: C.dark }}
+              />
+            </div>
           </div>
         </div>
 

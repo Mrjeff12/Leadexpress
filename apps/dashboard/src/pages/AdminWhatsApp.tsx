@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useI18n } from '../lib/i18n'
+import { supabase } from '../lib/supabase'
 import { useAdminWhatsAppData } from '../hooks/useAdminWhatsAppData'
 import {
   Smartphone,
@@ -178,6 +179,43 @@ export default function AdminWhatsApp() {
   const [groupSearch, setGroupSearch] = useState('')
   const [showOnlyLeads, setShowOnlyLeads] = useState(false)
   const [toggledOffGroups, setToggledOffGroups] = useState<Set<string>>(new Set())
+
+  // Pending group scan requests
+  const [pendingGroupCount, setPendingGroupCount] = useState(0)
+  const [pendingGroups, setPendingGroups] = useState<{ id: string; invite_code: string; invite_link_raw: string; group_name: string | null; created_at: string; contractor_name: string | null }[]>([])
+  const [greenApiInstances, setGreenApiInstances] = useState<{ id: string; phone: string; status: string; plan: string }[]>([])
+  const [showPendingPanel, setShowPendingPanel] = useState(false)
+
+  useEffect(() => {
+    // Fetch pending groups with contractor names
+    supabase.from('contractor_group_scan_requests')
+      .select('id, invite_code, invite_link_raw, group_name, created_at, contractor_id')
+      .eq('status', 'pending')
+      .order('created_at', { ascending: false })
+      .then(async ({ data }) => {
+        if (!data) return
+        setPendingGroupCount(data.length)
+        // Fetch contractor names
+        const ids = [...new Set(data.map(d => d.contractor_id))]
+        const { data: profiles } = await supabase.from('profiles').select('id, full_name').in('id', ids)
+        const nameMap = new Map((profiles ?? []).map(p => [p.id, p.full_name]))
+        setPendingGroups(data.map(d => ({ ...d, contractor_name: nameMap.get(d.contractor_id) ?? null })))
+      })
+    // Check all Green API instances
+    const instances = [
+      { id: '7107548478', token: '805319ef70304622bc70204e07201458090f71991bcb4f128b', phone: '+972526845908', plan: 'Business' },
+      { id: '7107562213', token: '5dc7d3a193d34269b8de334cd724047a67e494b7fb0d45f8bb', phone: '+17542763406', plan: 'Developer' },
+    ]
+    Promise.all(instances.map(async (inst) => {
+      try {
+        const r = await fetch(`https://7107.api.greenapi.com/waInstance${inst.id}/getStateInstance/${inst.token}`)
+        const d = await r.json()
+        return { id: inst.id, phone: inst.phone, status: d.stateInstance ?? 'unknown', plan: inst.plan }
+      } catch {
+        return { id: inst.id, phone: inst.phone, status: 'error', plan: inst.plan }
+      }
+    })).then(setGreenApiInstances)
+  }, [])
 
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const whatsappData = useAdminWhatsAppData({
@@ -415,9 +453,14 @@ export default function AdminWhatsApp() {
           {he ? 'חשבון חדש' : 'Add Account'}
         </button>
         <div className="flex-1" />
-        <a href="/admin/group-scan" className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium shrink-0 transition-all bg-emerald-50 text-emerald-600 hover:bg-emerald-100">
+        <a href="/admin/group-scan" className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium shrink-0 transition-all bg-emerald-50 text-emerald-600 hover:bg-emerald-100 relative">
           <Users className="w-3.5 h-3.5" />
           {he ? 'בקשות סריקת קבוצות' : 'Group Scan Requests'}
+          {pendingGroupCount > 0 && (
+            <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] flex items-center justify-center rounded-full bg-amber-500 text-white text-[10px] font-bold px-1">
+              {pendingGroupCount}
+            </span>
+          )}
         </a>
       </div>
 
@@ -493,6 +536,68 @@ export default function AdminWhatsApp() {
             <WifiOff className="w-3.5 h-3.5" />
             {he ? 'נתק' : 'Disconnect'}
           </button>
+        </div>
+      )}
+
+      {/* ── Green API Health + Pending Queue ─────────────────────────────────── */}
+      <div className="flex items-center gap-2 mb-3 flex-wrap">
+        {/* Green API Instances */}
+        {greenApiInstances.length === 0 && (
+          <div className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold" style={{ background: 'rgba(0,0,0,0.03)', color: '#8E8E93', border: '1px solid rgba(0,0,0,0.06)' }}>
+            <div className="w-2 h-2 rounded-full bg-gray-400 animate-pulse" />
+            {he ? 'בודק חיבורים...' : 'Checking connections...'}
+          </div>
+        )}
+        {greenApiInstances.map(inst => (
+          <div key={inst.id} className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold" style={{
+            background: inst.status === 'authorized' ? 'rgba(37,211,102,0.08)' : 'rgba(239,68,68,0.08)',
+            color: inst.status === 'authorized' ? '#128C7E' : '#ef4444',
+            border: `1px solid ${inst.status === 'authorized' ? 'rgba(37,211,102,0.2)' : 'rgba(239,68,68,0.2)'}`,
+          }}>
+            <div className={`w-2 h-2 rounded-full ${inst.status === 'authorized' ? 'bg-green-500' : 'bg-red-500 animate-pulse'}`} />
+            <span>{inst.phone}</span>
+            <span className="text-[9px] opacity-60">{inst.plan}</span>
+            <span>{inst.status === 'authorized' ? '✓' : '⚠️'}</span>
+          </div>
+        ))}
+
+        {/* Pending count button */}
+        <button
+          onClick={() => setShowPendingPanel(!showPendingPanel)}
+          className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold transition-all"
+          style={{
+            background: pendingGroupCount > 0 ? 'rgba(245,158,11,0.08)' : 'rgba(0,0,0,0.03)',
+            color: pendingGroupCount > 0 ? '#d97706' : '#8E8E93',
+            border: `1px solid ${pendingGroupCount > 0 ? 'rgba(245,158,11,0.2)' : 'rgba(0,0,0,0.06)'}`,
+          }}
+        >
+          <Clock className="w-3.5 h-3.5" />
+          {pendingGroupCount} {he ? 'ממתינות' : 'pending'}
+        </button>
+
+        <div className="flex-1" />
+        <span className="text-[10px] text-[#8E8E93]">18/18 {he ? 'מנוטרות' : 'monitored'}</span>
+      </div>
+
+      {/* Pending Groups List */}
+      {showPendingPanel && pendingGroups.length > 0 && (
+        <div className="glass-panel mb-3 p-4">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm font-bold text-stone-800">{he ? '🔔 קבוצות ממתינות לחיבור' : '🔔 Pending Group Requests'}</h3>
+            <button onClick={() => setShowPendingPanel(false)} className="text-[#8E8E93] hover:text-stone-600 text-xs">✕</button>
+          </div>
+          <div className="space-y-2 max-h-[200px] overflow-y-auto">
+            {pendingGroups.map(g => (
+              <div key={g.id} className="flex items-center gap-3 px-3 py-2 rounded-lg bg-amber-50/50 border border-amber-100">
+                <div className="w-2 h-2 rounded-full bg-amber-400 shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <div className="text-xs font-semibold text-stone-700 truncate">{g.group_name || g.invite_code}</div>
+                  <div className="text-[10px] text-stone-400">{he ? 'מ-' : 'from '}{g.contractor_name || 'Unknown'} · {new Date(g.created_at).toLocaleDateString()}</div>
+                </div>
+                <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-600">{he ? 'ממתין' : 'Pending'}</span>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 
@@ -705,7 +810,7 @@ export default function AdminWhatsApp() {
 
           <div className="flex-1 overflow-y-auto p-2 space-y-1.5 no-scrollbar">
             {pipeline.map(event => {
-              const conf = STAGE_CONFIG[event.stage]
+              const conf = STAGE_CONFIG[event.stage] ?? { label: event.stage, labelHe: event.stage, color: 'hsl(40 4% 55%)', icon: MessageSquare }
               const Icon = conf.icon
               const isFiltered = event.stage === 'quick_filtered' || event.stage === 'sender_filtered' || event.stage === 'no_lead'
               const isSuccess = event.stage === 'lead_created' || event.stage === 'matched' || event.stage === 'sent' || event.stage === 'claimed'

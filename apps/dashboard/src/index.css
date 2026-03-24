@@ -501,6 +501,20 @@
       padding-inline-start: 72px;
     }
   }
+
+  /* ─── Admin Layout Main Content ─── */
+  .admin-main-content {
+    padding-inline-start: 0;
+    transition: padding-inline-start 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  @media (min-width: 768px) {
+    .admin-main-content {
+      padding-inline-start: 252px;
+    }
+    body.sidebar-collapsed .admin-main-content {
+      padding-inline-start: 72px;
+    }
+  }
 }
 
 /* ─── Mobile map: hide controls (must be outside @layer) ─── */
