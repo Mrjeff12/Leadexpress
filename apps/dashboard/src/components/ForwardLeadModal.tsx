@@ -253,11 +253,10 @@ export default function ForwardLeadModal({ lead, isOpen, onClose }: ForwardLeadM
         .from('job_broadcasts')
         .insert({
           lead_id: lead.id,
-          broadcaster_id: effectiveUserId!,
+          publisher_id: effectiveUserId!,
           deal_type: dealType,
           deal_value: dealValue,
           description: broadcastDescription.trim() || null,
-          status: 'active',
         })
         .select('id')
         .single()

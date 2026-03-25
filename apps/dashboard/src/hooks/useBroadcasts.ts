@@ -57,10 +57,10 @@ export function useBroadcasts() {
       if (!effectiveUserId) return []
 
       const { data, error } = await supabase
-        .from('broadcasts')
+        .from('job_broadcasts')
         .select(`
           *,
-          lead:leads!broadcasts_lead_id_fkey (
+          lead:leads!job_broadcasts_lead_id_fkey (
             profession,
             city,
             zip_code,
@@ -80,7 +80,7 @@ export function useBroadcasts() {
       if (!effectiveUserId) throw new Error('Not authenticated')
 
       const { data, error } = await supabase
-        .from('broadcasts')
+        .from('job_broadcasts')
         .insert({
           publisher_id: effectiveUserId,
           lead_id: input.lead_id,
@@ -127,7 +127,7 @@ export function useBroadcasts() {
   const closeBroadcastMutation = useMutation({
     mutationFn: async (broadcastId: string) => {
       const { error } = await supabase
-        .from('broadcasts')
+        .from('job_broadcasts')
         .update({ status: 'closed' })
         .eq('id', broadcastId)
 
