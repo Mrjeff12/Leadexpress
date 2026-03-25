@@ -464,10 +464,52 @@ export default function AdminWhatsApp() {
         </a>
       </div>
 
-      {/* ── Connected Account Header ─────────────────────────────────────────── */}
-      {selectedAccount && (
+      {/* ── All Connected Accounts (side by side) ──────────────────────────── */}
+      {accounts.length > 0 && (
+        <div className={`grid gap-3 mb-3`} style={{ gridTemplateColumns: `repeat(${Math.min(accounts.length, 3)}, 1fr)` }}>
+          {accounts.map(acc => {
+            const isSelected = acc.id === selectedAccountId
+            const statusColor = acc.status === 'connected' ? '#25D366' : acc.status === 'blocked' ? '#ef4444' : '#f59e0b'
+            return (
+              <button
+                key={acc.id}
+                onClick={() => setSelectedAccountId(acc.id)}
+                className="glass-panel px-4 py-3 flex items-center gap-3 text-left transition-all hover:shadow-md"
+                style={{ border: isSelected ? '2px solid #fe5b25' : '1px solid rgba(0,0,0,0.06)', borderRadius: 16 }}
+              >
+                <div className="relative shrink-0">
+                  {acc.avatarUrl ? (
+                    <img src={acc.avatarUrl} alt="" className="w-10 h-10 rounded-full object-cover" />
+                  ) : (
+                    <div className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold text-white" style={{ background: 'linear-gradient(135deg, #25D366, #128C7E)' }}>
+                      {(acc.displayName ?? acc.label)?.[0]?.toUpperCase() ?? 'W'}
+                    </div>
+                  )}
+                  <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-white" style={{ background: statusColor }} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-sm font-semibold truncate" style={{ color: 'hsl(40 8% 10%)' }}>{acc.displayName ?? acc.label}</span>
+                    <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full shrink-0" style={{
+                      background: acc.status === 'connected' ? '#dcfce7' : '#fef3c7',
+                      color: acc.status === 'connected' ? '#16a34a' : '#d97706',
+                    }}>{acc.status === 'connected' ? '✓' : '⚠'}</span>
+                  </div>
+                  <div className="flex items-center gap-2 mt-0.5 text-[10px]" style={{ color: 'hsl(40 4% 55%)' }}>
+                    <span>{acc.phone ?? '—'}</span>
+                    <span>•</span>
+                    <span>{acc.groupCount} {he ? 'קבוצות' : 'groups'}</span>
+                  </div>
+                </div>
+              </button>
+            )
+          })}
+        </div>
+      )}
+
+      {/* ── Selected Account Details (legacy — keep for disconnect etc) ───── */}
+      {selectedAccount && false && (
         <div className="glass-panel px-5 py-4 mb-3 flex items-center gap-4">
-          {/* Avatar */}
           <div className="relative shrink-0">
             {selectedAccount.avatarUrl ? (
               <img
@@ -481,13 +523,10 @@ export default function AdminWhatsApp() {
                 {(selectedAccount.displayName ?? selectedAccount.label)?.[0]?.toUpperCase() ?? 'W'}
               </div>
             )}
-            {/* Online indicator */}
             <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full border-2 border-white flex items-center justify-center"
               style={{ background: selectedAccount.status === 'connected' ? '#25D366' : selectedAccount.status === 'blocked' ? '#ef4444' : '#f59e0b' }}>
             </div>
           </div>
-
-          {/* Name & details */}
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
               <h2 className="text-base font-semibold truncate" style={{ color: 'hsl(40 8% 10%)' }}>
