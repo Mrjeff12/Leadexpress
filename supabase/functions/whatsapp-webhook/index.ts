@@ -619,7 +619,27 @@ async function handleButtonPayload(phone: string, payload: string, _text: string
         break;
       }
 
-      // Use service-role client to insert response (bypass RLS)
+      // Validate broadcast is still open before inserting
+      const { data: bCheck } = await supabase
+        .from('job_broadcasts')
+        .select('status, expires_at, publisher_id')
+        .eq('id', broadcastId)
+        .single();
+
+      if (!bCheck || bCheck.status !== 'open') {
+        await sendText(phone, 'This job is no longer available.');
+        break;
+      }
+      if (new Date(bCheck.expires_at) < new Date()) {
+        await sendText(phone, 'This job posting has expired.');
+        break;
+      }
+      if (bCheck.publisher_id === respProfile.id) {
+        await sendText(phone, 'You cannot respond to your own broadcast.');
+        break;
+      }
+
+      // Insert response
       const { error: respErr } = await supabase
         .from('job_broadcast_responses')
         .insert({ broadcast_id: broadcastId, contractor_id: respProfile.id })

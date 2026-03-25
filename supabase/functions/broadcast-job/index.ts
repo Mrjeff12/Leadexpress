@@ -103,14 +103,14 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
-    const { broadcast_id, action, contractor_ids } = await req.json();
+    const body = await req.json();
+    const { broadcast_id, action, contractor_ids, phone, name, inviter_name, register_url, contractor_id } = body;
 
     if (action === 'send_broadcast') {
       return await handleSendBroadcast(broadcast_id);
     }
 
     if (action === 'send_invite') {
-      const { phone, name, inviter_name, register_url } = await req.json().catch(() => ({}));
       return await handleSendInvite(phone, name, inviter_name, register_url);
     }
 
@@ -119,8 +119,7 @@ Deno.serve(async (req: Request) => {
     }
 
     if (action === 'notify_chosen') {
-      const { contractor_id, broadcast_id: bId } = await req.json().catch(() => ({}));
-      return await handleNotifyChosen(contractor_id, bId);
+      return await handleNotifyChosen(contractor_id, broadcast_id);
     }
 
     // Default: broadcast
@@ -206,6 +205,18 @@ async function handleSendBroadcast(broadcastId: string): Promise<Response> {
     if (!phone) continue;
 
     const normalized = normalizePhone(phone);
+
+    // Check if contractor is mid-onboarding — don't overwrite their session
+    const { data: existingState } = await supabase
+      .from('wa_onboard_state')
+      .select('step')
+      .eq('phone', normalized)
+      .maybeSingle();
+
+    if (existingState && existingState.step !== 'broadcast_pending') {
+      // Skip — contractor is in an active onboarding flow
+      continue;
+    }
 
     // Store broadcast context for button callback
     await supabase.from('wa_onboard_state').upsert(

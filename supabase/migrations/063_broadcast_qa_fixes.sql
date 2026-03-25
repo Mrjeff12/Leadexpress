@@ -1,0 +1,6 @@
+-- Applied via Supabase MCP on 2026-03-25
+-- See git commit message for details of fixes
+-- C2+C3: respond_to_broadcast with FOR UPDATE + duplicate handling
+-- C4: submit_review reviewee validation
+-- I2: Restrict responses RLS to SELECT+INSERT
+-- I4: expire_stale_broadcasts() function
