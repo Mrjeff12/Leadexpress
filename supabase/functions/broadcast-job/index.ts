@@ -303,13 +303,12 @@ async function handleNotifyChosen(contractorId: string, broadcastId: string): Pr
   }
 
   const lead = broadcast.leads as { profession: string; city: string | null };
-  // For now, use dashboard URL since portal requires job_order token
-  const portalUrl = `https://app.leadexpress.co/jobs`;
-
+  // Template builds URL as: https://app.leadexpress.co.il/jobs?b={{3}}
+  // Send broadcast ID so the link opens the jobs page filtered to this broadcast
   const sent = await sendButtons(profile.whatsapp_phone, CONTENT.BROADCAST_CHOSEN, {
     '1': lead?.profession || 'general',
     '2': lead?.city || 'your area',
-    '3': portalUrl,
+    '3': broadcastId,
   });
 
   return jsonResponse({ sent });

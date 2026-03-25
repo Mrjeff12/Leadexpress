@@ -678,13 +678,14 @@ async function handleButtonPayload(phone: string, payload: string, _text: string
         const { data: stats } = await supabase.rpc('calculate_contractor_stats', { p_user_id: respProfile.id });
 
         if (publisher?.whatsapp_phone && CONTENT.BROADCAST_INTEREST) {
-          const profileUrl = `https://app.leadexpress.co/pro/${cp?.slug || respProfile.id}`;
+          // Template builds URL as: https://app.leadexpress.co.il/pro/{{5}}
+          // So send just the slug, not the full URL
           await sendButtons(publisher.whatsapp_phone, CONTENT.BROADCAST_INTEREST, {
             '1': respProfile.full_name || 'A contractor',
             '2': cp?.tier || 'new',
             '3': String(cp?.avg_rating || '0'),
             '4': String((stats as any)?.job_orders_completed || '0'),
-            '5': profileUrl,
+            '5': cp?.slug || respProfile.id,
           });
         }
       }

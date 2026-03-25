@@ -243,7 +243,7 @@ export default function JobsDashboard() {
   }, [mainView, fetchBroadcasts])
 
   const handleChooseContractor = async (broadcastId: string, contractorId: string) => {
-    const { error } = await supabase.rpc('choose_contractor_for_broadcast', {
+    const { data: result, error } = await supabase.rpc('choose_contractor_for_broadcast', {
       p_broadcast_id: broadcastId,
       p_contractor_id: contractorId,
     })
@@ -252,6 +252,24 @@ export default function JobsDashboard() {
       return
     }
     toast({ title: he ? 'נבחר!' : 'Contractor chosen!', description: he ? 'הזמנת עבודה נוצרה' : 'Job order created' })
+
+    // Send WhatsApp notifications (fire-and-forget)
+    const rpcResult = result as { closed_contractor_ids?: string[]; chosen_contractor_id?: string; broadcast_id?: string } | null
+    if (rpcResult) {
+      // Notify chosen contractor
+      supabase.functions.invoke('broadcast-job', {
+        body: { action: 'notify_chosen', contractor_id: contractorId, broadcast_id: broadcastId },
+      }).catch(console.warn)
+
+      // Notify closed contractors
+      const closedIds = rpcResult.closed_contractor_ids || []
+      if (closedIds.length > 0) {
+        supabase.functions.invoke('broadcast-job', {
+          body: { action: 'notify_closed', contractor_ids: closedIds },
+        }).catch(console.warn)
+      }
+    }
+
     setSelectedBroadcast(null)
     fetchBroadcasts()
     fetchJobs(false)
