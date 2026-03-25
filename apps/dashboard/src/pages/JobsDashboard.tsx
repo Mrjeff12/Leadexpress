@@ -3,6 +3,7 @@ import { useAuth } from '../lib/auth'
 import { useI18n } from '../lib/i18n'
 import { supabase } from '../lib/supabase'
 import { PROFESSIONS } from '../lib/professions'
+import { formatDate } from '../lib/shared'
 import { useToast } from '../components/hooks/use-toast'
 import { Link } from 'react-router-dom'
 import {
@@ -14,8 +15,13 @@ import {
   ArrowRight,
   Loader2,
   AlertCircle,
+  Radio,
+  Users,
+  Clock,
+  ExternalLink,
 } from 'lucide-react'
 import JobDetailPanel from '../components/JobDetailPanel'
+import BroadcastResponsesPanel from '../components/BroadcastResponsesPanel'
 import { useSubscriptionAccess } from '../hooks/useSubscriptionAccess'
 import FeatureTeaser from '../components/FeatureTeaser'
 import { SubcontractorDemo, DEMO_DURATION_FRAMES, DEMO_FPS, DEMO_WIDTH, DEMO_HEIGHT } from '../remotion/SubcontractorDemo'
@@ -50,6 +56,21 @@ interface JobOrder {
 }
 
 type FilterTab = 'all' | 'pending' | 'active' | 'completed' | 'overdue'
+type MainView = 'jobs' | 'broadcasts'
+
+interface Broadcast {
+  id: string
+  lead_id: string
+  deal_type: string
+  deal_value: string
+  description: string | null
+  status: string
+  sent_count: number
+  expires_at: string
+  created_at: string
+  leads?: { profession: string; city: string | null; zip_code: string | null; parsed_summary: string | null }
+  response_count?: number
+}
 
 /* ───────────────── Helpers ───────────────── */
 
@@ -58,11 +79,6 @@ const profLookup = Object.fromEntries(PROFESSIONS.map((p) => [p.id, p]))
 function formatCurrency(amount: number | null | undefined): string {
   if (amount == null) return '$0'
   return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(amount)
-}
-
-function formatDate(dateStr: string | null): string {
-  if (!dateStr) return '—'
-  return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
 }
 
 function isOverdue(job: JobOrder): boolean {
@@ -130,6 +146,10 @@ export default function JobsDashboard() {
   const [search, setSearch] = useState('')
   const [activeTab, setActiveTab] = useState<FilterTab>('all')
   const [selectedJobId, setSelectedJobId] = useState<string | null>(null)
+  const [mainView, setMainView] = useState<MainView>('jobs')
+  const [broadcasts, setBroadcasts] = useState<Broadcast[]>([])
+  const [broadcastsLoading, setBroadcastsLoading] = useState(false)
+  const [selectedBroadcast, setSelectedBroadcast] = useState<Broadcast | null>(null)
 
   /* ── Fetch ── */
   const fetchJobs = useCallback(async (showLoading = true) => {
@@ -184,6 +204,58 @@ export default function JobsDashboard() {
   }, [fetchJobs])
 
   const refetch = () => fetchJobs(false)
+
+  /* ── Fetch Broadcasts ── */
+  const fetchBroadcasts = useCallback(async () => {
+    if (!effectiveUserId) return
+    setBroadcastsLoading(true)
+    try {
+      const { data, error } = await supabase
+        .from('job_broadcasts')
+        .select('*, leads(profession, city, zip_code, parsed_summary)')
+        .eq('publisher_id', effectiveUserId)
+        .order('created_at', { ascending: false })
+
+      if (error) throw error
+
+      // Get response counts
+      const broadcastsWithCounts = await Promise.all(
+        (data || []).map(async (b: any) => {
+          const { count } = await supabase
+            .from('job_broadcast_responses')
+            .select('*', { count: 'exact', head: true })
+            .eq('broadcast_id', b.id)
+            .eq('status', 'interested')
+          return { ...b, response_count: count || 0 }
+        })
+      )
+
+      setBroadcasts(broadcastsWithCounts)
+    } catch (err) {
+      toast({ title: 'Error', description: 'Failed to load broadcasts', variant: 'destructive' })
+    } finally {
+      setBroadcastsLoading(false)
+    }
+  }, [effectiveUserId, toast])
+
+  useEffect(() => {
+    if (mainView === 'broadcasts') fetchBroadcasts()
+  }, [mainView, fetchBroadcasts])
+
+  const handleChooseContractor = async (broadcastId: string, contractorId: string) => {
+    const { error } = await supabase.rpc('choose_contractor_for_broadcast', {
+      p_broadcast_id: broadcastId,
+      p_contractor_id: contractorId,
+    })
+    if (error) {
+      toast({ title: 'Error', description: error.message, variant: 'destructive' })
+      return
+    }
+    toast({ title: he ? 'נבחר!' : 'Contractor chosen!', description: he ? 'הזמנת עבודה נוצרה' : 'Job order created' })
+    setSelectedBroadcast(null)
+    fetchBroadcasts()
+    fetchJobs(false)
+  }
 
   const { canManageSubs, loading: subsLoading } = useSubscriptionAccess()
 
@@ -313,6 +385,134 @@ export default function JobsDashboard() {
         ))}
       </div>
 
+      {/* ── Main View Toggle: Jobs / Broadcasts ── */}
+      <div className="flex items-center gap-2">
+        {[
+          { id: 'jobs' as MainView, label: he ? 'עבודות' : 'Jobs', icon: Briefcase },
+          { id: 'broadcasts' as MainView, label: he ? 'פרסומים' : 'Broadcasts', icon: Radio },
+        ].map((v) => (
+          <button
+            key={v.id}
+            onClick={() => setMainView(v.id)}
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all ${
+              mainView === v.id
+                ? 'bg-[#fff4ef] text-[#c43d10] border border-[#fdd5c5]'
+                : 'bg-white text-stone-500 hover:bg-stone-50 border border-stone-200'
+            }`}
+          >
+            <v.icon className="w-4 h-4" />
+            {v.label}
+          </button>
+        ))}
+      </div>
+
+      {mainView === 'broadcasts' ? (
+        /* ── Broadcasts View ── */
+        <div className="space-y-4">
+          {broadcastsLoading ? (
+            <div className="flex items-center justify-center py-20">
+              <Loader2 className="w-6 h-6 animate-spin text-[#e04d1c]" />
+            </div>
+          ) : broadcasts.length === 0 ? (
+            <div className="glass-panel p-12 text-center">
+              <Radio className="w-10 h-10 mx-auto mb-3 text-stone-300" />
+              <p className="text-sm font-medium text-stone-700 mb-1">
+                {he ? 'אין פרסומים עדיין' : 'No broadcasts yet'}
+              </p>
+              <p className="text-xs text-stone-400">
+                {he ? 'פרסם עבודה מעמוד הלידים' : 'Broadcast a job from the Leads page'}
+              </p>
+            </div>
+          ) : (
+            <div className="grid gap-3">
+              {broadcasts.map((b) => {
+                const lead = b.leads as any
+                const prof = lead?.profession ? profLookup[lead.profession] : null
+                const location = [lead?.city, lead?.zip_code].filter(Boolean).join(', ') || '—'
+                const isExpired = b.status === 'open' && new Date(b.expires_at) < new Date()
+                const timeLeft = b.status === 'open' && !isExpired
+                  ? Math.max(0, Math.round((new Date(b.expires_at).getTime() - Date.now()) / 3600000))
+                  : 0
+
+                const statusConfig: Record<string, { label: string; labelHe: string; cls: string }> = {
+                  open:     { label: 'Open',     labelHe: 'פתוח',  cls: 'bg-green-50 text-green-700 border-green-200' },
+                  assigned: { label: 'Assigned', labelHe: 'הועבר', cls: 'bg-blue-50 text-blue-700 border-blue-200' },
+                  closed:   { label: 'Closed',   labelHe: 'נסגר',  cls: 'bg-stone-100 text-stone-500 border-stone-200' },
+                  expired:  { label: 'Expired',  labelHe: 'פג תוקף', cls: 'bg-red-50 text-red-600 border-red-200' },
+                }
+                const st = statusConfig[isExpired ? 'expired' : b.status] || statusConfig.open
+
+                return (
+                  <div
+                    key={b.id}
+                    onClick={() => setSelectedBroadcast(b)}
+                    className="glass-panel p-4 hover:bg-stone-50/50 transition-colors cursor-pointer"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex items-center gap-3">
+                        <span className="text-2xl">{prof?.emoji ?? '📋'}</span>
+                        <div>
+                          <p className="font-bold text-stone-800 text-sm">
+                            {prof ? (he ? prof.he : prof.en) : (lead?.profession || (he ? 'עבודה' : 'Job'))}
+                          </p>
+                          <p className="text-xs text-stone-400">{location}</p>
+                          {b.description && (
+                            <p className="text-xs text-stone-500 mt-1 line-clamp-1">{b.description}</p>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold border ${st.cls}`}>
+                          {he ? st.labelHe : st.label}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="mt-3 flex items-center gap-4 text-xs text-stone-400">
+                      <span className="flex items-center gap-1">
+                        <Radio className="w-3 h-3" />
+                        {he ? `נשלח ל-${b.sent_count}` : `Sent to ${b.sent_count}`}
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <Users className="w-3 h-3" />
+                        <span className={b.response_count ? 'text-[#e04d1c] font-bold' : ''}>
+                          {b.response_count || 0} {he ? 'מעוניינים' : 'interested'}
+                        </span>
+                      </span>
+                      <span className="flex items-center gap-1 font-mono">
+                        {dealLabel(b.deal_type, b.deal_value)}
+                      </span>
+                      {timeLeft > 0 && (
+                        <span className="flex items-center gap-1">
+                          <Clock className="w-3 h-3" />
+                          {timeLeft}h {he ? 'נשאר' : 'left'}
+                        </span>
+                      )}
+                      <span className="ml-auto text-stone-300">
+                        {formatDate(b.created_at)}
+                      </span>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+
+          {/* Broadcast Responses Panel */}
+          {selectedBroadcast && (
+            <BroadcastResponsesPanel
+              broadcast={{
+                ...selectedBroadcast,
+                lead: selectedBroadcast.leads as any,
+              }}
+              isOpen={!!selectedBroadcast}
+              onClose={() => setSelectedBroadcast(null)}
+              onChoose={handleChooseContractor}
+            />
+          )}
+        </div>
+      ) : (
+      <>
       {/* ── Filter Tabs + Search ── */}
       <div className="glass-panel p-4 flex flex-wrap items-center gap-3">
         <div className="flex items-center gap-1 flex-wrap">
@@ -459,6 +659,8 @@ export default function JobsDashboard() {
           onClose={() => setSelectedJobId(null)}
           onUpdate={refetch}
         />
+      )}
+      </>
       )}
     </div>
   )
