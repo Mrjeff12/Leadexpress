@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useRef } from 'react'
 import { useAuth } from '../lib/auth'
 import { useI18n } from '../lib/i18n'
+import { timeAgo } from '../lib/shared'
 import { supabase } from '../lib/supabase'
 import ForwardLeadModal from '../components/ForwardLeadModal'
 import UpsellModal from '../components/UpsellModal'
@@ -43,6 +44,7 @@ import {
   Waves,
   Truck,
   Settings,
+  Send,
 } from 'lucide-react'
 
 /* ── Types ─────────────────────────────────────────────────────────── */
@@ -95,14 +97,6 @@ const URG = {
 
 function getProf(p: string) { return PROF[p] ?? PROF.other }
 
-function timeAgo(d: string, he: boolean) {
-  const m = Math.floor((Date.now() - new Date(d).getTime()) / 60000)
-  if (m < 1) return he ? 'עכשיו' : 'now'
-  if (m < 60) return he ? `לפני ${m} דק׳` : `${m}m ago`
-  const h = Math.floor(m / 60)
-  if (h < 24) return he ? `לפני ${h} שע׳` : `${h}h ago`
-  return he ? `לפני ${Math.floor(h / 24)} ימים` : `${Math.floor(h / 24)}d ago`
-}
 
 /* ── Component ─────────────────────────────────────────────────────── */
 export default function LeadsFeed() {
@@ -721,6 +715,16 @@ export default function LeadsFeed() {
                           >
                             <MessageCircle className="w-4 h-4" />
                             {he ? 'פנה למפרסם' : 'Contact Advertiser'}
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setForwardLead(lead)
+                            }}
+                            className="flex items-center justify-center gap-2 bg-[#e04d1c] text-white h-12 px-5 rounded-2xl font-bold text-sm hover:bg-[#c43d10] transition-all"
+                          >
+                            <Send className="w-4 h-4" />
+                            {he ? 'העבר' : 'Forward'}
                           </button>
                         </div>
                       </div>

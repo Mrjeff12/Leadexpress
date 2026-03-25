@@ -270,14 +270,19 @@ export default function ForwardLeadModal({ lead, isOpen, onClose }: ForwardLeadM
 
       if (fnErr) {
         console.warn('Broadcast edge function error:', fnErr)
+        setSuccessMsg(
+          locale === 'he'
+            ? 'הפרסום נוצר אבל שליחת ההודעות נכשלה. נסה שוב מעמוד העבודות.'
+            : 'Broadcast created but WhatsApp delivery failed. Retry from Jobs page.'
+        )
+      } else {
+        const matchCount = fnData?.sent ?? fnData?.matched_count ?? 0
+        setSuccessMsg(
+          locale === 'he'
+            ? `השידור נשלח ל-${matchCount} קבלנים`
+            : `Broadcast sent to ${matchCount} contractors`
+        )
       }
-
-      const matchCount = fnData?.matched_count ?? 0
-      setSuccessMsg(
-        locale === 'he'
-          ? `השידור נשלח ל-${matchCount} קבלנים`
-          : `Broadcast sent to ${matchCount} contractors`
-      )
     } catch (err: any) {
       console.error('Error broadcasting job:', err)
       setError(err.message || 'Failed to broadcast job')

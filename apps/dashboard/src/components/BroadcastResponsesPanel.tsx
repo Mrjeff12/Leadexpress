@@ -156,30 +156,26 @@ export default function BroadcastResponsesPanel({
   const [loading, setLoading] = useState(true)
   const [choosingId, setChoosingId] = useState<string | null>(null)
 
-  /* ── Fetch responses when opened ── */
-  useEffect(() => {
-    if (!isOpen || !broadcast) return
-    let cancelled = false
-
-    async function load() {
-      setLoading(true)
-      try {
-        const { data, error } = await supabase.rpc('get_broadcast_responses', {
-          p_broadcast_id: broadcast!.id,
-        })
-        if (cancelled) return
-        if (error) throw error
-        setResponses((data as BroadcastResponse[]) || [])
-      } catch (err) {
-        console.error('Failed to load broadcast responses:', err)
-        if (!cancelled) setResponses([])
-      } finally {
-        if (!cancelled) setLoading(false)
-      }
+  /* ── Load responses ── */
+  async function loadResponses() {
+    if (!broadcast) return
+    setLoading(true)
+    try {
+      const { data, error } = await supabase.rpc('get_broadcast_responses', {
+        p_broadcast_id: broadcast.id,
+      })
+      if (error) throw error
+      setResponses((data as BroadcastResponse[]) || [])
+    } catch (err) {
+      console.error('Failed to load broadcast responses:', err)
+      setResponses([])
+    } finally {
+      setLoading(false)
     }
+  }
 
-    load()
-    return () => { cancelled = true }
+  useEffect(() => {
+    if (isOpen && broadcast) loadResponses()
   }, [isOpen, broadcast?.id])
 
   /* ── Handle choose ── */
@@ -188,6 +184,8 @@ export default function BroadcastResponsesPanel({
     setChoosingId(contractorId)
     try {
       await onChoose(broadcast.id, contractorId)
+      // Refresh responses to show updated status
+      await loadResponses()
     } finally {
       setChoosingId(null)
     }
