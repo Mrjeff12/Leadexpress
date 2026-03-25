@@ -40,7 +40,7 @@ const TEMPLATES = [
       '2': 'tier',
       '3': 'rating',
       '4': 'completed_jobs',
-      '5': 'profile_url',
+      '5': 'profile_slug',
     },
     types: {
       'twilio/call-to-action': {
@@ -49,7 +49,7 @@ const TEMPLATES = [
           {
             title: '👤 View Profile',
             type: 'URL',
-            url: '{{5}}',
+            url: 'https://app.leadexpress.co.il/pro/{{5}}',
           },
         ],
       },
@@ -61,7 +61,7 @@ const TEMPLATES = [
     variables: {
       '1': 'profession',
       '2': 'city',
-      '3': 'portal_url',
+      '3': 'broadcast_id',
     },
     types: {
       'twilio/call-to-action': {
@@ -70,7 +70,7 @@ const TEMPLATES = [
           {
             title: '📋 View Job Details',
             type: 'URL',
-            url: '{{3}}',
+            url: 'https://app.leadexpress.co.il/jobs?b={{3}}',
           },
         ],
       },
@@ -91,7 +91,7 @@ const TEMPLATES = [
     language: 'en',
     variables: {
       '1': 'inviter_name',
-      '2': 'register_url',
+      '2': 'invite_id',
     },
     types: {
       'twilio/call-to-action': {
@@ -100,7 +100,7 @@ const TEMPLATES = [
           {
             title: '🚀 Register Now',
             type: 'URL',
-            url: '{{2}}',
+            url: 'https://app.leadexpress.co.il/register?invite={{2}}',
           },
         ],
       },

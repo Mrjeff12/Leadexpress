@@ -50,11 +50,11 @@ const CONTENT = {
   LEAD_NOTIFY_BTN:  Deno.env.get('TWILIO_CONTENT_LEAD_NOTIFY_BTN')  ?? 'HXadf35e4a23ae35e016827f23fde8e2d9',
   LEAD_CLAIMED:     Deno.env.get('TWILIO_CONTENT_LEAD_CLAIMED')     ?? 'HX7b3697cc66e30d95904dd30e7ec5fb79',
   // Broadcast system templates (SIDs filled after running setup-twilio-broadcast-templates.js)
-  BROADCAST_NOTIFY:   Deno.env.get('TWILIO_CONTENT_BROADCAST_NOTIFY')   ?? '',
-  BROADCAST_INTEREST: Deno.env.get('TWILIO_CONTENT_BROADCAST_INTEREST') ?? '',
-  BROADCAST_CHOSEN:   Deno.env.get('TWILIO_CONTENT_BROADCAST_CHOSEN')   ?? '',
-  BROADCAST_CLOSED:   Deno.env.get('TWILIO_CONTENT_BROADCAST_CLOSED')   ?? '',
-  CONTRACTOR_INVITE:  Deno.env.get('TWILIO_CONTENT_CONTRACTOR_INVITE')  ?? '',
+  BROADCAST_NOTIFY:   Deno.env.get('TWILIO_CONTENT_BROADCAST_NOTIFY')   ?? 'HX65b6f4255de50f056add8a1e58b81881',
+  BROADCAST_INTEREST: Deno.env.get('TWILIO_CONTENT_BROADCAST_INTEREST') ?? 'HXe17599d4d5a2405eb0a8c8aa5e9794a7',
+  BROADCAST_CHOSEN:   Deno.env.get('TWILIO_CONTENT_BROADCAST_CHOSEN')   ?? 'HXe3ef47c713bfa9c739aa75864801e52e',
+  BROADCAST_CLOSED:   Deno.env.get('TWILIO_CONTENT_BROADCAST_CLOSED')   ?? 'HXb13bcbd71187d719cc79df427da86612',
+  CONTRACTOR_INVITE:  Deno.env.get('TWILIO_CONTENT_CONTRACTOR_INVITE')  ?? 'HX344261bdd6e219674f350ce662326e28',
 };
 
 // ── Phone normalization (single source of truth) ────────────────────────────
