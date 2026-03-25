@@ -133,6 +133,56 @@ function timeAgo(ts: string | number, he: boolean): string {
   return he ? `לפני ${days} ימים` : `${days}d ago`
 }
 
+// ── Group Avatar (WhatsApp style) ──────────────────────────────────────────────
+const GROUP_PALETTE = [
+  ['#DFE5F1', '#4A6FA5'],
+  ['#D4ECD4', '#3A7D44'],
+  ['#F9E0D4', '#C2531E'],
+  ['#E8D9F5', '#7B4FA6'],
+  ['#FCF0D0', '#B8860B'],
+  ['#D4EEF5', '#2A7D9C'],
+]
+function getGroupColor(name: string) {
+  let hash = 0
+  for (let i = 0; i < name.length; i++) hash = (hash * 31 + name.charCodeAt(i)) | 0
+  return GROUP_PALETTE[Math.abs(hash) % GROUP_PALETTE.length]
+}
+function GroupAvatar({ name, iconUrl, category, isActive, size = 40 }: {
+  name: string; iconUrl?: string; category?: string; isActive?: boolean; size?: number
+}) {
+  const [imgError, setImgError] = useState(false)
+  const [bg, fg] = getGroupColor(name)
+  const initials = name.split(/\s+/).slice(0, 2).map(w => w[0]?.toUpperCase() ?? '').join('') || '?'
+  const catEmoji = CATEGORY_EMOJI[category ?? '']
+  const fontSize = size * 0.36
+
+  return (
+    <div className="relative shrink-0" style={{ width: size, height: size }}>
+      {iconUrl && !imgError ? (
+        <img
+          src={iconUrl}
+          alt={name}
+          onError={() => setImgError(true)}
+          className="rounded-full object-cover"
+          style={{ width: size, height: size }}
+        />
+      ) : (
+        <div
+          className="rounded-full flex items-center justify-center font-semibold"
+          style={{ width: size, height: size, background: bg, color: fg, fontSize }}
+        >
+          {catEmoji ?? initials}
+        </div>
+      )}
+      {/* Active/inactive indicator dot */}
+      <div
+        className="absolute -bottom-0.5 -right-0.5 rounded-full border-2 border-white"
+        style={{ width: 11, height: 11, background: isActive ? '#25D366' : '#D1D5DB' }}
+      />
+    </div>
+  )
+}
+
 // ── Demo QR ────────────────────────────────────────────────────────────────────
 function DemoQR({ size = 180 }: { size?: number }) {
   const cells = 25
@@ -179,6 +229,9 @@ export default function AdminWhatsApp() {
   const [groupSearch, setGroupSearch] = useState('')
   const [showOnlyLeads, setShowOnlyLeads] = useState(false)
   const [toggledOffGroups, setToggledOffGroups] = useState<Set<string>>(new Set())
+
+  // Group profile pictures (keyed by group.id)
+  const [groupIcons, setGroupIcons] = useState<Map<string, string>>(new Map())
 
   // Pending group scan requests
   const [pendingGroupCount, setPendingGroupCount] = useState(0)
@@ -241,6 +294,37 @@ export default function AdminWhatsApp() {
       setSelectedAccountId(accounts[0].id)
     }
   }, [selectedAccountId, accounts.length])
+
+  // ── Fetch group profile pictures from Green API ─────────────────────────────
+  const GREEN_INSTANCES = [
+    { id: '7107548478', token: '805319ef70304622bc70204e07201458090f71991bcb4f128b' },
+    { id: '7107562213', token: '5dc7d3a193d34269b8de334cd724047a67e494b7fb0d45f8bb' },
+  ]
+
+  useEffect(() => {
+    const groupsWithId = groups.filter(g => g.waGroupId && !groupIcons.has(g.id))
+    if (groupsWithId.length === 0) return
+
+    groupsWithId.forEach(async (group) => {
+      for (const inst of GREEN_INSTANCES) {
+        try {
+          const res = await fetch(
+            `https://7107.api.greenapi.com/waInstance${inst.id}/getGroupData/${inst.token}`,
+            { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ groupId: group.waGroupId }) }
+          )
+          if (!res.ok) continue
+          const data = await res.json()
+          if (data?.icon && typeof data.icon === 'string' && data.icon.length > 0) {
+            setGroupIcons(prev => new Map(prev).set(group.id, data.icon))
+            break
+          }
+        } catch {
+          // silent — try next instance
+        }
+      }
+    })
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [groups.map(g => g.id).join(',')])
 
   // Auto-scroll messages
   useEffect(() => {
@@ -679,19 +763,18 @@ export default function AdminWhatsApp() {
                 onMouseEnter={e => { if (selectedGroupId !== group.id) e.currentTarget.style.background = 'rgba(0,0,0,0.02)' }}
                 onMouseLeave={e => { if (selectedGroupId !== group.id) e.currentTarget.style.background = 'transparent' }}
               >
-                {/* Toggle */}
-                <button
-                  onClick={e => { e.stopPropagation(); toggleGroupMonitoring(group.id) }}
-                  className="w-8 h-[18px] rounded-full relative shrink-0 transition-colors"
-                  style={{ background: group.isActive ? 'hsl(14 85% 50%)' : 'hsl(35 15% 82%)' }}
-                >
-                  <div className="absolute top-[2px] w-[14px] h-[14px] rounded-full bg-white shadow-sm transition-all" style={{ left: group.isActive ? 'calc(100% - 16px)' : '2px' }} />
-                </button>
+                {/* WhatsApp-style group avatar */}
+                <GroupAvatar
+                  name={group.name}
+                  iconUrl={groupIcons.get(group.id)}
+                  category={group.category}
+                  isActive={group.isActive}
+                  size={40}
+                />
 
                 {/* Group Info */}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-1.5">
-                    <span className="text-xs">{CATEGORY_EMOJI[group.category ?? ''] ?? '💬'}</span>
                     <p className="text-xs font-medium truncate" style={{ color: 'hsl(40 8% 10%)' }}>{group.name}</p>
                   </div>
                   <div className="flex items-center gap-2 mt-0.5">
@@ -706,17 +789,28 @@ export default function AdminWhatsApp() {
                   </div>
                 </div>
 
-                {/* Member intelligence mini-badge */}
-                {(group.knownSellers ?? 0) > 0 && (
-                  <div className="flex flex-col items-end gap-0.5 shrink-0">
-                    <span className="text-[9px] px-1.5 py-0.5 rounded-full" style={{ background: 'hsl(25 95% 93%)', color: 'hsl(25 80% 40%)' }}>
-                      {group.knownSellers}S
-                    </span>
-                    <span className="text-[9px] px-1.5 py-0.5 rounded-full" style={{ background: 'hsl(14 99% 93%)', color: 'hsl(14 99% 57%)' }}>
-                      {group.knownBuyers}B
-                    </span>
-                  </div>
-                )}
+                {/* Right side: badges + toggle */}
+                <div className="flex flex-col items-end gap-1 shrink-0">
+                  {(group.knownSellers ?? 0) > 0 && (
+                    <div className="flex gap-0.5">
+                      <span className="text-[9px] px-1.5 py-0.5 rounded-full" style={{ background: 'hsl(25 95% 93%)', color: 'hsl(25 80% 40%)' }}>
+                        {group.knownSellers}S
+                      </span>
+                      <span className="text-[9px] px-1.5 py-0.5 rounded-full" style={{ background: 'hsl(14 99% 93%)', color: 'hsl(14 99% 57%)' }}>
+                        {group.knownBuyers}B
+                      </span>
+                    </div>
+                  )}
+                  {/* Monitor toggle */}
+                  <button
+                    onClick={e => { e.stopPropagation(); toggleGroupMonitoring(group.id) }}
+                    className="w-7 h-[15px] rounded-full relative transition-colors"
+                    style={{ background: group.isActive ? '#25D366' : 'hsl(35 15% 82%)' }}
+                    title={group.isActive ? 'Stop monitoring' : 'Start monitoring'}
+                  >
+                    <div className="absolute top-[2px] w-[11px] h-[11px] rounded-full bg-white shadow-sm transition-all" style={{ left: group.isActive ? 'calc(100% - 13px)' : '2px' }} />
+                  </button>
+                </div>
               </div>
             ))}
           </div>
@@ -737,9 +831,19 @@ export default function AdminWhatsApp() {
           {/* Chat Header */}
           <div className="px-4 py-3 border-b flex items-center justify-between" style={{ borderColor: 'rgba(0,0,0,0.04)' }}>
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-lg flex items-center justify-center text-sm" style={{ background: 'hsl(152 46% 85% / 0.5)' }}>
-                {CATEGORY_EMOJI[selectedGroup?.category ?? ''] ?? '💬'}
-              </div>
+              {selectedGroup ? (
+                <GroupAvatar
+                  name={selectedGroup.name}
+                  iconUrl={groupIcons.get(selectedGroup.id)}
+                  category={selectedGroup.category}
+                  isActive={selectedGroup.isActive}
+                  size={36}
+                />
+              ) : (
+                <div className="w-9 h-9 rounded-full flex items-center justify-center text-sm" style={{ background: 'hsl(152 46% 85% / 0.5)' }}>
+                  💬
+                </div>
+              )}
               <div>
                 <p className="text-sm font-medium" style={{ color: 'hsl(40 8% 10%)' }}>{selectedGroup?.name ?? (he ? 'בחר קבוצה' : 'Select a group')}</p>
                 {selectedGroup && (

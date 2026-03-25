@@ -7,6 +7,8 @@ type ConnectionStatus = 'disconnected' | 'waiting_qr' | 'connecting' | 'connecte
 export interface WAGroup {
   id: string
   name: string
+  waGroupId?: string   // WhatsApp group JID e.g. "1234567@g.us"
+  waAccountId?: string // which wa_account owns this group
   messageCount: number
   isActive: boolean
   lastMessageAt?: string
@@ -90,7 +92,7 @@ async function fetchSnapshotFromSupabase(): Promise<SupabaseSnapshot> {
   // 2. Groups (single query)
   const { data: rawGroups } = await supabase
     .from('groups')
-    .select('id, name, wa_group_id, status, message_count, last_message_at, wa_account_id, category')
+    .select('id, name, wa_group_id, status, message_count, last_message_at, wa_account_id, category, icon_url')
     .not('wa_account_id', 'is', null)
     .order('message_count', { ascending: false })
 
@@ -126,6 +128,8 @@ async function fetchSnapshotFromSupabase(): Promise<SupabaseSnapshot> {
   const groups: WAGroup[] = (rawGroups ?? []).map((g: any) => ({
     id: g.id,
     name: g.name,
+    waGroupId: g.wa_group_id ?? undefined,
+    waAccountId: g.wa_account_id ?? undefined,
     messageCount: g.message_count ?? 0,
     isActive: g.status === 'active',
     lastMessageAt: g.last_message_at,
