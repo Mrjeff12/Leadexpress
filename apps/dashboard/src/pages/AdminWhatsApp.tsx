@@ -630,7 +630,7 @@ export default function AdminWhatsApp() {
               <div key={g.id} className="flex items-center gap-3 px-3 py-2 rounded-lg bg-amber-50/50 border border-amber-100">
                 <div className="w-2 h-2 rounded-full bg-amber-400 shrink-0" />
                 <div className="flex-1 min-w-0">
-                  <div className="text-xs font-semibold text-stone-700 truncate">{g.group_name || g.invite_code}</div>
+                  <a href={g.invite_link_raw} target="_blank" rel="noopener noreferrer" className="text-xs font-semibold text-blue-600 hover:underline break-all">{g.invite_link_raw}</a>
                   <div className="text-[10px] text-stone-400">{he ? 'מ-' : 'from '}{g.contractor_name || 'Unknown'} · {new Date(g.created_at).toLocaleDateString()}</div>
                 </div>
                 <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-600">{he ? 'ממתין' : 'Pending'}</span>
