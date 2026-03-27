@@ -15,7 +15,7 @@ const redis = process.env.REDIS_URL
 const supabase = createClient(config.supabase.url, config.supabase.serviceKey);
 
 const parsedLeadsQueue = new Queue(config.queues.parsedLeads, {
-  connection: redis,
+  connection: redis as any,
 });
 
 // ---- Payload from wa-listener (matches RawMessageJob in queue.ts) ----
@@ -280,7 +280,7 @@ async function processJob(job: Job<RawMessagePayload>): Promise<void> {
 
 export function startWorker(): Worker {
   const worker = new Worker(config.queues.rawMessages, processJob, {
-    connection: redis,
+    connection: redis as any,
     concurrency: config.worker.concurrency,
     removeOnComplete: { count: 1000 },
     removeOnFail: { count: 5000 },

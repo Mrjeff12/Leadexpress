@@ -30,7 +30,7 @@ export function getJoinQueue(): Queue<any> | null {
   }
   if (!joinQueue) {
     joinQueue = new Queue('group-join-jobs', {
-      connection: makeRedis(),
+      connection: makeRedis() as any,
       defaultJobOptions: {
         removeOnComplete: { count: 100 },
         removeOnFail: { count: 500 },
@@ -49,7 +49,7 @@ export function getJoinQueue(): Queue<any> | null {
 export function getQueue(): Queue<RawMessageJob> {
   if (!queue) {
     queue = new Queue<RawMessageJob>(config.queue.name, {
-      connection: makeRedis(),
+      connection: makeRedis() as any,
       defaultJobOptions: {
         removeOnComplete: { count: 1000 },
         removeOnFail: { count: 5000 },
@@ -68,7 +68,7 @@ export function getQueue(): Queue<RawMessageJob> {
     logger.info('BullMQ queue producer initialized');
   }
 
-  return queue;
+  return queue!;
 }
 
 export async function enqueueMessage(job: RawMessageJob): Promise<void> {
