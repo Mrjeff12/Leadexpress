@@ -10,8 +10,8 @@ COPY pnpm-workspace.yaml package.json pnpm-lock.yaml ./
 COPY packages/shared/ ./packages/shared/
 COPY services/matching/ ./services/matching/
 
-# Install deps for matching (resolves workspace:* for shared)
-RUN pnpm install --filter @masterleadflow/matching --frozen-lockfile
+# Install deps for all copied packages (shared + matching)
+RUN pnpm install --no-frozen-lockfile
 
 # Build shared first, then matching
 RUN pnpm --filter @masterleadflow/shared run build
