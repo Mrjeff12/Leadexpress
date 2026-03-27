@@ -1,5 +1,5 @@
 {
-  "name": "@leadexpress/matching",
+  "name": "@masterleadflow/matching",
   "version": "1.0.0",
   "description": "Matching engine — matches parsed leads to contractors and enqueues notifications",
   "type": "module",
@@ -10,7 +10,7 @@
     "dev": "tsx src/index.ts"
   },
   "dependencies": {
-    "@leadexpress/shared": "workspace:*",
+    "@masterleadflow/shared": "workspace:*",
     "@supabase/supabase-js": "^2.49.1",
     "bullmq": "^5.34.3",
     "dotenv": "^16.4.7",
