@@ -27,6 +27,7 @@ function getDedupRedis(): Redis {
       password: config.redis.password,
       maxRetriesPerRequest: null,
       ...((config.redis as any).tls ? { tls: {} } : {}),
+  ...((config.redis as any).username ? { username: (config.redis as any).username } : {}),
     });
     dedupRedis.on('error', (err) => {
       logger.error({ err }, 'Dedup Redis connection error');

@@ -14,6 +14,7 @@ function getRedis(): Redis {
       maxRetriesPerRequest: null,
       lazyConnect: true,
       ...((config.redis as any).tls ? { tls: {} } : {}),
+  ...((config.redis as any).username ? { username: (config.redis as any).username } : {}),
     });
 
     redis.on('error', (err) => {

@@ -14,6 +14,7 @@ const redis = new Redis({
   password: config.redis.password,
   maxRetriesPerRequest: null,
   ...((config.redis as any).tls ? { tls: {} } : {}),
+  ...((config.redis as any).username ? { username: (config.redis as any).username } : {}),
 });
 
 const supabase = createClient(config.supabase.url, config.supabase.serviceKey);
@@ -25,6 +26,7 @@ const parsedLeadsQueue = new Queue(config.queues.parsedLeads, {
     password: config.redis.password,
     maxRetriesPerRequest: null,
     ...((config.redis as any).tls ? { tls: {} } : {}),
+  ...((config.redis as any).username ? { username: (config.redis as any).username } : {}),
   },
 });
 
@@ -296,6 +298,7 @@ export function startWorker(): Worker {
       password: config.redis.password,
       maxRetriesPerRequest: null,
       ...((config.redis as any).tls ? { tls: {} } : {}),
+  ...((config.redis as any).username ? { username: (config.redis as any).username } : {}),
     },
     concurrency: config.worker.concurrency,
     removeOnComplete: { count: 1000 },

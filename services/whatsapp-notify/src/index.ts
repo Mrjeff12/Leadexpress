@@ -14,6 +14,7 @@ const redis = new Redis({
   password: config.redis.password,
   maxRetriesPerRequest: config.redis.maxRetriesPerRequest,
   ...((config.redis as any).tls ? { tls: {} } : {}),
+  ...((config.redis as any).username ? { username: (config.redis as any).username } : {}),
 });
 
 log.info(
