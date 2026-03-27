@@ -1,40 +1,44 @@
 FROM node:20-slim AS builder
 WORKDIR /app
 
-RUN corepack enable
+# ── Step 1: Build @masterleadflow/shared ──
+COPY packages/shared/package.json ./packages/shared/
+COPY packages/shared/src ./packages/shared/src
+COPY packages/shared/tsconfig.json ./packages/shared/
+RUN cd packages/shared && npm install && npx tsc
 
-# Copy workspace config
-COPY pnpm-workspace.yaml package.json pnpm-lock.yaml ./
+# ── Step 2: Install matching deps (excluding workspace dep) ──
+COPY services/matching/package.json ./services/matching/
+COPY services/matching/src ./services/matching/src
+COPY services/matching/tsconfig.json ./services/matching/
 
-# Copy shared package + matching service
-COPY packages/shared/ ./packages/shared/
-COPY services/matching/ ./services/matching/
+WORKDIR /app/services/matching
 
-# Install deps for all copied packages (shared + matching)
-RUN pnpm install --no-frozen-lockfile
+# Remove workspace:* dep from package.json, install rest, then manually place shared
+RUN node -e "
+  const fs = require('fs');
+  const pkg = JSON.parse(fs.readFileSync('package.json','utf8'));
+  delete pkg.dependencies['@masterleadflow/shared'];
+  fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2));
+"
+RUN npm install
 
-# Build shared first, then matching
-RUN pnpm --filter @masterleadflow/shared run build
-RUN pnpm --filter @masterleadflow/matching run build
+# Manually install shared into node_modules
+RUN mkdir -p node_modules/@masterleadflow && \
+    cp -r /app/packages/shared node_modules/@masterleadflow/shared
 
-# ---- production image ----
+# Build matching
+RUN npx tsc
+
+# ── Production image ──
 FROM node:20-slim
-
-WORKDIR /app
+WORKDIR /app/services/matching
 
 ENV NODE_ENV=production
 
-RUN corepack enable
-
-# Copy workspace structure needed at runtime
-COPY --from=builder /app/pnpm-workspace.yaml /app/package.json /app/pnpm-lock.yaml ./
-COPY --from=builder /app/packages/shared/dist ./packages/shared/dist
-COPY --from=builder /app/packages/shared/package.json ./packages/shared/package.json
-COPY --from=builder /app/services/matching/dist ./services/matching/dist
-COPY --from=builder /app/services/matching/package.json ./services/matching/package.json
-COPY --from=builder /app/node_modules ./node_modules
-
-WORKDIR /app/services/matching
+COPY --from=builder /app/services/matching/dist ./dist
+COPY --from=builder /app/services/matching/package.json ./
+COPY --from=builder /app/services/matching/node_modules ./node_modules
 
 USER node
 
