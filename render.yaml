@@ -1,0 +1,104 @@
+services:
+  # ── wa-listener: scans WhatsApp groups, emits raw-messages to Redis ──
+  - type: worker
+    name: wa-listener
+    env: docker
+    dockerfilePath: services/wa-listener/Dockerfile
+    dockerContext: services/wa-listener
+    plan: starter
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_KEY
+        sync: false
+      - key: REDIS_URL
+        fromGroup: redis-shared
+
+  # ── parser: raw-messages → parsed-leads (OpenAI extraction) ──
+  - type: worker
+    name: parser
+    env: docker
+    dockerfilePath: services/parser/Dockerfile
+    dockerContext: services/parser
+    plan: starter
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_KEY
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: REDIS_URL
+        fromGroup: redis-shared
+
+  # ── matching: parsed-leads → wa-notifications + notifications ──
+  # Builds from repo root (needs pnpm workspace + packages/shared)
+  - type: worker
+    name: matching
+    env: docker
+    dockerfilePath: services/matching/Dockerfile
+    dockerContext: .
+    plan: starter
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_KEY
+        sync: false
+      - key: MAX_CONTRACTORS_PER_LEAD
+        value: "50"
+      - key: REDIS_URL
+        fromGroup: redis-shared
+
+  # ── whatsapp-notify: wa-notifications → Twilio WhatsApp free text ──
+  - type: worker
+    name: whatsapp-notify
+    env: docker
+    dockerfilePath: services/whatsapp-notify/Dockerfile
+    dockerContext: services/whatsapp-notify
+    plan: starter
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_KEY
+        sync: false
+      - key: TWILIO_ACCOUNT_SID
+        sync: false
+      - key: TWILIO_AUTH_TOKEN
+        sync: false
+      - key: TWILIO_WA_FROM
+        sync: false
+      - key: REDIS_URL
+        fromGroup: redis-shared
+
+  # ── notification: notifications → Telegram messages ──
+  - type: worker
+    name: notification
+    env: docker
+    dockerfilePath: services/notification/Dockerfile
+    dockerContext: services/notification
+    plan: starter
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_KEY
+        sync: false
+      - key: TELEGRAM_BOT_TOKEN
+        sync: false
+      - key: REDIS_URL
+        fromGroup: redis-shared
+
+envVarGroups:
+  - name: redis-shared
+    envVars:
+      - key: REDIS_URL
+        sync: false   # set manually in Render dashboard
