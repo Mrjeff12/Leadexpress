@@ -1,4 +1,5 @@
 import { Queue } from 'bullmq';
+import IORedis from 'ioredis';
 import { config } from './config.js';
 import { logger } from './logger.js';
 
@@ -17,19 +18,19 @@ export interface RawMessageJob {
 let queue: Queue<RawMessageJob> | null = null;
 let joinQueue: Queue<any> | null = null;
 
+function makeRedis() {
+  return process.env.REDIS_URL
+    ? new IORedis(process.env.REDIS_URL, { maxRetriesPerRequest: null })
+    : new IORedis({ ...config.redis });
+}
+
 export function getJoinQueue(): Queue<any> | null {
   if (!config.features.enableAutoJoinQueue) {
     return null;
   }
   if (!joinQueue) {
     joinQueue = new Queue('group-join-jobs', {
-      connection: {
-        host: config.redis.host,
-        port: config.redis.port,
-        password: config.redis.password,
-        maxRetriesPerRequest: null,
-        ...((config.redis as any).tls ? { tls: {} } : {}),
-      },
+      connection: makeRedis(),
       defaultJobOptions: {
         removeOnComplete: { count: 100 },
         removeOnFail: { count: 500 },
@@ -48,13 +49,7 @@ export function getJoinQueue(): Queue<any> | null {
 export function getQueue(): Queue<RawMessageJob> {
   if (!queue) {
     queue = new Queue<RawMessageJob>(config.queue.name, {
-      connection: {
-        host: config.redis.host,
-        port: config.redis.port,
-        password: config.redis.password,
-        maxRetriesPerRequest: null,
-        ...((config.redis as any).tls ? { tls: {} } : {}),
-      },
+      connection: makeRedis(),
       defaultJobOptions: {
         removeOnComplete: { count: 1000 },
         removeOnFail: { count: 5000 },
