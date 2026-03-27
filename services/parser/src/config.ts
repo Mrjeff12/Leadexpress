@@ -16,6 +16,7 @@ function parseRedis() {
         host: parsed.hostname || '127.0.0.1',
         port: Number(parsed.port || 6379),
         password: parsed.password || undefined,
+        username: parsed.username || undefined,
         ...(useTls ? { tls: {} } : {}),
       };
     } catch { /* fall through */ }
