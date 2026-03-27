@@ -1,7 +1,7 @@
 import { Worker, Queue } from 'bullmq';
 import { createClient } from '@supabase/supabase-js';
 import type { Logger } from 'pino';
-import { CITY_ZIPS } from '@leadexpress/shared';
+import { CITY_ZIPS } from '@masterleadflow/shared';
 import { config } from './config.js';
 import { matchLead, type Lead } from './matcher.js';
 
