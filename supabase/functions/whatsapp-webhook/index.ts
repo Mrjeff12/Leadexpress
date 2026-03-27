@@ -1181,6 +1181,18 @@ async function sendLeadNotification(
   const profLabel = profession.charAt(0).toUpperCase() + profession.slice(1);
   const cityLabel = city || 'Your area';
 
+  // Dedup: skip if already sent this lead to this contractor (prevents double-send from competing systems)
+  if (leadId && _userId) {
+    const { error: dedupError } = await supabase
+      .from('lead_notifications')
+      .insert({ lead_id: leadId, contractor_id: _userId, channel: 'whatsapp' });
+    if (dedupError?.code === '23505') {
+      // Unique constraint violation — already sent, skip silently
+      console.log(`[lead-notify] Duplicate skipped: lead=${leadId} contractor=${_userId}`);
+      return;
+    }
+  }
+
   // Step 1: Quick Reply notification with Claim/Pass buttons
   // Button payloads include leadId for routing: "claim_lead:{leadId}"
   // Use UTILITY template for US (+1) numbers — MARKETING is blocked outside 24h window
