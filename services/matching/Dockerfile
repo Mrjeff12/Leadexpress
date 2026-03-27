@@ -15,7 +15,7 @@ COPY services/matching/tsconfig.json ./services/matching/
 WORKDIR /app/services/matching
 
 RUN node -e "const fs=require('fs');const p=JSON.parse(fs.readFileSync('package.json','utf8'));delete p.dependencies['@masterleadflow/shared'];fs.writeFileSync('package.json',JSON.stringify(p,null,2));"
-RUN npm install
+RUN cat package.json && npm install --workspaces=false
 RUN mkdir -p node_modules/@masterleadflow && cp -r /app/packages/shared node_modules/@masterleadflow/shared
 RUN npx tsc
 
