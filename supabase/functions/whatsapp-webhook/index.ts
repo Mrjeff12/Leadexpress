@@ -28,7 +28,7 @@ async function loadSecrets() {
     return;
   }
   _secretsLoaded = true;
-  console.log('[secrets] loaded, SID=' + TWILIO_SID.substring(0, 6) + '...');
+  console.log('[secrets] loaded successfully');
 }
 
 function getTwilioUrl() {
@@ -39,22 +39,27 @@ function getTwilioAuth() {
 }
 
 // ── Content Template SIDs (Quick Reply Buttons + CTA) ───────────────────────
+function requiredEnv(name: string): string {
+  const val = Deno.env.get(name);
+  if (!val) console.error(`[config] Missing required env var: ${name}`);
+  return val ?? '';
+}
+
 const CONTENT = {
-  CHECKIN:          Deno.env.get('TWILIO_CONTENT_CHECKIN')          ?? 'HXbc2002314b4ccc42d9516b1e8fa39729',
-  LEAD_NOTIFY:      Deno.env.get('TWILIO_CONTENT_LEAD_NOTIFY')      ?? 'HX4ea56861f3586e6a3b6a00d2c04c013f',
-  LEAD_CONTACT:     Deno.env.get('TWILIO_CONTENT_LEAD_CONTACT')     ?? 'HXa91e18851fb81ed12e3de7c334c3218a',
-  CONFIRM_PROFILE:  Deno.env.get('TWILIO_CONTENT_CONFIRM_PROFILE')  ?? 'HXbfa6868f49ff1a3813767ab1005b57db',
-  WELCOME:          Deno.env.get('TWILIO_CONTENT_WELCOME_CONNECTED') ?? 'HXc09a10abda5b602d9a02ac0df544f7aa',
-  PAUSE_RESUME:     Deno.env.get('TWILIO_CONTENT_PAUSE_RESUME')     ?? 'HX7ee31519a4a677c64ed866bff6846462',
-  MENU_LIST:        Deno.env.get('TWILIO_CONTENT_MENU_LIST')        ?? 'HXc4b6dadf3ec8b8f70b154a596d6fca22',
-  LEAD_NOTIFY_BTN:  Deno.env.get('TWILIO_CONTENT_LEAD_NOTIFY_BTN')  ?? 'HXadf35e4a23ae35e016827f23fde8e2d9',
-  LEAD_CLAIMED:     Deno.env.get('TWILIO_CONTENT_LEAD_CLAIMED')     ?? 'HX7b3697cc66e30d95904dd30e7ec5fb79',
-  // Broadcast system templates (SIDs filled after running setup-twilio-broadcast-templates.js)
-  BROADCAST_NOTIFY:   Deno.env.get('TWILIO_CONTENT_BROADCAST_NOTIFY')   ?? 'HX65b6f4255de50f056add8a1e58b81881',
-  BROADCAST_INTEREST: Deno.env.get('TWILIO_CONTENT_BROADCAST_INTEREST') ?? 'HXe17599d4d5a2405eb0a8c8aa5e9794a7',
-  BROADCAST_CHOSEN:   Deno.env.get('TWILIO_CONTENT_BROADCAST_CHOSEN')   ?? 'HXe3ef47c713bfa9c739aa75864801e52e',
-  BROADCAST_CLOSED:   Deno.env.get('TWILIO_CONTENT_BROADCAST_CLOSED')   ?? 'HXb13bcbd71187d719cc79df427da86612',
-  CONTRACTOR_INVITE:  Deno.env.get('TWILIO_CONTENT_CONTRACTOR_INVITE')  ?? 'HX344261bdd6e219674f350ce662326e28',
+  CHECKIN:            requiredEnv('TWILIO_CONTENT_CHECKIN'),
+  LEAD_NOTIFY:        requiredEnv('TWILIO_CONTENT_LEAD_NOTIFY'),
+  LEAD_CONTACT:       requiredEnv('TWILIO_CONTENT_LEAD_CONTACT'),
+  CONFIRM_PROFILE:    requiredEnv('TWILIO_CONTENT_CONFIRM_PROFILE'),
+  WELCOME:            requiredEnv('TWILIO_CONTENT_WELCOME_CONNECTED'),
+  PAUSE_RESUME:       requiredEnv('TWILIO_CONTENT_PAUSE_RESUME'),
+  MENU_LIST:          requiredEnv('TWILIO_CONTENT_MENU_LIST'),
+  LEAD_NOTIFY_BTN:    requiredEnv('TWILIO_CONTENT_LEAD_NOTIFY_BTN'),
+  LEAD_CLAIMED:       requiredEnv('TWILIO_CONTENT_LEAD_CLAIMED'),
+  BROADCAST_NOTIFY:   requiredEnv('TWILIO_CONTENT_BROADCAST_NOTIFY'),
+  BROADCAST_INTEREST: requiredEnv('TWILIO_CONTENT_BROADCAST_INTEREST'),
+  BROADCAST_CHOSEN:   requiredEnv('TWILIO_CONTENT_BROADCAST_CHOSEN'),
+  BROADCAST_CLOSED:   requiredEnv('TWILIO_CONTENT_BROADCAST_CLOSED'),
+  CONTRACTOR_INVITE:  requiredEnv('TWILIO_CONTENT_CONTRACTOR_INVITE'),
 };
 
 // ── Phone normalization (single source of truth) ────────────────────────────
@@ -76,7 +81,7 @@ const MENU_TRIGGERS = ['menu', 'help', 'תפריט'];
 
 // ── Publish intent detection ───────────────────────────────────────────────
 const PUBLISH_TRIGGERS_EN = ['publish a job', 'post a job', 'i have a job', 'distribute a job', 'have a lead'];
-const PUBLISH_TRIGGERS_HE = ['יש לי עבודה', 'רוצה לפרסם', 'לפרסם עבודה', 'לפרסם ליד', 'לפרסם'];
+const PUBLISH_TRIGGERS_HE = ['יש לי עבודה', 'רוצה לפרסם', 'לפרסם עבודה', 'לפרסם ליד', 'לפרסם', 'להעביר עבודה', 'רוצה להעביר עבודה', 'לשלוח עבודה', 'יש לי ליד'];
 
 function isPublishIntent(text: string): boolean {
   const lower = text.toLowerCase().trim();
@@ -249,7 +254,7 @@ Deno.serve(async (req: Request) => {
       }
       console.log('[webhook] Twilio signature verified');
     } else {
-      console.warn('[webhook] TWILIO_AUTH_TOKEN not set — signature verification SKIPPED (dev mode only)');
+      console.error('[webhook] TWILIO_AUTH_TOKEN not set — signature verification SKIPPED. Set this env var in production!');
     }
 
     const from = params['From'] ?? '';
@@ -317,11 +322,20 @@ Deno.serve(async (req: Request) => {
       } catch (err) {
         console.error('[webhook] Transcription error:', err);
       }
-      // If transcription failed, ask user to type instead
+      // If transcription failed, log the voice message and ask user to type
       if (!body) {
         const phone = normalizePhone(from);
         if (phone) {
-          await sendText(phone, `לא הצלחתי להבין את ההודעה הקולית. תכתוב בבקשה? ✏️`);
+          // Log the failed voice message so it appears in the inbox
+          const pId = await findProspectByPhone(phone);
+          if (pId) {
+            await logMessage(pId, 'incoming', '🎤 (הודעה קולית — תמלול נכשל)', { messageType: 'audio' });
+          }
+          const lang = phone.startsWith('+972') ? 'he' : 'en';
+          const msg = lang === 'he'
+            ? `לא הצלחתי להבין את ההודעה הקולית. תכתוב בבקשה? ✏️`
+            : `I couldn't understand the voice message. Please type your message instead ✏️`;
+          await sendText(phone, msg, pId);
         }
         return twiml();
       }
@@ -339,11 +353,12 @@ Deno.serve(async (req: Request) => {
 
     // Handle empty messages (voice notes that Twilio can't forward, images, etc.)
     if (!text && !buttonPayload) {
-      // Check if user is in onboarding
-      const { data: onboardState } = await supabase.from('wa_onboard_state').select('step').eq('phone', phone).maybeSingle();
-      if (onboardState) {
-        await sendText(phone, `כרגע אני יודע לקרוא רק טקסט. תכתוב בבקשה? ✏️`);
-      }
+      // Always respond — don't silently drop messages
+      const lang = phone.startsWith('+972') ? 'he' : 'en';
+      const msg = lang === 'he'
+        ? `כרגע אני יודעת לקרוא רק טקסט. תכתוב בבקשה? ✏️`
+        : `I can only read text messages right now. Please type your message instead ✏️`;
+      await sendText(phone, msg);
       return twiml();
     }
 
@@ -351,6 +366,10 @@ Deno.serve(async (req: Request) => {
     await routeMessage(phone, text, textLower, buttonPayload);
   } catch (err) {
     console.error('[webhook] Error:', err);
+    // Send fallback so the user always gets a response
+    try {
+      if (phone) await sendText(phone, `Sorry, something went wrong. Please try again.`);
+    } catch (_) { /* best effort */ }
   }
 
   return twiml();
@@ -368,15 +387,15 @@ async function routeMessage(phone: string, text: string, textLower: string, butt
 
   // Log incoming message + update last inbound timestamp (for nudge suppression)
   if (prospectId && text) {
-    logMessage(prospectId, 'incoming', text);
+    await logMessage(prospectId, 'incoming', text);
     supabase.from('prospects').update({ last_wa_inbound_at: new Date().toISOString() })
-      .eq('id', prospectId).then(() => {});
+      .eq('id', prospectId).then(({ error: e }) => { if (e) console.error('[routeMessage] Failed to update last_wa_inbound_at:', e.message); });
   }
 
   // 0. Handle button payloads first (from Quick Reply clicks)
   if (buttonPayload) {
     if (prospectId && !text) {
-      logMessage(prospectId, 'incoming', `[Button: ${buttonPayload}]`);
+      await logMessage(prospectId, 'incoming', `[Button: ${buttonPayload}]`);
     }
     await handleButtonPayload(phone, buttonPayload, text, prospectId);
     return;
@@ -451,8 +470,8 @@ async function routeMessage(phone: string, text: string, textLower: string, butt
         // msgCount <= 1 because the current inbound message was already logged above
         if ((msgCount ?? 0) <= 1) {
           const greeting = lang === 'he'
-            ? 'היי! 👋 אני רבקה מ-LeadExpress.\nאנחנו עוזרים לקבלנים למצוא עבודות חדשות כל יום.\n\nרוצה לשמוע איך? תכתוב "כן" ואספר 😊'
-            : 'Hey! 👋 I\'m Rebeca from LeadExpress.\nWe help contractors find new jobs every day.\n\nWant to hear how? Just say "yes" 😊';
+            ? 'היי! 👋 אני רבקה מ-MasterLeadFlow.\nאנחנו עוזרים לקבלנים למצוא עבודות חדשות כל יום.\n\nרוצה לשמוע איך? תכתוב "כן" ואספר 😊'
+            : 'Hey! 👋 I\'m Rebeca from MasterLeadFlow.\nWe help contractors find new jobs every day.\n\nWant to hear how? Just say "yes" 😊';
           await sendText(phone, greeting, prospectId);
           console.log(`[sales] Sent first-time greeting to ${phone} (lang=${lang})`);
           return;
@@ -460,7 +479,15 @@ async function routeMessage(phone: string, text: string, textLower: string, butt
       }
 
       // Route to AI Sales Agent (handles questions, sells, handoffs to onboarding)
-      await handleAIForProspect(phone, text, prospectId, lang);
+      try {
+        await handleAIForProspect(phone, text, prospectId, lang);
+      } catch (err) {
+        console.error('[routeMessage] handleAIForProspect failed:', err);
+        const fallback = lang === 'he'
+          ? 'סליחה, משהו השתבש. נסה שוב בעוד רגע 🙏'
+          : 'Sorry, something went wrong. Please try again in a moment 🙏';
+        await sendText(phone, fallback);
+      }
       return;
     }
     // Link WhatsApp and continue
@@ -497,19 +524,18 @@ async function handleButtonPayload(phone: string, payload: string, _text: string
         .update({ stage: 'onboarding', last_contact_at: new Date().toISOString() })
         .eq('id', prospectId);
     }
-    // Detect language from phone prefix: +972 = Hebrew, +1 = English
     const lang: 'he' | 'en' = phone.startsWith('+972') ? 'he' : 'en';
     await supabase.from('wa_onboard_state').upsert({
       phone,
-      step: 'first_name',
-      data: { prospectId, userId: null, firstName: '', professions: [], cities: [], zipCodes: [], state: '', workingDays: [1,2,3,4,5], language: lang },
+      step: 'ai',
+      data: { prospectId, userId: null, collected: {}, language: lang },
       updated_at: new Date().toISOString(),
     });
-    await syncOnboardStep(phone, 'first_name');
+    await syncOnboardStep(phone, 'ai');
     if (lang === 'he') {
-      await sendText(phone, `מעולה! 🚀 בוא נתחיל — לוקח דקה.\n\n*מה השם המלא שלך?*`);
+      await sendText(phone, `מעולה! 🚀 ספר לי — מה השם שלך, מה אתה עושה ואיפה?`);
     } else {
-      await sendText(phone, `Awesome! 🚀 Let's get started — takes 60 seconds.\n\n*What's your full name?*`);
+      await sendText(phone, `Awesome! 🚀 Tell me — your name, what you do, and where?`);
     }
     return;
   }
@@ -565,10 +591,25 @@ async function handleButtonPayload(phone: string, payload: string, _text: string
 
       if (leadCtx?.data) {
         const ctx = leadCtx.data as { leadId: string; senderPhone: string; profession: string; city: string };
+        // Clean up state after reading
         await supabase.from('wa_onboard_state').delete().eq('phone', phone).eq('step', 'lead_pending');
         await handleClaim(phone, ctx.leadId, profile.id, ctx.senderPhone, ctx.profession, ctx.city);
       } else {
-        await sendText(phone, `No pending lead found. You may have already claimed or passed it.`);
+        // State was deleted or lost — find last lead matched to this contractor
+        const { data: recentLead } = await supabase
+          .from('leads')
+          .select('id, sender_id, profession, city')
+          .contains('matched_contractors', [profile.id])
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (recentLead) {
+          const sPhone = recentLead.sender_id?.replace(/@.*$/, '') || '';
+          await handleClaim(phone, recentLead.id, profile.id, sPhone, recentLead.profession || '', recentLead.city || '');
+        } else {
+          await sendText(phone, `No pending lead found. Send MENU for options.`);
+        }
       }
       break;
     }
@@ -678,7 +719,7 @@ async function handleButtonPayload(phone: string, payload: string, _text: string
         const { data: stats } = await supabase.rpc('calculate_contractor_stats', { p_user_id: respProfile.id });
 
         if (publisher?.whatsapp_phone && CONTENT.BROADCAST_INTEREST) {
-          // Template builds URL as: https://app.leadexpress.co.il/pro/{{5}}
+          // Template builds URL as: https://app.masterleadflow.co.il/pro/{{5}}
           // So send just the slug, not the full URL
           await sendButtons(publisher.whatsapp_phone, CONTENT.BROADCAST_INTEREST, {
             '1': respProfile.full_name || 'A contractor',
@@ -869,7 +910,12 @@ async function handleKnownUser(
   }
 
   // Default — AI agent handles free-text messages
-  await handleAI(phone, text, profile);
+  try {
+    await handleAI(phone, text, profile);
+  } catch (err) {
+    console.error('[handleKnownUser] handleAI failed:', err);
+    await sendText(phone, `Sorry, something went wrong. Send *MENU* for options.`);
+  }
 }
 
 // ── Account Connection handler ──────────────────────────────────────────────
@@ -1106,7 +1152,9 @@ async function sendLeadNotification(
 
   // Step 1: Quick Reply notification with Claim/Pass buttons
   // Button payloads include leadId for routing: "claim_lead:{leadId}"
-  await sendButtons(phone, CONTENT.LEAD_NOTIFY, {
+  // Use UTILITY template for US (+1) numbers — MARKETING is blocked outside 24h window
+  const notifyTemplate = phone.startsWith('+1') ? CONTENT.LEAD_NOTIFY_BTN : CONTENT.LEAD_NOTIFY;
+  await sendButtons(phone, notifyTemplate, {
     '1': emoji,
     '2': profLabel,
     '3': cityLabel,
@@ -1125,30 +1173,40 @@ async function sendLeadNotification(
 
 // Step 2: After Claim → send CTA button that opens WhatsApp chat with customer
 async function handleClaim(phone: string, leadId: string, userId: string, senderPhone: string, profession: string, city: string): Promise<void> {
-  // Claim in DB
-  const { data: lead, error } = await supabase
-    .from('leads')
-    .update({ status: 'claimed', claimed_by: userId, claimed_at: new Date().toISOString() })
-    .eq('id', leadId)
-    .eq('status', 'sent')
-    .select('id')
-    .maybeSingle();
+  // Log claim event (non-blocking) — multiple contractors can claim the same lead
+  supabase.from('pipeline_events').insert({
+    stage: 'lead_claimed',
+    detail: { lead_id: leadId, contractor_id: userId, channel: 'whatsapp' },
+  }).then(() => {});
 
-  if (error || !lead) {
-    await sendText(phone, `This lead has already been claimed or is no longer available.`);
-    return;
+  // Resolve sender phone + profession + city: try from params, fallback to lead record
+  let resolvedPhone = senderPhone;
+  let resolvedProfession = profession;
+  let resolvedCity = city;
+  if (!resolvedPhone || resolvedPhone.length < 8 || !resolvedProfession || !resolvedCity) {
+    const { data: leadRow } = await supabase
+      .from('leads')
+      .select('sender_id, profession, city')
+      .eq('id', leadId)
+      .maybeSingle();
+    if (leadRow?.sender_id) {
+      // sender_id format: "16575615553@c.us" → extract digits
+      resolvedPhone = leadRow.sender_id.replace(/@.*$/, '');
+    }
+    if (!resolvedProfession) resolvedProfession = leadRow?.profession || '';
+    if (!resolvedCity) resolvedCity = leadRow?.city || 'your area';
   }
 
-  if (!senderPhone || senderPhone.length < 8) {
+  if (!resolvedPhone || resolvedPhone.length < 8) {
     await sendText(phone, `✅ Lead claimed! Good luck 🤞`);
     return;
   }
 
   // Build wa.me path (template prepends https://wa.me/)
   const introMsg = encodeURIComponent(
-    `Hi! I am a licensed ${profession} contractor reaching out about your request in ${city}. I am available and can help. When works for you?`
+    `Hi! I am a licensed ${resolvedProfession} contractor reaching out about your request in ${resolvedCity}. I am available and can help. When works for you?`
   );
-  const waPath = `${senderPhone}?text=${introMsg}`;
+  const waPath = `${resolvedPhone}?text=${introMsg}`;
 
   // Send CTA button that opens WhatsApp chat directly
   await sendButtons(phone, CONTENT.LEAD_CONTACT, { '1': waPath });
@@ -1165,52 +1223,31 @@ async function handlePass(phone: string, leadId: string, userId: string): Promis
 // ── Onboarding ──────────────────────────────────────────────────────────────
 
 async function startOnboarding(phone: string, profile: { id: string; full_name: string }): Promise<void> {
-  // If user already has a real name (not phone number), skip name step
   const hasRealName = profile.full_name && !profile.full_name.startsWith('+');
-  const firstStep = hasRealName ? 'profession' : 'first_name';
-  // Detect language from phone prefix: +972 = Hebrew, +1 = English
   const lang: 'he' | 'en' = phone.startsWith('+972') ? 'he' : 'en';
+  const collected: Record<string, unknown> = {};
+  if (hasRealName) collected.name = profile.full_name;
 
   await supabase.from('wa_onboard_state').upsert({
     phone,
-    step: firstStep,
-    data: { userId: profile.id, firstName: hasRealName ? profile.full_name.split(' ')[0] : '', professions: [], cities: [], zipCodes: [], state: '', workingDays: [1,2,3,4,5], language: lang },
+    step: 'ai',
+    data: { userId: profile.id, prospectId: null, collected, language: lang },
     updated_at: new Date().toISOString(),
   });
 
-  if (hasRealName) {
-    const firstName = profile.full_name.split(' ')[0];
-    if (lang === 'he') {
-      await sendText(phone,
-        `היי ${firstName}! אני רבקה מ-MasterLeadFlow 👋\n\n` +
-        `*שלב 1/5* — מה אתה עושה?\n\n` +
-        `${PROF_LIST_MSG}\n\n` +
-        `✏️ כתוב או 🎙️ הקלט מה המקצוע שלך.`,
-      );
-    } else {
-      await sendText(phone,
-        `Hey ${firstName}! I'm Rebeca from MasterLeadFlow 👋\n\n` +
-        `*Step 1/5* — What services do you offer?\n\n` +
-        `${PROF_LIST_MSG}\n\n` +
-        `✏️ Type or 🎙️ record what you do.`,
-      );
-    }
+  const firstName = hasRealName ? profile.full_name.split(' ')[0] : '';
+  if (lang === 'he') {
+    await sendText(phone,
+      hasRealName
+        ? `היי ${firstName}! אני רבקה 👋\nספר לי מה אתה עושה ואיפה אתה עובד — ואני אתחיל לחפש לך עבודות.`
+        : `היי! אני רבקה 👋\nספר לי מה השם שלך, מה אתה עושה ואיפה — ואני אתחיל לחפש לך עבודות.`,
+    );
   } else {
-    if (lang === 'he') {
-      await sendText(phone,
-        `היי! אני רבקה מ-MasterLeadFlow 👋\n\n` +
-        `אני מוצאת לידים מקומיים לבעלי מקצוע כמוך.\n` +
-        `ההגדרה לוקחת 60 שניות!\n\n` +
-        `*מה השם המלא שלך?*`,
-      );
-    } else {
-      await sendText(phone,
-        `Hey! I'm Rebeca from MasterLeadFlow 👋\n\n` +
-        `I find local job leads for service pros like you.\n` +
-        `Setup takes 60 seconds!\n\n` +
-        `*What's your full name?*`,
-      );
-    }
+    await sendText(phone,
+      hasRealName
+        ? `Hey ${firstName}! I'm Rebeca 👋\nTell me what you do and where you work — I'll start finding you jobs.`
+        : `Hey! I'm Rebeca 👋\nTell me your name, what you do and where — I'll start finding you jobs.`,
+    );
   }
 }
 
@@ -1222,31 +1259,24 @@ async function startOnboardingStep(phone: string, userId: string, step: string):
     .eq('user_id', userId)
     .maybeSingle();
 
+  const collected: Record<string, unknown> = {
+    professions: existingContractor?.professions ?? [],
+    working_days: existingContractor?.working_days ?? [1,2,3,4,5],
+  };
+
   await supabase.from('wa_onboard_state').upsert({
     phone,
-    step,
-    data: {
-      userId,
-      professions: existingContractor?.professions ?? [],
-      cities: [],
-      zipCodes: existingContractor?.zip_codes ?? [],
-      state: '',
-      workingDays: existingContractor?.working_days ?? [1,2,3,4,5],
-    },
+    step: 'ai',
+    data: { userId, collected },
     updated_at: new Date().toISOString(),
   });
 
-  switch (step) {
-    case 'profession':
-      await sendText(phone, `🔧 *Update Services*\n\n${PROF_LIST_MSG}\n\n✏️ Type or 🎙️ record what you do.`);
-      break;
-    case 'city':
-      await sendText(phone, `📍 *עדכון אזורים*\n\nבאיזה מדינה אתה עובד?\n\n🌴 Florida\n🗽 New York\n🤠 Texas\n\n✏️ כתוב או 🎙️ הקלט.`);
-      break;
-    case 'working_days':
-      await sendText(phone, `📅 *Working Days*\n\n1️⃣ Mon-Fri\n2️⃣ Every day\n3️⃣ Custom`);
-      break;
-  }
+  const prompts: Record<string, string> = {
+    profession: `🔧 *Update Services*\n\nTell me what services you offer — type or send a voice note 🎙️`,
+    city: `📍 *Update Areas*\n\nWhat state and cities do you work in? Type or send a voice note 🎙️`,
+    working_days: `📅 *Update Working Days*\n\nWhich days do you work? (e.g. Mon-Fri, every day, or specific days)`,
+  };
+  await sendText(phone, prompts[step] || `What would you like to update?`);
 }
 
 async function handleOnboardingStep(
@@ -1255,76 +1285,400 @@ async function handleOnboardingStep(
   textLower: string,
   state: { step: string; data: Record<string, unknown> },
 ): Promise<void> {
+  // Legacy steps that still need dedicated handlers
+  if (state.step === 'groups') {
+    await onboardGroups(phone, text, textLower, state.data);
+    return;
+  }
+  if (state.step === 'post_job') {
+    await handlePostJobMessage(phone, text, state);
+    return;
+  }
+  if (state.step === 'menu') {
+    if (['1','2','3','4','5'].includes(textLower)) {
+      await supabase.from('wa_onboard_state').delete().eq('phone', phone);
+      await handleMenuSelection(phone, textLower, (state.data as { userId: string }).userId);
+    } else {
+      await sendText(phone, `Reply 1-5 to select, or send *MENU* again.`);
+    }
+    return;
+  }
+
   // Escape words — let user exit onboarding anytime
   const ESCAPE_WORDS = ['menu', 'help', 'cancel', 'stop', 'תפריט', 'ביטול'];
   if (ESCAPE_WORDS.includes(textLower)) {
     await supabase.from('wa_onboard_state').delete().eq('phone', phone);
     const lang = detectLanguage(text);
-    if (lang === 'he') {
-      await sendText(phone, `בסדר, יצאנו מההגדרות.\nשלח *MENU* לאפשרויות.`);
-    } else {
-      await sendText(phone, `OK, exited setup.\nSend *MENU* for options.`);
-    }
+    await sendText(phone, lang === 'he'
+      ? `בסדר, יצאנו מההגדרות.\nשלח *MENU* לאפשרויות.`
+      : `OK, exited setup.\nSend *MENU* for options.`);
     await handleMenu(phone);
     return;
   }
 
-  const data = state.data as {
-    userId: string;
-    professions: string[];
-    cities: string[];
-    zipCodes: string[];
-    state: string;
-    workingDays: number[];
-    language?: 'he' | 'en';
-  };
+  // ── AI-driven onboarding ──────────────────────────────────────────────
+  await handleAIOnboarding(phone, text, state.data);
+}
 
-  switch (state.step) {
-    case 'menu':
-      // Menu was shown, route selection
-      if (['1','2','3','4','5'].includes(textLower)) {
-        await supabase.from('wa_onboard_state').delete().eq('phone', phone);
-        await handleMenuSelection(phone, textLower, data.userId);
-      } else {
-        await sendText(phone, `Reply 1-5 to select, or send *MENU* again.`);
+// ── AI Onboarding Agent ─────────────────────────────────────────────────────
+async function handleAIOnboarding(phone: string, text: string, data: Record<string, unknown>): Promise<void> {
+  const OPENAI_KEY = getOpenAIKey();
+  if (!OPENAI_KEY) {
+    // Fallback: can't call AI, ask user to type profession
+    await sendText(phone, `מה המקצוע שלך? (למשל: אינסטלציה, חשמל, ניקוי צנרות)`);
+    return;
+  }
+
+  try {
+    const agents = await loadAgents();
+    const agent = agents.find(a => a.slug === 'onboarding_agent');
+    if (!agent) {
+      await sendText(phone, `מה המקצוע שלך?`);
+      return;
+    }
+
+    // Build context from already-collected data
+    const collected = data.collected as Record<string, unknown> || {};
+    const missing: string[] = [];
+    if (!collected.name) missing.push('name (full name)');
+    if (!(collected.professions as string[])?.length) missing.push('professions (trade/s)');
+    if (!collected.state) missing.push('state (US state)');
+    if (!(collected.cities as string[])?.length) missing.push('cities (within their state)');
+    if (!(collected.working_days as number[])?.length) missing.push('working_days (days of week)');
+
+    const contextBlock = `<onboarding_state>
+Collected so far:
+- Name: ${collected.name || '(not yet)'}
+- Professions: ${(collected.professions as string[])?.join(', ') || '(not yet)'}
+- State: ${collected.state || '(not yet)'}
+- Cities: ${(collected.cities as string[])?.join(', ') || '(not yet)'}
+- Working days: ${(collected.working_days as number[])?.map(d => ['','Mon','Tue','Wed','Thu','Fri','Sat','Sun'][d]).join(', ') || '(not yet)'}
+
+Still missing: ${missing.length > 0 ? missing.join(', ') : 'NOTHING — all fields collected, show summary and ask for confirmation'}
+
+ProspectId: ${data.prospectId || 'unknown'}
+</onboarding_state>`;
+
+    const instructions = agent.instructions + '\n\n' + contextBlock;
+    const tools = agentToolsToOpenAI(agent);
+
+    // Get conversation chain
+    const { data: session } = await supabase
+      .from('wa_agent_sessions')
+      .select('last_response_id, message_count')
+      .eq('wa_id', phone)
+      .maybeSingle();
+
+    const body: Record<string, unknown> = {
+      model: agent.model,
+      instructions,
+      input: [{ role: 'user', content: text }],
+      tools: tools.length > 0 ? tools : undefined,
+      store: true,
+      max_output_tokens: (agent.guardrails as Record<string, number>)?.max_tokens ?? 300,
+      temperature: agent.temperature,
+    };
+
+    // Chain conversation for continuity
+    if (session?.last_response_id) {
+      body.previous_response_id = session.last_response_id;
+    }
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 30_000);
+    let res: Response;
+    try {
+      res = await fetch('https://api.openai.com/v1/responses', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${OPENAI_KEY}` },
+        body: JSON.stringify(body),
+        signal: controller.signal,
+      });
+    } finally {
+      clearTimeout(timeout);
+    }
+
+    if (!res.ok) {
+      const errText = await res.text();
+      console.error('[onboard-ai] OpenAI error:', errText);
+      // Retry without chaining if previous_response_id caused the error
+      if (session?.last_response_id && errText.includes('previous_response')) {
+        delete body.previous_response_id;
+        const retryCtrl = new AbortController();
+        const retryTimeout = setTimeout(() => retryCtrl.abort(), 30_000);
+        let retry: Response;
+        try {
+          retry = await fetch('https://api.openai.com/v1/responses', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${OPENAI_KEY}` },
+            body: JSON.stringify(body),
+            signal: retryCtrl.signal,
+          });
+        } finally {
+          clearTimeout(retryTimeout);
+        }
+        if (!retry.ok) {
+          await sendText(phone, `מה המקצוע שלך? (למשל: אינסטלציה, חשמל, ניקוי צנרות)`);
+          return;
+        }
+        const retryData = await retry.json();
+        await processOnboardingAIResponse(phone, retryData, data);
+        return;
       }
-      break;
+      await sendText(phone, `מה המקצוע שלך? (למשל: אינסטלציה, חשמל, ניקוי צנרות)`);
+      return;
+    }
 
-    case 'first_name':
-      await onboardFirstName(phone, text, data);
-      break;
+    const responseData = await res.json();
+    await processOnboardingAIResponse(phone, responseData, data);
 
-    case 'profession':
-      await onboardProfession(phone, text, data);
-      break;
+  } catch (err) {
+    console.error('[onboard-ai] Error:', err);
+    await sendText(phone, `מה המקצוע שלך? (למשל: אינסטלציה, חשמל, ניקוי צנרות)`);
+  }
+}
 
-    case 'city_state':
-      await onboardCityState(phone, textLower, data);
-      break;
+async function processOnboardingAIResponse(
+  phone: string,
+  apiResponse: Record<string, unknown>,
+  onboardData: Record<string, unknown>,
+): Promise<void> {
+  const responseId = apiResponse.id as string;
+  const output = apiResponse.output as Array<{ type: string; name?: string; arguments?: string; content?: Array<{ text?: string; type?: string }>; text?: string }>;
 
-    case 'city':
-      await onboardCity(phone, textLower, data);
-      break;
+  // Save session for conversation continuity
+  const currentCount = (await supabase.from('wa_agent_sessions').select('message_count').eq('wa_id', phone).maybeSingle()).data?.message_count ?? 0;
+  await supabase.from('wa_agent_sessions').upsert({
+    wa_id: phone,
+    user_id: null,
+    last_response_id: responseId,
+    message_count: currentCount + 1,
+    current_agent_slug: 'onboarding_agent',
+    updated_at: new Date().toISOString(),
+  });
 
-    case 'working_days':
-      await onboardWorkingDays(phone, textLower, data);
-      break;
+  // Process output items
+  for (const item of (output || [])) {
+    // Handle tool calls
+    if (item.type === 'function_call' && item.name) {
+      const args = JSON.parse(item.arguments || '{}');
 
-    case 'confirm':
-      await onboardConfirm(phone, textLower, data);
-      break;
+      if (item.name === 'save_profile') {
+        // Merge new data into collected
+        const collected = (onboardData.collected as Record<string, unknown>) || {};
+        if (args.name) collected.name = args.name;
+        if (args.professions?.length) collected.professions = args.professions;
+        if (args.state) collected.state = args.state;
+        if (args.cities?.length) collected.cities = args.cities;
+        if (args.working_days?.length) collected.working_days = args.working_days;
 
-    case 'groups':
-      await onboardGroups(phone, text, textLower, data);
-      break;
+        // Update prospect display_name
+        if (args.name && onboardData.prospectId) {
+          await supabase.from('prospects').update({ display_name: args.name }).eq('id', onboardData.prospectId);
+        }
+        if (args.professions?.length && onboardData.prospectId) {
+          await supabase.from('prospects').update({ profession_tags: args.professions }).eq('id', onboardData.prospectId);
+        }
 
-    case 'post_job':
-      await handlePostJobMessage(phone, text, state);
-      break;
+        // Save back to wa_onboard_state
+        await supabase.from('wa_onboard_state').update({
+          step: 'ai',
+          data: { ...onboardData, collected },
+          updated_at: new Date().toISOString(),
+        }).eq('phone', phone);
 
-    default:
-      await supabase.from('wa_onboard_state').delete().eq('phone', phone);
-      await sendText(phone, `Send *MENU* for options.`);
+        console.log(`[onboard-ai] Saved profile data for ${phone}:`, JSON.stringify(collected));
+
+        // Continue processing — AI may have sent a text message too
+        continue;
+      }
+
+      if (item.name === 'complete_onboarding') {
+        console.log(`[onboard-ai] Completing onboarding for ${phone}`);
+        await executeOnboardingCompletion(phone, onboardData);
+        return;
+      }
+    }
+
+    // Handle text responses
+    if (item.type === 'message') {
+      const content = item.content as Array<{ type: string; text?: string }>;
+      const textContent = content?.find(c => c.type === 'output_text' || c.type === 'text');
+      if (textContent?.text) {
+        await sendText(phone, textContent.text);
+        return;
+      }
+    }
+  }
+
+  // Fallback: check output_text
+  const outputText = apiResponse.output_text as string;
+  if (outputText) {
+    await sendText(phone, outputText);
+    return;
+  }
+
+  await sendText(phone, `מה המקצוע שלך? כתוב או שלח הודעה קולית 🎙️`);
+}
+
+// ── Execute onboarding completion (create account) ──────────────────────────
+async function executeOnboardingCompletion(phone: string, onboardData: Record<string, unknown>): Promise<void> {
+  const collected = (onboardData.collected as Record<string, unknown>) || {};
+  const userId = onboardData.userId as string | null;
+  const prospectId = onboardData.prospectId as string | null;
+  const professions = (collected.professions as string[]) || [];
+  const cities = (collected.cities as string[]) || [];
+  const workingDays = (collected.working_days as number[])?.length > 0 ? (collected.working_days as number[]) : [1,2,3,4,5];
+  const fullName = (collected.name as string) || phone;
+
+  // Resolve zip codes from cities + state
+  const stateCode = (collected.state as string) || 'FL';
+  const stateCities = STATE_CITIES[stateCode] || [];
+  const zipCodes: string[] = [];
+  for (const cityKey of cities) {
+    const cityData = stateCities.find(c => c.key === cityKey);
+    if (cityData) zipCodes.push(...cityData.zips);
+  }
+  const uniqueZips = [...new Set(zipCodes)];
+
+  if (userId) {
+    // Known user — update contractor
+    await supabase.from('contractors').update({
+      professions,
+      zip_codes: uniqueZips,
+      wa_notify: true,
+      is_active: true,
+      working_days: workingDays,
+    }).eq('user_id', userId);
+
+    await supabase.from('wa_onboard_state').delete().eq('phone', phone);
+    await sendText(phone, `✅ *הפרופיל עודכן!*\n\nלידים שמתאימים לך יגיעו ישירות לפה.\nשלח *MENU* לאפשרויות.`);
+    console.log(`[onboard-ai] Complete (existing user): ${userId}`);
+    return;
+  }
+
+  // ── New user: create full account ──
+  if (!prospectId) {
+    await sendText(phone, `⚠️ Something went wrong. Send *MENU* to try again.`);
+    return;
+  }
+
+  const phoneNorm = normalizePhone(phone);
+
+  try {
+    // Check if profile already exists
+    const { data: existingProfile } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('whatsapp_phone', phone)
+      .maybeSingle();
+
+    let newUserId: string;
+
+    if (existingProfile) {
+      newUserId = existingProfile.id;
+    } else {
+      // Create auth user
+      const { data: authUser, error: authError } = await supabase.auth.admin.createUser({
+        phone: phoneNorm,
+        phone_confirm: true,
+        user_metadata: { full_name: fullName, source: 'whatsapp_onboarding' },
+      });
+
+      if (authError || !authUser?.user) {
+        console.error('[onboard-ai] Auth create error:', authError);
+        await supabase.from('wa_onboard_state').delete().eq('phone', phone);
+        await sendText(phone, `⚠️ There was a problem. Send any message to try again.`);
+        return;
+      }
+
+      newUserId = authUser.user.id;
+
+      // Update profile
+      const CITY_COUNTY: Record<string, string> = {
+        miami:'Miami-Dade County', hialeah:'Miami-Dade County', doral:'Miami-Dade County', homestead:'Miami-Dade County', miami_beach:'Miami-Dade County', coral_gables:'Miami-Dade County', aventura:'Miami-Dade County',
+        fort_lauderdale:'Broward County', hollywood:'Broward County', pembroke_pines:'Broward County', miramar:'Broward County', plantation:'Broward County', sunrise:'Broward County', weston:'Broward County', pompano:'Broward County',
+        boca_raton:'Palm Beach County', west_palm:'Palm Beach County', delray:'Palm Beach County',
+        manhattan:'New York County', brooklyn:'Kings County', queens:'Queens County', bronx:'Bronx County', staten_island:'Richmond County', yonkers:'Westchester County', long_island:'Nassau County',
+        houston:'Harris County', dallas:'Dallas County', san_antonio:'Bexar County', austin:'Travis County',
+      };
+      const selectedCounties = [...new Set(cities.map(c => CITY_COUNTY[c]).filter(Boolean))];
+
+      await supabase.from('profiles').update({
+        whatsapp_phone: phone,
+        phone: phoneNorm,
+        full_name: fullName,
+        counties: selectedCounties.length > 0 ? selectedCounties : null,
+      }).eq('id', newUserId);
+
+      // Create contractor
+      await supabase.from('contractors').insert({
+        user_id: newUserId,
+        professions,
+        zip_codes: uniqueZips,
+        wa_notify: true,
+        is_active: true,
+        working_days: workingDays,
+      });
+
+      // Create trial subscription
+      const { data: plan } = await supabase.from('plans').select('id').eq('slug', 'premium').limit(1).maybeSingle();
+      let planId = plan?.id;
+      if (!planId) {
+        const { data: anyPlan } = await supabase.from('plans').select('id').limit(1).maybeSingle();
+        planId = anyPlan?.id || 'ceb41e5b-5346-4de2-93e1-ead9ae5fcd57';
+      }
+      await supabase.from('subscriptions').insert({
+        user_id: newUserId,
+        plan_id: planId,
+        status: 'trialing',
+        current_period_end: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+      });
+
+      // Link prospect
+      await supabase.from('prospects').update({
+        stage: 'demo_trial',
+        user_id: newUserId,
+        profession_tags: professions,
+        last_contact_at: new Date().toISOString(),
+      }).eq('id', prospectId);
+    }
+
+    // Generate magic link
+    let dashLink = 'https://app.masterleadflow.com';
+    try {
+      const lr = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/magic-login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'generate', user_id: newUserId, redirect_path: '/complete-account' }),
+      });
+      const ld = await lr.json();
+      if (ld.link) dashLink = ld.link;
+    } catch (_e) { /* fallback */ }
+
+    // Send confirmation
+    await sendText(phone,
+      `✅ *מעולה ${fullName}! הפרופיל נשמר!*\n\n` +
+      `🎉 תקופת הנסיון שלך (7 ימים) התחילה!\n` +
+      `לידים שמתאימים לך יגיעו ישירות לפה.\n\n` +
+      `📱 *הממשק שלך מוכן:*\n` +
+      `👉 ${dashLink}\n\n` +
+      `עכשיו — שלח לי לינקים לקבוצות וואטסאפ ואני אסרוק אותן 24/7 🔍\nכתוב *סיימתי* כשגמרת, או *דלג*.`,
+    );
+
+    // Transition to groups step
+    await supabase.from('wa_onboard_state').update({
+      step: 'groups',
+      data: { ...onboardData, newUserId, userId: newUserId, collected },
+      updated_at: new Date().toISOString(),
+    }).eq('phone', phone);
+
+    console.log(`[onboard-ai] Full account created: ${newUserId}, trial 7 days`);
+
+  } catch (err) {
+    console.error('[onboard-ai] Account creation error:', err);
+    await supabase.from('wa_onboard_state').delete().eq('phone', phone);
+    await sendText(phone, `⚠️ Something went wrong. Send any message to try again.`);
   }
 }
 
@@ -2118,7 +2472,7 @@ async function loadAgents() {
 
 function buildStageGuidance(stage: string, subStatus: string): string {
   const guides: Record<string, string> = {
-    prospect: `This is a new prospect. Be friendly and curious. Explain what LeadExpress does — we scan their WhatsApp groups and send them matching jobs. Offer a free 7-day trial. Don't be pushy.`,
+    prospect: `This is a new prospect. Be friendly and curious. Explain what MasterLeadFlow does — we scan their WhatsApp groups and send them matching jobs. Offer a free 7-day trial. Don't be pushy.`,
     reached_out: `We already reached out to this prospect. They haven't registered yet. Be persuasive but not aggressive. Highlight the value — real jobs from their own WhatsApp groups. Answer questions confidently. Push toward registration.`,
     in_conversation: `This prospect is actively chatting. Listen to their questions, answer clearly, and guide them toward starting the free trial. If they say YES, hand off to onboarding_agent immediately.`,
     onboarding: `This prospect is in the middle of registration. Help them complete the current step. Be encouraging — "almost done!" Keep it short and action-oriented.`,
@@ -2329,11 +2683,19 @@ ${stageGuidance}
       body.previous_response_id = session.last_response_id;
     }
 
-    const res = await fetch('https://api.openai.com/v1/responses', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${OPENAI_KEY}` },
-      body: JSON.stringify(body),
-    });
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 30_000);
+    let res: Response;
+    try {
+      res = await fetch('https://api.openai.com/v1/responses', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${OPENAI_KEY}` },
+        body: JSON.stringify(body),
+        signal: controller.signal,
+      });
+    } finally {
+      clearTimeout(timeout);
+    }
 
     if (!res.ok) {
       console.error('[sales] OpenAI error:', await res.text());
@@ -2371,19 +2733,19 @@ ${stageGuidance}
                 .update({ stage: 'onboarding', last_contact_at: new Date().toISOString() })
                 .eq('id', prospectId);
             }
-            // Start onboarding
+            // Start AI onboarding
+            const lang: 'he' | 'en' = phone.startsWith('+972') ? 'he' : 'en';
+            const collected: Record<string, unknown> = {};
+            if (prospectName && prospectName !== 'there') collected.name = prospectName;
             await supabase.from('wa_onboard_state').upsert({
               phone,
-              step: 'first_name',
-              data: {
-                prospectId,
-                userId: null,
-                firstName: prospectName !== 'there' ? prospectName : '',
-                professions: [], cities: [], zipCodes: [], state: '', workingDays: [1,2,3,4,5],
-              },
+              step: 'ai',
+              data: { prospectId, userId: null, collected, language: lang },
               updated_at: new Date().toISOString(),
             });
-            await sendText(phone, `מעולה! 🚀 בוא נתחיל — לוקח דקה.\n\n*מה השם המלא שלך?*`);
+            await sendText(phone, lang === 'he'
+              ? `מעולה! 🚀 ספר לי — מה אתה עושה ואיפה אתה עובד?`
+              : `Awesome! 🚀 Tell me — what do you do and where do you work?`);
             return;
           }
         } catch {}
@@ -2521,11 +2883,19 @@ Leads found: ${prospectData?.lead_count ?? 0}
       body.previous_response_id = session.last_response_id;
     }
 
-    const res = await fetch('https://api.openai.com/v1/responses', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getOpenAIKey()}` },
-      body: JSON.stringify(body),
-    });
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 30_000);
+    let res: Response;
+    try {
+      res = await fetch('https://api.openai.com/v1/responses', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getOpenAIKey()}` },
+        body: JSON.stringify(body),
+        signal: controller.signal,
+      });
+    } finally {
+      clearTimeout(timeout);
+    }
 
     if (!res.ok) {
       const errText = await res.text();
@@ -2533,11 +2903,19 @@ Leads found: ${prospectData?.lead_count ?? 0}
       // Retry without chaining if previous_response_id failed
       if (session?.last_response_id && errText.includes('previous_response')) {
         delete body.previous_response_id;
-        const retry = await fetch('https://api.openai.com/v1/responses', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getOpenAIKey()}` },
-          body: JSON.stringify(body),
-        });
+        const retryCtrl = new AbortController();
+        const retryTimeout = setTimeout(() => retryCtrl.abort(), 30_000);
+        let retry: Response;
+        try {
+          retry = await fetch('https://api.openai.com/v1/responses', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getOpenAIKey()}` },
+            body: JSON.stringify(body),
+            signal: retryCtrl.signal,
+          });
+        } finally {
+          clearTimeout(retryTimeout);
+        }
         if (!retry.ok) {
           await sendText(phone, `Send *MENU* for options.`);
           return;
@@ -2675,8 +3053,8 @@ async function executeAIFunction(phone: string, fnName: string, profile: { id: s
       try {
         const parsed = JSON.parse(args || '{}');
         if (parsed.lead_id) {
-          const { error } = await supabase.from('leads').update({ status: 'claimed', claimed_by: profile.id }).eq('id', parsed.lead_id).eq('status', 'sent');
-          await sendText(phone, error ? `Could not claim this lead.` : `✅ Lead claimed! Check your WhatsApp for the customer's contact.`);
+          // All matched contractors can respond — no exclusive claim
+          await handleClaim(phone, parsed.lead_id, profile.id, '', '', '');
         }
       } catch { await sendText(phone, `Send *MENU* for options.`); }
       break;
@@ -2924,6 +3302,18 @@ async function findProfileByPhone(phone: string) {
 
 // ── Prospect auto-creation + message logging ──────────────────────────────
 
+// Fast prospect lookup (read-only, no create) — used by sendText/sendButtons for auto-logging
+async function findProspectByPhone(phone: string): Promise<string | null> {
+  const stripped = phone.replace(/^\+/, '').replace('whatsapp:', '');
+  const waId = stripped + '@c.us';
+  const { data } = await supabase
+    .from('prospects')
+    .select('id')
+    .or(`wa_id.eq.${waId},phone.eq.+${stripped},phone.eq.${stripped}`)
+    .maybeSingle();
+  return data?.id ?? null;
+}
+
 // prospectId is now passed through function parameters instead of a module-level variable
 
 async function findOrCreateProspect(phone: string): Promise<string | null> {
@@ -2969,14 +3359,13 @@ async function findOrCreateProspect(phone: string): Promise<string | null> {
   return created.id;
 }
 
-function logMessage(
+async function logMessage(
   prospectId: string,
   direction: 'incoming' | 'outgoing',
   content: string,
   opts?: { messageType?: string; waMessageId?: string; templateId?: string },
-): void {
-  // Fire-and-forget — never block webhook response
-  supabase.from('prospect_messages').insert({
+): Promise<void> {
+  const { error } = await supabase.from('prospect_messages').insert({
     prospect_id: prospectId,
     direction,
     message_type: opts?.messageType ?? 'text',
@@ -2985,9 +3374,8 @@ function logMessage(
     wa_message_id: opts?.waMessageId ?? null,
     template_id: opts?.templateId ?? null,
     sent_at: new Date().toISOString(),
-  }).then(({ error }) => {
-    if (error) console.error('[msg-log]', error.message);
   });
+  if (error) console.error('[msg-log]', error.message);
 }
 
 async function checkSubscription(userId: string): Promise<boolean> {
@@ -3018,9 +3406,12 @@ async function sendText(to: string, body: string, prospectId?: string | null): P
     console.error(`[twilio] Network error:`, err);
   }
 
-  // Log outgoing message
+  // Log outgoing message — auto-resolve prospectId if not provided
+  if (!prospectId) {
+    prospectId = await findProspectByPhone(to);
+  }
   if (prospectId) {
-    logMessage(prospectId, 'outgoing', body);
+    await logMessage(prospectId, 'outgoing', body);
   }
 }
 
@@ -3050,10 +3441,13 @@ async function sendButtons(to: string, contentSid: string, vars?: Record<string,
     console.error(`[twilio] Network error:`, err);
   }
 
-  // Log outgoing button message
+  // Log outgoing button message — auto-resolve prospectId if not provided
+  if (!prospectId) {
+    prospectId = await findProspectByPhone(to);
+  }
   if (prospectId) {
     const content = vars ? `[Buttons] ${JSON.stringify(vars)}` : `[Template: ${contentSid}]`;
-    logMessage(prospectId, 'outgoing', content, { templateId: contentSid });
+    await logMessage(prospectId, 'outgoing', content, { templateId: contentSid });
   }
 }
 
