@@ -8,14 +8,9 @@ import { startCheckinCron } from './checkin-cron.js';
 
 const log = pino({ name: 'whatsapp-notify' });
 
-const redis = new Redis({
-  host: config.redis.host,
-  port: config.redis.port,
-  password: config.redis.password,
-  maxRetriesPerRequest: config.redis.maxRetriesPerRequest,
-  ...((config.redis as any).tls ? { tls: {} } : {}),
-  ...((config.redis as any).username ? { username: (config.redis as any).username } : {}),
-});
+const redis = process.env.REDIS_URL
+  ? new Redis(process.env.REDIS_URL, { maxRetriesPerRequest: null })
+  : new Redis({ host: config.redis.host, port: config.redis.port, password: config.redis.password, maxRetriesPerRequest: null });
 
 log.info(
   {

@@ -1,5 +1,6 @@
 import { Worker, UnrecoverableError } from 'bullmq';
 import type { Logger } from 'pino';
+import IORedis from 'ioredis';
 import { config } from './config.js';
 import { sendTelegramMessage } from './telegram.js';
 
@@ -13,7 +14,14 @@ export interface NotificationJob {
   urgency?: string;
 }
 
+function makeRedis() {
+  return process.env.REDIS_URL
+    ? new IORedis(process.env.REDIS_URL, { maxRetriesPerRequest: null })
+    : new IORedis({ ...config.redis });
+}
+
 export function createNotificationWorker(log: Logger): { worker: Worker; cleanup: () => Promise<void> } {
+  const connection = makeRedis();
   const worker = new Worker<NotificationJob>(
     config.queues.notifications,
     async (job) => {
@@ -58,7 +66,7 @@ export function createNotificationWorker(log: Logger): { worker: Worker; cleanup
       throw new Error(`Telegram send failed: ${result.error}`);
     },
     {
-      connection: config.redis,
+      connection,
       concurrency: config.worker.concurrency,
       removeOnComplete: { count: 1000 },
       removeOnFail: { count: 5000 },

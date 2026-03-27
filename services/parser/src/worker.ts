@@ -8,14 +8,9 @@ import { isDuplicate } from './dedup.js';
 
 const log = pino({ name: 'parser-worker' });
 
-const redis = new Redis({
-  host: config.redis.host,
-  port: config.redis.port,
-  password: config.redis.password,
-  maxRetriesPerRequest: null,
-  ...((config.redis as any).tls ? { tls: {} } : {}),
-  ...((config.redis as any).username ? { username: (config.redis as any).username } : {}),
-});
+const redis = process.env.REDIS_URL
+  ? new Redis(process.env.REDIS_URL, { maxRetriesPerRequest: null })
+  : new Redis({ host: config.redis.host, port: config.redis.port, password: config.redis.password, maxRetriesPerRequest: null });
 
 const supabase = createClient(config.supabase.url, config.supabase.serviceKey);
 

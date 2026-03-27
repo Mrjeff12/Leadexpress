@@ -1,6 +1,7 @@
 import { Worker, Queue } from 'bullmq';
 import { createClient } from '@supabase/supabase-js';
 import type { Logger } from 'pino';
+import IORedis from 'ioredis';
 import { CITY_ZIPS } from '@masterleadflow/shared';
 import { config } from './config.js';
 import { matchLead, type Lead } from './matcher.js';
@@ -18,9 +19,16 @@ function resolveZipFromCity(city: string): string | null {
 
 const supabase = createClient(config.supabase.url, config.supabase.serviceKey);
 
+function makeRedis() {
+  return process.env.REDIS_URL
+    ? new IORedis(process.env.REDIS_URL, { maxRetriesPerRequest: null })
+    : new IORedis({ ...config.redis });
+}
+
 export function createMatchingWorker(log: Logger): { worker: Worker; cleanup: () => Promise<void> } {
+  const connection = makeRedis();
   const notificationQueue = new Queue(config.queues.notifications, {
-    connection: config.redis,
+    connection,
     defaultJobOptions: {
       removeOnComplete: { count: 1000 },
       removeOnFail: { count: 5000 },
@@ -29,7 +37,7 @@ export function createMatchingWorker(log: Logger): { worker: Worker; cleanup: ()
 
   // WhatsApp notification queue (for contractors with open 24h window)
   const waNotificationQueue = new Queue('wa-notifications', {
-    connection: config.redis,
+    connection,
     defaultJobOptions: {
       removeOnComplete: { count: 1000 },
       removeOnFail: { count: 5000 },
@@ -124,7 +132,7 @@ export function createMatchingWorker(log: Logger): { worker: Worker; cleanup: ()
       return { matched };
     },
     {
-      connection: config.redis,
+      connection,
       concurrency: config.worker.concurrency,
       removeOnComplete: { count: 1000 },
       removeOnFail: { count: 5000 },

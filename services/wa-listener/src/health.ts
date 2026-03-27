@@ -7,15 +7,16 @@ let heartbeatTimer: ReturnType<typeof setInterval> | null = null;
 
 function getRedis(): Redis {
   if (!redis) {
-    redis = new Redis({
-      host: config.redis.host,
-      port: config.redis.port,
-      password: config.redis.password,
-      maxRetriesPerRequest: null,
-      lazyConnect: true,
-      ...((config.redis as any).tls ? { tls: {} } : {}),
-  ...((config.redis as any).username ? { username: (config.redis as any).username } : {}),
-    });
+    const redisUrl = process.env.REDIS_URL;
+    redis = redisUrl
+      ? new Redis(redisUrl, { maxRetriesPerRequest: null, lazyConnect: true })
+      : new Redis({
+          host: config.redis.host,
+          port: config.redis.port,
+          password: config.redis.password,
+          maxRetriesPerRequest: null,
+          lazyConnect: true,
+        });
 
     redis.on('error', (err) => {
       logger.error({ err }, 'Health Redis connection error');

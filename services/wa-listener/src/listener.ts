@@ -21,14 +21,10 @@ let dedupRedis: Redis | null = null;
 
 function getDedupRedis(): Redis {
   if (!dedupRedis) {
-    dedupRedis = new Redis({
-      host: config.redis.host,
-      port: config.redis.port,
-      password: config.redis.password,
-      maxRetriesPerRequest: null,
-      ...((config.redis as any).tls ? { tls: {} } : {}),
-  ...((config.redis as any).username ? { username: (config.redis as any).username } : {}),
-    });
+    const redisUrl = process.env.REDIS_URL;
+    dedupRedis = redisUrl
+      ? new Redis(redisUrl, { maxRetriesPerRequest: null })
+      : new Redis({ host: config.redis.host, port: config.redis.port, password: config.redis.password, maxRetriesPerRequest: null });
     dedupRedis.on('error', (err) => {
       logger.error({ err }, 'Dedup Redis connection error');
     });
