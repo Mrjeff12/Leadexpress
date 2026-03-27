@@ -590,10 +590,25 @@ async function handleButtonPayload(phone: string, payload: string, _text: string
         .maybeSingle();
 
       if (leadCtx?.data) {
-        const ctx = leadCtx.data as { leadId: string; senderPhone: string; profession: string; city: string };
-        // Clean up state after reading
-        await supabase.from('wa_onboard_state').delete().eq('phone', phone).eq('step', 'lead_pending');
-        await handleClaim(phone, ctx.leadId, profile.id, ctx.senderPhone, ctx.profession, ctx.city);
+        const ctx = leadCtx.data as { pendingLeads?: Array<{ leadId: string; senderPhone: string; profession: string; city: string }> };
+        const pending = ctx.pendingLeads ?? [];
+        const current = pending[0];
+        if (!current) {
+          await sendText(phone, `No pending lead found. Send *MENU* for options.`);
+          break;
+        }
+        const remaining = pending.slice(1);
+        if (remaining.length === 0) {
+          await supabase.from('wa_onboard_state').delete().eq('phone', phone).eq('step', 'lead_pending');
+        } else {
+          await supabase.from('wa_onboard_state').upsert({
+            phone,
+            step: 'lead_pending',
+            data: { pendingLeads: remaining },
+            updated_at: new Date().toISOString(),
+          });
+        }
+        await handleClaim(phone, current.leadId, profile.id, current.senderPhone, current.profession, current.city);
       } else {
         // State was deleted or lost — find last lead matched to this contractor
         const { data: recentLead } = await supabase
@@ -1162,11 +1177,26 @@ async function sendLeadNotification(
     '5': source || 'WhatsApp Group',
   });
 
-  // Store lead context for claim/pass handling
+  // Append to pending leads array — handles multiple simultaneous leads without collision
+  const { data: existingState } = await supabase
+    .from('wa_onboard_state')
+    .select('data')
+    .eq('phone', phone)
+    .eq('step', 'lead_pending')
+    .maybeSingle();
+
+  const existingLeads: Array<{ leadId: string; senderPhone: string; profession: string; city: string }> =
+    (existingState?.data as { pendingLeads?: Array<{ leadId: string; senderPhone: string; profession: string; city: string }> })?.pendingLeads ?? [];
+
   await supabase.from('wa_onboard_state').upsert({
     phone,
     step: 'lead_pending',
-    data: { leadId, senderPhone: senderPhone || '', profession: profLabel, city: cityLabel },
+    data: {
+      pendingLeads: [
+        ...existingLeads,
+        { leadId, senderPhone: senderPhone || '', profession: profLabel, city: cityLabel },
+      ],
+    },
     updated_at: new Date().toISOString(),
   });
 }
