@@ -638,9 +638,25 @@ async function handleButtonPayload(phone: string, payload: string, _text: string
         .maybeSingle();
 
       if (passCtx?.data) {
-        const ctx = passCtx.data as { leadId: string };
-        await supabase.from('wa_onboard_state').delete().eq('phone', phone).eq('step', 'lead_pending');
-        await handlePass(phone, ctx.leadId, profile.id);
+        const ctx = passCtx.data as { pendingLeads?: Array<{ leadId: string; senderPhone: string; profession: string; city: string }> };
+        const pending = ctx.pendingLeads ?? [];
+        const current = pending[0];
+        if (!current) {
+          await sendText(phone, `No pending lead to skip.`);
+          break;
+        }
+        const remaining = pending.slice(1);
+        if (remaining.length === 0) {
+          await supabase.from('wa_onboard_state').delete().eq('phone', phone).eq('step', 'lead_pending');
+        } else {
+          await supabase.from('wa_onboard_state').upsert({
+            phone,
+            step: 'lead_pending',
+            data: { pendingLeads: remaining },
+            updated_at: new Date().toISOString(),
+          });
+        }
+        await handlePass(phone, current.leadId, profile.id);
       } else {
         await sendText(phone, `No pending lead to skip.`);
       }
@@ -1178,12 +1194,13 @@ async function sendLeadNotification(
   });
 
   // Append to pending leads array — handles multiple simultaneous leads without collision
-  const { data: existingState } = await supabase
+  const { data: existingState, error: stateErr } = await supabase
     .from('wa_onboard_state')
     .select('data')
     .eq('phone', phone)
     .eq('step', 'lead_pending')
     .maybeSingle();
+  if (stateErr) console.error('[lead-notify] Failed to read existing state for phone', phone, stateErr);
 
   const existingLeads: Array<{ leadId: string; senderPhone: string; profession: string; city: string }> =
     (existingState?.data as { pendingLeads?: Array<{ leadId: string; senderPhone: string; profession: string; city: string }> })?.pendingLeads ?? [];
