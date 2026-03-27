@@ -13,8 +13,7 @@ services:
         sync: false
       - key: SUPABASE_SERVICE_KEY
         sync: false
-      - key: REDIS_URL
-        fromGroup: redis-shared
+      - fromGroup: redis-shared
 
   # ── parser: raw-messages → parsed-leads (OpenAI extraction) ──
   - type: worker
@@ -32,8 +31,7 @@ services:
         sync: false
       - key: OPENAI_API_KEY
         sync: false
-      - key: REDIS_URL
-        fromGroup: redis-shared
+      - fromGroup: redis-shared
 
   # ── matching: parsed-leads → wa-notifications + notifications ──
   # Builds from repo root (needs pnpm workspace + packages/shared)
@@ -52,8 +50,7 @@ services:
         sync: false
       - key: MAX_CONTRACTORS_PER_LEAD
         value: "50"
-      - key: REDIS_URL
-        fromGroup: redis-shared
+      - fromGroup: redis-shared
 
   # ── whatsapp-notify: wa-notifications → Twilio WhatsApp free text ──
   - type: worker
@@ -75,8 +72,7 @@ services:
         sync: false
       - key: TWILIO_WA_FROM
         sync: false
-      - key: REDIS_URL
-        fromGroup: redis-shared
+      - fromGroup: redis-shared
 
   # ── notification: notifications → Telegram messages ──
   - type: worker
@@ -94,8 +90,7 @@ services:
         sync: false
       - key: TELEGRAM_BOT_TOKEN
         sync: false
-      - key: REDIS_URL
-        fromGroup: redis-shared
+      - fromGroup: redis-shared
 
 envVarGroups:
   - name: redis-shared
