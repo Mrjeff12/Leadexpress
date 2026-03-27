@@ -4,6 +4,7 @@
 CREATE EXTENSION IF NOT EXISTS pg_cron;
 
 -- Job 1: Reset available_today at 04:00 UTC daily (= midnight ET = 06:00 IL)
+SELECT cron.unschedule('reset-available-today') FROM cron.job WHERE jobname = 'reset-available-today';
 SELECT cron.schedule(
   'reset-available-today',
   '0 4 * * *',
@@ -11,6 +12,7 @@ SELECT cron.schedule(
 );
 
 -- Job 2: Delete stale wa_onboard_state rows every hour (2h TTL)
+SELECT cron.unschedule('clean-wa-onboard-state') FROM cron.job WHERE jobname = 'clean-wa-onboard-state';
 SELECT cron.schedule(
   'clean-wa-onboard-state',
   '0 * * * *',

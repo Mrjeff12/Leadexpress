@@ -1182,15 +1182,17 @@ async function sendLeadNotification(
   const cityLabel = city || 'Your area';
 
   // Dedup: skip if already sent this lead to this contractor (prevents double-send from competing systems)
-  if (leadId && _userId) {
-    const { error: dedupError } = await supabase
-      .from('lead_notifications')
-      .insert({ lead_id: leadId, contractor_id: _userId, channel: 'whatsapp' });
-    if (dedupError?.code === '23505') {
-      // Unique constraint violation — already sent, skip silently
-      console.log(`[lead-notify] Duplicate skipped: lead=${leadId} contractor=${_userId}`);
-      return;
-    }
+  const { error: dedupError } = await supabase
+    .from('lead_notifications')
+    .insert({ lead_id: leadId, contractor_id: _userId, channel: 'whatsapp' });
+  if (dedupError?.code === '23505') {
+    // Unique constraint violation — already sent, skip silently
+    console.log(`[lead-notify] Duplicate skipped: lead=${leadId} contractor=${_userId}`);
+    return;
+  } else if (dedupError) {
+    // Other DB error (FK violation, table missing, etc.) — log and abort send
+    console.error('[lead-notify] Dedup insert failed, aborting send:', dedupError.message);
+    return;
   }
 
   // Step 1: Quick Reply notification with Claim/Pass buttons
