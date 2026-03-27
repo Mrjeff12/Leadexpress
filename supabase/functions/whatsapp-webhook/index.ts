@@ -3275,14 +3275,22 @@ async function publishJob(
     return;
   }
 
-  // Find matching contractors (same profession, overlapping zip codes area)
+  // Find matching contractors — active subscription only, whatsapp_phone joined in one query
+  // TODO(zip-filter): add .overlaps('zip_codes', [zip]) once job posting collects zip_code
   const { data: matches } = await supabase
     .from('contractors')
-    .select('user_id, professions, zip_codes')
+    .select(`
+      user_id,
+      zip_codes,
+      profiles!inner(whatsapp_phone),
+      subscriptions!inner(status)
+    `)
     .contains('professions', [job.profession])
     .eq('is_active', true)
     .eq('wa_notify', true)
-    .neq('user_id', userId);
+    .eq('subscriptions.status', 'active')
+    .neq('user_id', userId)
+    .limit(50);
 
   const matchedIds = (matches || []).map(c => c.user_id);
 
@@ -3294,17 +3302,13 @@ async function publishJob(
       sent_to_count: matchedIds.length,
     }).eq('id', lead.id);
 
-    // Send notifications to matching contractors
+    // Send notifications — each wrapped in try/catch so one failure doesn't stop the rest
     for (const contractor of (matches || [])) {
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('whatsapp_phone')
-        .eq('id', contractor.user_id)
-        .single();
-
-      if (profile?.whatsapp_phone) {
+      try {
+        const waPhone = (contractor as { user_id: string; zip_codes: string[]; profiles: { whatsapp_phone: string }; subscriptions: { status: string } }).profiles?.whatsapp_phone;
+        if (!waPhone) continue;
         await sendLeadNotification(
-          profile.whatsapp_phone,
+          waPhone,
           lead.id,
           contractor.user_id,
           job.profession,
@@ -3313,6 +3317,8 @@ async function publishJob(
           'Contractor Network',
           phone.replace('+', ''),
         );
+      } catch (err) {
+        console.error('[post-job] Failed to notify contractor', contractor.user_id, err);
       }
     }
   }
