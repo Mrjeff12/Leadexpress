@@ -7,27 +7,16 @@ COPY packages/shared/src ./packages/shared/src
 COPY packages/shared/tsconfig.json ./packages/shared/
 RUN cd packages/shared && npm install && npx tsc
 
-# ── Step 2: Install matching deps (excluding workspace dep) ──
+# ── Step 2: Install matching deps (remove workspace:* dep, add shared manually) ──
 COPY services/matching/package.json ./services/matching/
 COPY services/matching/src ./services/matching/src
 COPY services/matching/tsconfig.json ./services/matching/
 
 WORKDIR /app/services/matching
 
-# Remove workspace:* dep from package.json, install rest, then manually place shared
-RUN node -e "
-  const fs = require('fs');
-  const pkg = JSON.parse(fs.readFileSync('package.json','utf8'));
-  delete pkg.dependencies['@masterleadflow/shared'];
-  fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2));
-"
+RUN node -e "const fs=require('fs');const p=JSON.parse(fs.readFileSync('package.json','utf8'));delete p.dependencies['@masterleadflow/shared'];fs.writeFileSync('package.json',JSON.stringify(p,null,2));"
 RUN npm install
-
-# Manually install shared into node_modules
-RUN mkdir -p node_modules/@masterleadflow && \
-    cp -r /app/packages/shared node_modules/@masterleadflow/shared
-
-# Build matching
+RUN mkdir -p node_modules/@masterleadflow && cp -r /app/packages/shared node_modules/@masterleadflow/shared
 RUN npx tsc
 
 # ── Production image ──
