@@ -428,7 +428,7 @@ export default function ContractorDashboard() {
         </div>
 
         {/* Push Notification Banner */}
-        {pushStatus === 'default' && !pushDismissed && (
+        {(pushStatus === 'default' || pushStatus === 'unsupported') && !pushDismissed && (
           <div className="mb-3 md:mb-4 rounded-xl bg-gradient-to-r from-[#fff4ef] to-white border border-[#fee8df] p-3 flex items-center gap-3">
             <div className="w-9 h-9 rounded-xl bg-[#fe5b25] flex items-center justify-center shrink-0">
               <Bell className="w-4.5 h-4.5 text-white" />
@@ -438,16 +438,28 @@ export default function ContractorDashboard() {
                 {locale === 'he' ? 'לא לפספס לידים!' : "Don't miss new leads!"}
               </p>
               <p className="text-[11px] text-stone-500 mt-0.5">
-                {locale === 'he' ? 'הפעל התראות כדי לקבל לידים ברגע שהם מגיעים' : 'Enable notifications to get leads the moment they arrive'}
+                {pushStatus === 'unsupported'
+                  ? (locale === 'he' ? 'הוסף למסך הבית כדי לקבל התראות על לידים חדשים' : 'Add to home screen to receive lead notifications')
+                  : (locale === 'he' ? 'הפעל התראות כדי לקבל לידים ברגע שהם מגיעים' : 'Enable notifications to get leads the moment they arrive')
+                }
               </p>
             </div>
-            <button
-              onClick={async () => { await enablePush(); setPushDismissed(true); sessionStorage.setItem('push_banner_dismissed', '1') }}
-              disabled={pushLoading}
-              className="shrink-0 px-3 py-1.5 rounded-lg text-[11px] font-bold text-white bg-[#fe5b25] hover:bg-[#e04d1c] transition-colors disabled:opacity-50"
-            >
-              {pushLoading ? '...' : locale === 'he' ? 'הפעל' : 'Enable'}
-            </button>
+            {pushStatus === 'default' ? (
+              <button
+                onClick={async () => { await enablePush(); setPushDismissed(true); sessionStorage.setItem('push_banner_dismissed', '1') }}
+                disabled={pushLoading}
+                className="shrink-0 px-3 py-1.5 rounded-lg text-[11px] font-bold text-white bg-[#fe5b25] hover:bg-[#e04d1c] transition-colors disabled:opacity-50"
+              >
+                {pushLoading ? '...' : locale === 'he' ? 'הפעל' : 'Enable'}
+              </button>
+            ) : (
+              <Link
+                to="/install"
+                className="shrink-0 px-3 py-1.5 rounded-lg text-[11px] font-bold text-white bg-[#fe5b25] hover:bg-[#e04d1c] transition-colors"
+              >
+                {locale === 'he' ? 'התקן' : 'Install'}
+              </Link>
+            )}
             <button
               onClick={() => { setPushDismissed(true); sessionStorage.setItem('push_banner_dismissed', '1') }}
               className="shrink-0 p-1 text-stone-300 hover:text-stone-500 transition-colors"
