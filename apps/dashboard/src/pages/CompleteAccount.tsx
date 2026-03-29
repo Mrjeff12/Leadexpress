@@ -383,23 +383,44 @@ export default function CompleteAccount() {
             <h2 className="text-xl font-bold text-gray-900 mb-2">
               Don't miss any lead!
             </h2>
-            <p className="text-gray-500 text-sm mb-6 max-w-xs mx-auto">
+            <p className="text-gray-500 text-sm mb-2 max-w-xs mx-auto">
               Get instant notifications when a matching job is found — even when this tab is closed.
             </p>
 
-            <div className="space-y-3 mb-6 text-left">
-              <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-green-50/80 border border-green-100">
+            {/* Why this matters */}
+            <div className="rounded-xl bg-amber-50/80 border border-amber-200/60 px-4 py-3 mb-5 text-left">
+              <p className="text-amber-900 text-[13px] font-semibold mb-1">⚠️ Why is this important?</p>
+              <p className="text-amber-800/80 text-[12px] leading-relaxed">
+                Leads are time-sensitive — the first contractor to respond usually wins the job.
+                Without notifications, you'll have to keep checking the app manually and risk missing jobs entirely.
+              </p>
+            </div>
+
+            <div className="space-y-2.5 mb-5 text-left">
+              <div className="flex items-center gap-3 px-4 py-2.5 rounded-xl bg-green-50/80 border border-green-100">
                 <span className="text-lg">⚡</span>
                 <span className="text-gray-700 text-sm font-medium">Instant alerts — be first to grab the lead</span>
               </div>
-              <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-blue-50/80 border border-blue-100">
+              <div className="flex items-center gap-3 px-4 py-2.5 rounded-xl bg-blue-50/80 border border-blue-100">
                 <span className="text-lg">📱</span>
                 <span className="text-gray-700 text-sm font-medium">Works on phone + desktop</span>
               </div>
-              <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-purple-50/80 border border-purple-100">
+              <div className="flex items-center gap-3 px-4 py-2.5 rounded-xl bg-purple-50/80 border border-purple-100">
                 <span className="text-lg">🔕</span>
                 <span className="text-gray-700 text-sm font-medium">Only relevant jobs — no spam, ever</span>
               </div>
+            </div>
+
+            {/* Visual mockup of the browser permission popup */}
+            <div className="mb-5">
+              <p className="text-gray-400 text-[11px] font-bold uppercase tracking-widest mb-2.5">
+                What you'll see:
+              </p>
+              {/iPhone|iPad|iPod/i.test(navigator.userAgent) ? (
+                <NotifMockupIOS />
+              ) : (
+                <NotifMockupAndroid />
+              )}
             </div>
 
             <button
@@ -455,6 +476,89 @@ function StepPill({ label, active, done, num }: { label: string; active: boolean
         <span className="w-4 h-4 rounded-full bg-white/30 flex items-center justify-center text-[10px]">{num}</span>
       )}
       {label}
+    </div>
+  )
+}
+
+/* ── Notification Permission Mockup — iOS ── */
+function NotifMockupIOS() {
+  return (
+    <div className="rounded-xl overflow-hidden border border-gray-200 bg-[#00000010] flex items-center justify-center p-4">
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-[280px] overflow-hidden">
+        {/* iOS-style dialog */}
+        <div className="px-5 pt-5 pb-4 text-center">
+          <p className="text-[15px] font-semibold text-gray-900 mb-1.5">
+            "MasterLeadFlow" Would Like to Send You Notifications
+          </p>
+          <p className="text-[12px] text-gray-500 leading-relaxed">
+            Notifications may include alerts, sounds, and icon badges.
+          </p>
+        </div>
+        <div className="border-t border-gray-200 flex">
+          <button className="flex-1 py-3 text-[15px] text-[#007AFF] border-r border-gray-200 opacity-40">
+            Don't Allow
+          </button>
+          <div className="relative flex-1">
+            <div className="absolute inset-0 border-2 border-[#fe5b25] rounded-br-2xl rounded-tr-sm animate-[pulse-ring_1.5s_ease-in-out_infinite]" />
+            <button className="w-full py-3 text-[15px] font-semibold text-[#007AFF]">
+              Allow
+            </button>
+            {/* Arrow label */}
+            <div className="absolute -right-1 top-1/2 -translate-y-1/2 translate-x-full flex items-center gap-0.5">
+              <span className="text-[#fe5b25] text-xs">◀</span>
+              <span className="text-[#fe5b25] text-[10px] font-bold bg-[#fe5b25]/10 px-1.5 py-0.5 rounded whitespace-nowrap">TAP</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+/* ── Notification Permission Mockup — Android / Chrome ── */
+function NotifMockupAndroid() {
+  return (
+    <div className="rounded-xl overflow-hidden border border-gray-200 bg-[#00000010] p-4">
+      {/* Chrome-style permission bar */}
+      <div className="bg-white rounded-xl shadow-xl w-full max-w-[300px] mx-auto overflow-hidden border border-gray-100">
+        {/* URL bar hint */}
+        <div className="bg-[#f1f3f4] px-3 py-2 flex items-center gap-2">
+          <span className="text-[10px] text-gray-400">🔒</span>
+          <span className="text-[11px] text-gray-500">app.masterleadflow.com</span>
+        </div>
+        {/* Permission popup */}
+        <div className="px-4 py-4">
+          <div className="flex items-start gap-3 mb-4">
+            <div className="w-8 h-8 rounded-lg bg-[#fe5b25] flex items-center justify-center flex-shrink-0 mt-0.5">
+              <span className="text-[10px] text-white font-bold">M</span>
+            </div>
+            <div>
+              <p className="text-[13px] font-medium text-gray-900 leading-tight">
+                app.masterleadflow.com wants to
+              </p>
+              <p className="text-[13px] text-gray-900 leading-tight">
+                <span className="font-semibold">Show notifications</span>
+              </p>
+            </div>
+          </div>
+          <div className="flex gap-2 justify-end">
+            <button className="px-4 py-2 text-[13px] text-gray-500 font-medium rounded-full opacity-40">
+              Block
+            </button>
+            <div className="relative">
+              <div className="absolute -inset-1 rounded-full border-2 border-[#fe5b25] animate-[pulse-ring_1.5s_ease-in-out_infinite]" />
+              <button className="px-5 py-2 text-[13px] text-[#1a73e8] font-semibold rounded-full bg-blue-50">
+                Allow
+              </button>
+              {/* Arrow label */}
+              <div className="absolute -top-6 left-1/2 -translate-x-1/2 flex flex-col items-center">
+                <span className="text-[#fe5b25] text-[10px] font-bold bg-[#fe5b25]/10 px-1.5 py-0.5 rounded whitespace-nowrap">TAP HERE</span>
+                <span className="text-[#fe5b25] text-xs">▼</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   )
 }

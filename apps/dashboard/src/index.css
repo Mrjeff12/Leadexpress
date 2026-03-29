@@ -367,6 +367,13 @@
   .animate-pulse-green { animation: pulse-green 2s ease-in-out infinite; }
   .animate-number { animation: number-glow 0.6s var(--ease-out) both; }
 
+  /* Pulsing ring for onboarding highlights */
+  @keyframes pulse-ring {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+  }
+  .animate-pulse-ring { animation: pulse-ring 1.5s ease-in-out infinite; }
+
   /* ─── Staggered children (up to 10) ─── */
   .stagger-children > * { animation: slide-up 0.5s var(--ease-spring) both; }
   .stagger-children > *:nth-child(1) { animation-delay: 0ms; }
@@ -516,6 +523,18 @@
     }
   }
 }
+
+/* ─── Fade-in-up animations ─── */
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-in-up {
+  animation: fadeInUp 0.4s ease-out both;
+}
+.animate-fade-in-up-delay-1 { animation-delay: 0.1s; }
+.animate-fade-in-up-delay-2 { animation-delay: 0.2s; }
+.animate-fade-in-up-delay-3 { animation-delay: 0.3s; }
 
 /* ─── Mobile map: hide controls (must be outside @layer) ─── */
 @media (max-width: 767px) {
