@@ -1,16 +1,15 @@
 import { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { Loader2, CheckCircle, XCircle } from 'lucide-react'
+import { supabase } from '../lib/supabase'
 
 const SUPA_URL = import.meta.env.VITE_SUPABASE_URL || 'https://zyytzwlvtuhgbjpalbgd.supabase.co'
 const SUPA_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || ''
-const STORAGE_KEY = 'sb-zyytzwlvtuhgbjpalbgd-auth-token'
 
 export default function AutoLogin() {
   const [params] = useSearchParams()
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading')
   const [error, setError] = useState('')
-  const [debug, setDebug] = useState('')
 
   useEffect(() => {
     const token = params.get('token')
@@ -24,8 +23,6 @@ export default function AutoLogin() {
 
   async function exchangeToken(token: string) {
     try {
-      setDebug('Exchanging token...')
-
       const res = await fetch(`${SUPA_URL}/functions/v1/magic-login`, {
         method: 'POST',
         headers: {
@@ -50,8 +47,6 @@ export default function AutoLogin() {
         return
       }
 
-      setDebug(`type=${data.type}, hasToken=${!!data.access_token}`)
-
       if (data.error) {
         setStatus('error')
         setError(data.error)
@@ -59,25 +54,14 @@ export default function AutoLogin() {
       }
 
       if (data.type === 'session' && data.access_token && data.refresh_token) {
-        const user = parseJwt(data.access_token)
-        if (!user.sub && !user.id) {
-          setStatus('error')
-          setError('Invalid session token. Please request a new login link.')
-          return
-        }
-
-        const sessionData = {
+        // Use Supabase client to properly set the session
+        // This ensures the full user object is fetched and stored correctly
+        const { error: sessionError } = await supabase.auth.setSession({
           access_token: data.access_token,
           refresh_token: data.refresh_token,
-          token_type: 'bearer',
-          expires_in: 3600,
-          expires_at: Math.floor(Date.now() / 1000) + 3600,
-          user,
-        }
+        })
 
-        try {
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(sessionData))
-        } catch {
+        if (sessionError) {
           setStatus('error')
           setError('Could not save your session. Try opening this link in your phone\'s default browser instead of WhatsApp.')
           return
@@ -146,28 +130,6 @@ export default function AutoLogin() {
           </a>
         </div>
       )}
-
-      {import.meta.env.DEV && <p className="mt-8 text-xs text-slate-600 max-w-md text-center break-all">{debug}</p>}
     </div>
   )
-}
-
-// Decode JWT payload to extract user info
-function parseJwt(token: string) {
-  try {
-    const base64Url = token.split('.')[1]
-    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/')
-    const payload = JSON.parse(atob(base64))
-    return {
-      id: payload.sub,
-      email: payload.email,
-      phone: payload.phone,
-      role: payload.role,
-      aud: payload.aud,
-      app_metadata: payload.app_metadata || {},
-      user_metadata: payload.user_metadata || {},
-    }
-  } catch {
-    return {}
-  }
 }
