@@ -16,7 +16,8 @@ export function createServer(): Hono<{ Variables: Variables }> {
   // Twilio signature validation middleware
   app.use('/webhooks/*', async (c, next) => {
     const signature = c.req.header('x-twilio-signature') ?? '';
-    const url = c.req.url;
+    // Render terminates TLS — Hono sees http:// but Twilio signs with https://
+    const url = c.req.url.replace(/^http:\/\//, 'https://');
 
     // Parse form body for signature validation
     const body = await c.req.parseBody();
