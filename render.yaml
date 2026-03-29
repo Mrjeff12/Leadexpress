@@ -74,6 +74,30 @@ services:
         sync: false
       - fromGroup: redis-shared
 
+  # ── rebeca: Rebeca WhatsApp bot — inbound webhook + outbound worker + cron ──
+  - type: web
+    name: rebeca
+    env: docker
+    dockerfilePath: services/rebeca/Dockerfile
+    dockerContext: services/rebeca
+    plan: starter
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: TWILIO_ACCOUNT_SID
+        sync: false
+      - key: TWILIO_AUTH_TOKEN
+        sync: false
+      - key: TWILIO_WA_FROM
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+      - fromGroup: redis-shared
+
   # ── notification: notifications → Telegram messages ──
   - type: worker
     name: notification

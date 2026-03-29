@@ -1,0 +1,54 @@
+import 'dotenv/config';
+
+function required(name: string): string {
+  const val = process.env[name];
+  if (!val) throw new Error(`Missing required env var: ${name}`);
+  return val;
+}
+
+function parseRedis() {
+  const url = process.env.REDIS_URL;
+  if (url) {
+    try {
+      const parsed = new URL(url);
+      const useTls = parsed.protocol === 'rediss:';
+      return {
+        host: parsed.hostname || '127.0.0.1',
+        port: Number(parsed.port || 6379),
+        password: parsed.password || undefined,
+        ...(useTls ? { tls: {} } : {}),
+      };
+    } catch { /* fall through */ }
+  }
+  return {
+    host: process.env.REDIS_HOST ?? '127.0.0.1',
+    port: Number(process.env.REDIS_PORT ?? 6379),
+    password: process.env.REDIS_PASSWORD || undefined,
+  };
+}
+
+export const config = {
+  redis: { ...parseRedis(), maxRetriesPerRequest: null as null },
+  supabase: {
+    url: required('SUPABASE_URL'),
+    serviceKey: process.env.SUPABASE_SERVICE_ROLE_KEY ?? required('SUPABASE_SERVICE_KEY'),
+  },
+  twilio: {
+    accountSid: required('TWILIO_ACCOUNT_SID'),
+    authToken: required('TWILIO_AUTH_TOKEN'),
+    whatsappFrom: required('TWILIO_WA_FROM'),
+  },
+  openai: {
+    apiKey: required('OPENAI_API_KEY'),
+  },
+  cron: {
+    checkinSchedule: process.env.CHECKIN_CRON ?? '0 7 * * *',
+    timezone: process.env.CHECKIN_TIMEZONE ?? 'America/New_York',
+  },
+  server: {
+    port: Number(process.env.PORT ?? 3002),
+  },
+  queues: {
+    waNotifications: 'wa-notifications',
+  },
+} as const;
