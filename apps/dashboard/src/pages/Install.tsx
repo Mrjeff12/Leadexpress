@@ -135,8 +135,8 @@ export default function Install() {
         {/* Heading */}
         <div className="text-center mb-4">
           <h1 className="text-xl font-bold text-gray-900 mb-1">Install the app</h1>
-          <p className="text-gray-500 text-sm">Get instant lead alerts on your phone</p>
-          <p className="text-amber-600 text-xs font-medium mt-1">⚡ Required for your 7-day free trial</p>
+          <p className="text-gray-500 text-sm">We need this to send you matching leads directly to your phone</p>
+          <p className="text-amber-600 text-xs font-medium mt-1">⚡ Without it, you won't receive job alerts</p>
         </div>
 
         {/* WebView blocker */}
