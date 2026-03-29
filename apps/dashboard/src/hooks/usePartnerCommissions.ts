@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
-import { useAuth } from '../lib/auth'
 import { supabase } from '../lib/supabase'
+import { usePartnerProfile } from './usePartnerProfile'
 
 export interface PartnerCommission {
   id: string
@@ -20,22 +20,14 @@ export interface PartnerCommission {
 const PAGE_SIZE = 20
 
 export function usePartnerCommissions(typeFilter?: string) {
-  const { effectiveUserId } = useAuth()
+  const { partner, loading: partnerLoading } = usePartnerProfile()
   const [commissions, setCommissions] = useState<PartnerCommission[]>([])
   const [loading, setLoading] = useState(true)
   const [hasMore, setHasMore] = useState(false)
   const [page, setPage] = useState(0)
 
   const loadCommissions = useCallback(async (pageNum: number, append: boolean) => {
-    if (!effectiveUserId) { setLoading(false); return }
-
-    // Get partner id
-    const { data: partner } = await supabase
-      .from('community_partners')
-      .select('id')
-      .eq('user_id', effectiveUserId)
-      .maybeSingle()
-
+    if (partnerLoading) return
     if (!partner) { setLoading(false); return }
 
     let query = supabase
@@ -67,7 +59,7 @@ export function usePartnerCommissions(typeFilter?: string) {
 
     setHasMore(items.length === PAGE_SIZE)
     setLoading(false)
-  }, [effectiveUserId, typeFilter])
+  }, [partner, partnerLoading, typeFilter])
 
   useEffect(() => {
     setPage(0)

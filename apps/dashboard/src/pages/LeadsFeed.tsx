@@ -149,7 +149,7 @@ export default function LeadsFeed() {
       supabase.from('lead_contact_events').insert({
         lead_id: lead.id,
         user_id: effectiveUserId,
-      }).then(({ error }) => { if (error) console.error('Failed to log contact event:', error) })
+      }).then(({ error }) => { if (error) console.error('[LeadsFeed] Failed to log contact event:', error.message) })
       setContactCounts(prev => ({ ...prev, [lead.id]: (prev[lead.id] || 0) + 1 }))
     }
 
@@ -684,7 +684,7 @@ export default function LeadsFeed() {
                         <div className="flex items-center gap-2 mb-4">
                           <Eye className="w-4 h-4 text-stone-400" />
                           <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-stone-400">
-                            {he ? 'הודעה מקורית' : 'Raw Intelligence'}
+                            {he ? 'הודעה מקורית' : 'Original Message'}
                           </span>
                         </div>
                         <p className="text-sm leading-relaxed text-stone-600 font-medium whitespace-pre-wrap">

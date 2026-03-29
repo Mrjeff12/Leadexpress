@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <defs>
+    <linearGradient id="tru-shield" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#c4b5fd"/>
+      <stop offset="40%" stop-color="#8b5cf6"/>
+      <stop offset="100%" stop-color="#6d28d9"/>
+    </linearGradient>
+    <linearGradient id="tru-gem" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ede9fe"/>
+      <stop offset="30%" stop-color="#c4b5fd"/>
+      <stop offset="100%" stop-color="#8b5cf6"/>
+    </linearGradient>
+    <linearGradient id="tru-facet-l" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#ddd6fe"/>
+      <stop offset="100%" stop-color="#a78bfa"/>
+    </linearGradient>
+    <linearGradient id="tru-facet-r" x1="1" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#a78bfa"/>
+      <stop offset="100%" stop-color="#7c3aed"/>
+    </linearGradient>
+    <filter id="tru-shadow">
+      <feDropShadow dx="0" dy="2.5" stdDeviation="3" flood-color="#5b21b6" flood-opacity="0.45"/>
+    </filter>
+    <filter id="tru-glow">
+      <feGaussianBlur stdDeviation="1.5" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  <!-- Shield shape -->
+  <path d="M32 4 L54 14 L54 32 Q54 50 32 60 Q10 50 10 32 L10 14 Z" fill="url(#tru-shield)" filter="url(#tru-shadow)"/>
+  <!-- Shield inner border -->
+  <path d="M32 8 L50 16 L50 32 Q50 47 32 56 Q14 47 14 32 L14 16 Z" fill="none" stroke="#c4b5fd" stroke-width="0.8" opacity="0.5"/>
+  <!-- Diamond gem - top facet -->
+  <path d="M24 28 L32 20 L40 28 L32 26 Z" fill="url(#tru-gem)"/>
+  <!-- Diamond gem - left facet -->
+  <path d="M24 28 L32 26 L32 44 L22 32 Z" fill="url(#tru-facet-l)"/>
+  <!-- Diamond gem - right facet -->
+  <path d="M40 28 L32 26 L32 44 L42 32 Z" fill="url(#tru-facet-r)"/>
+  <!-- Diamond gem - bottom point -->
+  <path d="M22 32 L32 44 L42 32 L32 36 Z" fill="#7c3aed" opacity="0.7"/>
+  <!-- Top crown edge of diamond -->
+  <path d="M24 28 L28 24 L32 28 L36 24 L40 28" fill="none" stroke="#ede9fe" stroke-width="0.6" opacity="0.6"/>
+  <!-- Sparkle highlights -->
+  <g filter="url(#tru-glow)" opacity="0.8">
+    <path d="M32 16 L32.8 18.5 L35 19 L32.8 19.5 L32 22 L31.2 19.5 L29 19 L31.2 18.5 Z" fill="white" opacity="0.7"/>
+    <path d="M44 22 L44.5 23.5 L46 24 L44.5 24.5 L44 26 L43.5 24.5 L42 24 L43.5 23.5 Z" fill="white" opacity="0.5"/>
+    <path d="M20 24 L20.4 25.2 L21.5 25.5 L20.4 25.8 L20 27 L19.6 25.8 L18.5 25.5 L19.6 25.2 Z" fill="white" opacity="0.4"/>
+  </g>
+  <!-- Shield top shine -->
+  <ellipse cx="28" cy="14" rx="8" ry="4" fill="white" opacity="0.1" transform="rotate(-15 28 14)"/>
+</svg>

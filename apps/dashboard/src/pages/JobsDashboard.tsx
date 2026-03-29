@@ -259,14 +259,14 @@ export default function JobsDashboard() {
       // Notify chosen contractor
       supabase.functions.invoke('broadcast-job', {
         body: { action: 'notify_chosen', contractor_id: contractorId, broadcast_id: broadcastId },
-      }).catch(console.warn)
+      }).catch((e) => console.error('[JobsDashboard] Failed to notify chosen contractor:', e))
 
       // Notify closed contractors
       const closedIds = rpcResult.closed_contractor_ids || []
       if (closedIds.length > 0) {
         supabase.functions.invoke('broadcast-job', {
           body: { action: 'notify_closed', contractor_ids: closedIds },
-        }).catch(console.warn)
+        }).catch((e) => console.error('[JobsDashboard] Failed to notify closed contractors:', e))
       }
     }
 

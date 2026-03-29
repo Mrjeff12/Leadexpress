@@ -113,7 +113,7 @@ function PartnerHero() {
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-8">
             <a
-              href="https://app.leadexpress.co.il/partner/join"
+              href="https://app.masterleadflow.com/partner/join"
               className="group inline-flex items-center justify-center gap-2 rounded-full bg-gradient-to-r from-[#fe5b25] to-[#e04d1c] text-white px-8 py-4 text-base font-semibold transition-all duration-300 hover:scale-105 hover:shadow-lg hover:shadow-[#fe5b25]/25 active:scale-95"
             >
               <Zap size={16} />
@@ -568,12 +568,12 @@ function PartnerIdentitySection() {
     {
       icon: <Share2 size={24} />,
       title: 'Your Own Page',
-      desc: 'A personal partner page at leadexpress.co/community/your-name. Share it, it\'s yours.',
+      desc: 'A personal partner page at masterleadflow.com/community/your-name. Share it, it\'s yours.',
     },
     {
       icon: <BadgeCheck size={24} />,
       title: 'Verified Partner Badge',
-      desc: 'Get a verified badge that shows your group works with Lead Express.',
+      desc: 'Get a verified badge that shows your group works with MasterLeadFlow.',
     },
     {
       icon: <LayoutDashboard size={24} />,
@@ -798,7 +798,7 @@ function EarningsCalculator() {
                       </div>
                       <p className="text-[10px] text-white/30 mt-2">
                         {subscribers >= freeThreshold
-                          ? 'Your Lead Express subscription is completely FREE'
+                          ? 'Your MasterLeadFlow subscription is completely FREE'
                           : `${freeThreshold - Math.min(subscribers, freeThreshold)} more referrals until your subscription is FREE`
                         }
                       </p>
@@ -893,10 +893,10 @@ function HowPartnershipWorks() {
           <div className="bg-[#ECE5DD] rounded-2xl p-4 shadow-lg">
             <div className="bg-[#dcf8c6] rounded-lg px-3 py-2 ml-auto max-w-[85%] relative shadow-sm">
               <p className="text-[13px] text-[#303030] leading-snug">
-                Hey everyone! I started using Lead Express to get job leads straight to my WhatsApp. Changed everything for me. If you want to try it, here's my link:
+                Hey everyone! I started using MasterLeadFlow to get job leads straight to my WhatsApp. Changed everything for me. If you want to try it, here's my link:
               </p>
               <p className="text-[13px] text-blue-600 underline mt-1">
-                leadexpress.co/join/yossi
+                masterleadflow.com/join/yossi
               </p>
               <div className="flex items-center justify-end gap-1 mt-0.5">
                 <span className="text-[10px] text-[#8c8c8c]">10:42</span>
@@ -1028,7 +1028,7 @@ function PartnerSocialProof() {
                   </div>
                   <p className="text-sm text-dark/40 mb-4">NJ Contractors Network - 2,340 members</p>
                   <blockquote className="text-base md:text-lg text-dark/80 leading-relaxed italic">
-                    "I ran this group for 3 years. Made zero from it. Lead Express gave me a partner link, I posted it once, and in one month 23 guys signed up for Pro. That's $2,800 every month going into my account — and I didn't change anything about how I run the group."
+                    "I ran this group for 3 years. Made zero from it. MasterLeadFlow gave me a partner link, I posted it once, and in one month 23 guys signed up for Pro. That's $2,800 every month going into my account — and I didn't change anything about how I run the group."
                   </blockquote>
                   <div className="mt-4 flex items-center gap-4">
                     <div className="bg-[#fe5b25]/10 text-[#fe5b25] text-sm font-bold px-3 py-1 rounded-full">
@@ -1153,7 +1153,7 @@ function PartnerTiersSection() {
 
             {/* CTA button */}
             <a
-              href="https://app.leadexpress.co.il/partner/join"
+              href="https://app.masterleadflow.com/partner/join"
               className="group inline-flex items-center justify-center gap-3 rounded-full bg-gradient-to-r from-[#fe5b25] to-[#e04d1c] text-white px-12 py-5 text-lg font-semibold transition-all duration-300 hover:scale-105 hover:shadow-[0_8px_40px_rgba(254,91,37,0.35)] active:scale-95"
             >
               Start Making Money — It's Free
@@ -1193,7 +1193,7 @@ function PartnerFAQ() {
       a: 'After each payment, there is a 14-day waiting period. Once it\'s approved, the money goes to your balance. You can take it out anytime once you reach $50.',
     },
     {
-      q: 'Can I be a partner if I\'m already a Lead Express subscriber?',
+      q: 'Can I be a partner if I\'m already a MasterLeadFlow subscriber?',
       a: 'Yes! Most partners are. You can use your earnings to pay for your own subscription, or once you get 5 referrals, your subscription becomes completely FREE.',
     },
     {
@@ -1280,7 +1280,7 @@ function PartnerCTA() {
 
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-8">
           <a
-            href="https://app.leadexpress.co.il/partner/join"
+            href="https://app.masterleadflow.com/partner/join"
             className="group inline-flex items-center justify-center gap-3 rounded-full bg-gradient-to-r from-[#fe5b25] to-[#e04d1c] text-white px-10 py-4 text-lg font-semibold transition-all duration-300 hover:scale-105 hover:shadow-lg hover:shadow-[#fe5b25]/25 active:scale-95"
           >
             <Zap size={18} />
@@ -1314,7 +1314,7 @@ function OurTeamSection() {
       <div className="max-w-4xl mx-auto px-6 py-14 md:py-20">
         <div className="text-center mb-6 md:mb-8">
           <p className="text-[#fe5b25] text-[11px] font-semibold tracking-widest uppercase mb-2">
-            The People Behind Lead Express
+            The People Behind MasterLeadFlow
           </p>
           <h2 className="text-2xl md:text-[32px] md:leading-[1.2] font-medium text-dark mb-2">
             A team focused on helping contractors grow.
@@ -1330,7 +1330,7 @@ function OurTeamSection() {
             <div className="relative rounded-xl overflow-hidden">
               <img
                 src="/ourteam.jpg"
-                alt="The Lead Express team"
+                alt="The MasterLeadFlow team"
                 className="w-full h-auto block"
                 loading="lazy"
               />

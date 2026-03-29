@@ -17,9 +17,11 @@ export interface ProspectRecord {
   created_at: string
   updated_at: string
   group_names?: string[]
+  onboarding_step?: string
+  sub_status?: string
 }
 
-const PROSPECTS_QUERY_KEY = ['admin', 'prospects'] as const
+export const PROSPECTS_QUERY_KEY = ['admin', 'prospects'] as const
 
 async function fetchProspects(): Promise<ProspectRecord[]> {
   let all: ProspectRecord[] = []
@@ -114,7 +116,8 @@ export function useAdminProspectsData() {
       if (error) throw error
       if (!groups?.length) return 0
 
-      const listenerUrl = import.meta.env.VITE_WA_LISTENER_URL || 'http://localhost:3001'
+      const listenerUrl = import.meta.env.VITE_WA_LISTENER_URL
+      if (!listenerUrl) throw new Error('VITE_WA_LISTENER_URL is not configured')
       let totalImported = 0
 
       for (const group of groups) {

@@ -243,7 +243,7 @@ export default function PublishJobsSection() {
                   }}
                 >
                   <Share2 className="w-6 h-6 text-white mb-0.5" />
-                  <p className="text-[8px] font-bold text-white/90 uppercase tracking-wider leading-none">LeadExpress</p>
+                  <p className="text-[8px] font-bold text-white/90 uppercase tracking-wider leading-none">MasterLeadFlow</p>
                   <p className="text-[7px] font-semibold text-white/70 uppercase tracking-wider leading-none mt-0.5">Network</p>
                 </div>
               </div>

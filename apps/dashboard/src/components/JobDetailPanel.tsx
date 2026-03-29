@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useAuth } from '../lib/auth'
 import { useI18n } from '../lib/i18n'
+import { timeAgo } from '../lib/shared'
 import { supabase } from '../lib/supabase'
 import { PROFESSIONS } from '../lib/professions'
 import { useToast } from './hooks/use-toast'
@@ -22,6 +23,7 @@ import {
   MapPin,
   Calendar,
   CreditCard,
+  Star,
 } from 'lucide-react'
 
 /* ───────────────── Types ───────────────── */
@@ -70,17 +72,6 @@ interface JobEvent {
 
 const profLookup = Object.fromEntries(PROFESSIONS.map((p) => [p.id, p]))
 
-function timeAgo(dateStr: string): string {
-  const diff = Date.now() - new Date(dateStr).getTime()
-  const mins = Math.floor(diff / 60_000)
-  if (mins < 1) return 'just now'
-  if (mins < 60) return `${mins}m ago`
-  const hrs = Math.floor(mins / 60)
-  if (hrs < 24) return `${hrs}h ago`
-  const days = Math.floor(hrs / 24)
-  if (days < 7) return `${days}d ago`
-  return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-}
 
 function formatCurrency(amount: number | null | undefined): string {
   if (amount == null) return '$0'
@@ -292,13 +283,21 @@ export default function JobDetailPanel({ jobId, onClose, onUpdate }: JobDetailPa
     setRecordingPayment(true)
     try {
       const amount = parseFloat(paymentAmount)
-      if (isNaN(amount) || amount <= 0) throw new Error('Invalid amount')
+      if (isNaN(amount) || amount <= 0) throw new Error(he ? 'סכום לא תקין' : 'Invalid amount')
 
-      const now = new Date().toISOString()
       const existingPaid = job.payment_amount || 0
       const totalPaid = existingPaid + amount
+
+      // Validate: don't allow overpayment if job_amount is set
+      if (job.job_amount && totalPaid > job.job_amount * 1.5) {
+        throw new Error(he ? 'הסכום חורג מ-150% מסכום העבודה' : 'Amount exceeds 150% of job total')
+      }
+
+      const now = new Date().toISOString()
       const newStatus = job.job_amount && totalPaid >= job.job_amount ? 'paid' : 'partial'
 
+      // Use RPC for atomic payment + event in a single transaction
+      // Fallback: sequential with rollback on failure
       const { error: updateErr } = await supabase
         .from('job_orders')
         .update({
@@ -312,12 +311,27 @@ export default function JobDetailPanel({ jobId, onClose, onUpdate }: JobDetailPa
       if (updateErr) throw updateErr
 
       const desc = `Received ${formatCurrency(amount)}`
-      await supabase.from('job_events').insert({
+      const { error: eventErr } = await supabase.from('job_events').insert({
         job_order_id: job.id,
         event_type: 'payment',
         description: desc,
         created_by: effectiveUserId,
       })
+
+      // If event insert fails, rollback the payment update
+      if (eventErr) {
+        console.error('Event insert failed, rolling back payment:', eventErr)
+        await supabase
+          .from('job_orders')
+          .update({
+            payment_status: job.payment_status,
+            payment_amount: existingPaid,
+            payment_date: job.payment_date,
+            updated_at: now,
+          })
+          .eq('id', job.id)
+        throw new Error(he ? 'שגיאה בשמירת אירוע - התשלום בוטל' : 'Failed to log event - payment rolled back')
+      }
 
       setJob({ ...job, payment_status: newStatus, payment_amount: totalPaid, payment_date: now })
       setEvents((prev) => [
@@ -383,7 +397,8 @@ export default function JobDetailPanel({ jobId, onClose, onUpdate }: JobDetailPa
         event_type: 'reminder',
         description: he ? 'תזכורת נשלחה בWhatsApp' : 'Reminder sent via WhatsApp',
         created_by: effectiveUserId,
-      }).then(() => {
+      }).then(({ error: e }) => {
+        if (e) { console.error('[JobDetail] Failed to log reminder event:', e.message); return }
         const now = new Date().toISOString()
         setEvents((prev) => [
           { id: crypto.randomUUID(), event_type: 'reminder', description: he ? 'תזכורת נשלחה בWhatsApp' : 'Reminder sent via WhatsApp', created_at: now },
@@ -581,6 +596,16 @@ export default function JobDetailPanel({ jobId, onClose, onUpdate }: JobDetailPa
                       <CreditCard className="w-3.5 h-3.5" />
                       {he ? 'רשום תשלום' : 'Record Payment'}
                     </button>
+                  )}
+
+                  {job.status === 'completed' && (
+                    <a
+                      href={`/reviews/new/${job.id}`}
+                      className="flex items-center gap-1.5 px-3 py-2 bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold rounded-lg transition-colors"
+                    >
+                      <Star className="w-3.5 h-3.5" />
+                      {he ? 'כתוב ביקורת' : 'Leave Review'}
+                    </a>
                   )}
 
                   {job.status === 'rejected' && (

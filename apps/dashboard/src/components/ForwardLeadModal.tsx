@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useAuth } from '../lib/auth'
 import { supabase } from '../lib/supabase'
 import { useI18n } from '../lib/i18n'
@@ -69,6 +69,9 @@ export default function ForwardLeadModal({ lead, isOpen, onClose }: ForwardLeadM
   // Broadcast state
   const [broadcastDescription, setBroadcastDescription] = useState('')
 
+  // Ref-based lock to prevent double-submits (state updates may lag behind clicks)
+  const submittingRef = useRef(false)
+
   useEffect(() => {
     if (isOpen && effectiveUserId) {
       setMode('direct')
@@ -134,10 +137,27 @@ export default function ForwardLeadModal({ lead, isOpen, onClose }: ForwardLeadM
       return
     }
 
+    // Prevent double-submit via ref lock
+    if (submittingRef.current) return
+    submittingRef.current = true
     setError(null)
     setSubmitting(true)
 
     try {
+      // Check for existing pending job_order for same lead+contractor to prevent duplicates
+      const { data: existing } = await supabase
+        .from('job_orders')
+        .select('id')
+        .eq('lead_id', lead.id)
+        .eq('assigned_user_id', selectedContractorId)
+        .in('status', ['pending', 'accepted'])
+        .maybeSingle()
+
+      if (existing) {
+        setError(locale === 'he' ? 'כבר קיימת עבודה פעילה עבור ליד זה וקבלן זה' : 'An active job already exists for this lead and contractor')
+        return
+      }
+
       const { data: jobOrder, error: insertError } = await supabase
         .from('job_orders')
         .insert({
@@ -176,6 +196,7 @@ export default function ForwardLeadModal({ lead, isOpen, onClose }: ForwardLeadM
       setError(err.message || 'Failed to forward lead')
     } finally {
       setSubmitting(false)
+      submittingRef.current = false
     }
   }
 
@@ -194,6 +215,8 @@ export default function ForwardLeadModal({ lead, isOpen, onClose }: ForwardLeadM
       return
     }
 
+    if (submittingRef.current) return
+    submittingRef.current = true
     setError(null)
     setSubmitting(true)
 
@@ -235,6 +258,7 @@ export default function ForwardLeadModal({ lead, isOpen, onClose }: ForwardLeadM
       setError(err.message || 'Failed to send invite')
     } finally {
       setSubmitting(false)
+      submittingRef.current = false
     }
   }
 
@@ -245,10 +269,27 @@ export default function ForwardLeadModal({ lead, isOpen, onClose }: ForwardLeadM
       return
     }
 
+    // Prevent double-submit
+    if (submittingRef.current) return
+    submittingRef.current = true
     setError(null)
     setSubmitting(true)
 
     try {
+      // Check for existing open broadcast for same lead to prevent duplicates
+      const { data: existingBroadcast } = await supabase
+        .from('job_broadcasts')
+        .select('id')
+        .eq('lead_id', lead.id)
+        .eq('publisher_id', effectiveUserId!)
+        .eq('status', 'open')
+        .maybeSingle()
+
+      if (existingBroadcast) {
+        setError(locale === 'he' ? 'כבר קיים שידור פעיל עבור ליד זה' : 'An active broadcast already exists for this lead')
+        return
+      }
+
       const { data: broadcast, error: broadcastErr } = await supabase
         .from('job_broadcasts')
         .insert({
@@ -288,6 +329,7 @@ export default function ForwardLeadModal({ lead, isOpen, onClose }: ForwardLeadM
       setError(err.message || 'Failed to broadcast job')
     } finally {
       setSubmitting(false)
+      submittingRef.current = false
     }
   }
 

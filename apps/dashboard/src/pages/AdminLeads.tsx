@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useRef } from 'react'
 import { useI18n } from '../lib/i18n'
 import { supabase } from '../lib/supabase'
+import { timeAgo } from '../lib/shared'
 import {
   ResponsiveContainer,
   AreaChart,
@@ -99,14 +100,6 @@ const URG = {
 
 function getProf(p: string) { return PROF[p] ?? PROF.other }
 
-function timeAgo(d: string, he: boolean) {
-  const m = Math.floor((Date.now() - new Date(d).getTime()) / 60000)
-  if (m < 1) return he ? 'עכשיו' : 'now'
-  if (m < 60) return he ? `לפני ${m} דק׳` : `${m}m ago`
-  const h = Math.floor(m / 60)
-  if (h < 24) return he ? `לפני ${h} שע׳` : `${h}h ago`
-  return he ? `לפני ${Math.floor(h / 24)} ימים` : `${Math.floor(h / 24)}d ago`
-}
 
 /* ── Component ─────────────────────────────────────────────────────── */
 export default function AdminLeads() {
@@ -638,7 +631,7 @@ export default function AdminLeads() {
                         <div className="flex items-center gap-2 mb-4">
                           <Eye className="w-4 h-4 text-stone-400" />
                           <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-stone-400">
-                            {he ? 'הודעה מקורית' : 'Raw Intelligence'}
+                            {he ? 'הודעה מקורית' : 'Original Message'}
                           </span>
                         </div>
                         <p className="text-sm leading-relaxed text-stone-600 font-medium whitespace-pre-wrap">

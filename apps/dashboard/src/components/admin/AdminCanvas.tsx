@@ -446,9 +446,9 @@ export default function AdminCanvas() {
       >
         <div className="flex items-center gap-3 shrink-0">
           <div className="flex items-center gap-2">
-            <img src="/icon.png" alt="Lead Express" className="w-7 h-7 rounded-lg" />
+            <img src="/icon.png" alt="MasterLeadFlow" className="w-7 h-7 rounded-lg" />
             <div className="flex flex-col leading-none">
-              <span className="text-[#0b0707]/80 font-extrabold text-[12px] tracking-[0.05em]">LEAD EXPRESS</span>
+              <span className="text-[#0b0707]/80 font-extrabold text-[12px] tracking-[0.05em]">MASTERLEADFLOW</span>
               <span className="text-[7px] text-[#3b3b3b]/30 uppercase tracking-[0.25em]">neural network</span>
             </div>
           </div>

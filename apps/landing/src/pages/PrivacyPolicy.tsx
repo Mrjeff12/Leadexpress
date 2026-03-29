@@ -14,7 +14,7 @@ export default function PrivacyPolicy() {
             <section>
               <h2 className="text-xl font-semibold text-dark mb-3">1. Introduction</h2>
               <p>
-                Lead Express ("we", "us", or "our") operates the Lead Express platform, an AI-powered
+                MasterLeadFlow ("we", "us", or "our") operates the MasterLeadFlow platform, an AI-powered
                 lead extraction service for contractors. This Privacy Policy explains how we collect,
                 use, disclose, and safeguard your information when you use our service.
               </p>
@@ -91,8 +91,8 @@ export default function PrivacyPolicy() {
               </ul>
               <p className="mt-2">
                 To exercise any of these rights, contact us at{' '}
-                <a href="mailto:support@leadexpress.co.il" className="text-primary hover:underline">
-                  support@leadexpress.co.il
+                <a href="mailto:support@masterleadflow.com" className="text-primary hover:underline">
+                  support@masterleadflow.com
                 </a>.
               </p>
             </section>
@@ -118,8 +118,8 @@ export default function PrivacyPolicy() {
               <h2 className="text-xl font-semibold text-dark mb-3">10. Contact Us</h2>
               <p>
                 If you have any questions about this Privacy Policy, please contact us at:{' '}
-                <a href="mailto:support@leadexpress.co.il" className="text-primary hover:underline">
-                  support@leadexpress.co.il
+                <a href="mailto:support@masterleadflow.com" className="text-primary hover:underline">
+                  support@masterleadflow.com
                 </a>
               </p>
             </section>

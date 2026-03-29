@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useI18n } from '../../lib/i18n'
 import { supabase } from '../../lib/supabase'
+import { fmtDate } from '../../lib/shared'
 import {
   Wallet,
   Clock,
@@ -37,10 +38,6 @@ interface WithdrawalRow {
   paid_at: string | null
   stripe_connect_id: string | null
   stripe_onboarded: boolean
-}
-
-function fmtDate(d: string): string {
-  return new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
 }
 
 function fmtCurrency(cents: number): string {

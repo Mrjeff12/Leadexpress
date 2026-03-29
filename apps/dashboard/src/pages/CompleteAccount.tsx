@@ -94,12 +94,12 @@ export default function CompleteAccount() {
         // Non-critical: user is already authenticated, proceed anyway
       }
 
-      // Update onboarding step
-      supabase.from('contractors').update({ onboarding_step: 'credentials_set' }).eq('user_id', profile!.id)
+      // Update onboarding step (await to ensure DB is consistent before redirect)
+      await supabase.from('contractors').update({ onboarding_step: 'credentials_set' }).eq('user_id', profile!.id)
 
       setLoading(false)
       setStep('done')
-      setTimeout(() => navigate('/'), 1500)
+      setTimeout(() => navigate('/', { replace: true }), 1500)
     } catch (err) {
       console.error('handleSubmit error:', err)
       setError('Something went wrong. Please try again.')
@@ -287,7 +287,7 @@ export default function CompleteAccount() {
 
               <button
                 type="button"
-                onClick={() => navigate('/')}
+                onClick={() => navigate('/', { replace: true })}
                 className="w-full py-2.5 text-sm text-gray-400 hover:text-gray-600 transition-colors"
               >
                 Skip for now

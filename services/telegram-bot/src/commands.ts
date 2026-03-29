@@ -83,7 +83,7 @@ export async function handleStart(
 
     await sendMessage(
       chatId,
-      '👋 <b>Welcome to Lead Express!</b>\n\nTo connect your account, scan the QR code from your dashboard or use the link provided.\n\nAlready have an account? Ask your admin for an invite link.',
+      '👋 <b>Welcome to MasterLeadFlow!</b>\n\nTo connect your account, scan the QR code from your dashboard or use the link provided.\n\nAlready have an account? Ask your admin for an invite link.',
     )
     return
   }
@@ -159,7 +159,7 @@ export async function handleStart(
 
 export async function handleHelp(chatId: number): Promise<void> {
   const text = [
-    '📋 <b>Lead Express Bot</b>',
+    '📋 <b>MasterLeadFlow Bot</b>',
     '',
     '🔹 /start — Connect your account',
     '🔹 /status — View your settings & stats',
@@ -201,7 +201,7 @@ export async function handleStatus(
   if (!profile) {
     await sendMessage(
       chatId,
-      "You're not connected to a Lead Express account yet.\n\nScan the QR code from your dashboard to connect.",
+      "You're not connected to a MasterLeadFlow account yet.\n\nScan the QR code from your dashboard to connect.",
     )
     return
   }

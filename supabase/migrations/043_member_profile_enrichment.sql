@@ -1,5 +1,5 @@
 -- ============================================================
--- Lead Express — Member Profile Enrichment
+-- MasterLeadFlow — Member Profile Enrichment
 -- Store WhatsApp profile data: avatar, name, about/status
 -- ============================================================
 

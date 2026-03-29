@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <defs>
+    <linearGradient id="reg-bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#a8a29e"/>
+      <stop offset="100%" stop-color="#78716c"/>
+    </linearGradient>
+    <linearGradient id="reg-body" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#d6d3d1"/>
+      <stop offset="100%" stop-color="#a8a29e"/>
+    </linearGradient>
+    <filter id="reg-shadow">
+      <feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="#44403c" flood-opacity="0.35"/>
+    </filter>
+    <filter id="reg-glow">
+      <feDropShadow dx="0" dy="1" stdDeviation="1" flood-color="#78716c" flood-opacity="0.25"/>
+    </filter>
+  </defs>
+  <!-- Background circle -->
+  <circle cx="32" cy="32" r="29" fill="url(#reg-bg)" filter="url(#reg-shadow)" opacity="0.12"/>
+  <!-- Head -->
+  <circle cx="28" cy="22" r="8" fill="url(#reg-body)" filter="url(#reg-glow)"/>
+  <!-- Highlight on head -->
+  <ellipse cx="26" cy="19" rx="3" ry="2.5" fill="#e7e5e4" opacity="0.5"/>
+  <!-- Body -->
+  <path d="M14 48 C14 36 18 32 28 32 C38 32 42 36 42 48" fill="url(#reg-body)" filter="url(#reg-glow)" stroke-linecap="round"/>
+  <!-- Body highlight -->
+  <path d="M18 48 C18 38 21 34 28 34 C30 34 32 34.5 34 36" fill="#d6d3d1" opacity="0.35"/>
+  <!-- Plus sign -->
+  <g filter="url(#reg-glow)">
+    <rect x="45" y="14" width="12" height="3" rx="1.5" fill="#78716c"/>
+    <rect x="49.5" y="9.5" width="3" height="12" rx="1.5" fill="#78716c"/>
+  </g>
+  <!-- Plus sign highlight -->
+  <rect x="45" y="14" width="12" height="1.5" rx="1" fill="#a8a29e" opacity="0.6"/>
+</svg>

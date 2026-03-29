@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useI18n } from '../lib/i18n'
 import { useAuth } from '../lib/auth'
 import { supabase } from '../lib/supabase'
+import { formatDate } from '../lib/shared'
 import {
   Users,
   CheckCircle2,
@@ -37,7 +38,7 @@ const C = {
   danger: '#FF3B30',
 }
 
-const BOT_NAME = 'LeadExpressBot'
+const BOT_NAME = 'MasterLeadFlowBot'
 
 interface Contractor {
   user_id: string
@@ -80,10 +81,6 @@ function qrUrl(data: string, size = 300): string {
   return `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&data=${encodeURIComponent(data)}&bgcolor=FAFAF8&color=2D6A4F&margin=10`
 }
 
-function formatDate(dateStr: string): string {
-  return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: '2-digit' })
-}
-
 export default function AdminContractors() {
   const { locale } = useI18n()
   const { impersonate, profile } = useAuth()
@@ -102,6 +99,9 @@ export default function AdminContractors() {
   const [qrModal, setQrModal] = useState<{ contractor: Contractor; token: string; url: string } | null>(null)
   const [copied, setCopied] = useState(false)
   const [availablePlans, setAvailablePlans] = useState<{ id: string; slug: string; name: string; price_cents: number }[]>([])
+  const [showInvite, setShowInvite] = useState(false)
+  const [invitePhone, setInvitePhone] = useState('')
+  const [inviteSending, setInviteSending] = useState(false)
 
   useEffect(() => {
     supabase.from('plans').select('id, slug, name, price_cents').eq('is_active', true).order('price_cents')
@@ -111,7 +111,7 @@ export default function AdminContractors() {
   async function quickChangePlan(userId: string, planId: string, e: React.MouseEvent) {
     e.stopPropagation()
     await supabase.from('subscriptions').update({ plan_id: planId }).eq('user_id', userId).in('status', ['active', 'trialing'])
-    await supabase.from('admin_audit_log').insert({
+    await supabase.from('audit_logs').insert({
       admin_user_id: profile?.id,
       target_user_id: userId,
       action: 'plan_change',
@@ -215,7 +215,7 @@ export default function AdminContractors() {
     const blob = await res.blob()
     const a = document.createElement('a')
     a.href = URL.createObjectURL(blob)
-    a.download = `leadexpress-qr-${name.toLowerCase().replace(/\s+/g, '-')}.png`
+    a.download = `masterleadflow-qr-${name.toLowerCase().replace(/\s+/g, '-')}.png`
     a.click()
     URL.revokeObjectURL(a.href)
   }
@@ -233,13 +233,7 @@ export default function AdminContractors() {
           </p>
         </div>
         <button
-          onClick={() => {
-            // TODO: Replace with a proper invite modal when the invite flow is built
-            const email = window.prompt(he ? 'הזן אימייל של הקבלן:' : 'Enter contractor email to invite:')
-            if (email?.trim()) {
-              window.alert(he ? `הזמנה ל-${email} תישלח בקרוב (בפיתוח)` : `Invite to ${email} coming soon (in development)`)
-            }
-          }}
+          onClick={() => setShowInvite(true)}
           className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all hover:scale-[1.02] active:scale-[0.98] shadow-sm"
           style={{ background: C.primary, color: 'white' }}
         >
@@ -398,7 +392,7 @@ export default function AdminContractors() {
                       }}
                       onMouseEnter={(e) => (e.currentTarget.style.background = '#FAFBFC')}
                       onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
-                      onClick={() => navigate(`/admin/contractors/${c.user_id}`)}
+                      onClick={() => navigate(`/admin/clients/contractors/${c.user_id}`)}
                     >
                       {/* Contractor */}
                       <td className="px-5 py-4">
@@ -570,7 +564,7 @@ export default function AdminContractors() {
                             </button>
                           )}
                           <button
-                            onClick={() => navigate(`/admin/contractors/${c.user_id}`)}
+                            onClick={() => navigate(`/admin/clients/contractors/${c.user_id}`)}
                             className="w-7 h-7 rounded-lg flex items-center justify-center transition-all hover:bg-gray-100 active:scale-95"
                             style={{ color: C.muted }}
                           >
@@ -586,6 +580,66 @@ export default function AdminContractors() {
           </table>
         </div>
       </div>
+
+      {/* ═══ Invite Modal ═══ */}
+      {showInvite && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={() => setShowInvite(false)}>
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-md" />
+          <div
+            className="relative rounded-2xl p-7 w-full max-w-sm animate-fade-in"
+            style={{ background: 'white', boxShadow: '0 25px 50px rgba(0,0,0,0.15)' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button onClick={() => setShowInvite(false)} className="absolute top-4 right-4 p-1.5 rounded-lg hover:bg-gray-100 transition" aria-label="Close" style={{ color: C.muted }}>
+              <X className="w-4 h-4" />
+            </button>
+            <h2 className="text-lg font-bold mb-1" style={{ color: C.dark }}>
+              {he ? 'הזמן קבלן' : 'Invite Contractor'}
+            </h2>
+            <p className="text-sm mb-5" style={{ color: C.muted }}>
+              {he ? 'שלח קישור הרשמה בWhatsApp' : 'Send a signup link via WhatsApp'}
+            </p>
+            <label className="block text-sm font-medium mb-1.5" style={{ color: C.dark }}>
+              {he ? 'מספר טלפון' : 'Phone number'}
+            </label>
+            <input
+              type="tel"
+              value={invitePhone}
+              onChange={(e) => setInvitePhone(e.target.value)}
+              placeholder="+1 (305) 555-0123"
+              autoFocus
+              className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm mb-4 focus:outline-none focus:ring-2 focus:ring-[#fe5b25]/30"
+            />
+            <button
+              disabled={invitePhone.replace(/\D/g, '').length < 10 || inviteSending}
+              onClick={async () => {
+                setInviteSending(true)
+                try {
+                  const { data: linkData, error } = await supabase.functions.invoke('magic-login', {
+                    body: { action: 'generate', phone: invitePhone.replace(/\D/g, ''), redirect_path: '/onboarding' },
+                  })
+                  if (error) throw error
+                  const link = linkData?.link ?? ''
+                  const msg = he
+                    ? `היי! הוזמנת להצטרף ל-MasterLeadFlow. לחץ כאן להרשמה:\n${link}`
+                    : `Hey! You've been invited to join MasterLeadFlow. Click here to sign up:\n${link}`
+                  window.open(`https://wa.me/${invitePhone.replace(/\D/g, '')}?text=${encodeURIComponent(msg)}`, '_blank')
+                  setShowInvite(false)
+                  setInvitePhone('')
+                } catch (err) {
+                  console.error('[AdminContractors] Invite error:', err)
+                }
+                setInviteSending(false)
+              }}
+              className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold text-white transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-40"
+              style={{ background: '#25D366' }}
+            >
+              {inviteSending ? <Loader2 className="w-4 h-4 animate-spin" /> : <UserPlus className="w-4 h-4" />}
+              {he ? 'שלח הזמנה בWhatsApp' : 'Send Invite via WhatsApp'}
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* ═══ QR Modal ═══ */}
       {qrModal && (

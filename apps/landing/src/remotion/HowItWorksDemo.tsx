@@ -216,7 +216,7 @@ function DeliverScene({ frame, fps }: { frame: number; fps: number }) {
           <span style={{ color: '#fff', fontSize: 14, fontWeight: 700 }}>L</span>
         </div>
         <div>
-          <div style={{ color: '#fff', fontSize: 12, fontWeight: 600 }}>Lead Express</div>
+          <div style={{ color: '#fff', fontSize: 12, fontWeight: 600 }}>MasterLeadFlow</div>
           <div style={{ color: '#a8d8b4', fontSize: 9 }}>online</div>
         </div>
       </div>

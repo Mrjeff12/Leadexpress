@@ -1,4 +1,5 @@
 import { useI18n } from '../../lib/i18n'
+import { formatCents, timeAgo } from '../../lib/shared'
 import { usePartnerStats } from '../../hooks/usePartnerStats'
 import { usePartnerProfile } from '../../hooks/usePartnerProfile'
 import { useNavigate } from 'react-router-dom'
@@ -24,19 +25,6 @@ import {
   ArrowDownRight,
   ArrowUpRight,
 } from 'lucide-react'
-
-function formatCents(cents: number): string {
-  return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(cents / 100)
-}
-
-function timeAgo(d: string, he: boolean): string {
-  const m = Math.floor((Date.now() - new Date(d).getTime()) / 60000)
-  if (m < 1) return he ? 'עכשיו' : 'just now'
-  if (m < 60) return he ? `לפני ${m} דק'` : `${m}m ago`
-  const h = Math.floor(m / 60)
-  if (h < 24) return he ? `לפני ${h} שע'` : `${h}h ago`
-  return he ? `לפני ${Math.floor(h / 24)} ימים` : `${Math.floor(h / 24)}d ago`
-}
 
 const ACTIVITY_CONFIG: Record<string, { icon: typeof DollarSign; color: string; label: string; he: string }> = {
   earning:         { icon: ArrowDownRight, color: '#16a34a', label: 'Commission Earned', he: 'עמלה שהתקבלה' },

@@ -220,10 +220,10 @@ function BotChatPhone({
       {/* Header */}
       <div className="px-4 py-3 flex items-center gap-3" style={{ background: '#075e54' }}>
         <div className="w-9 h-9 rounded-full overflow-hidden flex-shrink-0">
-          <img src="/rebeca.jpg" alt="LeadExpress AI" className="w-full h-full object-cover" />
+          <img src="/rebeca.jpg" alt="MasterLeadFlow AI" className="w-full h-full object-cover" />
         </div>
         <div>
-          <p className="text-white text-sm font-semibold leading-tight">LeadExpress AI</p>
+          <p className="text-white text-sm font-semibold leading-tight">MasterLeadFlow AI</p>
           <div className="flex items-center gap-1.5 mt-0.5">
             <span className="w-2 h-2 rounded-full bg-green-400 inline-block" />
             <span className="text-green-200 text-[11px]">{lang === 'he' ? 'מחובר' : 'online'}</span>

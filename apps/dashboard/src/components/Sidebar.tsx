@@ -11,6 +11,7 @@ import {
   Users,
   Briefcase,
   Settings,
+  UserCircle,
   CreditCard,
   Lock,
   Handshake,
@@ -22,6 +23,8 @@ import {
   ChevronDown,
   Menu,
   X as XIcon,
+  Search,
+  Star,
 } from 'lucide-react'
 import { useState, useEffect, useRef } from 'react'
 
@@ -79,6 +82,10 @@ export default function Sidebar() {
     { label: t('nav.dashboard'), to: '/', icon: LayoutDashboard },
     { label: t('nav.leads'), to: '/leads', icon: Zap },
     { label: locale === 'he' ? 'קבוצות לסריקה' : 'Group Scan', to: '/group-scan', icon: Users },
+    { label: locale === 'he' ? 'עבודות' : 'Jobs', to: '/jobs', icon: Briefcase },
+    { label: locale === 'he' ? 'ביקורות' : 'Reviews', to: '/reviews', icon: Star },
+    { label: locale === 'he' ? 'הפרופיל שלי' : 'My Profile', to: '/profile/edit', icon: UserCircle },
+    { label: locale === 'he' ? 'מדריך' : 'Directory', to: '/directory', icon: Search },
   ]
 
   const publisherNav: NavItem[] = [
@@ -141,10 +148,10 @@ export default function Sidebar() {
     >
       {/* Logo */}
       <div className={`flex items-center gap-3 py-6 border-b border-stone-100 ${collapsed ? 'px-4 justify-center' : 'px-5'}`}>
-        <img src="/icon.png" alt="Lead Express" className="w-9 h-9 rounded-xl shrink-0 shadow-sm" />
+        <img src="/icon.png" alt="MasterLeadFlow" className="w-9 h-9 rounded-xl shrink-0 shadow-sm" />
         {!collapsed && (
           <span className="text-[15px] font-bold tracking-tight text-stone-800">
-            Lead Express
+            MasterLeadFlow
           </span>
         )}
       </div>

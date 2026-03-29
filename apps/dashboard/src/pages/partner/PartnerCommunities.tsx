@@ -64,7 +64,7 @@ export default function PartnerCommunities() {
   const [qrCode, setQrCode] = useState<string | null>(null)
   const [qrStatus, setQrStatus] = useState<'idle' | 'loading' | 'ready' | 'connected'>('idle')
 
-  const WA_LISTENER_URL = import.meta.env.VITE_WA_LISTENER_URL || 'http://localhost:3001'
+  const WA_LISTENER_URL = import.meta.env.VITE_WA_LISTENER_URL ?? ''
 
   const [linkError, setLinkError] = useState<string | null>(null)
 

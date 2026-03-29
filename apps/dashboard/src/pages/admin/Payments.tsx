@@ -1,5 +1,6 @@
 import { Fragment, useState, useMemo } from 'react'
 import { useI18n } from '../../lib/i18n'
+import { formatDate } from '../../lib/shared'
 import { useAdminPayments, useAdminBillingKPIs, issueRefund, type PaymentRow } from '../../hooks/useAdminBilling'
 import { DollarSign, Search, Loader2, ChevronDown, ChevronUp, ExternalLink, RotateCcw } from 'lucide-react'
 
@@ -14,16 +15,6 @@ const statusBadgeClass: Record<string, string> = {
 function formatAmount(amount: number, currency: string): string {
   const dollars = amount / 100
   return `$${dollars.toFixed(2)} ${currency.toUpperCase()}`
-}
-
-function formatDate(unix: number): string {
-  return new Date(unix * 1000).toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
-  })
 }
 
 function formatPaymentMethod(p: PaymentRow): string {

@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useAuth } from '../lib/auth'
 import { useI18n } from '../lib/i18n'
+import { supabase } from '../lib/supabase'
 import {
   Send,
   CheckCircle2,
@@ -13,7 +14,7 @@ import {
   RefreshCw,
 } from 'lucide-react'
 
-const BOT_NAME = 'LeadExpressBot'
+const BOT_NAME = 'MasterLeadFlowBot'
 
 function qrUrl(data: string, size = 280): string {
   return `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&data=${encodeURIComponent(data)}&bgcolor=FAFAF8&color=2D6A4F&margin=8`
@@ -31,15 +32,22 @@ export default function TelegramConnect() {
   const isConnected = !!profile?.telegram_chat_id
 
   async function generateLink() {
+    if (!profile?.id) return
     setGenerating(true)
     try {
-      // TODO: In production, call Supabase Edge Function:
-      // const { data } = await supabase.functions.invoke('create-telegram-link')
-      // setLinkToken(data.token)
-
-      // Dev mode — generate a placeholder token
       const token = crypto.randomUUID().replace(/-/g, '').slice(0, 16)
+
+      // Store token in DB so the telegram-bot can look it up
+      const { error } = await supabase.from('telegram_link_tokens').upsert({
+        user_id: profile.id,
+        token,
+        expires_at: new Date(Date.now() + 15 * 60 * 1000).toISOString(),
+      }, { onConflict: 'user_id' })
+
+      if (error) throw error
       setLinkToken(token)
+    } catch (err) {
+      console.error('Failed to generate telegram link:', err)
     } finally {
       setGenerating(false)
     }

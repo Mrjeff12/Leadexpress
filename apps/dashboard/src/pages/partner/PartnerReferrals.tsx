@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react'
 import { useI18n } from '../../lib/i18n'
 import { usePartnerReferrals } from '../../hooks/usePartnerReferrals'
 import { useNavigate } from 'react-router-dom'
+import { formatCents } from '../../lib/shared'
 import {
   Search,
   UserPlus,
@@ -11,10 +12,6 @@ import {
   XCircle,
   DollarSign,
 } from 'lucide-react'
-
-function formatCents(cents: number): string {
-  return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(cents / 100)
-}
 
 type StatusFilter = 'all' | 'active' | 'trial' | 'churned'
 

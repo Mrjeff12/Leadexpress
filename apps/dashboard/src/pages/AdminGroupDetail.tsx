@@ -14,7 +14,7 @@ import {
 import { useI18n } from '../lib/i18n'
 import { supabase } from '../lib/supabase'
 import { queryClient } from '../lib/queryClient'
-import { useGroupDetail, type MemberRow } from '../hooks/useGroupDetail'
+import { useGroupDetail, type MemberRow, type ClassificationBreakdown, type TopPublisher, type ContractorMember } from '../hooks/useGroupDetail'
 import { computeGroupScore, getScoreColorClass } from '../lib/group-score'
 import {
   ArrowLeft,
@@ -47,6 +47,16 @@ const classificationStyle: Record<string, { bg: string; text: string; label_en: 
   unknown: { bg: 'hsl(40 4% 94%)', text: 'hsl(40 4% 55%)', label_en: 'Unknown', label_he: 'לא מסווג' },
 }
 
+/* ── Member classification colors ─────────────────────── */
+
+const memberClassColors: Record<keyof ClassificationBreakdown, { color: string; bg: string; label_en: string; label_he: string }> = {
+  publisher:            { color: 'hsl(14 99% 57%)',  bg: 'hsl(14 80% 92% / 0.6)',  label_en: 'Publishers',           label_he: 'מפרסמים' },
+  occasional_publisher: { color: 'hsl(40 80% 50%)',  bg: 'hsl(40 80% 90% / 0.6)',  label_en: 'Occasional',           label_he: 'מפרסמים מדי פעם' },
+  contractor:           { color: 'hsl(152 46% 40%)', bg: 'hsl(152 46% 85% / 0.5)', label_en: 'Contractors',          label_he: 'קבלנים' },
+  admin:                { color: 'hsl(220 60% 44%)', bg: 'hsl(220 60% 92% / 0.5)', label_en: 'Admins',              label_he: 'מנהלים' },
+  silent:               { color: 'hsl(40 4% 55%)',   bg: 'hsl(40 4% 94%)',          label_en: 'Silent',              label_he: 'שקטים' },
+}
+
 /* ── Relative time helper ─────────────────────────────── */
 
 function relativeTime(dateStr: string | null): string {
@@ -68,7 +78,7 @@ export default function AdminGroupDetail() {
   const { locale } = useI18n()
   const he = locale === 'he'
 
-  const { info, funnel, activity, members, market, trends, responses, responseCount, isLoading, isError } = useGroupDetail(id)
+  const { info, funnel, activity, members, market, trends, responses, responseCount, classificationBreakdown, topPublishers, contractors, isLoading, isError } = useGroupDetail(id)
 
   const [tab, setTab] = useState<'overview' | 'members' | 'messages' | 'market'>('overview')
 
@@ -137,7 +147,7 @@ export default function AdminGroupDetail() {
     return (
       <div className="flex flex-col items-center justify-center py-32 gap-3">
         <p style={{ color: 'hsl(0 60% 55%)' }}>{he ? 'שגיאה בטעינת הקבוצה' : 'Error loading group'}</p>
-        <button onClick={() => navigate('/admin/groups')} className="text-sm underline" style={{ color: 'hsl(40 4% 42%)' }}>
+        <button onClick={() => navigate('/admin/channels/groups')} className="text-sm underline" style={{ color: 'hsl(40 4% 42%)' }}>
           {he ? 'חזרה לקבוצות' : 'Back to Groups'}
         </button>
       </div>
@@ -158,7 +168,7 @@ export default function AdminGroupDetail() {
       {/* ── Header ──────────────────────────────────────────── */}
       <div className="flex items-center gap-3 flex-wrap">
         <button
-          onClick={() => navigate('/admin/groups')}
+          onClick={() => navigate('/admin/channels/groups')}
           className="p-1.5 rounded-lg hover:bg-black/5 transition-colors"
           aria-label="Back"
         >
@@ -327,6 +337,137 @@ export default function AdminGroupDetail() {
               </div>
             )
           })()}
+
+          {/* Member Classification Breakdown */}
+          {classificationBreakdown && (() => {
+            const keys: (keyof ClassificationBreakdown)[] = ['publisher', 'occasional_publisher', 'contractor', 'admin', 'silent']
+            const total = keys.reduce((s, k) => s + classificationBreakdown[k], 0) || 1
+            return (
+              <div className="glass-panel p-5">
+                <h2 className="text-sm font-semibold mb-4" style={{ color: 'hsl(40 8% 10%)' }}>
+                  {he ? 'פילוח חברים' : 'Member Breakdown'}
+                </h2>
+                {/* Horizontal stacked bar */}
+                <div className="flex rounded-full overflow-hidden h-5 mb-4" style={{ background: 'hsl(40 4% 94%)' }}>
+                  {keys.map((k) => {
+                    const pct = (classificationBreakdown[k] / total) * 100
+                    if (pct === 0) return null
+                    return (
+                      <div
+                        key={k}
+                        title={`${he ? memberClassColors[k].label_he : memberClassColors[k].label_en}: ${classificationBreakdown[k]}`}
+                        style={{ width: `${pct}%`, background: memberClassColors[k].color, minWidth: pct > 0 ? 4 : 0 }}
+                        className="transition-all"
+                      />
+                    )
+                  })}
+                </div>
+                {/* Legend badges */}
+                <div className="flex flex-wrap gap-2">
+                  {keys.map((k) => (
+                    <span
+                      key={k}
+                      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium"
+                      style={{ background: memberClassColors[k].bg, color: memberClassColors[k].color }}
+                    >
+                      <span className="w-2 h-2 rounded-full" style={{ background: memberClassColors[k].color }} />
+                      {he ? memberClassColors[k].label_he : memberClassColors[k].label_en}
+                      <span className="font-bold tabular-nums">{classificationBreakdown[k]}</span>
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )
+          })()}
+
+          {/* Top Publishers Leaderboard */}
+          {topPublishers && topPublishers.length > 0 && (
+            <div className="glass-panel p-5">
+              <h2 className="text-sm font-semibold mb-1" style={{ color: 'hsl(40 8% 10%)' }}>
+                {he ? 'מפרסמים מובילים' : 'Top Publishers'}
+              </h2>
+              <p className="text-xs mb-4" style={{ color: 'hsl(40 4% 42%)' }}>
+                {he ? 'חברים עם הכי הרבה הודעות ליד' : 'Members with the most lead messages'}
+              </p>
+              <div className="space-y-2">
+                {topPublishers.map((p, i) => {
+                  const maxLeads = topPublishers[0]?.lead_messages || 1
+                  const pct = (p.lead_messages / maxLeads) * 100
+                  return (
+                    <div key={p.id} className="flex items-center gap-3">
+                      <span className="text-xs font-bold tabular-nums w-5 text-center" style={{ color: 'hsl(40 4% 42%)' }}>
+                        {i + 1}
+                      </span>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-sm truncate" style={{ color: 'hsl(40 8% 10%)' }}>
+                            {p.display_name || p.wa_sender_id}
+                          </span>
+                          <span className="text-xs font-bold tabular-nums ml-2" style={{ color: 'hsl(14 99% 57%)' }}>
+                            {p.lead_messages}
+                          </span>
+                        </div>
+                        <div className="h-1.5 rounded-full" style={{ background: 'hsl(40 4% 92%)' }}>
+                          <div
+                            className="h-full rounded-full transition-all"
+                            style={{ width: `${pct}%`, background: 'hsl(14 80% 55%)' }}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Contractors — Potential Customers */}
+          {contractors && contractors.length > 0 && (
+            <div className="glass-panel p-5">
+              <h2 className="text-sm font-semibold mb-1" style={{ color: 'hsl(40 8% 10%)' }}>
+                {he ? `\uD83D\uDCB0 לקוחות פוטנציאליים (${contractors.length})` : `\uD83D\uDCB0 Potential Customers (${contractors.length})`}
+              </h2>
+              <p className="text-xs mb-4" style={{ color: 'hsl(40 4% 42%)' }}>
+                {he ? 'קבלנים פעילים בקבוצה — מועמדים למכירה' : 'Active contractors in the group — sales candidates'}
+              </p>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm" style={{ color: 'hsl(40 8% 10%)' }}>
+                  <thead>
+                    <tr style={{ borderBottom: '1px solid hsl(40 4% 88%)' }}>
+                      <th className="px-4 py-2 text-left font-medium" style={{ color: 'hsl(40 4% 42%)', fontSize: 12 }}>
+                        {he ? 'שם' : 'Name'}
+                      </th>
+                      <th className="px-4 py-2 text-left font-medium" style={{ color: 'hsl(40 4% 42%)', fontSize: 12 }}>
+                        {he ? 'הודעות' : 'Messages'}
+                      </th>
+                      <th className="px-4 py-2 text-left font-medium" style={{ color: 'hsl(40 4% 42%)', fontSize: 12 }}>
+                        {he ? 'נראה לאחרונה' : 'Last Seen'}
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {contractors.map((c) => (
+                      <tr
+                        key={c.id}
+                        className="hover:bg-black/[0.02] transition-colors"
+                        style={{ borderBottom: '1px solid hsl(40 4% 93%)' }}
+                      >
+                        <td className="px-4 py-2.5 whitespace-nowrap">
+                          {c.display_name || c.wa_sender_id}
+                        </td>
+                        <td className="px-4 py-2.5 tabular-nums font-bold" style={{ color: 'hsl(152 46% 40%)' }}>
+                          {c.total_messages}
+                        </td>
+                        <td className="px-4 py-2.5 whitespace-nowrap" style={{ color: 'hsl(40 4% 42%)' }}>
+                          {relativeTime(c.last_seen_at)}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -480,7 +621,7 @@ function MessagesTab({ waGroupId, he }: { waGroupId: string; he: boolean }) {
   useEffect(() => {
     if (!waGroupId) return
     setMsgLoading(true)
-    const baseUrl = import.meta.env.VITE_WA_LISTENER_URL || 'http://localhost:3001'
+    const baseUrl = import.meta.env.VITE_WA_LISTENER_URL ?? ''
     fetch(`${baseUrl}/api/messages/${waGroupId}?limit=50`)
       .then((r) => r.json())
       .then((data) => setMessages(data || []))

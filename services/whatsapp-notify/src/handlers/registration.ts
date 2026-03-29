@@ -181,7 +181,7 @@ export async function startRegistration(
 
   await sendText(
     phone,
-    `Welcome to LeadExpress! 👋\n\nLet's get you set up in under 2 minutes.\n\n*Step 1/4:* What type of work do you do?\nReply with the numbers of your trades:\n\n${professionPrompt()}\n\nExample: *1, 6* for HVAC and Plumbing`,
+    `Welcome to MasterLeadFlow! 👋\n\nLet's get you set up in under 2 minutes.\n\n*Step 1/4:* What type of work do you do?\nReply with the numbers of your trades:\n\n${professionPrompt()}\n\nExample: *1, 6* for HVAC and Plumbing`,
     log,
   );
 }
@@ -205,7 +205,7 @@ export async function handleRegistrationStep(
     await recordOptOut(phone);
     await sendText(
       phone,
-      `You've been unsubscribed. You won't receive any more messages from LeadExpress.\n\nIf you change your mind, send us a message anytime.`,
+      `You've been unsubscribed. You won't receive any more messages from MasterLeadFlow.\n\nIf you change your mind, send us a message anytime.`,
       log,
     );
     return true;

@@ -336,7 +336,7 @@ export default function LeadsFeedShowcase() {
                   </div>
                   <div className="flex-1 mx-4">
                     <div className="bg-white/5 rounded-md px-3 py-1 text-[10px] text-white/30 text-center truncate">
-                      app.leadexpress.com/leads
+                      app.masterleadflow.com/leads
                     </div>
                   </div>
                 </div>

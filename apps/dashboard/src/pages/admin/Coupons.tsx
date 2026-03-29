@@ -1,11 +1,8 @@
 import { useState } from 'react'
 import { useI18n } from '../../lib/i18n'
 import { useAdminCoupons, createCoupon, deleteCoupon, type CouponRow } from '../../hooks/useAdminBilling'
+import { formatDate } from '../../lib/shared'
 import { Ticket, Plus, Trash2, Loader2, Percent, DollarSign } from 'lucide-react'
-
-function formatDate(ts: number): string {
-  return new Date(ts * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-}
 
 function durationLabel(c: CouponRow, he: boolean): string {
   if (c.duration === 'forever') return he ? 'לתמיד' : 'Forever'

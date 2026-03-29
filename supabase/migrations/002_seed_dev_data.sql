@@ -1,13 +1,13 @@
 -- ============================================================
--- Lead Express — Development Seed Data
+-- MasterLeadFlow — Development Seed Data
 -- ============================================================
 
 -- 1. Create auth users
 INSERT INTO auth.users (id, email, raw_user_meta_data) VALUES
-  ('a0000000-0000-0000-0000-000000000001', 'admin@leadexpress.com', '{"full_name": "Jeff (Admin)"}'),
-  ('c0000000-0000-0000-0000-000000000001', 'contractor@leadexpress.com', '{"full_name": "Carlos Mendez"}'),
-  ('c0000000-0000-0000-0000-000000000002', 'mike@leadexpress.com', '{"full_name": "Mike O''Brien"}'),
-  ('c0000000-0000-0000-0000-000000000003', 'sarah@leadexpress.com', '{"full_name": "Sarah Cohen"}');
+  ('a0000000-0000-0000-0000-000000000001', 'admin@masterleadflow.com', '{"full_name": "Jeff (Admin)"}'),
+  ('c0000000-0000-0000-0000-000000000001', 'contractor@masterleadflow.com', '{"full_name": "Carlos Mendez"}'),
+  ('c0000000-0000-0000-0000-000000000002', 'mike@masterleadflow.com', '{"full_name": "Mike O''Brien"}'),
+  ('c0000000-0000-0000-0000-000000000003', 'sarah@masterleadflow.com', '{"full_name": "Sarah Cohen"}');
 
 -- 2. Create profiles (the trigger would do this in Supabase, but locally we insert manually)
 INSERT INTO public.profiles (id, role, full_name, phone, telegram_chat_id, preferred_locale) VALUES

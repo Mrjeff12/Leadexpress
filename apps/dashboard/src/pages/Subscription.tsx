@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
-import { useSubscriptionBilling } from '../hooks/useSubscriptionBilling'
-import { useSubscriptionAccess } from '../hooks/useSubscriptionAccess'
+import { useUserSubscription } from '../hooks/useUserSubscription'
 import { useSearchParams, useNavigate } from 'react-router-dom'
+import { formatDate, formatCents } from '../lib/shared'
 import {
   CreditCard,
   Check,
@@ -35,8 +35,8 @@ const PLAN_CONFIG: Record<string, {
     features: [
       'Unlimited WhatsApp groups',
       'Lead notifications (preview only)',
-      'Forward jobs via Rebeca',
-      'Earn Network Points',
+      'Forward jobs to earn commission',
+      'Earn commission on forwarded jobs',
       'Lead feedback & ratings',
     ],
     gradient: 'from-slate-50 to-white',
@@ -52,7 +52,7 @@ const PLAN_CONFIG: Record<string, {
       'Unlimited leads',
       'Full dashboard + weekly report',
       'Priority support',
-      'Network Points x2',
+      'Double commission on forwards',
     ],
     gradient: 'from-[#fe5b25] to-[#e04d1c]',
     iconBg: 'bg-white/20 text-white',
@@ -63,14 +63,6 @@ const PLAN_CONFIG: Record<string, {
 function daysRemaining(endDate: string): number {
   const diff = new Date(endDate).getTime() - Date.now()
   return Math.max(0, Math.ceil(diff / 86_400_000))
-}
-
-function formatDate(ts: number): string {
-  return new Date(ts * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-}
-
-function formatCents(cents: number, currency = 'usd'): string {
-  return new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(cents / 100)
 }
 
 /* ─── Component ─── */
@@ -91,13 +83,10 @@ export default function Subscription() {
     subscribe,
     changePlan,
     openPortal,
-  } = useSubscriptionBilling()
-
-  const {
     isPremium,
     isFree,
     isLegacy,
-  } = useSubscriptionAccess()
+  } = useUserSubscription()
 
   const showSuccess = searchParams.get('success') === 'true'
   const showCanceled = searchParams.get('canceled') === 'true'

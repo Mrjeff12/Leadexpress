@@ -54,7 +54,7 @@ const DEFAULT_PARTNER = {
   leads: 40,
   subscribers: 12,
   verified: false,
-  bio: 'A verified Lead Express community partner helping contractors find quality job leads.',
+  bio: 'A verified MasterLeadFlow community partner helping contractors find quality job leads.',
   specialties: ['General Contracting'],
   color: 'from-gray-500 to-gray-600',
 }
@@ -63,7 +63,7 @@ export default function PartnerProfile() {
   const { slug } = useParams<{ slug: string }>()
   const partner = (slug && PARTNER_DATA[slug]) || DEFAULT_PARTNER
 
-  const signupUrl = `https://app.leadexpress.co.il/login?ref=${slug || 'partner'}`
+  const signupUrl = `https://app.masterleadflow.com/login?ref=${slug || 'partner'}`
 
   const steps = [
     { icon: <UserPlus size={20} />, title: 'Sign Up', desc: `Join through ${partner.name.split(' ')[0]}'s link` },

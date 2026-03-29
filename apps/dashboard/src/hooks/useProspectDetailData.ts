@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../lib/supabase'
+import { PROSPECTS_QUERY_KEY, type ProspectRecord } from './useAdminProspectsData'
 
 export interface Prospect {
   id: string
@@ -78,44 +79,39 @@ export interface LinkedContractor {
   subscription_plan: string | null
 }
 
-const prospectListKey = ['admin', 'prospects', 'list'] as const
 const detailKey = (id: string) => ['admin', 'prospects', 'detail', id] as const
 const messagesKey = (id: string) => ['admin', 'prospects', 'messages', id] as const
 const eventsKey = (id: string) => ['admin', 'prospects', 'events', id] as const
 const contractorKey = (phone: string) => ['admin', 'prospects', 'contractor', phone] as const
 
-async function fetchProspectList(): Promise<ProspectListItem[]> {
-  const pages: ProspectListItem[] = []
-  let from = 0
-  const size = 500
-
-  while (true) {
-    const { data, error } = await supabase
-      .from('prospect_with_groups')
-      .select('id,phone,display_name,stage,profession_tags,updated_at,last_contact_at,profile_pic_url,group_names,onboarding_step,sub_status')
-      .is('archived_at', null)
-      .order('updated_at', { ascending: false })
-      .range(from, from + size - 1)
-
-    if (error) throw error
-    if (!data || data.length === 0) break
-
-    pages.push(...(data as ProspectListItem[]))
-
-    if (data.length < size) break
-    from += size
+function toListItem(p: ProspectRecord): ProspectListItem {
+  return {
+    id: p.id,
+    phone: p.phone,
+    display_name: p.display_name,
+    stage: p.stage,
+    profession_tags: p.profession_tags,
+    updated_at: p.updated_at,
+    last_contact_at: p.last_contact_at,
+    profile_pic_url: p.profile_pic_url,
+    group_names: p.group_names,
+    onboarding_step: p.onboarding_step,
+    sub_status: p.sub_status,
   }
-
-  return Array.from(new Map(pages.map((p) => [p.id, p])).values())
 }
 
 export function useProspectDetailData(id: string | undefined) {
   const queryClient = useQueryClient()
 
+  // Derive the sidebar list from the shared prospects cache (populated by useAdminProspectsData).
+  // Using the same query key means TanStack Query deduplicates the request — no extra fetch.
   const listQuery = useQuery({
-    queryKey: prospectListKey,
-    queryFn: fetchProspectList,
-    refetchInterval: 30_000,
+    queryKey: [...PROSPECTS_QUERY_KEY],
+    // No queryFn needed when cache is already populated by useAdminProspectsData.
+    // Provide a no-op that returns empty array as fallback if cache is cold.
+    queryFn: () => queryClient.getQueryData<ProspectRecord[]>(PROSPECTS_QUERY_KEY) ?? ([] as ProspectRecord[]),
+    select: (data: ProspectRecord[]) => data.map(toListItem),
+    staleTime: Infinity, // Never refetch — useAdminProspectsData owns the refetch schedule
   })
 
   const prospectQuery = useQuery({
@@ -183,6 +179,7 @@ export function useProspectDetailData(id: string | undefined) {
         .from('prospect_messages')
         .select('*')
         .eq('prospect_id', id)
+        .eq('channel', 'twilio')
         .order('sent_at', { ascending: true })
       if (error) throw error
       return (data ?? []) as Message[]
@@ -244,7 +241,7 @@ export function useProspectDetailData(id: string | undefined) {
         { event: 'UPDATE', schema: 'public', table: 'prospects', filter: `id=eq.${id}` },
         () => {
           queryClient.invalidateQueries({ queryKey: detailKey(id) })
-          queryClient.invalidateQueries({ queryKey: prospectListKey })
+          queryClient.invalidateQueries({ queryKey: PROSPECTS_QUERY_KEY })
         },
       )
       .subscribe()

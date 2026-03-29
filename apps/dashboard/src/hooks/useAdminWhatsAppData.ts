@@ -92,7 +92,7 @@ async function fetchSnapshotFromSupabase(): Promise<SupabaseSnapshot> {
   // 2. Groups (single query)
   const { data: rawGroups } = await supabase
     .from('groups')
-    .select('id, name, wa_group_id, status, message_count, last_message_at, wa_account_id, category, icon_url')
+    .select('id, name, wa_group_id, status, message_count, last_message_at, wa_account_id, category')
     .not('wa_account_id', 'is', null)
     .order('message_count', { ascending: false })
 

@@ -129,7 +129,7 @@ async function handleKnownUser(
   if (trimmed === 'menu' || trimmed === 'help') {
     await sendText(
       phone,
-      `*LeadExpress Menu*\n\n1️⃣ STATUS — Check your account\n2️⃣ PROFILE — Update professions & areas\n3️⃣ STOP — Unsubscribe\n\nReply with a keyword.`,
+      `*MasterLeadFlow Menu*\n\n1️⃣ STATUS — Check your account\n2️⃣ PROFILE — Update professions & areas\n3️⃣ STOP — Unsubscribe\n\nReply with a keyword.`,
       log,
     );
     return;

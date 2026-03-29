@@ -18,11 +18,11 @@ export default function Footer() {
                   <path d="M2 12l10 5 10-5" />
                 </svg>
               </div>
-              <span className="text-xl font-medium">Lead Express</span>
+              <span className="text-xl font-medium">MasterLeadFlow</span>
             </div>
             <p className="text-white/50 text-sm leading-relaxed mb-6">{t.footer.desc}</p>
-            <a href="mailto:support@leadexpress.co.il" className="text-sm text-white/40 hover:text-primary transition-colors">
-              support@leadexpress.co.il
+            <a href="mailto:support@masterleadflow.com" className="text-sm text-white/40 hover:text-primary transition-colors">
+              support@masterleadflow.com
             </a>
           </div>
 
@@ -41,7 +41,7 @@ export default function Footer() {
             <h4 className="font-semibold text-sm mb-4 text-white/80">{t.footer.resources}</h4>
             <ul className="space-y-3">
               <li><span className="text-sm text-white/40">{t.footer.blog} <span className="text-white/20 text-xs">(Coming soon)</span></span></li>
-              <li><a href="mailto:support@leadexpress.co.il" className="text-sm text-white/40 hover:text-primary transition-colors">{t.footer.contact}</a></li>
+              <li><a href="mailto:support@masterleadflow.com" className="text-sm text-white/40 hover:text-primary transition-colors">{t.footer.contact}</a></li>
               <li><span className="text-sm text-white/40">{t.footer.integrations} <span className="text-white/20 text-xs">(Coming soon)</span></span></li>
             </ul>
           </div>

@@ -5,12 +5,6 @@ export interface AdminKPIs {
   [key: string]: number | string
 }
 
-// TODO: Replace with actual plan prices from a plans table or config when available
-const PLAN_PRICES: Record<string, number> = {
-  starter: 29,
-  pro: 49,
-  unlimited: 99,
-}
 const DEFAULT_PLAN_PRICE = 49
 
 export function useAdminKPIs() {
@@ -39,6 +33,7 @@ export function useAdminKPIs() {
           partnersActiveRes,
           partnersPendingRes,
           partnerCommissionsRes,
+          plansRes,
         ] = await Promise.all([
           supabase.from('leads').select('id', { count: 'exact', head: true }),
           supabase.from('leads').select('id', { count: 'exact', head: true }).gte('created_at', today),
@@ -46,15 +41,16 @@ export function useAdminKPIs() {
           supabase.from('leads').select('id', { count: 'exact', head: true }).eq('status', 'sent'),
           supabase.from('leads').select('id', { count: 'exact', head: true }).neq('status', 'archived'),
           supabase.from('groups').select('id', { count: 'exact', head: true }),
-          supabase.from('profiles').select('id', { count: 'exact', head: true }).eq('role', 'contractor').eq('subscription_status', 'active'),
+          supabase.from('subscriptions').select('id, plan_id, user_id').eq('status', 'active'),
           supabase.from('subscriptions').select('id, plan_id').eq('status', 'active'),
           supabase.from('professions').select('id', { count: 'exact', head: true }),
-          supabase.from('group_scan_requests').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
-          supabase.from('whatsapp_connections').select('id', { count: 'exact', head: true }).eq('status', 'connected'),
-          supabase.from('service_areas').select('id', { count: 'exact', head: true }),
+          supabase.from('contractor_group_scan_requests').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
+          supabase.from('wa_accounts').select('id', { count: 'exact', head: true }).eq('status', 'connected'),
+          supabase.from('professions').select('id', { count: 'exact', head: true }), // service_areas table doesn't exist; reuse professions count
           supabase.from('community_partners').select('id', { count: 'exact', head: true }).eq('status', 'active'),
           supabase.from('community_partners').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
           supabase.from('partner_commissions').select('amount_cents').eq('status', 'pending').eq('type', 'earning'),
+          supabase.from('plans').select('slug, price_cents'),
         ])
 
         // Check for critical errors
@@ -66,14 +62,24 @@ export function useAdminKPIs() {
         const hotLeads = hotLeadsRes.count ?? 0
         const sent = sentLeadsRes.count ?? 0
         const activeGroups = groupsRes.count ?? 0
-        const activeContractors = contractorsRes.count ?? 0
+        // activeContractors = count of unique users with active subscriptions
+        const activeContractorSubs = contractorsRes.data ?? []
+        const activeContractors = activeContractorSubs.length
         const activeSubs = subsRes.data ?? []
         const activeSubsCount = activeSubs.length
         const convRate = totalLeads > 0 ? Math.round((sent / totalLeads) * 1000) / 10 : 0
 
+        // Build plan price lookup from DB (fall back to default if plans table fails)
+        const planPrices: Record<string, number> = {}
+        if (plansRes.data) {
+          for (const p of plansRes.data) {
+            planPrices[p.slug as string] = Math.round((p.price_cents as number) / 100)
+          }
+        }
+
         // Calculate MRR from actual plan prices
         const mrr = activeSubs.reduce((sum, s) => {
-          const price = PLAN_PRICES[s.plan_id as string] ?? DEFAULT_PLAN_PRICE
+          const price = planPrices[s.plan_id as string] ?? DEFAULT_PLAN_PRICE
           return sum + price
         }, 0)
 

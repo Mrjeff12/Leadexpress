@@ -1,13 +1,33 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Menu, X, Globe } from 'lucide-react'
 import { useLang } from '../i18n/LanguageContext'
 
 export default function Navbar() {
   const { t, lang, setLang, dir } = useLang()
   const [mobileOpen, setMobileOpen] = useState(false)
+  const [hidden, setHidden] = useState(false)
+
+  /* Hide navbar on mobile when sticky tab bar appears (tab-cards leaves viewport) */
+  useEffect(() => {
+    const check = () => {
+      const cards = document.getElementById('tab-cards')
+      if (!cards) return
+      const rect = cards.getBoundingClientRect()
+      // If tab cards are above the viewport → sticky tabs are active → hide navbar on mobile
+      setHidden(rect.bottom < 80)
+    }
+    window.addEventListener('scroll', check, { passive: true })
+    return () => window.removeEventListener('scroll', check)
+  }, [])
 
   return (
-    <nav className="fixed top-0 inset-x-0 z-50 bg-cream/80 backdrop-blur-xl border-b border-dark/5">
+    <nav
+      className={`
+        fixed top-0 inset-x-0 z-50 bg-cream/80 backdrop-blur-xl border-b border-dark/5
+        transition-transform duration-300
+        ${hidden ? 'lg:translate-y-0 -translate-y-full' : 'translate-y-0'}
+      `}
+    >
       <div className="max-w-7xl mx-auto flex items-center justify-between px-6 py-4">
         {/* Logo */}
         <a href="#" className="flex items-center gap-2.5">
@@ -18,7 +38,7 @@ export default function Navbar() {
               <path d="M2 12l10 5 10-5" />
             </svg>
           </div>
-          <span className="text-xl font-semibold tracking-[-0.03em]">Lead Express</span>
+          <span className="text-xl font-semibold tracking-[-0.03em]">MasterLeadFlow</span>
         </a>
 
         {/* Desktop nav */}
@@ -30,7 +50,7 @@ export default function Navbar() {
         </div>
 
         <div className="hidden md:flex items-center gap-3">
-          <a href="https://app.leadexpress.co.il/login" className="text-sm font-medium text-gray-subtle hover:text-dark transition-colors px-4 py-2">
+          <a href="https://app.masterleadflow.com/login" className="text-sm font-medium text-gray-subtle hover:text-dark transition-colors px-4 py-2">
             Log in
           </a>
           <a href="#pricing" className="btn-primary text-xs !px-5 !py-2.5">{t.nav.getStarted}</a>
@@ -49,7 +69,7 @@ export default function Navbar() {
           <a href="#pricing" className="block text-sm py-2">{t.nav.pricing}</a>
           <a href="#faq" className="block text-sm py-2">{t.nav.faq}</a>
           <a href="#contact" className="block text-sm py-2">{t.nav.contact}</a>
-          <a href="https://app.leadexpress.co.il/login" className="block text-sm py-2 font-medium text-gray-subtle">
+          <a href="https://app.masterleadflow.com/login" className="block text-sm py-2 font-medium text-gray-subtle">
             Log in
           </a>
           <a href="#pricing" className="btn-primary w-full text-center">{t.nav.getStarted}</a>

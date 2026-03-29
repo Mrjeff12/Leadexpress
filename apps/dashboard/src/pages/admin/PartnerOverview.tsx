@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useI18n } from '../../lib/i18n'
 import { supabase } from '../../lib/supabase'
+import { fmtDate } from '../../lib/shared'
 import {
   Handshake,
   Users,
@@ -54,10 +55,6 @@ interface RecentCommission {
   amount_cents: number
   status: string
   created_at: string
-}
-
-function fmtDate(d: string): string {
-  return new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
 }
 
 function fmtCurrency(cents: number): string {
@@ -254,7 +251,7 @@ export default function PartnerOverview() {
       <div className="flex flex-wrap gap-3">
         {kpis!.pendingPartners > 0 && (
           <button
-            onClick={() => navigate('/admin/partners/list')}
+            onClick={() => navigate('/admin/partners')}
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all hover:scale-[1.02] active:scale-[0.98] shadow-sm"
             style={{ background: C.warning, color: 'white' }}
           >

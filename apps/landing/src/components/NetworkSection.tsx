@@ -76,8 +76,8 @@ export default function NetworkSection() {
 
           {/* Text side */}
           <div className="text-center md:text-start">
-            <div className="inline-flex items-center gap-2 bg-[#25D366]/10 text-[#25D366] rounded-full px-4 py-1.5 text-xs font-semibold mb-6">
-              <WhatsAppIcon className="w-3.5 h-3.5" />
+            <div className="inline-flex items-center gap-2 bg-[#fe5b25]/10 text-[#fe5b25] rounded-full px-4 py-1.5 text-xs font-semibold mb-6">
+              <HardHat className="w-3.5 h-3.5" />
               {t.hero.badge}
             </div>
 
@@ -92,7 +92,7 @@ export default function NetworkSection() {
             </p>
 
             <div className="flex flex-col sm:flex-row items-center md:items-start gap-4 mb-8">
-              <a href="https://app.leadexpress.co.il" className="group inline-flex items-center justify-center gap-2 rounded-full bg-[#fe5b25] text-white px-8 py-4 text-base font-semibold transition-all duration-300 hover:bg-[#e04d1c] hover:scale-105 hover:shadow-lg hover:shadow-[#fe5b25]/25 active:scale-95">
+              <a href="https://app.masterleadflow.com" className="group inline-flex items-center justify-center gap-2 rounded-full bg-[#fe5b25] text-white px-8 py-4 text-base font-semibold transition-all duration-300 hover:bg-[#e04d1c] hover:scale-105 hover:shadow-lg hover:shadow-[#fe5b25]/25 active:scale-95">
                 <WhatsAppIcon className="w-5 h-5" />
                 {t.hero.cta1}
                 <ArrowRight size={16} className="transition-transform group-hover:translate-x-1" />
@@ -111,8 +111,40 @@ export default function NetworkSection() {
             </p>
           </div>
 
-          {/* Network visualization — right side */}
+          {/* Hero image — contractor photo with overlays */}
           <div className="flex justify-center">
+            <div className="relative w-full max-w-[520px]">
+              {/* Contractor hero photo */}
+              <div className="relative rounded-3xl overflow-hidden shadow-2xl shadow-black/20">
+                <img
+                  src="/hero-contractor.jpg"
+                  alt="Professional contractor ready to work"
+                  className="w-full h-auto object-cover"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent pointer-events-none" />
+
+                {/* 3 value props overlay at bottom */}
+                <div className="absolute bottom-0 inset-x-0 p-4 md:p-6">
+                  <div className="grid grid-cols-3 gap-2">
+                    {[
+                      { label: 'Find Jobs', desc: 'AI scans groups', color: '#25D366' },
+                      { label: 'Share Jobs', desc: 'Verified subs', color: '#fe5b25' },
+                      { label: 'Get Paid', desc: 'Track & protect', color: '#3b82f6' },
+                    ].map(v => (
+                      <div key={v.label} className="bg-white/95 backdrop-blur-sm rounded-xl px-3 py-2.5 text-center">
+                        <div className="w-2 h-2 rounded-full mx-auto mb-1.5" style={{ background: v.color }} />
+                        <div className="text-xs font-bold text-zinc-900">{v.label}</div>
+                        <div className="text-[10px] text-stone-500">{v.desc}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* HIDDEN: Original network visualization (kept for reference but not rendered) */}
+          <div className="hidden">
             <div className="relative w-full max-w-[520px] aspect-square">
 
               {/* SVG connections */}

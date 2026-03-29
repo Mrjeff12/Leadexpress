@@ -5,7 +5,7 @@ const key = import.meta.env.VITE_SUPABASE_ANON_KEY
 
 if (!url || !key) {
   throw new Error(
-    '[LeadExpress] Missing Supabase environment variables.\n' +
+    '[MasterLeadFlow] Missing Supabase environment variables.\n' +
     'Please set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in your .env file.\n' +
     'See .env.example for reference.'
   )

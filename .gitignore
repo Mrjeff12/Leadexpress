@@ -39,3 +39,23 @@ tmp/
 sync-members-local.mjs
 sync-admins-local.mjs
 enrich-admins-local.mjs
+
+# Local test/utility scripts (may contain secrets)
+check-*.js
+test-*.js
+test-*.mjs
+reply-to-*.js
+run-*.js
+setup-twilio-*.js
+twilio-content-cleanup.js
+schema.sql
+
+# Generated images in root
+*.jpg
+*.png
+!apps/**/public/**
+
+# Temp/generated
+supabase/.temp/
+.superpowers/
+.playwright-mcp/

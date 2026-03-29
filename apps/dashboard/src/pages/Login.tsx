@@ -209,8 +209,8 @@ export default function Login() {
             <div className="order-2 lg:order-1 w-full lg:w-[420px] xl:w-[440px] flex-shrink-0 flex flex-col justify-start sm:justify-center flex-1 sm:flex-initial px-6 sm:px-10 lg:px-12 pt-4 pb-6 sm:py-10 lg:py-14">
               {/* Logo */}
               <div className="flex items-center gap-2.5 mb-2 sm:mb-8">
-                <img src="/icon.png" alt="Lead Express" className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl shadow-md shadow-orange-200/50" />
-                <span className="text-base sm:text-lg font-semibold tracking-tight text-gray-900">Lead Express</span>
+                <img src="/icon.png" alt="MasterLeadFlow" className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl shadow-md shadow-orange-200/50" />
+                <span className="text-base sm:text-lg font-semibold tracking-tight text-gray-900">MasterLeadFlow</span>
               </div>
 
               <h1 className="text-xl sm:text-3xl font-bold text-gray-900 tracking-tight leading-tight mb-1 sm:mb-2">

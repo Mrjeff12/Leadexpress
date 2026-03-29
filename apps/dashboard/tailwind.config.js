@@ -51,7 +51,7 @@ export default {
           DEFAULT: 'hsl(var(--card))',
           foreground: 'hsl(var(--card-foreground))',
         },
-        /* Lead Express custom */
+        /* MasterLeadFlow custom */
         forest: 'hsl(14 99% 57%)',
         cream: 'hsl(39 32% 97%)',
         sand: 'hsl(35 25% 93%)',

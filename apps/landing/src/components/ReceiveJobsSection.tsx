@@ -397,16 +397,16 @@ export default function ReceiveJobsSection() {
           >
             <div className="inline-flex items-center gap-2 bg-[#fe5b25]/10 border border-[#fe5b25]/20 text-[#fe5b25] text-xs font-semibold px-3 py-1.5 rounded-full mb-5">
               <CheckCircle className="w-3.5 h-3.5" />
-              HOW IT WORKS
+              YOUR AI SCANNER
             </div>
             <h2
               className="text-3xl md:text-4xl lg:text-[46px] lg:leading-[1.1] font-bold text-dark mb-4"
               style={{ letterSpacing: '-0.04em' }}
             >
-              2,000+ groups. Only <span className="highlight-box">your jobs</span>.
+              We scan your groups. You get <span className="highlight-box">the jobs</span>.
             </h2>
             <p className="text-gray-subtle/70 text-base md:text-lg leading-relaxed max-w-2xl mx-auto">
-              Our AI checks thousands of WhatsApp groups 24/7 and sends you only the jobs that fit your service, area, and schedule.
+              Connect your WhatsApp groups and our AI reads every message 24/7 — filtering by your trade, your area, and your availability. Only matching jobs reach you.
             </p>
           </div>
 
@@ -418,7 +418,7 @@ export default function ReceiveJobsSection() {
             {/* LEFT — Phone mockup (5 cols) */}
             <div className="col-span-5 relative flex flex-col items-end pr-6">
               <div className="text-center w-full mb-3" style={{ maxWidth: 340, marginLeft: 'auto' }}>
-                <span className="text-[13px] font-bold text-[#25D366] tracking-wide">2,000+ groups</span>
+                <span className="text-[13px] font-bold text-[#25D366] tracking-wide">Your groups</span>
               </div>
               <div className="relative" style={{ maxWidth: 340, marginLeft: 'auto' }}>
                 {/* Phone — cropped at half */}
@@ -499,7 +499,7 @@ export default function ReceiveJobsSection() {
                       </div>
                       <div>
                         <div className="text-[11px] font-bold text-[#fe5b25]">New Lead!</div>
-                        <div className="text-[8px] text-[#8696a0]">Lead Express</div>
+                        <div className="text-[8px] text-[#8696a0]">MasterLeadFlow</div>
                       </div>
                     </div>
                     <div className="px-3 py-2.5 space-y-2">
@@ -569,7 +569,7 @@ export default function ReceiveJobsSection() {
 
             {/* Phone + Lead card */}
             <div className="flex flex-col items-center">
-              <span className="text-[12px] font-bold text-[#25D366] tracking-wide mb-2">2,000+ groups</span>
+              <span className="text-[12px] font-bold text-[#25D366] tracking-wide mb-2">Your groups</span>
               <div className="relative">
                 <div style={{ maxHeight: 280, overflow: 'hidden', maskImage: 'linear-gradient(to bottom, black 78%, transparent 100%)', WebkitMaskImage: 'linear-gradient(to bottom, black 78%, transparent 100%)' }}>
                   <div className="w-[220px] rounded-[36px] p-[3px] shadow-[0_0_0_1px_rgba(0,0,0,0.08),0_15px_40px_rgba(0,0,0,0.2)]" style={{ background: 'linear-gradient(145deg, #2a2a2e 0%, #1a1a1e 50%, #2a2a2e 100%)' }}>
@@ -624,7 +624,7 @@ export default function ReceiveJobsSection() {
                       </div>
                       <div>
                         <div className="text-[10px] font-bold text-[#fe5b25]">New Lead!</div>
-                        <div className="text-[7px] text-[#8696a0]">Lead Express</div>
+                        <div className="text-[7px] text-[#8696a0]">MasterLeadFlow</div>
                       </div>
                     </div>
                     <div className="px-2.5 py-2 space-y-1.5">
@@ -676,15 +676,15 @@ export default function ReceiveJobsSection() {
           >
             <div className="rjs-stat-pill">
               <span className="rjs-stat-dot" style={{ background: '#25D366' }} />
-              2,000+ Groups Checked
+              Groups Scanned 24/7
             </div>
             <div className="rjs-stat-pill">
               <span className="rjs-stat-dot" style={{ background: '#fe5b25' }} />
-              AI Filtering 24/7
+              Filtered by Trade & Area
             </div>
             <div className="rjs-stat-pill">
               <span className="rjs-stat-dot" style={{ background: '#0284c7' }} />
-              ~47 Leads/Day
+              Only Matching Jobs
             </div>
           </div>
 

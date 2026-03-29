@@ -290,6 +290,13 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
   if (!userId) return;
 
   await supabase.from("subscriptions").update({ status: "canceled" }).eq("user_id", userId);
+
+  // Move prospect to churned stage with sub_status
+  const { data: prospect } = await supabase.from("prospects").select("id").eq("user_id", userId).maybeSingle();
+  if (prospect) {
+    await supabase.from("prospects").update({ stage: "churned" }).eq("id", prospect.id);
+    await supabase.rpc("set_churned_substatus", { p_prospect_id: prospect.id, p_reason: "cancelled" });
+  }
   console.log(`[webhook] Subscription canceled: user=${userId}`);
 }
 
@@ -319,6 +326,13 @@ async function handleInvoiceFailed(invoice: Stripe.Invoice) {
   if (!userId) return;
 
   await supabase.from("subscriptions").update({ status: "past_due" }).eq("user_id", userId);
+
+  // Update prospect sub_status to payment_failing
+  const { data: prospect } = await supabase.from("prospects").select("id").eq("user_id", userId).maybeSingle();
+  if (prospect) {
+    await supabase.rpc("set_churned_substatus", { p_prospect_id: prospect.id, p_reason: "payment_failed" });
+    await supabase.from("prospects").update({ sub_status: "payment_failing" }).eq("id", prospect.id);
+  }
   console.log(`[webhook] Invoice failed: user=${userId}`);
 }
 

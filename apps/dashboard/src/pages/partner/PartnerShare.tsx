@@ -22,7 +22,7 @@ export default function PartnerShare() {
   const [copiedLink, setCopiedLink] = useState(false)
   const [copiedTemplate, setCopiedTemplate] = useState<string | null>(null)
 
-  const referralUrl = partner ? `https://leadexpress.co/join/${partner.slug}` : ''
+  const referralUrl = partner ? `https://masterleadflow.com/join/${partner.slug}` : ''
 
   function copyToClipboard(text: string, id?: string) {
     navigator.clipboard.writeText(text)
@@ -46,8 +46,8 @@ export default function PartnerShare() {
       color: '#25D366',
       label: 'WhatsApp',
       text: he
-        ? `היי! אני משתמש ב-Lead Express כדי לקבל לידים ישר לווצאפ. Game changer.\n\n🎁 כל מי שנרשם דרך הקישור שלי מקבל 7 ימי ניסיון חינם!\n\n${referralUrl}`
-        : `Hey everyone! I've been using Lead Express to get job leads straight to my WhatsApp. Game changer.\n\n🎁 Everyone who signs up through my link gets a FREE 7-day trial!\n\nIf you want to try it, here's my link:\n${referralUrl}`,
+        ? `היי! אני משתמש ב-MasterLeadFlow כדי לקבל לידים ישר לווצאפ. Game changer.\n\n🎁 כל מי שנרשם דרך הקישור שלי מקבל 7 ימי ניסיון חינם!\n\n${referralUrl}`
+        : `Hey everyone! I've been using MasterLeadFlow to get job leads straight to my WhatsApp. Game changer.\n\n🎁 Everyone who signs up through my link gets a FREE 7-day trial!\n\nIf you want to try it, here's my link:\n${referralUrl}`,
     },
     {
       id: 'email',
@@ -55,8 +55,8 @@ export default function PartnerShare() {
       color: '#6366f1',
       label: 'Email',
       text: he
-        ? `שלום,\n\nרציתי לשתף איתך כלי שעוזר לי לקבל לידים חדשים ישירות לווצאפ.\n\nLead Express סורק קבוצות WhatsApp של קבלנים ושולח לידים רלוונטיים באזור שלך.\n\n🎁 יש 7 ימי ניסיון חינם למי שנרשם דרך הקישור שלי:\n${referralUrl}\n\nבהצלחה!`
-        : `Hi,\n\nI wanted to share a tool that's been helping me get new leads from WhatsApp groups.\n\nLead Express scans contractor WhatsApp groups and sends me relevant leads in my area.\n\n🎁 Sign up through my link and get a FREE 7-day trial — no credit card needed:\n${referralUrl}\n\nCheers!`,
+        ? `שלום,\n\nרציתי לשתף איתך כלי שעוזר לי לקבל לידים חדשים ישירות לווצאפ.\n\nMasterLeadFlow סורק קבוצות WhatsApp של קבלנים ושולח לידים רלוונטיים באזור שלך.\n\n🎁 יש 7 ימי ניסיון חינם למי שנרשם דרך הקישור שלי:\n${referralUrl}\n\nבהצלחה!`
+        : `Hi,\n\nI wanted to share a tool that's been helping me get new leads from WhatsApp groups.\n\nMasterLeadFlow scans contractor WhatsApp groups and sends me relevant leads in my area.\n\n🎁 Sign up through my link and get a FREE 7-day trial — no credit card needed:\n${referralUrl}\n\nCheers!`,
     },
     {
       id: 'social',
@@ -64,8 +64,8 @@ export default function PartnerShare() {
       color: '#fe5b25',
       label: he ? 'רשתות חברתיות' : 'Social',
       text: he
-        ? `💡 טיפ לקבלנים: הכירו את Lead Express - כלי שסורק קבוצות WhatsApp ומוצא לכם לידים חדשים באזור שלכם.\n\n🎁 7 ימי ניסיון חינם דרך הקישור שלי:\n${referralUrl}`
-        : `💡 Pro tip for contractors: Check out Lead Express - it scans WhatsApp groups and finds you new leads in your area.\n\n🎁 Get a FREE 7-day trial through my link:\n${referralUrl}`,
+        ? `💡 טיפ לקבלנים: הכירו את MasterLeadFlow - כלי שסורק קבוצות WhatsApp ומוצא לכם לידים חדשים באזור שלכם.\n\n🎁 7 ימי ניסיון חינם דרך הקישור שלי:\n${referralUrl}`
+        : `💡 Pro tip for contractors: Check out MasterLeadFlow - it scans WhatsApp groups and finds you new leads in your area.\n\n🎁 Get a FREE 7-day trial through my link:\n${referralUrl}`,
     },
   ]
 
@@ -180,9 +180,9 @@ export default function PartnerShare() {
               <div className="max-w-[85%] rounded-xl rounded-tr-sm px-3 py-2 text-[13px] leading-relaxed shadow-sm" style={{ background: '#dcf8c6' }}>
                 <p className="whitespace-pre-line">
                   {he
-                    ? `היי! אני משתמש ב-Lead Express כדי לקבל לידים ישר לווצאפ. Game changer.\n\n🎁 כל מי שנרשם דרך הקישור שלי מקבל 7 ימי ניסיון חינם!\n\n`
-                    : `Hey everyone! I've been using Lead Express to get job leads straight to my WhatsApp. Game changer.\n\n🎁 Everyone who signs up through my link gets a FREE 7-day trial!\n\n`}
-                  <span className="text-blue-600 underline">{referralUrl || 'leadexpress.co/join/you'}</span>
+                    ? `היי! אני משתמש ב-MasterLeadFlow כדי לקבל לידים ישר לווצאפ. Game changer.\n\n🎁 כל מי שנרשם דרך הקישור שלי מקבל 7 ימי ניסיון חינם!\n\n`
+                    : `Hey everyone! I've been using MasterLeadFlow to get job leads straight to my WhatsApp. Game changer.\n\n🎁 Everyone who signs up through my link gets a FREE 7-day trial!\n\n`}
+                  <span className="text-blue-600 underline">{referralUrl || 'masterleadflow.com/join/you'}</span>
                 </p>
                 <div className="flex items-center justify-end gap-1 mt-1">
                   <span className="text-[10px] text-zinc-500">10:42</span>

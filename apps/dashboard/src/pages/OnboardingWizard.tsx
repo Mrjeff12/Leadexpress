@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, lazy, Suspense } from 'react'
 import { useContractorSettings } from '../hooks/useContractorSettings'
 import { useContractorGroupLinks } from '../hooks/useContractorGroupLinks'
 import { useSubscriptionAccess } from '../hooks/useSubscriptionAccess'
@@ -8,7 +8,7 @@ import { useI18n } from '../lib/i18n'
 import { useAuth } from '../lib/auth'
 import { supabase } from '../lib/supabase'
 import { useToast } from '../components/hooks/use-toast'
-import CoverageMap from '../components/settings/CoverageMap'
+const CoverageMap = lazy(() => import('../components/settings/CoverageMap'))
 import GroupLinksPanel from '../components/settings/GroupLinksPanel'
 import {
   ArrowRight,
@@ -164,9 +164,9 @@ export default function OnboardingWizard() {
             className="w-8 h-8 rounded-lg flex items-center justify-center font-bold text-white text-[11px]"
             style={{ background: 'linear-gradient(135deg, #fe5b25, #e04d1c)' }}
           >
-            <img src="/icon.png" alt="Lead Express" className="w-full h-full rounded-lg" />
+            <img src="/icon.png" alt="MasterLeadFlow" className="w-full h-full rounded-lg" />
           </div>
-          <span className="text-sm font-bold text-zinc-800">Lead Express</span>
+          <span className="text-sm font-bold text-zinc-800">MasterLeadFlow</span>
         </div>
         <div className="flex items-center gap-2 text-xs text-zinc-400">
           <Zap className="w-3.5 h-3.5 text-[#fe5b25]" />
@@ -405,12 +405,14 @@ export default function OnboardingWizard() {
 
               {/* Full CoverageMap — same as dashboard */}
               <div className="rounded-2xl overflow-hidden border border-zinc-200 shadow-sm" style={{ height: 'calc(100vh - 420px)', minHeight: 350 }}>
-                <CoverageMap
-                  zipCodes={zipCodes}
-                  onAddZip={(zip) => addZipCode(zip)}
-                  onRemoveZip={(zip) => removeZipCode(zip)}
-                  onBatchAddZips={(zips) => addZipCodes(zips)}
-                />
+                <Suspense fallback={<div className="w-full h-full bg-gray-100 animate-pulse" />}>
+                  <CoverageMap
+                    zipCodes={zipCodes}
+                    onAddZip={(zip) => addZipCode(zip)}
+                    onRemoveZip={(zip) => removeZipCode(zip)}
+                    onBatchAddZips={(zips) => addZipCodes(zips)}
+                  />
+                </Suspense>
               </div>
 
               {/* ZIP chips below map */}

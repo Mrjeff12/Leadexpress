@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 
-const DASHBOARD_URL = 'https://app.leadexpress.co.il/login'
+const DASHBOARD_URL = 'https://app.masterleadflow.com/login'
 const COOKIE_DAYS = 30
 const LS_KEY = 'le_ref'
 
@@ -62,7 +62,7 @@ export default function JoinRedirect() {
             href={DASHBOARD_URL}
             className="inline-flex items-center justify-center gap-2 rounded-full bg-gradient-to-r from-[#fe5b25] to-[#e04d1c] text-white px-6 py-3 text-sm font-semibold transition-all duration-300 hover:scale-105"
           >
-            Go to Lead Express
+            Go to MasterLeadFlow
           </a>
         </div>
       </div>
@@ -90,7 +90,7 @@ export default function JoinRedirect() {
           </div>
         </div>
 
-        <h1 className="text-xl font-bold text-dark mb-2">Taking you to Lead Express</h1>
+        <h1 className="text-xl font-bold text-dark mb-2">Taking you to MasterLeadFlow</h1>
         <p className="text-sm text-dark/40">
           Referred by <span className="font-medium text-[#fe5b25]">{code}</span>
         </p>

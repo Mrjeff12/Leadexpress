@@ -99,8 +99,8 @@ function InviteScannerCard({ he }: { he?: boolean }) {
             <div className="p-3 rounded-lg bg-emerald-50 border border-emerald-100">
               <p className="text-xs text-emerald-800 leading-relaxed">
                 {he
-                  ? `"היי! אני משתמש ב-Lead Express — AI שמוצא לידים בקבוצות WhatsApp. אפשר להוסיף את המספר ${SCANNER_PHONE} לקבוצה? הבוט שקט לגמרי, רק קורא הודעות ומחבר קבלנים ללידים 🤝"`
-                  : `"Hey! I use Lead Express — an AI that finds leads in WhatsApp groups. Can you add ${SCANNER_PHONE} to the group? The bot is completely silent, it just reads messages and matches contractors with leads 🤝"`
+                  ? `"היי! אני משתמש ב-MasterLeadFlow — AI שמוצא לידים בקבוצות WhatsApp. אפשר להוסיף את המספר ${SCANNER_PHONE} לקבוצה? הבוט שקט לגמרי, רק קורא הודעות ומחבר קבלנים ללידים 🤝"`
+                  : `"Hey! I use MasterLeadFlow — an AI that finds leads in WhatsApp groups. Can you add ${SCANNER_PHONE} to the group? The bot is completely silent, it just reads messages and matches contractors with leads 🤝"`
                 }
               </p>
               <button
@@ -182,8 +182,8 @@ export default function GroupLinksPanel({ links, onAdd, onRemove, compact, he }:
       {/* Hint */}
       <p className="text-xs text-zinc-400 text-center">
         {he
-          ? 'הדבק לינקים של קבוצות WhatsApp. נצטרף תוך 24 שעות ונתחיל לסרוק עבודות. +10 נקודות רשת לכל קבוצה!'
-          : "Paste WhatsApp group invite links. We'll join within 24 hours and start scanning for jobs. +10 Network Points per group!"}
+          ? 'הדבק לינקים של קבוצות WhatsApp. נצטרף תוך 24 שעות ונתחיל לסרוק עבודות. ככל שיש יותר קבוצות, יותר לידים!'
+          : "Paste WhatsApp group invite links. We'll join within 24 hours and start scanning for jobs. More groups = more leads!"}
       </p>
 
       {/* Option B: No link? Invite our scanner */}

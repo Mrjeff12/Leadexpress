@@ -90,7 +90,7 @@ export const BeforeAfterDemo: React.FC = () => {
       {/* Main container */}
       <div style={{ display: 'flex', height: '100%', position: 'relative' }}>
 
-        {/* ─── LEFT: Without Lead Express ─── */}
+        {/* ─── LEFT: Without MasterLeadFlow ─── */}
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '30px 40px 30px 50px' }}>
           {/* Label */}
           <div style={{
@@ -151,7 +151,7 @@ export const BeforeAfterDemo: React.FC = () => {
           </div>
         </div>
 
-        {/* ─── RIGHT: With Lead Express ─── */}
+        {/* ─── RIGHT: With MasterLeadFlow ─── */}
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '30px 50px 30px 40px' }}>
           {/* Label */}
           <div style={{
@@ -160,7 +160,7 @@ export const BeforeAfterDemo: React.FC = () => {
             marginBottom: 20,
           }}>
             <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '5px 12px', borderRadius: 8, background: 'rgba(21,128,61,0.08)', border: '1px solid rgba(21,128,61,0.15)' }}>
-              <span style={{ fontSize: 11, fontWeight: 700, color: '#15803d', letterSpacing: 0.5 }}>WITH LEAD EXPRESS</span>
+              <span style={{ fontSize: 11, fontWeight: 700, color: '#15803d', letterSpacing: 0.5 }}>WITH MASTERLEADFLOW</span>
             </div>
           </div>
 

@@ -24,7 +24,7 @@ const auth = 'Basic ' + Buffer.from(`${ACCOUNT_SID}:${AUTH_TOKEN}`).toString('ba
 const body = new URLSearchParams({
   From: FROM,
   To: to,
-  Body: '🔔 LeadExpress Test — WhatsApp connected successfully!\n\nזה הודעת בדיקה מ-LeadExpress. אם אתה רואה את זה, החיבור עובד!',
+  Body: '🔔 MasterLeadFlow Test — WhatsApp connected successfully!\n\nזה הודעת בדיקה מ-MasterLeadFlow. אם אתה רואה את זה, החיבור עובד!',
 });
 
 const res = await fetch(url, {

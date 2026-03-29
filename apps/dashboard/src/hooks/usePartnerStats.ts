@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
-import { useAuth } from '../lib/auth'
 import { supabase } from '../lib/supabase'
+import { usePartnerProfile } from './usePartnerProfile'
 
 export interface PartnerStats {
   total_earnings_cents: number
@@ -27,25 +27,17 @@ export interface RecentActivity {
 }
 
 export function usePartnerStats() {
-  const { effectiveUserId } = useAuth()
+  const { partner, loading: partnerLoading } = usePartnerProfile()
   const [stats, setStats] = useState<PartnerStats | null>(null)
   const [dailyEarnings, setDailyEarnings] = useState<DailyEarning[]>([])
   const [recentActivity, setRecentActivity] = useState<RecentActivity[]>([])
   const [loading, setLoading] = useState(true)
 
   const loadStats = useCallback(async () => {
-    if (!effectiveUserId) { setLoading(false); return }
+    if (partnerLoading) return
+    if (!partner) { setLoading(false); return }
 
     try {
-      // Get partner record first
-      const { data: partner } = await supabase
-        .from('community_partners')
-        .select('id, commission_rate, balance_cache_cents, stats')
-        .eq('user_id', effectiveUserId)
-        .maybeSingle()
-
-      if (!partner) { setLoading(false); return }
-
       // Load stats, daily earnings, and recent activity in parallel
       const thirtyDaysAgo = new Date()
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
@@ -130,7 +122,7 @@ export function usePartnerStats() {
     }
 
     setLoading(false)
-  }, [effectiveUserId])
+  }, [partner, partnerLoading])
 
   useEffect(() => {
     loadStats()

@@ -4,37 +4,38 @@
     {
       "name": "Dashboard (Vite)",
       "runtimeExecutable": "/bin/zsh",
-      "runtimeArgs": ["-c", "export PATH=/Users/bigjeff/.nvm/versions/node/v20.19.6/bin:$PATH && cd apps/dashboard && npx vite --port 5173"],
-      "port": 5173
+      "runtimeArgs": ["-c", "export PATH=/Users/bigjeff/.nvm/versions/node/v20.19.6/bin:$PATH && cd apps/dashboard && npx vite --port $PORT"],
+      "port": 5173,
+      "autoPort": true
     },
     {
       "name": "WA Listener",
       "runtimeExecutable": "pnpm",
-      "runtimeArgs": ["--filter", "@leadexpress/wa-listener", "dev"],
+      "runtimeArgs": ["--filter", "@masterleadflow/wa-listener", "dev"],
       "port": 0
     },
     {
       "name": "Parser Worker",
       "runtimeExecutable": "pnpm",
-      "runtimeArgs": ["--filter", "@leadexpress/parser", "dev"],
+      "runtimeArgs": ["--filter", "@masterleadflow/parser", "dev"],
       "port": 0
     },
     {
       "name": "Matching Worker",
       "runtimeExecutable": "pnpm",
-      "runtimeArgs": ["--filter", "@leadexpress/matching", "dev"],
+      "runtimeArgs": ["--filter", "@masterleadflow/matching", "dev"],
       "port": 0
     },
     {
       "name": "Notification Worker",
       "runtimeExecutable": "pnpm",
-      "runtimeArgs": ["--filter", "@leadexpress/notification", "dev"],
+      "runtimeArgs": ["--filter", "@masterleadflow/notification", "dev"],
       "port": 0
     },
     {
       "name": "Telegram Bot",
       "runtimeExecutable": "pnpm",
-      "runtimeArgs": ["--filter", "@leadexpress/telegram-bot", "dev"],
+      "runtimeArgs": ["--filter", "@masterleadflow/telegram-bot", "dev"],
       "port": 3001
     },
     {

@@ -1,4 +1,5 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react'
+import { Sentry } from '../lib/sentry'
 
 interface Props {
   children: ReactNode
@@ -20,8 +21,8 @@ export default class ErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, info: ErrorInfo) {
-    console.error('[LeadExpress] Uncaught error:', error)
-    console.error('[LeadExpress] Component stack:', info.componentStack)
+    console.error('[MasterLeadFlow] Uncaught error:', error)
+    Sentry.captureException(error, { extra: { componentStack: info.componentStack } })
   }
 
   handleReload = () => {

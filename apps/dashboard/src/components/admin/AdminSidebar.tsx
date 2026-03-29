@@ -83,10 +83,10 @@ export default function AdminSidebar() {
       >
         {/* Logo */}
         <div className={`flex items-center gap-3 py-6 border-b border-stone-100 ${collapsed ? 'px-4 justify-center' : 'px-5'}`}>
-          <img src="/icon.png" alt="Lead Express" className="w-9 h-9 rounded-xl shrink-0 shadow-sm" />
+          <img src="/icon.png" alt="MasterLeadFlow" className="w-9 h-9 rounded-xl shrink-0 shadow-sm" />
           {!collapsed && (
             <span className="text-[15px] font-bold tracking-tight text-stone-800">
-              Lead Express
+              MasterLeadFlow
             </span>
           )}
         </div>
@@ -204,7 +204,7 @@ export default function AdminSidebar() {
             {!collapsed && (
               <div className="flex-1 min-w-0">
                 <p className="text-[13px] font-semibold text-stone-800 truncate">Admin</p>
-                <p className="text-[10px] text-stone-400">Lead Express</p>
+                <p className="text-[10px] text-stone-400">MasterLeadFlow</p>
               </div>
             )}
           </div>

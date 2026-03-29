@@ -10,7 +10,7 @@ export default function ImpersonationBanner() {
 
   const handleExit = () => {
     stopImpersonating()
-    navigate('/admin/contractors')
+    navigate('/admin/clients')
   }
 
   return (

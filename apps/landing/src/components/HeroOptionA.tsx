@@ -321,7 +321,7 @@ export default function HeroOptionA() {
                     </div>
                     <div>
                       <div className="text-[11px] font-bold text-[#fe5b25]">New Lead!</div>
-                      <div className="text-[8px] text-[#8696a0]">Lead Express</div>
+                      <div className="text-[8px] text-[#8696a0]">MasterLeadFlow</div>
                     </div>
                   </div>
 

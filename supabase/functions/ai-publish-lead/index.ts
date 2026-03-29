@@ -14,7 +14,7 @@ const VALID_PROFESSIONS = [
   "renovation", "fencing", "landscaping", "tiling", "kitchen", "bathroom", "pool", "moving",
 ];
 
-const SYSTEM_PROMPT = `You are a lead publishing assistant for LeadExpress, a US contractor marketplace.
+const SYSTEM_PROMPT = `You are a lead publishing assistant for MasterLeadFlow, a US contractor marketplace.
 Extract job details from the user's message and format a professional posting.
 
 VALID PROFESSIONS (pick the closest match): ${VALID_PROFESSIONS.join(", ")}

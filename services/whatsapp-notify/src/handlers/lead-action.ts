@@ -104,41 +104,42 @@ export async function handleLeadClaim(
     return;
   }
 
-  // Atomic claim: only if status = 'sent'
+  // Fetch lead details — all matched contractors can respond, no exclusive claim
   const { data: lead, error } = await supabase
     .from('leads')
-    .update({
-      status: 'claimed',
-      claimed_by: profile.id,
-      claimed_at: new Date().toISOString(),
-    })
-    .eq('id', leadId)
-    .eq('status', 'sent')
     .select('id, profession, city, sender_id, parsed_summary')
+    .eq('id', leadId)
     .maybeSingle();
 
   if (error || !lead) {
-    await sendText(phone, `This lead has already been claimed or is no longer available.`, log);
+    await sendText(phone, `This lead is no longer available.`, log);
     return;
   }
+
+  // Log the response (non-blocking, multiple contractors can respond)
+  supabase.from('pipeline_events').insert({
+    stage: 'lead_claimed',
+    lead_id: leadId,
+    detail: { contractor_id: profile.id, channel: 'whatsapp' },
+  }).then(() => {});
 
   const contactLink = buildContactLink(lead as LeadData);
 
   if (contactLink) {
     await sendText(
       phone,
-      `✅ Lead claimed! Good luck 🤞\n\n👉 Tap to contact: ${contactLink}\n\nReply *DONE* when finished or *PASS* if not interested.`,
+      `✅ Lead details sent! Good luck 🤞\n\n👉 Tap to contact the customer: ${contactLink}`,
       log,
     );
   } else {
     await sendText(
       phone,
-      `✅ Lead claimed! Good luck 🤞\n\nReply *DONE* when finished or *PASS* if not interested.`,
+      `✅ Lead details sent! Good luck 🤞`,
       log,
     );
   }
 
-  log.info({ leadId, contractorId: profile.id }, 'Lead claimed via WhatsApp');
+  log.info({ leadId, contractorId: profile.id }, 'Lead contact info sent via WhatsApp');
 }
 
 export async function handleLeadPass(

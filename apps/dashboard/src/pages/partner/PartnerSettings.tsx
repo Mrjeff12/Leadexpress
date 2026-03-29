@@ -248,7 +248,7 @@ export default function PartnerSettings() {
           </div>
           <div>
             <h2 className="text-sm font-bold text-zinc-900">{he ? 'כתובת ייחודית' : 'Referral Slug'}</h2>
-            <p className="text-xs text-zinc-400">leadexpress.co/join/{slug || '...'}</p>
+            <p className="text-xs text-zinc-400">masterleadflow.com/join/{slug || '...'}</p>
           </div>
         </div>
 

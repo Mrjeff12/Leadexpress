@@ -1,5 +1,5 @@
 -- ============================================================
--- Lead Express — Initial Schema
+-- MasterLeadFlow — Initial Schema
 -- ============================================================
 
 -- Profiles (extends auth.users)

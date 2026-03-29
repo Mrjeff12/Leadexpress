@@ -123,7 +123,7 @@ export default function Hero() {
                         <WhatsAppIcon className="w-4 h-4 text-[#25D366]" />
                       </div>
                       <div className="flex-1">
-                        <div className="text-[11px] font-semibold text-[#e9edef]">Lead Express</div>
+                        <div className="text-[11px] font-semibold text-[#e9edef]">MasterLeadFlow</div>
                         <div className="text-[9px] text-[#8696a0]">{lang === 'he' ? 'מקוון' : 'online'}</div>
                       </div>
                       <div className="flex gap-3">

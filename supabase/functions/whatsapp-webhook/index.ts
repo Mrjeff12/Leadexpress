@@ -861,13 +861,6 @@ async function handleKnownUser(
   profile: { id: string; full_name: string },
   prospectId: string | null = null,
 ): Promise<void> {
-  // Check subscription (warn but don't block)
-  const hasSub = await checkSubscription(profile.id);
-  if (!hasSub) {
-    await sendText(phone, `Hi ${profile.full_name}! Your subscription has expired.\nVisit masterleadflow.com to renew.\n\nYou can still use the menu and chat below.`);
-    // Don't return — allow menu and AI access
-  }
-
   // Check if contractor exists and is set up
   const { data: contractor } = await supabase
     .from('contractors')
@@ -875,7 +868,7 @@ async function handleKnownUser(
     .eq('user_id', profile.id)
     .maybeSingle();
 
-  // Not set up yet — start onboarding
+  // Not set up yet — start onboarding (skip subscription check for new users)
   if (!contractor || contractor.professions.length === 0 || contractor.zip_codes.length === 0) {
     if (!contractor) {
       await supabase.from('contractors').insert({ user_id: profile.id, wa_notify: true });
@@ -889,6 +882,18 @@ async function handleKnownUser(
   // Enable WA if not already
   if (!contractor.wa_notify) {
     await supabase.from('contractors').update({ wa_notify: true }).eq('user_id', profile.id);
+  }
+
+  // Check subscription (warn but don't block) — only for fully set-up users
+  const hasSub = await checkSubscription(profile.id);
+  if (!hasSub) {
+    const lang = phone.startsWith('+972') ? 'he' : 'en';
+    if (lang === 'he') {
+      await sendText(phone, `היי ${profile.full_name.split(' ')[0]}! המנוי שלך פג תוקף.\nכנס ל-masterleadflow.com להארכה.\n\nאתה עדיין יכול להשתמש בתפריט.`);
+    } else {
+      await sendText(phone, `Hi ${profile.full_name}! Your subscription has expired.\nVisit masterleadflow.com to renew.\n\nYou can still use the menu and chat below.`);
+    }
+    // Don't return — allow menu and AI access
   }
 
   // ── Route by message content ──────────────────────────────────────────
@@ -2606,7 +2611,6 @@ function agentToolsToOpenAI(agent: { bot_agent_tools: Array<{ bot_tools: { slug:
     parameters: Object.keys(at.bot_tools.parameters).length > 0
       ? at.bot_tools.parameters
       : { type: 'object', properties: {}, additionalProperties: false },
-    strict: true,
   }));
 }
 

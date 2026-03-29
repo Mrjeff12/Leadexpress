@@ -140,10 +140,10 @@ const SUB_STATUSES: Record<string, { key: string; label: string; he: string; col
 }
 
 const QUICK_REPLIES = [
-  { key: 'intro', label: 'Intro', he_label: 'היכרות', en: 'Hi! I\'m from Lead Express. We help contractors get more jobs. Interested?', he: 'שלום! אני מ-Lead Express. מעוניין בשיחה קצרה?' },
+  { key: 'intro', label: 'Intro', he_label: 'היכרות', en: 'Hi! I\'m from MasterLeadFlow. We help contractors get more jobs. Interested?', he: 'שלום! אני מ-MasterLeadFlow. מעוניין בשיחה קצרה?' },
   { key: 'followup', label: 'Follow-up', he_label: 'מעקב', en: 'Hey! Following up on my last message.', he: 'היי! עוקב אחרי ההודעה האחרונה.' },
   { key: 'demo', label: 'Demo', he_label: 'הדגמה', en: 'Want to try our platform for free?', he: 'רוצה לנסות בחינם?' },
-  { key: 'price', label: 'Pricing', he_label: 'מחירון', en: 'Plans start at $29/mo. Want details?', he: 'מתחילים ב-$29 לחודש. מעוניין?' },
+  { key: 'price', label: 'Pricing', he_label: 'מחירון', en: 'Plans start at $79/mo. Want details?', he: 'מתחילים ב-$79 לחודש. מעוניין?' },
 ]
 
 /* ── Helpers ────────────────────────────────────────────────────────── */
@@ -254,7 +254,7 @@ export default function AdminInbox() {
   /* ── State ──────────────────────────────────────────────────────── */
   const [selectedId, setSelectedId] = useState<string | undefined>(undefined)
   const [newMessage, setNewMessage] = useState('')
-  const [selectedChannel, setSelectedChannel] = useState<'green_api' | 'twilio'>('green_api')
+  const [selectedChannel, setSelectedChannel] = useState<'green_api' | 'twilio'>('twilio')
   const [sending, setSending] = useState(false)
   const [editingNotes, setEditingNotes] = useState(false)
   const [noteDraft, setNoteDraft] = useState('')
@@ -509,7 +509,7 @@ export default function AdminInbox() {
 
   return (
     <div
-      className="animate-fade-in flex flex-col h-full w-full absolute inset-0 overflow-hidden"
+      className="animate-fade-in flex flex-col h-full w-full overflow-hidden"
       style={{
         fontFamily: "'Plus Jakarta Sans', 'Outfit', -apple-system, system-ui, sans-serif",
         background: C.bg,
@@ -969,31 +969,16 @@ export default function AdminInbox() {
 
           {/* Input Area */}
           <div className="shrink-0 z-30 flex flex-col rounded-b-3xl" style={{ background: 'rgba(255,255,255,0.9)', backdropFilter: 'blur(24px)', borderTop: `1px solid ${C.glassBorder}` }}>
-            {/* Channel Selector */}
+            {/* Channel indicator — Rebeca (Twilio) is the only active channel */}
             {prospect && (
               <div className="flex items-center gap-3 px-8 pt-4 pb-1">
-                {/* Personal WA (Green API) */}
-                <button
-                  onClick={() => setSelectedChannel('green_api')}
-                  className={`flex items-center gap-2 px-3 py-2 rounded-xl text-[12px] font-bold transition-all ${selectedChannel === 'green_api' ? 'bg-[#34C759]/10 text-[#248A3D] ring-1 ring-[#34C759]/30' : 'bg-black/[0.03] text-[#8E8E93] hover:bg-black/[0.06]'}`}
-                >
-                  <img src={WA_CHANNELS.green_api.pic} alt="" className="w-6 h-6 rounded-full object-cover border border-black/[0.08]" />
-                  <div className="flex flex-col items-start">
-                    <span className="text-[11px] leading-tight">{he ? 'וואטסאפ אישי' : 'Personal WA'}</span>
-                    <span className="text-[9px] font-normal opacity-70 leading-tight">{WA_CHANNELS.green_api.phone}</span>
-                  </div>
-                </button>
-                {/* Official WA (Twilio) */}
-                <button
-                  onClick={() => setSelectedChannel('twilio')}
-                  className={`flex items-center gap-2 px-3 py-2 rounded-xl text-[12px] font-bold transition-all ${selectedChannel === 'twilio' ? 'bg-[#fe5b25]/10 text-[#fe5b25] ring-1 ring-[#fe5b25]/30' : 'bg-black/[0.03] text-[#8E8E93] hover:bg-black/[0.06]'}`}
-                >
+                <div className="flex items-center gap-2 px-3 py-2 rounded-xl text-[12px] font-bold bg-[#fe5b25]/10 text-[#fe5b25] ring-1 ring-[#fe5b25]/30">
                   <img src={WA_CHANNELS.twilio.pic} alt="" className="w-6 h-6 rounded-full object-cover border border-black/[0.08]" />
                   <div className="flex flex-col items-start">
-                    <span className="text-[11px] leading-tight">{he ? 'וואטסאפ רשמי' : 'Official WA'}</span>
+                    <span className="text-[11px] leading-tight">{he ? 'רבקה' : 'Rebeca'}</span>
                     <span className="text-[9px] font-normal opacity-70 leading-tight">{WA_CHANNELS.twilio.phone}</span>
                   </div>
-                </button>
+                </div>
               </div>
             )}
 

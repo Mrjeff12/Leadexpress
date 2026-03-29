@@ -16,7 +16,7 @@ const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 export async function handleMenu(phone: string, log: Logger): Promise<void> {
   await sendText(
     phone,
-    `📋 *LeadExpress Menu*\n\nReply with a number:\n\n1️⃣ ⚙️ My Settings\n2️⃣ 📍 Update Areas\n3️⃣ 🔧 Update Trades\n4️⃣ 📅 Working Days\n5️⃣ ⏸️ Pause / Resume Leads`,
+    `📋 *MasterLeadFlow Menu*\n\nReply with a number:\n\n1️⃣ ⚙️ My Settings\n2️⃣ 📍 Update Areas\n3️⃣ 🔧 Update Trades\n4️⃣ 📅 Working Days\n5️⃣ ⏸️ Pause / Resume Leads`,
     log,
   );
 }

@@ -181,6 +181,28 @@ export default function ContractorDashboard() {
       })
   }, [effectiveUserId])
 
+  // Auto-advance onboarding steps (in useEffect, not during render)
+  useEffect(() => {
+    if (!onboardingStep || !effectiveUserId) return
+
+    const standalone = window.matchMedia('(display-mode: standalone)').matches
+      || ('standalone' in navigator && (navigator as any).standalone === true)
+    const mobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)
+
+    // Desktop or already installed → skip install step
+    if ((onboardingStep === 'registered' || onboardingStep === 'credentials_set') && (!mobile || standalone)) {
+      supabase.from('contractors').update({ onboarding_step: 'installed' }).eq('user_id', effectiveUserId)
+      setOnboardingStep('installed')
+      return
+    }
+
+    // Push already granted/unsupported/denied → skip alerts step
+    if (onboardingStep === 'installed' && pushStatus !== 'loading' && pushStatus !== 'default') {
+      supabase.from('contractors').update({ onboarding_step: 'push_enabled' }).eq('user_id', effectiveUserId)
+      setOnboardingStep(null)
+    }
+  }, [onboardingStep, pushStatus, effectiveUserId])
+
   // Fetch profile view stats
   useEffect(() => {
     if (!effectiveUserId || !contractorData?.profile?.slug) return
@@ -353,26 +375,26 @@ export default function ContractorDashboard() {
     )
   }
 
-  // Show install overlay on dashboard
+  // Show install overlay on mobile (auto-advance handled by useEffect above)
   if (onboardingStep === 'registered' || onboardingStep === 'credentials_set') {
     const platform = /iPhone|iPad|iPod/i.test(navigator.userAgent) ? 'ios' as const
       : /Android/i.test(navigator.userAgent) ? 'android' as const : null
+    const standalone = window.matchMedia('(display-mode: standalone)').matches
+      || ('standalone' in navigator && (navigator as any).standalone === true)
 
-    function isStandalone() {
-      return window.matchMedia('(display-mode: standalone)').matches
-        || ('standalone' in navigator && (navigator as any).standalone === true)
-    }
+    // Only show overlay on mobile + not standalone (desktop/standalone auto-advances via useEffect)
+    if (platform && !standalone) {
+      async function handleInstallDone() {
+        await supabase.from('contractors').update({ onboarding_step: 'installed' }).eq('user_id', effectiveUserId!)
+        setOnboardingStep('installed')
+      }
 
-    async function handleInstallDone() {
-      await supabase.from('contractors').update({ onboarding_step: 'installed' }).eq('user_id', effectiveUserId!)
-      setOnboardingStep('installed')
-    }
+      async function handleInstallSkip() {
+        // Write to DB so it doesn't re-appear on next visit
+        await supabase.from('contractors').update({ onboarding_step: 'installed' }).eq('user_id', effectiveUserId!)
+        setOnboardingStep('installed')
+      }
 
-    // Desktop or already standalone — skip install step
-    if (!platform || isStandalone()) {
-      supabase.from('contractors').update({ onboarding_step: 'installed' }).eq('user_id', effectiveUserId!)
-      setOnboardingStep('installed')
-    } else {
       return (
         <div className="min-h-screen flex flex-col bg-white">
           <div className="flex-1 flex flex-col px-5 pt-8 pb-6 max-w-md mx-auto w-full">
@@ -399,7 +421,7 @@ export default function ContractorDashboard() {
                 Done — I've added it!
               </button>
               <button
-                onClick={() => setOnboardingStep('installed')}
+                onClick={handleInstallSkip}
                 className="w-full py-3 text-sm text-gray-400 hover:text-gray-600 transition-colors text-center"
               >
                 Skip for now
@@ -417,19 +439,9 @@ export default function ContractorDashboard() {
     }
   }
 
-  // Show enable alerts overlay
-  if (onboardingStep === 'installed') {
-    if (pushStatus === 'unsupported' || pushStatus === 'denied' || pushStatus === 'granted') {
-      // Auto-advance
-      if (pushStatus === 'granted') {
-        supabase.from('contractors').update({ onboarding_step: 'push_enabled' }).eq('user_id', effectiveUserId!)
-      }
-      setOnboardingStep(null)
-    } else if (pushStatus === 'default') {
-      return (
-        <EnableAlertsScreen />
-      )
-    }
+  // Show enable alerts overlay (auto-advance for non-default handled by useEffect)
+  if (onboardingStep === 'installed' && pushStatus === 'default') {
+    return <EnableAlertsScreen />
   }
 
   return (
@@ -540,7 +552,7 @@ export default function ContractorDashboard() {
             </div>
             {pushStatus === 'default' ? (
               <button
-                onClick={async () => { await enablePush(); setPushDismissed(true); sessionStorage.setItem('push_banner_dismissed', '1') }}
+                onClick={async () => { await enablePush(); if (effectiveUserId) supabase.from('contractors').update({ onboarding_step: 'push_enabled' }).eq('user_id', effectiveUserId); setPushDismissed(true); sessionStorage.setItem('push_banner_dismissed', '1') }}
                 disabled={pushLoading}
                 className="shrink-0 px-3 py-1.5 rounded-lg text-[11px] font-bold text-white bg-[#fe5b25] hover:bg-[#e04d1c] transition-colors disabled:opacity-50"
               >

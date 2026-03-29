@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
-import { useAuth } from '../lib/auth'
 import { supabase } from '../lib/supabase'
+import { usePartnerProfile } from './usePartnerProfile'
 
 export interface PartnerReferral {
   id: string
@@ -18,21 +18,13 @@ export interface PartnerReferral {
 }
 
 export function usePartnerReferrals() {
-  const { effectiveUserId } = useAuth()
+  const { partner, loading: partnerLoading } = usePartnerProfile()
   const [referrals, setReferrals] = useState<PartnerReferral[]>([])
   const [loading, setLoading] = useState(true)
   const [totalCount, setTotalCount] = useState(0)
 
   const loadReferrals = useCallback(async () => {
-    if (!effectiveUserId) { setLoading(false); return }
-
-    // Get partner id first
-    const { data: partner } = await supabase
-      .from('community_partners')
-      .select('id, commission_rate')
-      .eq('user_id', effectiveUserId)
-      .maybeSingle()
-
+    if (partnerLoading) return
     if (!partner) { setLoading(false); return }
 
     const { data, error, count } = await supabase
@@ -96,7 +88,7 @@ export function usePartnerReferrals() {
     setReferrals(mapped)
     setTotalCount(count ?? 0)
     setLoading(false)
-  }, [effectiveUserId])
+  }, [partner, partnerLoading])
 
   useEffect(() => {
     loadReferrals()

@@ -1,14 +1,7 @@
 import { useI18n } from '../../lib/i18n'
 import { useAdminAlerts } from '../../hooks/useAdminBilling'
+import { formatCents, formatDate } from '../../lib/shared'
 import { AlertTriangle, XCircle, Clock, Loader2, CheckCircle } from 'lucide-react'
-
-function formatCents(cents: number, currency = 'usd'): string {
-  return new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(cents / 100)
-}
-
-function formatDate(ts: number): string {
-  return new Date(ts * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-}
 
 export default function Alerts() {
   const { locale } = useI18n()

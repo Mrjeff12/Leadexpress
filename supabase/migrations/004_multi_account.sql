@@ -1,5 +1,5 @@
 -- ============================================================
--- Lead Express — Multi-Account WhatsApp Support
+-- MasterLeadFlow — Multi-Account WhatsApp Support
 -- ============================================================
 
 -- WhatsApp Accounts — each is a separate Green API instance

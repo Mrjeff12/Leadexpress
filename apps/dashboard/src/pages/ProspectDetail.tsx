@@ -36,10 +36,10 @@ const STAGES = [
 const getStage = (k: string) => STAGES.find(s => s.key === k) ?? STAGES[0]
 
 const QUICK_REPLIES = [
-  { key: 'intro', label: 'Intro', he_label: 'היכרות', en: 'Hi! I\'m from Lead Express. We help contractors get more jobs. Interested?', he: 'שלום! אני מ-Lead Express. מעוניין בשיחה קצרה?' },
+  { key: 'intro', label: 'Intro', he_label: 'היכרות', en: 'Hi! I\'m from MasterLeadFlow. We help contractors get more jobs. Interested?', he: 'שלום! אני מ-MasterLeadFlow. מעוניין בשיחה קצרה?' },
   { key: 'followup', label: 'Follow-up', he_label: 'מעקב', en: 'Hey! Following up on my last message.', he: 'היי! עוקב אחרי ההודעה האחרונה.' },
   { key: 'demo', label: 'Demo', he_label: 'הדגמה', en: 'Want to try our platform for free?', he: 'רוצה לנסות בחינם?' },
-  { key: 'price', label: 'Pricing', he_label: 'מחירון', en: 'Plans start at $29/mo. Want details?', he: 'מתחילים ב-$29 לחודש. מעוניין?' },
+  { key: 'price', label: 'Pricing', he_label: 'מחירון', en: 'Plans start at $79/mo. Want details?', he: 'מתחילים ב-$79 לחודש. מעוניין?' },
 ]
 
 /* ── Helpers ────────────────────────────────────────────────────────── */

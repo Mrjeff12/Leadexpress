@@ -14,17 +14,17 @@ export default function TermsOfService() {
             <section>
               <h2 className="text-xl font-semibold text-dark mb-3">1. Acceptance of Terms</h2>
               <p>
-                By accessing or using the Lead Express platform ("Service"), you agree to be bound
+                By accessing or using the MasterLeadFlow platform ("Service"), you agree to be bound
                 by these Terms of Service ("Terms"). If you do not agree to these Terms, you may
                 not use the Service. These Terms constitute a legally binding agreement between you
-                and Lead Express ("we", "us", or "our").
+                and MasterLeadFlow ("we", "us", or "our").
               </p>
             </section>
 
             <section>
               <h2 className="text-xl font-semibold text-dark mb-3">2. Service Description</h2>
               <p>
-                Lead Express is an AI-powered platform that extracts potential customer leads from
+                MasterLeadFlow is an AI-powered platform that extracts potential customer leads from
                 WhatsApp groups and matches them with contractors based on trade specialization and
                 service area. Our service includes:
               </p>
@@ -62,7 +62,7 @@ export default function TermsOfService() {
             <section>
               <h2 className="text-xl font-semibold text-dark mb-3">5. Subscription and Billing</h2>
               <p>
-                Lead Express offers subscription-based plans. By subscribing, you agree to the following:
+                MasterLeadFlow offers subscription-based plans. By subscribing, you agree to the following:
               </p>
               <ul className="list-disc pl-6 mt-2 space-y-1.5">
                 <li>Subscription fees are billed in advance on a recurring basis (monthly or annually, depending on your plan).</li>
@@ -89,7 +89,7 @@ export default function TermsOfService() {
               <h2 className="text-xl font-semibold text-dark mb-3">7. Intellectual Property</h2>
               <p>
                 All content, features, and functionality of the Service, including but not limited to
-                text, graphics, logos, and software, are owned by Lead Express and are protected by
+                text, graphics, logos, and software, are owned by MasterLeadFlow and are protected by
                 intellectual property laws. You may not copy, modify, or distribute any part of the
                 Service without our prior written consent.
               </p>
@@ -111,7 +111,7 @@ export default function TermsOfService() {
             <section>
               <h2 className="text-xl font-semibold text-dark mb-3">9. Limitation of Liability</h2>
               <p>
-                To the maximum extent permitted by law, Lead Express shall not be liable for any
+                To the maximum extent permitted by law, MasterLeadFlow shall not be liable for any
                 indirect, incidental, special, consequential, or punitive damages, including but not
                 limited to loss of profits, data, or business opportunities, arising out of or
                 related to your use of the Service. Our total liability shall not exceed the amount
@@ -122,7 +122,7 @@ export default function TermsOfService() {
             <section>
               <h2 className="text-xl font-semibold text-dark mb-3">10. Indemnification</h2>
               <p>
-                You agree to indemnify and hold harmless Lead Express, its officers, directors,
+                You agree to indemnify and hold harmless MasterLeadFlow, its officers, directors,
                 employees, and agents from any claims, damages, losses, or expenses arising from
                 your use of the Service or violation of these Terms.
               </p>
@@ -149,8 +149,8 @@ export default function TermsOfService() {
               <h2 className="text-xl font-semibold text-dark mb-3">13. Contact Us</h2>
               <p>
                 If you have any questions about these Terms of Service, please contact us at:{' '}
-                <a href="mailto:support@leadexpress.co.il" className="text-primary hover:underline">
-                  support@leadexpress.co.il
+                <a href="mailto:support@masterleadflow.com" className="text-primary hover:underline">
+                  support@masterleadflow.com
                 </a>
               </p>
             </section>

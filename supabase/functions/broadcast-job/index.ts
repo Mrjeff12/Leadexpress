@@ -1,6 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
-import { corsHeaders } from "../_shared/cors.ts";
+import { getCorsHeaders } from "../_shared/cors.ts";
 
 const supabase = createClient(
   Deno.env.get('SUPABASE_URL')!,
@@ -66,7 +66,6 @@ async function sendText(to: string, body: string): Promise<boolean> {
 async function sendButtons(to: string, contentSid: string, vars: Record<string, string>): Promise<boolean> {
   await loadSecrets();
   if (!contentSid) {
-    // Fallback to text if template SID not configured
     const fallback = Object.values(vars).join('\n');
     return sendText(to, fallback);
   }
@@ -89,17 +88,20 @@ async function sendButtons(to: string, contentSid: string, vars: Record<string, 
     }
   );
   if (!res.ok) {
-    // Fallback to text
     const fallback = Object.values(vars).join('\n');
     return sendText(to, fallback);
   }
   return true;
 }
 
+type CorsHeaders = Record<string, string>;
+
 // ── Main handler ────────────────────────────────────────────
 Deno.serve(async (req: Request) => {
+  const cors = getCorsHeaders(req);
+
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders });
+    return new Response('ok', { headers: cors });
   }
 
   try {
@@ -107,42 +109,34 @@ Deno.serve(async (req: Request) => {
     const { broadcast_id, action, contractor_ids, phone, name, inviter_name, register_url, contractor_id } = body;
 
     if (action === 'send_broadcast') {
-      return await handleSendBroadcast(broadcast_id);
+      return await handleSendBroadcast(broadcast_id, cors);
     }
 
     if (action === 'send_invite') {
-      return await handleSendInvite(phone, name, inviter_name, register_url);
+      return await handleSendInvite(phone, name, inviter_name, register_url, cors);
     }
 
     if (action === 'notify_closed') {
-      return await handleNotifyClosed(contractor_ids || []);
+      return await handleNotifyClosed(contractor_ids || [], cors);
     }
 
     if (action === 'notify_chosen') {
-      return await handleNotifyChosen(contractor_id, broadcast_id);
+      return await handleNotifyChosen(contractor_id, broadcast_id, cors);
     }
 
-    // Default: broadcast
     if (broadcast_id) {
-      return await handleSendBroadcast(broadcast_id);
+      return await handleSendBroadcast(broadcast_id, cors);
     }
 
-    return new Response(JSON.stringify({ error: 'Missing broadcast_id or action' }), {
-      status: 400,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    return jsonResponse({ error: 'Missing broadcast_id or action' }, 400, cors);
   } catch (err) {
     console.error('[broadcast-job] Error:', err);
-    return new Response(JSON.stringify({ error: (err as Error).message }), {
-      status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    return jsonResponse({ error: (err as Error).message }, 500, cors);
   }
 });
 
 // ── Send broadcast to matching contractors ──────────────────
-async function handleSendBroadcast(broadcastId: string): Promise<Response> {
-  // 1. Get broadcast + lead
+async function handleSendBroadcast(broadcastId: string, cors: CorsHeaders): Promise<Response> {
   const { data: broadcast, error: bErr } = await supabase
     .from('job_broadcasts')
     .select('*, leads(profession, city, zip_code)')
@@ -150,11 +144,11 @@ async function handleSendBroadcast(broadcastId: string): Promise<Response> {
     .single();
 
   if (bErr || !broadcast) {
-    return jsonResponse({ error: 'Broadcast not found' }, 404);
+    return jsonResponse({ error: 'Broadcast not found' }, 404, cors);
   }
 
   if (broadcast.status !== 'open') {
-    return jsonResponse({ error: 'Broadcast is not open' }, 400);
+    return jsonResponse({ error: 'Broadcast is not open' }, 400, cors);
   }
 
   const lead = broadcast.leads as { profession: string; city: string | null; zip_code: string | null };
@@ -162,14 +156,12 @@ async function handleSendBroadcast(broadcastId: string): Promise<Response> {
   const city = lead?.city || 'your area';
   const zipCode = lead?.zip_code;
 
-  // 2. Get publisher name
   const { data: publisher } = await supabase
     .from('profiles')
     .select('full_name')
     .eq('id', broadcast.publisher_id)
     .single();
 
-  // 3. Find matching contractors
   let query = supabase
     .from('contractors')
     .select('user_id, professions, profiles(whatsapp_phone, full_name)')
@@ -184,13 +176,11 @@ async function handleSendBroadcast(broadcastId: string): Promise<Response> {
 
   if (!matches || matches.length === 0) {
     await supabase.from('job_broadcasts').update({ sent_count: 0 }).eq('id', broadcastId);
-    return jsonResponse({ sent: 0, message: 'No matching contractors found' });
+    return jsonResponse({ sent: 0, message: 'No matching contractors found' }, 200, cors);
   }
 
-  // 4. Filter out publisher
   const eligible = matches.filter(m => m.user_id !== broadcast.publisher_id);
 
-  // 5. Send WhatsApp to each
   const emoji = PROFESSION_EMOJI[profession] || '📋';
   const dealSummary = broadcast.deal_type === 'percentage'
     ? `${broadcast.deal_value}%`
@@ -206,19 +196,21 @@ async function handleSendBroadcast(broadcastId: string): Promise<Response> {
 
     const normalized = normalizePhone(phone);
 
-    // Check if contractor is mid-onboarding — don't overwrite their session
+    // Skip contractors already pending for THIS specific broadcast
     const { data: existingState } = await supabase
       .from('wa_onboard_state')
-      .select('step')
+      .select('step, data')
       .eq('phone', normalized)
       .maybeSingle();
 
-    if (existingState && existingState.step !== 'broadcast_pending') {
-      // Skip — contractor is in an active onboarding flow
+    if (
+      existingState?.step === 'broadcast_pending' &&
+      existingState?.data?.broadcastId === broadcastId
+    ) {
+      // Already notified for this broadcast — skip to avoid duplicate messages
       continue;
     }
 
-    // Store broadcast context for button callback
     await supabase.from('wa_onboard_state').upsert(
       { phone: normalized, step: 'broadcast_pending', data: { broadcastId } },
       { onConflict: 'phone' }
@@ -235,18 +227,17 @@ async function handleSendBroadcast(broadcastId: string): Promise<Response> {
     if (sent) sentCount++;
   }
 
-  // 6. Update sent count
   await supabase.from('job_broadcasts').update({ sent_count: sentCount }).eq('id', broadcastId);
 
-  return jsonResponse({ sent: sentCount, total_eligible: eligible.length });
+  return jsonResponse({ sent: sentCount, total_eligible: eligible.length }, 200, cors);
 }
 
 // ── Send invite to unregistered contractor ──────────────────
 async function handleSendInvite(
-  phone: string, name: string, inviterName: string, registerUrl: string
+  phone: string, name: string, inviterName: string, registerUrl: string, cors: CorsHeaders
 ): Promise<Response> {
   if (!phone || !registerUrl) {
-    return jsonResponse({ error: 'Missing phone or register_url' }, 400);
+    return jsonResponse({ error: 'Missing phone or register_url' }, 400, cors);
   }
 
   const sent = await sendButtons(normalizePhone(phone), CONTENT.CONTRACTOR_INVITE, {
@@ -254,11 +245,11 @@ async function handleSendInvite(
     '2': registerUrl,
   });
 
-  return jsonResponse({ sent });
+  return jsonResponse({ sent }, 200, cors);
 }
 
 // ── Notify closed contractors ───────────────────────────────
-async function handleNotifyClosed(contractorIds: string[]): Promise<Response> {
+async function handleNotifyClosed(contractorIds: string[], cors: CorsHeaders): Promise<Response> {
   let notified = 0;
 
   for (const cId of contractorIds) {
@@ -269,6 +260,20 @@ async function handleNotifyClosed(contractorIds: string[]): Promise<Response> {
       .single();
 
     if (profile?.whatsapp_phone) {
+      // Clear broadcast_pending state so they can receive future broadcasts
+      const normalized = normalizePhone(profile.whatsapp_phone);
+      const { data: state } = await supabase
+        .from('wa_onboard_state')
+        .select('step')
+        .eq('phone', normalized)
+        .maybeSingle();
+      if (state?.step === 'broadcast_pending') {
+        await supabase
+          .from('wa_onboard_state')
+          .update({ step: 'idle', data: null })
+          .eq('phone', normalized);
+      }
+
       if (CONTENT.BROADCAST_CLOSED) {
         await sendButtons(profile.whatsapp_phone, CONTENT.BROADCAST_CLOSED, {});
       } else {
@@ -281,11 +286,11 @@ async function handleNotifyClosed(contractorIds: string[]): Promise<Response> {
     }
   }
 
-  return jsonResponse({ notified });
+  return jsonResponse({ notified }, 200, cors);
 }
 
 // ── Notify chosen contractor ────────────────────────────────
-async function handleNotifyChosen(contractorId: string, broadcastId: string): Promise<Response> {
+async function handleNotifyChosen(contractorId: string, broadcastId: string, cors: CorsHeaders): Promise<Response> {
   const { data: profile } = await supabase
     .from('profiles')
     .select('whatsapp_phone')
@@ -299,25 +304,23 @@ async function handleNotifyChosen(contractorId: string, broadcastId: string): Pr
     .single();
 
   if (!profile?.whatsapp_phone || !broadcast) {
-    return jsonResponse({ error: 'Profile or broadcast not found' }, 404);
+    return jsonResponse({ error: 'Profile or broadcast not found' }, 404, cors);
   }
 
   const lead = broadcast.leads as { profession: string; city: string | null };
-  // Template builds URL as: https://app.leadexpress.co.il/jobs?b={{3}}
-  // Send broadcast ID so the link opens the jobs page filtered to this broadcast
   const sent = await sendButtons(profile.whatsapp_phone, CONTENT.BROADCAST_CHOSEN, {
     '1': lead?.profession || 'general',
     '2': lead?.city || 'your area',
     '3': broadcastId,
   });
 
-  return jsonResponse({ sent });
+  return jsonResponse({ sent }, 200, cors);
 }
 
 // ── Helpers ─────────────────────────────────────────────────
-function jsonResponse(data: unknown, status = 200): Response {
+function jsonResponse(data: unknown, status: number, cors: CorsHeaders): Response {
   return new Response(JSON.stringify(data), {
     status,
-    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    headers: { ...cors, 'Content-Type': 'application/json' },
   });
 }

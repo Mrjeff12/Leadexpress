@@ -41,8 +41,8 @@ interface AuthContextValue extends AuthState {
 
 const AuthContext = createContext<AuthContextValue | null>(null)
 
-const IMPERSONATE_KEY = 'leadexpress_impersonate'
-const ACTIVE_ROLE_KEY = 'leadexpress_active_role'
+const IMPERSONATE_KEY = 'masterleadflow_impersonate'
+const ACTIVE_ROLE_KEY = 'masterleadflow_active_role'
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [activeRole, setActiveRole] = useState<UserRole>(() => {

@@ -3,6 +3,7 @@ import { useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import { queryClient } from '../lib/queryClient'
 import { computeGroupScore, type GroupScoreResult } from '../lib/group-score'
+import { aggregateGroupPipelineStats } from '../lib/groupStatsAggregation'
 
 const SCOREBOARD_KEY = ['admin', 'group-scoreboard'] as const
 
@@ -40,64 +41,21 @@ async function fetchScoreboardData(): Promise<GroupRow[]> {
   const groupIds = groups.map((g: any) => g.id)
   if (groupIds.length === 0) return []
 
-  // 2. Pipeline events: count received + lead_created per group
-  const { data: pipeStats } = await supabase
-    .from('pipeline_events')
-    .select('group_id, stage')
-    .in('group_id', groupIds)
-    .in('stage', ['received', 'lead_created'])
+  // 2. Aggregated pipeline stats (shared utility)
+  const pipelineStats = await aggregateGroupPipelineStats(groupIds)
 
-  // 3. Pipeline events last 7 days
-  const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
-  const { data: recent } = await supabase
-    .from('pipeline_events')
-    .select('group_id')
+  // 3. Member classification counts per group
+  const { data: memberStats } = await supabase
+    .from('group_members')
+    .select('group_id, classification')
     .in('group_id', groupIds)
-    .eq('stage', 'received')
-    .gte('created_at', sevenDaysAgo)
+    .in('classification', ['publisher', 'occasional_publisher', 'contractor', 'admin'])
 
-  // Previous week (7-14 days ago)
-  const fourteenDaysAgo = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString()
-  const { data: prevWeek } = await supabase
-    .from('pipeline_events')
-    .select('group_id')
-    .in('group_id', groupIds)
-    .eq('stage', 'received')
-    .gte('created_at', fourteenDaysAgo)
-    .lt('created_at', sevenDaysAgo)
-
-  // Repeat requesters
+  // 4. Repeat requesters
   const { data: repeats } = await supabase
     .from('leads')
     .select('group_id, sender_id')
     .in('group_id', groupIds)
-
-  // 4. Latest lead per group
-  const { data: latestLeads } = await supabase
-    .from('leads')
-    .select('group_id, created_at')
-    .in('group_id', groupIds)
-    .order('created_at', { ascending: false })
-
-  // Aggregate
-  const received: Record<string, number> = {}
-  const leads: Record<string, number> = {}
-  const msgs7d: Record<string, number> = {}
-  const lastLead: Record<string, string> = {}
-
-  pipeStats?.forEach((e: any) => {
-    if (e.stage === 'received') received[e.group_id] = (received[e.group_id] || 0) + 1
-    if (e.stage === 'lead_created') leads[e.group_id] = (leads[e.group_id] || 0) + 1
-  })
-
-  recent?.forEach((e: any) => {
-    msgs7d[e.group_id] = (msgs7d[e.group_id] || 0) + 1
-  })
-
-  const msgsPrev7d: Record<string, number> = {}
-  prevWeek?.forEach((e: any) => {
-    msgsPrev7d[e.group_id] = (msgsPrev7d[e.group_id] || 0) + 1
-  })
 
   const repeatCounts: Record<string, number> = {}
   if (repeats) {
@@ -113,25 +71,29 @@ async function fetchScoreboardData(): Promise<GroupRow[]> {
     })
   }
 
-  latestLeads?.forEach((l: any) => {
-    if (!lastLead[l.group_id]) lastLead[l.group_id] = l.created_at
+  const publisherCounts: Record<string, number> = {}
+  const occasionalCounts: Record<string, number> = {}
+  const contractorCounts: Record<string, number> = {}
+  const adminCounts: Record<string, number> = {}
+  memberStats?.forEach((m: any) => {
+    if (m.classification === 'publisher') publisherCounts[m.group_id] = (publisherCounts[m.group_id] || 0) + 1
+    if (m.classification === 'occasional_publisher') occasionalCounts[m.group_id] = (occasionalCounts[m.group_id] || 0) + 1
+    if (m.classification === 'contractor') contractorCounts[m.group_id] = (contractorCounts[m.group_id] || 0) + 1
+    if (m.classification === 'admin') adminCounts[m.group_id] = (adminCounts[m.group_id] || 0) + 1
   })
 
   return groups.map((g: any) => {
-    const messagesReceived = received[g.id] || 0
-    const leadsCreated = leads[g.id] || 0
-    const messages7d_count = msgs7d[g.id] || 0
-    const leadYield = messagesReceived > 0 ? leadsCreated / messagesReceived : 0
-    const lastLeadAt = lastLead[g.id] || null
-    const hoursSinceLastLead = lastLeadAt
-      ? (Date.now() - new Date(lastLeadAt).getTime()) / (1000 * 60 * 60)
-      : 999
+    const stats = pipelineStats[g.id]
+    const livePublishers = publisherCounts[g.id] || 0
+    const liveOccasional = occasionalCounts[g.id] || 0
+    const liveContractors = contractorCounts[g.id] || 0
+    const liveAdmins = adminCounts[g.id] || 0
 
     const score = computeGroupScore({
-      leadYield,
-      sellerRatio: g.total_members > 0 ? (g.known_sellers || 0) / g.total_members : 0,
-      messages7d: messages7d_count,
-      hoursSinceLastLead,
+      leadYield: stats?.leadYield ?? 0,
+      sellerRatio: g.total_members > 0 ? (livePublishers + liveOccasional) / g.total_members : 0,
+      messages7d: stats?.messages7d ?? 0,
+      hoursSinceLastLead: stats?.hoursSinceLastLead ?? 999,
     })
 
     return {
@@ -141,18 +103,20 @@ async function fetchScoreboardData(): Promise<GroupRow[]> {
       status: g.status,
       category: g.category,
       total_members: g.total_members || 0,
-      known_sellers: g.known_sellers || 0,
-      known_buyers: g.known_buyers || 0,
+      known_sellers: livePublishers,
+      known_occasional: liveOccasional,
+      known_contractors: liveContractors,
+      known_admins: liveAdmins,
       message_count: g.message_count || 0,
       last_message_at: g.last_message_at,
       created_at: g.created_at,
-      messagesReceived,
-      leadsCreated,
-      messages7d: messages7d_count,
-      messagesPrev7d: msgsPrev7d[g.id] || 0,
+      messagesReceived: stats?.received ?? 0,
+      leadsCreated: stats?.leadsCreated ?? 0,
+      messages7d: stats?.messages7d ?? 0,
+      messagesPrev7d: stats?.messagesPrev7d ?? 0,
       repeatRequesters: repeatCounts[g.id] || 0,
-      leadYield,
-      lastLeadAt,
+      leadYield: stats?.leadYield ?? 0,
+      lastLeadAt: stats?.lastLeadAt ?? null,
       score,
     }
   })

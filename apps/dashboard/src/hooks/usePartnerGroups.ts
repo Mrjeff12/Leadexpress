@@ -3,6 +3,7 @@ import { useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import { queryClient } from '../lib/queryClient'
 import { computeGroupScore, type GroupScoreResult } from '../lib/group-score'
+import { aggregateGroupPipelineStats } from '../lib/groupStatsAggregation'
 
 /* ── Types ─────────────────────────────────────────────── */
 
@@ -73,73 +74,15 @@ async function fetchPartnerGroups(partnerId: string): Promise<PartnerGroupRow[]>
 
   if (gErr || !groups) return []
 
-  // Pipeline stats
-  const { data: pipeStats } = await supabase
-    .from('pipeline_events')
-    .select('group_id, stage')
-    .in('group_id', groupIds)
-    .in('stage', ['received', 'lead_created'])
-
-  // 7-day activity
-  const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
-  const { data: recent } = await supabase
-    .from('pipeline_events')
-    .select('group_id')
-    .in('group_id', groupIds)
-    .eq('stage', 'received')
-    .gte('created_at', sevenDaysAgo)
-
-  // Previous week
-  const fourteenDaysAgo = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString()
-  const { data: prevWeek } = await supabase
-    .from('pipeline_events')
-    .select('group_id')
-    .in('group_id', groupIds)
-    .eq('stage', 'received')
-    .gte('created_at', fourteenDaysAgo)
-    .lt('created_at', sevenDaysAgo)
-
-  // Latest lead per group
-  const { data: latestLeads } = await supabase
-    .from('leads')
-    .select('group_id, created_at')
-    .in('group_id', groupIds)
-    .order('created_at', { ascending: false })
-
-  // Aggregate
-  const received: Record<string, number> = {}
-  const leadsCreated: Record<string, number> = {}
-  const msgs7d: Record<string, number> = {}
-  const msgsPrev7d: Record<string, number> = {}
-  const lastLead: Record<string, string> = {}
-
-  pipeStats?.forEach((e: any) => {
-    if (e.stage === 'received') received[e.group_id] = (received[e.group_id] || 0) + 1
-    if (e.stage === 'lead_created') leadsCreated[e.group_id] = (leadsCreated[e.group_id] || 0) + 1
-  })
-
-  recent?.forEach((e: any) => {
-    msgs7d[e.group_id] = (msgs7d[e.group_id] || 0) + 1
-  })
-
-  prevWeek?.forEach((e: any) => {
-    msgsPrev7d[e.group_id] = (msgsPrev7d[e.group_id] || 0) + 1
-  })
-
-  latestLeads?.forEach((l: any) => {
-    if (!lastLead[l.group_id]) lastLead[l.group_id] = l.created_at
-  })
+  // Pipeline stats (shared utility)
+  const pipelineStats = await aggregateGroupPipelineStats(groupIds)
 
   return groups.map((g: any) => {
-    const messagesReceived = received[g.id] || 0
-    const leads = leadsCreated[g.id] || 0
-    const m7d = msgs7d[g.id] || 0
-    const mPrev7d = msgsPrev7d[g.id] || 0
-    const leadYield = messagesReceived > 0 ? leads / messagesReceived : 0
-    const lastLeadAt = lastLead[g.id] || null
-    const hoursSinceLastLead = lastLeadAt
-      ? (Date.now() - new Date(lastLeadAt).getTime()) / (1000 * 60 * 60)
-      : 999
+    const stats = pipelineStats[g.id]
+    const m7d = stats?.messages7d ?? 0
+    const mPrev7d = stats?.messagesPrev7d ?? 0
+    const leadYield = stats?.leadYield ?? 0
+    const hoursSinceLastLead = stats?.hoursSinceLastLead ?? 999
 
     const sellerRatio = g.total_members > 0 ? (g.known_sellers || 0) / g.total_members : 0
 
@@ -169,7 +112,7 @@ async function fetchPartnerGroups(partnerId: string): Promise<PartnerGroupRow[]>
       linked_at: link?.linked_at || g.created_at,
       verified: link?.verified ?? false,
       score,
-      leadsDetected: leads,
+      leadsDetected: stats?.leadsCreated ?? 0,
       activityLevel,
       spamRatio: Math.round(sellerRatio * 100),
       memberBreakdown: {

@@ -206,7 +206,7 @@ export default function RebecaScannerSection() {
             />
             <img
               src="/rebeca-character.png"
-              alt="Rebeca — LeadExpress AI Agent"
+              alt="Rebeca — MasterLeadFlow AI Agent"
               className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[180px] pointer-events-none select-none"
               style={{ filter: 'drop-shadow(0 8px 24px rgba(0,0,0,0.2))' }}
             />

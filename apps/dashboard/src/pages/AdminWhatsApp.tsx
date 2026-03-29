@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useI18n } from '../lib/i18n'
+import { timeAgo } from '../lib/shared'
 import { supabase } from '../lib/supabase'
 import { useAdminWhatsAppData } from '../hooks/useAdminWhatsAppData'
 import {
@@ -122,16 +123,6 @@ const CATEGORY_EMOJI: Record<string, string> = {
   hvac: '❄️', renovation: '🔨', fencing: '🏗️', cleaning: '🧹',
 }
 
-function timeAgo(ts: string | number, he: boolean): string {
-  const diff = Date.now() - (typeof ts === 'number' ? ts : new Date(ts).getTime())
-  const mins = Math.floor(diff / 60_000)
-  if (mins < 1) return he ? 'עכשיו' : 'now'
-  if (mins < 60) return he ? `לפני ${mins} דק׳` : `${mins}m ago`
-  const hrs = Math.floor(mins / 60)
-  if (hrs < 24) return he ? `לפני ${hrs} שע׳` : `${hrs}h ago`
-  const days = Math.floor(hrs / 24)
-  return he ? `לפני ${days} ימים` : `${days}d ago`
-}
 
 // ── Group Avatar (WhatsApp style) ──────────────────────────────────────────────
 const GROUP_PALETTE = [
@@ -221,7 +212,7 @@ function DemoQR({ size = 180 }: { size?: number }) {
 export default function AdminWhatsApp() {
   const { locale } = useI18n()
   const he = locale === 'he'
-  const WA_API = import.meta.env.VITE_WA_LISTENER_URL || ''
+  const WA_API = import.meta.env.VITE_WA_LISTENER_URL ?? ''
 
   // ── UI-only state ──────────────────────────────────────────────────────────
   const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null)

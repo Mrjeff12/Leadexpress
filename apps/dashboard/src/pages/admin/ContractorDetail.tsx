@@ -3,6 +3,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom'
 import { useI18n } from '../../lib/i18n'
 import { useAuth } from '../../lib/auth'
 import { supabase } from '../../lib/supabase'
+import { fmtDate } from '../../lib/shared'
 import {
   ArrowLeft,
   Zap,
@@ -33,7 +34,9 @@ import {
   Timer,
   ArrowUpCircle,
   Sparkles,
+  ShieldCheck,
 } from 'lucide-react'
+import { useToast } from '../../components/hooks/use-toast'
 
 /* ── Design tokens ──────────────────────────────────────────────── */
 const C = {
@@ -139,11 +142,6 @@ const SUB_STATUS_MAP: Record<string, { color: string; bg: string; label: string 
   canceled: { color: C.danger, bg: '#FEF2F2', label: 'Canceled' },
   paused: { color: C.warning, bg: '#FFFBEB', label: 'Paused' },
   incomplete: { color: C.muted, bg: '#F3F4F6', label: 'Incomplete' },
-}
-
-function fmtDate(d: string | null): string {
-  if (!d) return '\u2014'
-  return new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
 }
 
 function fmtShort(d: string | null): string {
@@ -298,7 +296,7 @@ function InfoRow({ label, value, mono }: { label: string; value: React.ReactNode
 export default function ContractorDetail() {
   const { id } = useParams<{ id: string }>()
   const { locale } = useI18n()
-  const { impersonate } = useAuth()
+  const { impersonate, profile } = useAuth()
   const navigate = useNavigate()
   const he = locale === 'he'
 
@@ -312,12 +310,16 @@ export default function ContractorDetail() {
   const [showPlanModal, setShowPlanModal] = useState(false)
   const [availablePlans, setAvailablePlans] = useState<{ id: string; slug: string; name: string; price_cents: number; max_counties: number }[]>([])
   const [changingPlan, setChangingPlan] = useState(false)
+  const [cpProfile, setCpProfile] = useState<{ background_check: string; tier: string; profile_completeness: number } | null>(null)
+  const [savingVerification, setSavingVerification] = useState(false)
+  const { toast } = useToast()
 
   useEffect(() => {
     if (!id) return
     loadContractor()
     loadSubcontractors()
     loadLeads()
+    loadContractorProfile()
   }, [id])
 
   async function loadContractor() {
@@ -486,7 +488,7 @@ export default function ContractorDetail() {
     }
 
     // Audit log
-    await supabase.from('admin_audit_log').insert({
+    await supabase.from('audit_logs').insert({
       admin_user_id: profile?.id,
       target_user_id: id,
       action: 'plan_change',
@@ -512,7 +514,7 @@ export default function ContractorDetail() {
     })
 
     // Audit log
-    await supabase.from('admin_audit_log').insert({
+    await supabase.from('audit_logs').insert({
       admin_user_id: profile?.id,
       target_user_id: id,
       action: 'trial_created',
@@ -531,7 +533,7 @@ export default function ContractorDetail() {
     const { error } = await supabase.from('contractors').update({ is_active: newStatus }).eq('user_id', id)
     if (!error) {
       setContractor({ ...contractor, is_active: newStatus })
-      await supabase.from('admin_audit_log').insert({
+      await supabase.from('audit_logs').insert({
         admin_user_id: profile?.id,
         target_user_id: id,
         action: newStatus ? 'contractor_activated' : 'contractor_deactivated',
@@ -539,6 +541,57 @@ export default function ContractorDetail() {
       })
     }
     setToggling(false)
+  }
+
+  async function loadContractorProfile() {
+    if (!id) return
+    const { data } = await supabase
+      .from('contractor_profiles')
+      .select('background_check, tier, profile_completeness')
+      .eq('user_id', id)
+      .single()
+    if (data) setCpProfile(data)
+  }
+
+  async function handleToggleBgCheck() {
+    if (!id || !cpProfile) return
+    setSavingVerification(true)
+    const newVal = cpProfile.background_check === 'passed' ? 'none' : 'passed'
+    const { error } = await supabase
+      .from('contractor_profiles')
+      .update({ background_check: newVal })
+      .eq('user_id', id)
+    if (!error) {
+      setCpProfile({ ...cpProfile, background_check: newVal })
+      toast({ title: newVal === 'passed' ? 'Background check verified' : 'Background check revoked' })
+    } else {
+      toast({ title: 'Update failed', description: error.message, variant: 'destructive' })
+    }
+    setSavingVerification(false)
+  }
+
+  async function handleChangeTier(newTier: string) {
+    if (!id || !cpProfile || cpProfile.tier === newTier) return
+    setSavingVerification(true)
+    const oldTier = cpProfile.tier
+    const { error } = await supabase
+      .from('contractor_profiles')
+      .update({ tier: newTier })
+      .eq('user_id', id)
+    if (!error) {
+      setCpProfile({ ...cpProfile, tier: newTier })
+      // Record tier history
+      await supabase.from('tier_history').insert({
+        user_id: id,
+        old_tier: oldTier,
+        new_tier: newTier,
+        reason: 'Admin manual override',
+      })
+      toast({ title: 'Tier updated', description: `${oldTier} → ${newTier}` })
+    } else {
+      toast({ title: 'Update failed', description: error.message, variant: 'destructive' })
+    }
+    setSavingVerification(false)
   }
 
   /* ── Loading / Not Found ─────────────────────────────────────── */
@@ -1277,6 +1330,99 @@ export default function ContractorDetail() {
               )}
             </div>
           </SectionCard>
+
+          {/* Profile Verification */}
+          {cpProfile && (
+            <SectionCard>
+              <div className="p-6 space-y-5">
+                <h3 className="text-[13px] font-bold uppercase tracking-wider flex items-center gap-2" style={{ color: C.muted }}>
+                  <ShieldCheck className="w-3.5 h-3.5" />
+                  {he ? 'אימות פרופיל' : 'Profile Verification'}
+                </h3>
+
+                {/* Background Check */}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2.5">
+                    <div
+                      className="w-8 h-8 rounded-lg flex items-center justify-center"
+                      style={{ background: cpProfile.background_check === 'passed' ? '#ECFDF5' : '#F3F4F6' }}
+                    >
+                      <ShieldCheck className="w-4 h-4" style={{ color: cpProfile.background_check === 'passed' ? C.success : C.muted }} />
+                    </div>
+                    <div>
+                      <p className="text-[11px] font-medium" style={{ color: C.muted }}>Background Check</p>
+                      <p className="text-[12px] font-semibold" style={{ color: cpProfile.background_check === 'passed' ? C.success : C.muted }}>
+                        {cpProfile.background_check === 'passed' ? 'Passed' : 'Not verified'}
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={handleToggleBgCheck}
+                    disabled={savingVerification}
+                    className="px-3 py-1.5 rounded-lg text-[11px] font-semibold transition-all hover:shadow-sm active:scale-95"
+                    style={{
+                      background: cpProfile.background_check === 'passed' ? '#FEF2F2' : '#ECFDF5',
+                      color: cpProfile.background_check === 'passed' ? C.danger : C.success,
+                      border: `1px solid ${cpProfile.background_check === 'passed' ? '#FECACA' : '#A7F3D0'}`,
+                      opacity: savingVerification ? 0.6 : 1,
+                    }}
+                  >
+                    {cpProfile.background_check === 'passed' ? 'Revoke' : 'Verify'}
+                  </button>
+                </div>
+
+                {/* Trust Tier */}
+                <div>
+                  <p className="text-[11px] font-medium mb-2" style={{ color: C.muted }}>Trust Tier</p>
+                  <div className="grid grid-cols-4 gap-1.5">
+                    {([
+                      { key: 'new', label: 'New', color: '#6B7280', bg: '#F3F4F6', border: '#E5E7EB' },
+                      { key: 'verified', label: 'Verified', color: '#2563EB', bg: '#EFF6FF', border: '#BFDBFE' },
+                      { key: 'trusted', label: 'Trusted', color: '#059669', bg: '#ECFDF5', border: '#A7F3D0' },
+                      { key: 'elite', label: 'Elite', color: '#D97706', bg: '#FFFBEB', border: '#FDE68A' },
+                    ] as const).map((t) => {
+                      const isActive = cpProfile.tier === t.key
+                      return (
+                        <button
+                          key={t.key}
+                          onClick={() => handleChangeTier(t.key)}
+                          disabled={savingVerification}
+                          className="px-2 py-2 rounded-lg text-[10px] font-bold uppercase tracking-wide transition-all hover:shadow-sm active:scale-95 text-center"
+                          style={{
+                            background: isActive ? t.bg : 'white',
+                            color: isActive ? t.color : C.muted,
+                            border: `2px solid ${isActive ? t.color : C.border}`,
+                            opacity: savingVerification ? 0.6 : 1,
+                          }}
+                        >
+                          {t.label}
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+
+                {/* Profile Completeness */}
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <p className="text-[11px] font-medium" style={{ color: C.muted }}>Profile Completeness</p>
+                    <span className="text-[12px] font-bold" style={{ color: cpProfile.profile_completeness >= 70 ? C.success : cpProfile.profile_completeness >= 40 ? C.warning : C.muted }}>
+                      {cpProfile.profile_completeness}%
+                    </span>
+                  </div>
+                  <div className="w-full h-2 rounded-full overflow-hidden" style={{ background: '#F3F4F6' }}>
+                    <div
+                      className="h-full rounded-full transition-all"
+                      style={{
+                        width: `${cpProfile.profile_completeness}%`,
+                        background: cpProfile.profile_completeness >= 70 ? C.success : cpProfile.profile_completeness >= 40 ? C.warning : C.muted,
+                      }}
+                    />
+                  </div>
+                </div>
+              </div>
+            </SectionCard>
+          )}
 
           {/* Admin Notes */}
           <SectionCard>

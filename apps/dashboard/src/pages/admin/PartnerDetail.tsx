@@ -3,6 +3,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom'
 import { useI18n } from '../../lib/i18n'
 import { useAuth } from '../../lib/auth'
 import { supabase } from '../../lib/supabase'
+import { fmtDate } from '../../lib/shared'
 import {
   ArrowLeft,
   DollarSign,
@@ -98,11 +99,6 @@ const COMM_STATUS_CONFIG: Record<string, { color: string; bg: string; label: str
   paid: { color: C.success, bg: '#ECFDF5', label: 'Paid', labelHe: 'שולם' },
   rejected: { color: C.danger, bg: '#FEF2F2', label: 'Rejected', labelHe: 'נדחה' },
   reversed: { color: C.muted, bg: '#F3F4F6', label: 'Reversed', labelHe: 'בוטל' },
-}
-
-function fmtDate(d: string | null): string {
-  if (!d) return '\u2014'
-  return new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
 }
 
 function fmtCurrency(cents: number): string {
@@ -334,7 +330,7 @@ export default function PartnerDetail() {
     <div className="animate-fade-in space-y-6">
       {/* ═══ Back Link ═══ */}
       <Link
-        to="/admin/partners/list"
+        to="/admin/partners"
         className="inline-flex items-center gap-1.5 text-sm font-medium transition-colors hover:opacity-70"
         style={{ color: C.primary }}
       >

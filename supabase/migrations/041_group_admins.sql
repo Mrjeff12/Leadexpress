@@ -1,5 +1,5 @@
 -- ============================================================
--- Lead Express — Group Admin Tracking
+-- MasterLeadFlow — Group Admin Tracking
 -- Track WhatsApp group admins for partner outreach program
 -- ============================================================
 

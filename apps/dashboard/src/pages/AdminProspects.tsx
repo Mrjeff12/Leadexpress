@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useI18n } from '../lib/i18n'
+import { timeAgo } from '../lib/shared'
 import { useAdminProspectsData, type ProspectRecord } from '../hooks/useAdminProspectsData'
 import {
   Search,
@@ -38,15 +39,6 @@ function getStage(key: string) {
   return STAGES.find(s => s.key === key) ?? STAGES[0]
 }
 
-function timeAgo(d: string | null, he: boolean) {
-  if (!d) return he ? 'אין' : 'Never'
-  const m = Math.floor((Date.now() - new Date(d).getTime()) / 60000)
-  if (m < 1) return he ? 'עכשיו' : 'now'
-  if (m < 60) return he ? `${m} דק׳` : `${m}m`
-  const h = Math.floor(m / 60)
-  if (h < 24) return he ? `${h} שע׳` : `${h}h`
-  return he ? `${Math.floor(h / 24)} ימים` : `${Math.floor(h / 24)}d`
-}
 
 /* ── Avatar color from wa_id ───────────────────────────────────────── */
 function avatarHue(waId: string): number {

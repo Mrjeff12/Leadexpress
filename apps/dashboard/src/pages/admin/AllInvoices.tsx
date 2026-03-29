@@ -1,15 +1,8 @@
 import { useState, useMemo } from 'react'
 import { useI18n } from '../../lib/i18n'
 import { useAdminInvoices } from '../../hooks/useAdminBilling'
+import { formatCents, formatDate } from '../../lib/shared'
 import { FileText, Download, ExternalLink, Search, Loader2 } from 'lucide-react'
-
-function formatCents(cents: number, currency = 'usd'): string {
-  return new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(cents / 100)
-}
-
-function formatDate(ts: number): string {
-  return new Date(ts * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-}
 
 const statusBadge: Record<string, string> = {
   paid: 'badge badge-green',

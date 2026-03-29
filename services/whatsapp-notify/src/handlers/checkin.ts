@@ -45,7 +45,7 @@ export async function handleCheckinResponse(
   if (!sub) {
     await sendText(
       phone,
-      `Hi ${profile.full_name}! Your subscription has expired.\nVisit leadexpress.com to renew.`,
+      `Hi ${profile.full_name}! Your subscription has expired.\nVisit masterleadflow.com to renew.`,
       log,
     );
     return true;

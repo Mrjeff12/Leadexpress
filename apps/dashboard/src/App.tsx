@@ -245,7 +245,7 @@ function App() {
                   <Route path="/portal/job/:token" element={<JobPortal />} />
                   <Route path="/login" element={<Login />} />
                   <Route path="/auto-login" element={<AutoLogin />} />
-                  <Route path="/install" element={<Install />} />
+                  <Route path="/install" element={<RequireAuth><Install /></RequireAuth>} />
                   <Route path="/enable-alerts" element={<RequireAuth><EnableAlerts /></RequireAuth>} />
                   <Route path="/complete-account" element={<RequireAuth><CompleteAccount /></RequireAuth>} />
                   <Route path="/admin/*" element={

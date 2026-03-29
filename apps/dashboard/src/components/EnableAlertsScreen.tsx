@@ -19,21 +19,23 @@ export default function EnableAlertsScreen() {
   async function handleEnable() {
     await enablePush()
     await updateStep('push_enabled')
-    navigate('/')
+    navigate('/', { replace: true })
   }
 
   function handleSkip() {
-    navigate('/')
+    navigate('/', { replace: true })
   }
 
-  // Auto-skip if unsupported (not in PWA on iOS) or already granted
+  // Auto-skip if already granted or unsupported
   useEffect(() => {
     if (pushStatus === 'loading') return
-    if (pushStatus === 'unsupported' || pushStatus === 'denied') {
-      navigate('/')
-    } else if (pushStatus === 'granted') {
+    if (pushStatus === 'granted') {
       updateStep('push_enabled')
-      navigate('/')
+      navigate('/', { replace: true })
+    } else if (pushStatus === 'unsupported' || pushStatus === 'denied') {
+      // Mark as done so overlay won't re-appear
+      updateStep('push_enabled')
+      navigate('/', { replace: true })
     }
   }, [pushStatus])
 

@@ -1,0 +1,59 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <defs>
+    <linearGradient id="ver-face" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#4ade80"/>
+      <stop offset="100%" stop-color="#16a34a"/>
+    </linearGradient>
+    <linearGradient id="ver-scan" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#4ade80" stop-opacity="0"/>
+      <stop offset="50%" stop-color="#4ade80" stop-opacity="0.7"/>
+      <stop offset="100%" stop-color="#4ade80" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="ver-corner" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#86efac"/>
+      <stop offset="100%" stop-color="#16a34a"/>
+    </linearGradient>
+    <filter id="ver-shadow">
+      <feDropShadow dx="0" dy="2" stdDeviation="2.5" flood-color="#15803d" flood-opacity="0.4"/>
+    </filter>
+    <filter id="ver-glow">
+      <feGaussianBlur stdDeviation="2" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  <!-- Scan frame corners -->
+  <g fill="none" stroke="url(#ver-corner)" stroke-width="3" stroke-linecap="round" filter="url(#ver-shadow)">
+    <!-- Top-left -->
+    <path d="M10 20 L10 12 Q10 8 14 8 L22 8"/>
+    <!-- Top-right -->
+    <path d="M42 8 L50 8 Q54 8 54 12 L54 20"/>
+    <!-- Bottom-left -->
+    <path d="M10 44 L10 52 Q10 56 14 56 L22 56"/>
+    <!-- Bottom-right -->
+    <path d="M42 56 L50 56 Q54 56 54 52 L54 44"/>
+  </g>
+  <!-- Face outline -->
+  <g filter="url(#ver-shadow)">
+    <!-- Head shape -->
+    <ellipse cx="32" cy="26" rx="9" ry="10" fill="none" stroke="url(#ver-face)" stroke-width="2.5"/>
+    <!-- Shoulders -->
+    <path d="M20 50 Q20 40 32 38 Q44 40 44 50" fill="none" stroke="url(#ver-face)" stroke-width="2.5" stroke-linecap="round"/>
+  </g>
+  <!-- Eye dots -->
+  <circle cx="27" cy="25" r="1.8" fill="#4ade80"/>
+  <circle cx="37" cy="25" r="1.8" fill="#4ade80"/>
+  <!-- Scan line (horizontal sweep) -->
+  <rect x="8" y="30" width="48" height="2.5" rx="1.25" fill="url(#ver-scan)" filter="url(#ver-glow)" opacity="0.8"/>
+  <!-- Small data dots along scan -->
+  <circle cx="14" cy="31.25" r="0.8" fill="#4ade80" opacity="0.6"/>
+  <circle cx="19" cy="31.25" r="0.8" fill="#4ade80" opacity="0.4"/>
+  <circle cx="45" cy="31.25" r="0.8" fill="#4ade80" opacity="0.6"/>
+  <circle cx="50" cy="31.25" r="0.8" fill="#4ade80" opacity="0.4"/>
+  <!-- Check badge bottom-right -->
+  <circle cx="50" cy="48" r="7" fill="#16a34a" filter="url(#ver-shadow)"/>
+  <circle cx="50" cy="48" r="5.5" fill="#22c55e"/>
+  <path d="M46.5 48 L49 50.5 L53.5 45.5" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

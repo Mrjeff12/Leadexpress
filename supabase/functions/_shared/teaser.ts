@@ -103,7 +103,7 @@ export function buildTeaserMessage(
     `Posted ${timeAgo}`,
     ``,
     `→ Upgrade to see full details and contact them:`,
-    `https://app.leadexpress.co.il/subscription`,
+    `https://app.masterleadflow.co.il/subscription`,
     ``,
     remaining > 0
       ? `You have ${remaining} free preview${remaining === 1 ? '' : 's'} left this week.`

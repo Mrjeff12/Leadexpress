@@ -1,11 +1,8 @@
 import { useState } from 'react'
 import { useI18n } from '../../lib/i18n'
 import { useAdminProducts, createProduct, createPrice, toggleProduct, type ProductRow } from '../../hooks/useAdminBilling'
+import { formatDate } from '../../lib/shared'
 import { Package, Plus, Loader2, DollarSign, ToggleLeft, ToggleRight, Tag } from 'lucide-react'
-
-function formatDate(ts: number): string {
-  return new Date(ts * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-}
 
 function formatPrice(cents: number | null, currency: string): string {
   if (cents === null) return '—'

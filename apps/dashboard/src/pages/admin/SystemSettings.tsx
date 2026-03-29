@@ -7,7 +7,7 @@ export default function SystemSettings() {
   const he = locale === 'he'
 
   /* ── General ── */
-  const [businessName, setBusinessName] = useState('LeadExpress')
+  const [businessName, setBusinessName] = useState('MasterLeadFlow')
   const [defaultLang, setDefaultLang] = useState<'en' | 'he'>('en')
 
   /* ── Notifications ── */

@@ -66,6 +66,29 @@ export interface ActiveContractor {
   last_response: string
 }
 
+export interface ClassificationBreakdown {
+  publisher: number
+  occasional_publisher: number
+  contractor: number
+  admin: number
+  silent: number
+}
+
+export interface TopPublisher {
+  id: string
+  display_name: string | null
+  wa_sender_id: string
+  lead_messages: number
+}
+
+export interface ContractorMember {
+  id: string
+  display_name: string | null
+  wa_sender_id: string
+  total_messages: number
+  last_seen_at: string | null
+}
+
 /* ── Fetchers ──────────────────────────────────────────── */
 
 async function fetchGroupInfo(groupId: string): Promise<GroupInfo> {
@@ -253,6 +276,44 @@ async function fetchResponses(groupId: string): Promise<ActiveContractor[]> {
     .sort((a, b) => b.response_count - a.response_count)
 }
 
+async function fetchClassificationBreakdown(groupId: string): Promise<ClassificationBreakdown> {
+  const { data, error } = await supabase
+    .from('group_members')
+    .select('classification')
+    .eq('group_id', groupId)
+  if (error) throw error
+
+  const counts: ClassificationBreakdown = { publisher: 0, occasional_publisher: 0, contractor: 0, admin: 0, silent: 0 }
+  for (const row of data ?? []) {
+    const cls = row.classification as keyof ClassificationBreakdown
+    if (cls in counts) counts[cls]++
+  }
+  return counts
+}
+
+async function fetchTopPublishers(groupId: string): Promise<TopPublisher[]> {
+  const { data, error } = await supabase
+    .from('group_members')
+    .select('id, display_name, wa_sender_id, lead_messages')
+    .eq('group_id', groupId)
+    .gt('lead_messages', 0)
+    .order('lead_messages', { ascending: false })
+    .limit(10)
+  if (error) throw error
+  return (data ?? []) as TopPublisher[]
+}
+
+async function fetchContractors(groupId: string): Promise<ContractorMember[]> {
+  const { data, error } = await supabase
+    .from('group_members')
+    .select('id, display_name, wa_sender_id, total_messages, last_seen_at')
+    .eq('group_id', groupId)
+    .eq('classification', 'contractor')
+    .order('total_messages', { ascending: false })
+  if (error) throw error
+  return (data ?? []) as ContractorMember[]
+}
+
 async function fetchResponseCount(groupId: string): Promise<number> {
   const { count } = await supabase
     .from('group_responses')
@@ -317,6 +378,27 @@ export function useGroupDetail(groupId: string | undefined) {
     enabled: !!groupId,
   })
 
+  const classificationQuery = useQuery({
+    queryKey: [...baseKey, 'classification'],
+    queryFn: () => fetchClassificationBreakdown(groupId!),
+    enabled: !!groupId,
+    staleTime: 60_000,
+  })
+
+  const topPublishersQuery = useQuery({
+    queryKey: [...baseKey, 'topPublishers'],
+    queryFn: () => fetchTopPublishers(groupId!),
+    enabled: !!groupId,
+    staleTime: 60_000,
+  })
+
+  const contractorsQuery = useQuery({
+    queryKey: [...baseKey, 'contractors'],
+    queryFn: () => fetchContractors(groupId!),
+    enabled: !!groupId,
+    staleTime: 60_000,
+  })
+
   // Realtime for pipeline events + members
   useEffect(() => {
     if (!groupId) return
@@ -335,6 +417,9 @@ export function useGroupDetail(groupId: string | undefined) {
         { event: '*', schema: 'public', table: 'group_members', filter: `group_id=eq.${groupId}` },
         () => {
           queryClient.invalidateQueries({ queryKey: [...baseKey, 'members'] })
+          queryClient.invalidateQueries({ queryKey: [...baseKey, 'classification'] })
+          queryClient.invalidateQueries({ queryKey: [...baseKey, 'topPublishers'] })
+          queryClient.invalidateQueries({ queryKey: [...baseKey, 'contractors'] })
         },
       )
       .subscribe()
@@ -352,6 +437,9 @@ export function useGroupDetail(groupId: string | undefined) {
     trends: trendsQuery.data,
     responses: responsesQuery.data,
     responseCount: responseCountQuery.data ?? 0,
+    classificationBreakdown: classificationQuery.data,
+    topPublishers: topPublishersQuery.data,
+    contractors: contractorsQuery.data,
     isLoading: infoQuery.isLoading,
     isError: infoQuery.isError,
   }

@@ -4,6 +4,7 @@ import { usePartnerProfile } from '../../hooks/usePartnerProfile'
 import { usePartnerCommissions } from '../../hooks/usePartnerCommissions'
 import { supabase } from '../../lib/supabase'
 import { useToast } from '../../components/hooks/use-toast'
+import { formatCents } from '../../lib/shared'
 import {
   Dialog,
   DialogContent,
@@ -22,10 +23,6 @@ import {
   Clock,
   Banknote,
 } from 'lucide-react'
-
-function formatCents(cents: number): string {
-  return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(cents / 100)
-}
 
 type TypeFilter = '' | 'earning' | 'withdrawal' | 'credit' | 'refund_clawback'
 

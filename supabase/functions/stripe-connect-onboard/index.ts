@@ -10,7 +10,7 @@ const supabase = createClient(
   Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
 );
 
-const DASHBOARD_URL = "https://app.leadexpress.com";
+const DASHBOARD_URL = "https://app.masterleadflow.com";
 
 Deno.serve(async (req: Request) => {
   const corsHeaders = getCorsHeaders(req);

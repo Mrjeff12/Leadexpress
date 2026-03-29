@@ -9,10 +9,13 @@ import PartnersPage from './pages/PartnersPage'
 import CommunityDirectory from './pages/CommunityDirectory'
 import PartnerProfile from './pages/PartnerProfile'
 import JoinRedirect from './pages/JoinRedirect'
+import SecureJobs from './pages/SecureJobs'
+import { HelmetProvider } from 'react-helmet-async'
 import { LanguageProvider } from './i18n/LanguageContext'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
+    <HelmetProvider>
     <LanguageProvider>
       <BrowserRouter>
         <Routes>
@@ -23,9 +26,11 @@ createRoot(document.getElementById('root')!).render(
           <Route path="/community" element={<CommunityDirectory />} />
           <Route path="/community/:slug" element={<PartnerProfile />} />
           <Route path="/join/:code" element={<JoinRedirect />} />
+          <Route path="/secure-jobs" element={<SecureJobs />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </BrowserRouter>
     </LanguageProvider>
+    </HelmetProvider>
   </StrictMode>,
 )

@@ -1,11 +1,8 @@
 import { useGrowthMetrics } from '../../hooks/useGrowthMetrics'
+import { formatCents } from '../../lib/shared'
 import { Loader2, UserPlus, ArrowUpCircle, LinkIcon, MessageSquare, Users, Target, CreditCard, BarChart3, Layers, FlaskConical, MessageCircle, TrendingUp } from 'lucide-react'
 
 const ORANGE = '#fe5b25'
-
-function formatCurrency(cents: number): string {
-  return `$${(cents / 100).toLocaleString('en-US', { minimumFractionDigits: 0 })}`
-}
 
 const ACTIVITY_ICONS: Record<string, { icon: typeof UserPlus; color: string; bg: string }> = {
   signup: { icon: UserPlus, color: '#22c55e', bg: 'rgba(34,197,94,0.1)' },
@@ -101,7 +98,7 @@ export default function GrowthDashboard() {
 
         {/* ═══════════════ ROW 1: PRIMARY KPIs ═══════════════ */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <KpiCard label="MRR" value={formatCurrency(m.mrr)} icon={TrendingUp} accent />
+          <KpiCard label="MRR" value={formatCents(m.mrr)} icon={TrendingUp} accent />
           <KpiCard label="Paying Users" value={m.payingUsers.toLocaleString()} icon={CreditCard} accent />
           <KpiCard label="Free Users" value={m.freeUsers.toLocaleString()} icon={Users} />
           <KpiCard label="Conversion Rate" value={`${m.conversionRate.toFixed(1)}%`} icon={BarChart3} />

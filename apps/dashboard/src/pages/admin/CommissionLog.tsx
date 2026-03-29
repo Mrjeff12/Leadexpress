@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useI18n } from '../../lib/i18n'
 import { supabase } from '../../lib/supabase'
+import { fmtDate } from '../../lib/shared'
 import {
   DollarSign,
   Clock,
@@ -53,11 +54,6 @@ const STATUS_CONFIG: Record<string, { color: string; bg: string; label: string; 
   paid: { color: C.success, bg: '#ECFDF5', label: 'Paid', labelHe: 'שולם' },
   rejected: { color: C.danger, bg: '#FEF2F2', label: 'Rejected', labelHe: 'נדחה' },
   reversed: { color: C.muted, bg: '#F3F4F6', label: 'Reversed', labelHe: 'בוטל' },
-}
-
-function fmtDate(d: string | null): string {
-  if (!d) return '\u2014'
-  return new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
 }
 
 function fmtCurrency(cents: number): string {

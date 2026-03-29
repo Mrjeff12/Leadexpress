@@ -1,5 +1,5 @@
 -- ============================================================
--- Lead Express — Smart Filter: Member Intelligence & Pipeline Events
+-- MasterLeadFlow — Smart Filter: Member Intelligence & Pipeline Events
 -- ============================================================
 
 -- Group Members — track sender behavior for auto-classification

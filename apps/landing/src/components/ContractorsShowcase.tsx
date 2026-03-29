@@ -11,7 +11,7 @@ export default function ContractorsShowcase() {
             Every trade. Every area. One WhatsApp message away.
           </h2>
           <p className="text-dark/40 max-w-md mx-auto text-sm">
-            HVAC, plumbing, electrical, roofing — Lead Express watches your groups and sends you only the jobs that fit.
+            HVAC, plumbing, electrical, roofing — MasterLeadFlow watches your groups and sends you only the jobs that fit.
           </p>
         </div>
 
@@ -27,7 +27,7 @@ export default function ContractorsShowcase() {
               <picture>
                 <img
                   src="/ourteam.jpg"
-                  alt="The Lead Express team — helping contractors find jobs across the US"
+                  alt="The MasterLeadFlow team — helping contractors find jobs across the US"
                 className="w-full h-auto block"
                 loading="lazy"
                 />

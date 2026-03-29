@@ -133,7 +133,7 @@ export default function PartnerOnboarding() {
             className="w-8 h-8 rounded-lg flex items-center justify-center font-bold text-white text-[11px]"
             style={{ background: 'linear-gradient(135deg, #fe5b25, #e04d1c)' }}
           >
-            <img src="/icon.png" alt="Lead Express" className="w-full h-full rounded-lg" />
+            <img src="/icon.png" alt="MasterLeadFlow" className="w-full h-full rounded-lg" />
           </div>
           <span className="text-sm font-bold text-zinc-800">
             {he ? 'תוכנית שותפים' : 'Partner Program'}
@@ -258,7 +258,7 @@ export default function PartnerOnboarding() {
                     {he ? 'כתובת ייחודית' : 'Unique Slug'} *
                   </label>
                   <div className="flex items-center gap-2">
-                    <span className="text-xs text-zinc-400 shrink-0">leadexpress.co/join/</span>
+                    <span className="text-xs text-zinc-400 shrink-0">masterleadflow.com/join/</span>
                     <input
                       value={slug}
                       onChange={e => checkSlug(e.target.value)}

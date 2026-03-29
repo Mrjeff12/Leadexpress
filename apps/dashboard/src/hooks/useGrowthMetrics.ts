@@ -1,6 +1,14 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 
+// Plan prices in cents — single source of truth (same as useAdminKPIs)
+const PLAN_PRICES_CENTS: Record<string, number> = {
+  starter: 2900,
+  pro: 4900,
+  unlimited: 9900,
+}
+const DEFAULT_PLAN_PRICE_CENTS = 4900
+
 export interface GrowthMetrics {
   payingUsers: number
   freeUsers: number
@@ -50,10 +58,10 @@ export function useGrowthMetrics(): GrowthMetrics {
           recentSignupsRes,
           recentGroupsRes,
         ] = await Promise.all([
-          // Paying users: active subscriptions
+          // Paying users: active subscriptions (with plan_id for MRR)
           supabase
             .from('subscriptions')
-            .select('id', { count: 'exact', head: true })
+            .select('id, plan_id')
             .in('status', ['active']),
 
           // Active trials
@@ -107,11 +115,16 @@ export function useGrowthMetrics(): GrowthMetrics {
             .limit(5),
         ])
 
-        const payingUsers = payingRes.count ?? 0
+        const payingSubs = payingRes.data ?? []
+        const payingUsers = payingSubs.length
         const activeTrials = trialsRes.count ?? 0
         const totalContractors = contractorsRes.count ?? 0
         const freeUsers = Math.max(0, totalContractors - payingUsers)
-        const mrr = payingUsers * 7900
+        // MRR from actual plan prices (cents)
+        const mrr = payingSubs.reduce((sum, s) => {
+          const price = PLAN_PRICES_CENTS[s.plan_id as string] ?? DEFAULT_PLAN_PRICE_CENTS
+          return sum + price
+        }, 0)
         const conversionRate = totalContractors > 0 ? (payingUsers / totalContractors) * 100 : 0
         const totalGroupsInPool = groupsRes.count ?? 0
         const groupsAddedThisWeek = groupsWeekRes.count ?? 0

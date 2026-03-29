@@ -13,9 +13,6 @@ import {
   Activity,
   ChevronUp,
   ChevronDown,
-  ShieldAlert,
-  Skull,
-  TrendingDown,
   Flame,
 } from 'lucide-react'
 
@@ -125,35 +122,6 @@ export default function AdminGroups() {
     return { total, active, avgYield, needAttention }
   }, [groups])
 
-  interface Alert {
-    type: 'spam' | 'dead' | 'declining'
-    groupId: string
-    groupName: string
-    message: string
-  }
-
-  const alerts = useMemo(() => {
-    if (!groups) return [] as Alert[]
-    const result: Alert[] = []
-    const now = Date.now()
-    const threeDays = 3 * 24 * 60 * 60 * 1000
-
-    groups.forEach((g) => {
-      if (g.total_members > 0 && g.known_sellers / g.total_members > 0.6) {
-        const pct = Math.round((g.known_sellers / g.total_members) * 100)
-        result.push({ type: 'spam', groupId: g.id, groupName: g.name, message: he ? `${pct}% מוכרים` : `${pct}% sellers` })
-      }
-      if (g.last_message_at && now - new Date(g.last_message_at).getTime() > threeDays) {
-        const days = Math.floor((now - new Date(g.last_message_at).getTime()) / (24 * 60 * 60 * 1000))
-        result.push({ type: 'dead', groupId: g.id, groupName: g.name, message: he ? `${days} ימים ללא פעילות` : `${days} days inactive` })
-      }
-      if (g.messagesPrev7d > 10 && g.messages7d < g.messagesPrev7d * 0.5) {
-        const drop = Math.round((1 - g.messages7d / g.messagesPrev7d) * 100)
-        result.push({ type: 'declining', groupId: g.id, groupName: g.name, message: he ? `ירידה של ${drop}%` : `${drop}% decline` })
-      }
-    })
-    return result
-  }, [groups, he])
 
   function toggleSort(key: SortKey) {
     if (sortBy === key) {
@@ -341,36 +309,6 @@ export default function AdminGroups() {
         </div>
       </div>
 
-      {/* Health Alerts */}
-      {alerts.length > 0 && (
-        <div className="flex gap-3 overflow-x-auto pb-1">
-          {alerts.map((alert, i) => {
-            const config = {
-              spam: { icon: ShieldAlert, bg: 'hsl(0 80% 93% / 0.5)', color: 'hsl(0 60% 50%)', label: he ? 'ספאם' : 'Spam' },
-              dead: { icon: Skull, bg: 'hsl(40 4% 90%)', color: 'hsl(40 4% 42%)', label: he ? 'לא פעילה' : 'Inactive' },
-              declining: { icon: TrendingDown, bg: 'hsl(40 80% 90% / 0.5)', color: 'hsl(40 80% 35%)', label: he ? 'ירידה' : 'Declining' },
-            }[alert.type]
-            const Icon = config.icon
-            return (
-              <button
-                key={`${alert.type}-${alert.groupId}-${i}`}
-                onClick={() => navigate(`/admin/groups/${alert.groupId}`)}
-                className="glass-panel px-4 py-3 flex items-center gap-3 shrink-0 hover:shadow-lg transition-shadow"
-              >
-                <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: config.bg }}>
-                  <Icon className="w-4 h-4" style={{ color: config.color }} />
-                </div>
-                <div className="text-left">
-                  <p className="text-xs font-semibold" style={{ color: config.color }}>{config.label}</p>
-                  <p className="text-xs" style={{ color: 'hsl(40 4% 42%)' }}>
-                    {alert.groupName.slice(0, 25)} — {alert.message}
-                  </p>
-                </div>
-              </button>
-            )
-          })}
-        </div>
-      )}
 
       {/* Table */}
       {isLoading ? (
@@ -407,7 +345,7 @@ export default function AdminGroups() {
                 <Th col="name" label={he ? 'שם קבוצה' : 'Group Name'} sortBy={sortBy} sortDir={sortDir} toggle={toggleSort} SortIcon={SortIcon} />
                 <Th col="status" label={he ? 'סטטוס' : 'Status'} sortBy={sortBy} sortDir={sortDir} toggle={toggleSort} SortIcon={SortIcon} />
                 <Th col="leadYield" label={he ? 'תשואת לידים' : 'Lead Yield'} sortBy={sortBy} sortDir={sortDir} toggle={toggleSort} SortIcon={SortIcon} />
-                <Th col="sellers" label={he ? 'מוכרים' : 'Sellers'} sortBy={sortBy} sortDir={sortDir} toggle={toggleSort} SortIcon={SortIcon} />
+                <Th col="sellers" label={he ? 'מפרסמים' : 'Publishers'} sortBy={sortBy} sortDir={sortDir} toggle={toggleSort} SortIcon={SortIcon} />
                 <Th col="messages7d" label={he ? 'פעילות (7 ימים)' : 'Activity (7d)'} sortBy={sortBy} sortDir={sortDir} toggle={toggleSort} SortIcon={SortIcon} />
                 <Th col="lastLeadAt" label={he ? 'ליד אחרון' : 'Last Lead'} sortBy={sortBy} sortDir={sortDir} toggle={toggleSort} SortIcon={SortIcon} />
                 <th className="px-4 py-3 text-xs font-medium text-right">
@@ -447,7 +385,7 @@ export default function AdminGroups() {
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
                         <button
-                          onClick={() => navigate(`/admin/groups/${row.id}`)}
+                          onClick={() => navigate(`/admin/channels/groups/${row.id}`)}
                           className="text-sm font-medium hover:underline text-left"
                           style={{ color: 'hsl(40 8% 10%)' }}
                         >
@@ -466,19 +404,29 @@ export default function AdminGroups() {
                       </div>
                     </td>
 
-                    {/* Status */}
+                    {/* Status + Leads */}
                     <td className="px-4 py-3">
-                      <span
-                        className={`badge ${row.status === 'active' ? 'badge-green' : 'badge-red'}`}
-                      >
-                        {row.status === 'active'
-                          ? he
-                            ? 'פעיל'
-                            : 'Active'
-                          : he
-                            ? 'מושבת'
-                            : 'Paused'}
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <span
+                          className={`badge ${row.status === 'active' ? 'badge-green' : 'badge-red'}`}
+                        >
+                          {row.status === 'active'
+                            ? he
+                              ? 'פעיל'
+                              : 'Active'
+                            : he
+                              ? 'מושבת'
+                              : 'Paused'}
+                        </span>
+                        {row.leadsCreated > 0 && (
+                          <span
+                            className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-xs font-semibold"
+                            style={{ background: 'hsl(25 95% 95%)', color: 'hsl(25 80% 45%)' }}
+                          >
+                            🔥 {row.leadsCreated}
+                          </span>
+                        )}
+                      </div>
                     </td>
 
                     {/* Lead Yield */}
@@ -489,14 +437,18 @@ export default function AdminGroups() {
                       {(row.leadYield * 100).toFixed(1)}%
                     </td>
 
-                    {/* Sellers */}
+                    {/* Sellers / Members */}
                     <td className="px-4 py-3 text-sm flex items-center gap-1.5">
                       <Users
                         className="w-3.5 h-3.5"
                         style={{ color: 'hsl(40 4% 42%)' }}
                       />
                       <span style={{ color: 'hsl(40 8% 10%)' }}>
-                        {row.known_sellers}/{row.total_members}
+                        <span style={{ fontWeight: 600 }}>{row.known_sellers}</span>
+                        {(row.known_occasional ?? 0) > 0 && (
+                          <span style={{ color: 'hsl(40 4% 55%)', fontSize: '0.75rem' }}>+{row.known_occasional}</span>
+                        )}
+                        <span style={{ color: 'hsl(40 4% 55%)' }}>/{row.total_members}</span>
                       </span>
                     </td>
 
@@ -536,7 +488,7 @@ export default function AdminGroups() {
                     <td className="px-4 py-3 text-right">
                       <button
                         onClick={() =>
-                          navigate(`/admin/groups/${row.id}`)
+                          navigate(`/admin/channels/groups/${row.id}`)
                         }
                         className="p-1.5 rounded-lg hover:bg-black/[0.04] transition-colors"
                         title={he ? 'צפה' : 'View'}

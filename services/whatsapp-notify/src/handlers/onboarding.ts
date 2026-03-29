@@ -53,7 +53,7 @@ export async function handleFirstContact(
   if (!profile) {
     await sendText(
       phone,
-      `Welcome! 👋\n\nYou don't have a LeadExpress account yet.\nVisit leadexpress.com to start your free trial.`,
+      `Welcome! 👋\n\nYou don't have a MasterLeadFlow account yet.\nVisit masterleadflow.com to start your free trial.`,
       log,
     );
     return;
@@ -64,7 +64,7 @@ export async function handleFirstContact(
   if (!sub) {
     await sendText(
       phone,
-      `Hi ${profile.full_name}! Your subscription has expired.\nVisit leadexpress.com to renew and start receiving leads again.`,
+      `Hi ${profile.full_name}! Your subscription has expired.\nVisit masterleadflow.com to renew and start receiving leads again.`,
       log,
     );
     return;
@@ -121,7 +121,7 @@ export async function handleFirstContact(
 
   await sendText(
     phone,
-    `Welcome to LeadExpress, ${profile.full_name}! 🔧\n\nLet's set up your profile so you get the right leads.\n\n*Step 1:* What type of work do you do?\nReply with the numbers of your trades:\n\n1️⃣ ❄️ HVAC / AC\n2️⃣ 🔨 Renovation\n3️⃣ 🧱 Fencing & Railing\n4️⃣ ✨ Cleaning\n5️⃣ 🔑 Locksmith\n6️⃣ 🚰 Plumbing\n7️⃣ ⚡ Electrical\n8️⃣ 📋 Other\n\nExample: *1, 6* for HVAC and Plumbing`,
+    `Welcome to MasterLeadFlow, ${profile.full_name}! 🔧\n\nLet's set up your profile so you get the right leads.\n\n*Step 1:* What type of work do you do?\nReply with the numbers of your trades:\n\n1️⃣ ❄️ HVAC / AC\n2️⃣ 🔨 Renovation\n3️⃣ 🧱 Fencing & Railing\n4️⃣ ✨ Cleaning\n5️⃣ 🔑 Locksmith\n6️⃣ 🚰 Plumbing\n7️⃣ ⚡ Electrical\n8️⃣ 📋 Other\n\nExample: *1, 6* for HVAC and Plumbing`,
     log,
   );
 }
