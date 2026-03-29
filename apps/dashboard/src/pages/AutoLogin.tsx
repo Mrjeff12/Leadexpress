@@ -1,15 +1,19 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { Loader2, CheckCircle, XCircle } from 'lucide-react'
+import { Loader2, CheckCircle, XCircle, RefreshCw } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 
 const SUPA_URL = import.meta.env.VITE_SUPABASE_URL || 'https://zyytzwlvtuhgbjpalbgd.supabase.co'
 const SUPA_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || ''
+const MAX_RETRIES = 2
+const TIMEOUT_MS = 15_000
 
 export default function AutoLogin() {
   const [params] = useSearchParams()
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading')
   const [error, setError] = useState('')
+  const [retrying, setRetrying] = useState(false)
+  const retryCount = useRef(0)
 
   useEffect(() => {
     const token = params.get('token')
@@ -23,6 +27,9 @@ export default function AutoLogin() {
 
   async function exchangeToken(token: string) {
     try {
+      const controller = new AbortController()
+      const timeout = setTimeout(() => controller.abort(), TIMEOUT_MS)
+
       const res = await fetch(`${SUPA_URL}/functions/v1/magic-login`, {
         method: 'POST',
         headers: {
@@ -30,9 +37,19 @@ export default function AutoLogin() {
           'apikey': SUPA_ANON_KEY,
         },
         body: JSON.stringify({ action: 'exchange', token }),
+        signal: controller.signal,
       })
+      clearTimeout(timeout)
 
       if (!res.ok) {
+        // Auto-retry on server errors
+        if (res.status >= 500 && retryCount.current < MAX_RETRIES) {
+          retryCount.current++
+          setRetrying(true)
+          await new Promise(r => setTimeout(r, 1500))
+          setRetrying(false)
+          return exchangeToken(token)
+        }
         setStatus('error')
         setError(`Login service error (${res.status}). Please request a new link.`)
         return
@@ -54,8 +71,6 @@ export default function AutoLogin() {
       }
 
       if (data.type === 'session' && data.access_token && data.refresh_token) {
-        // Use Supabase client to properly set the session
-        // This ensures the full user object is fetched and stored correctly
         const { error: sessionError } = await supabase.auth.setSession({
           access_token: data.access_token,
           refresh_token: data.refresh_token,
@@ -67,13 +82,13 @@ export default function AutoLogin() {
           return
         }
 
-        // Set onboarding step for tracking
+        // Set onboarding step (non-critical)
         try {
           const { data: { user } } = await supabase.auth.getUser()
           if (user) {
             await supabase.from('contractors').update({ onboarding_step: 'registered' }).eq('user_id', user.id)
           }
-        } catch {} // non-critical, don't block login flow
+        } catch {}
 
         setStatus('success')
 
@@ -88,15 +103,34 @@ export default function AutoLogin() {
       setStatus('error')
       setError('No session received')
 
-    } catch (err) {
+    } catch (err: any) {
+      // Timeout or network error — auto-retry
+      if (err?.name === 'AbortError' && retryCount.current < MAX_RETRIES) {
+        retryCount.current++
+        setRetrying(true)
+        await new Promise(r => setTimeout(r, 1000))
+        setRetrying(false)
+        return exchangeToken(params.get('token')!)
+      }
       setStatus('error')
-      setError('Login failed. Please request a new link from WhatsApp.')
+      setError(err?.name === 'AbortError'
+        ? 'Connection timed out. Please check your internet and try again.'
+        : 'Login failed. Please request a new link from WhatsApp.')
     }
+  }
+
+  function handleRetry() {
+    const token = params.get('token')
+    if (!token) return
+    retryCount.current = 0
+    setStatus('loading')
+    setError('')
+    exchangeToken(token)
   }
 
   return (
     <div
-      className="min-h-screen flex flex-col items-center justify-center"
+      className="min-h-screen flex flex-col items-center justify-center p-6"
       style={{
         background: 'linear-gradient(135deg, #0a0a1a 0%, #12122a 100%)',
         fontFamily: "'Plus Jakarta Sans', sans-serif",
@@ -108,7 +142,9 @@ export default function AutoLogin() {
             <Loader2 className="w-12 h-12 animate-spin text-purple-500" />
             <div className="absolute inset-0 w-12 h-12 rounded-full animate-ping opacity-20 bg-purple-500" />
           </div>
-          <p className="text-white text-lg font-semibold">Signing you in...</p>
+          <p className="text-white text-lg font-semibold">
+            {retrying ? 'Retrying...' : 'Signing you in...'}
+          </p>
           <p className="text-slate-500 text-sm">Please wait</p>
         </div>
       )}
@@ -126,15 +162,24 @@ export default function AutoLogin() {
           <XCircle className="w-12 h-12 text-red-500" />
           <p className="text-white text-lg font-semibold">Login Failed</p>
           <p className="text-slate-400 text-sm">{error}</p>
-          <a
-            href="/login"
-            className="mt-4 px-6 py-2.5 rounded-xl text-sm font-semibold text-white transition-all hover:brightness-110"
+
+          <button
+            onClick={handleRetry}
+            className="mt-4 flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-semibold text-white transition-all hover:brightness-110"
             style={{
               background: 'linear-gradient(135deg, #8b5cf6, #6d28d9)',
               boxShadow: '0 0 20px rgba(139, 92, 246, 0.3)',
             }}
           >
-            Go to Login
+            <RefreshCw className="w-4 h-4" />
+            Try Again
+          </button>
+
+          <a
+            href="/login"
+            className="text-slate-500 text-xs hover:text-slate-300 transition-colors"
+          >
+            Or sign in with email
           </a>
         </div>
       )}

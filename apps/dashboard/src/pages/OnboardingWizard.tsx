@@ -97,7 +97,12 @@ export default function OnboardingWizard() {
   ]
 
   function canNext(): boolean {
-    if (step === 0) return waPhone.replace(/\D/g, '').length >= 10
+    if (step === 0) {
+      const digits = waPhone.replace(/\D/g, '')
+      // Israeli numbers: 9 digits, US numbers: 10 digits
+      const minLen = waCountry === '+972' ? 9 : 10
+      return digits.length >= minLen
+    }
     if (step === 1) return professions.length > 0
     if (step === 2) return zipCodes.length > 0
     // Step 3 (groups) and Step 4 (schedule) are optional — always allow proceeding
