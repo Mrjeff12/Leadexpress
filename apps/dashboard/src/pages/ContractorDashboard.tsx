@@ -1,6 +1,7 @@
-import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
+import { useState, useEffect, useRef, useCallback, useMemo, lazy, Suspense } from 'react'
 import { useAuth } from '../lib/auth'
 import { useI18n } from '../lib/i18n'
+import { timeAgo } from '../lib/shared'
 import { supabase } from '../lib/supabase'
 import { useContractorSettings } from '../hooks/useContractorSettings'
 import { PROFESSIONS, type ProfessionId } from '../lib/professions'
@@ -23,12 +24,18 @@ import {
   Send,
   X,
   SlidersHorizontal,
+  Eye,
+  Bell,
 } from 'lucide-react'
-import CoverageMap from '../components/settings/CoverageMap'
+const CoverageMap = lazy(() => import('../components/settings/CoverageMap'))
 import ForwardLeadModal from '../components/ForwardLeadModal'
 import UpsellModal from '../components/UpsellModal'
 import NetworkPointsCard from '../components/NetworkPointsCard'
+import ProfileCompletionBar from '../components/ProfileCompletionBar'
+import ProfileOnboarding from '../components/ProfileOnboarding'
+import { useContractorProfile } from '../hooks/useContractorProfile'
 import { useSubscriptionAccess } from '../hooks/useSubscriptionAccess'
+import { usePushNotifications } from '../hooks/usePushNotifications'
 
 /* ───────────────────── Types ───────────────────── */
 
@@ -86,17 +93,7 @@ function AnimatedNumber({ value, duration = 800 }: { value: number; duration?: n
 
 /* ───────────────────── Helpers ───────────────────── */
 
-function timeAgo(dateStr: string): string {
-  const diff = Date.now() - new Date(dateStr).getTime()
-  const mins = Math.floor(diff / 60_000)
-  if (mins < 1) return 'just now'
-  if (mins < 60) return `${mins}m ago`
-  const hrs = Math.floor(mins / 60)
-  if (hrs < 24) return `${hrs}h ago`
-  const days = Math.floor(hrs / 24)
-  if (days < 7) return `${days}d ago`
-  return new Date(dateStr).toLocaleDateString()
-}
+
 
 function compactSchedule(hours: WorkingHours, locale: string): string {
   const groups: { days: DayKey[]; start: string; end: string }[] = []
@@ -163,6 +160,28 @@ export default function ContractorDashboard() {
   const scheduleRef = useRef<HTMLDivElement>(null)
   
   const { planName, canManageSubs } = useSubscriptionAccess()
+  const { data: contractorData } = useContractorProfile()
+  const { status: pushStatus, enable: enablePush, isLoading: pushLoading } = usePushNotifications()
+  const [pushDismissed, setPushDismissed] = useState(() => sessionStorage.getItem('push_banner_dismissed') === '1')
+  const [viewStats, setViewStats] = useState<{ views_this_week: number } | null>(null)
+  const [showOnboarding, setShowOnboarding] = useState(false)
+
+  // Fetch profile view stats
+  useEffect(() => {
+    if (!effectiveUserId || !contractorData?.profile?.slug) return
+    supabase.rpc('get_profile_view_stats', { p_user_id: effectiveUserId })
+      .then(({ data }) => { if (data) setViewStats(data) })
+  }, [effectiveUserId, contractorData?.profile?.slug])
+
+  // Show onboarding modal when profile is very incomplete
+  useEffect(() => {
+    if (!contractorData) return
+    const completeness = contractorData.profile?.profile_completeness ?? 100
+    const dismissed = localStorage.getItem('mlf_onboarding_dismissed') === 'true'
+    if (completeness < 30 && !dismissed) {
+      setShowOnboarding(true)
+    }
+  }, [contractorData])
 
   // Close dropdowns on outside click
   useEffect(() => {
@@ -325,6 +344,7 @@ export default function ContractorDashboard() {
       {/* ════════ MAP ════════ */}
       {/* Desktop: full-screen fixed | Mobile: compact strip at top */}
       <div className="hidden md:block fixed inset-0 z-0">
+        <Suspense fallback={<div className="w-full h-full bg-gray-100 animate-pulse" />}>
         <CoverageMap
           zipCodes={zipCodes}
           onAddZip={(zip) => {
@@ -339,9 +359,11 @@ export default function ContractorDashboard() {
             addZipCodes(zips); debouncedSave()
           }}
         />
+        </Suspense>
       </div>
       {/* Mobile: full-screen map + bottom sheet */}
       <div className="md:hidden fixed inset-0 z-0">
+        <Suspense fallback={<div className="w-full h-full bg-gray-100 animate-pulse" />}>
         <CoverageMap
           zipCodes={zipCodes}
           onAddZip={(zip) => {
@@ -355,6 +377,7 @@ export default function ContractorDashboard() {
             addZipCodes(zips); debouncedSave()
           }}
         />
+        </Suspense>
       </div>
 
       {/* Soft vignette for panel readability — desktop only */}
@@ -404,6 +427,36 @@ export default function ContractorDashboard() {
           </div>
         </div>
 
+        {/* Push Notification Banner */}
+        {pushStatus === 'default' && !pushDismissed && (
+          <div className="mb-3 md:mb-4 rounded-xl bg-gradient-to-r from-[#fff4ef] to-white border border-[#fee8df] p-3 flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-[#fe5b25] flex items-center justify-center shrink-0">
+              <Bell className="w-4.5 h-4.5 text-white" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-[13px] font-bold text-stone-900 leading-tight">
+                {locale === 'he' ? 'לא לפספס לידים!' : "Don't miss new leads!"}
+              </p>
+              <p className="text-[11px] text-stone-500 mt-0.5">
+                {locale === 'he' ? 'הפעל התראות כדי לקבל לידים ברגע שהם מגיעים' : 'Enable notifications to get leads the moment they arrive'}
+              </p>
+            </div>
+            <button
+              onClick={async () => { await enablePush(); setPushDismissed(true); sessionStorage.setItem('push_banner_dismissed', '1') }}
+              disabled={pushLoading}
+              className="shrink-0 px-3 py-1.5 rounded-lg text-[11px] font-bold text-white bg-[#fe5b25] hover:bg-[#e04d1c] transition-colors disabled:opacity-50"
+            >
+              {pushLoading ? '...' : locale === 'he' ? 'הפעל' : 'Enable'}
+            </button>
+            <button
+              onClick={() => { setPushDismissed(true); sessionStorage.setItem('push_banner_dismissed', '1') }}
+              className="shrink-0 p-1 text-stone-300 hover:text-stone-500 transition-colors"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        )}
+
         {/* KPI Strip */}
         <div className="grid grid-cols-4 gap-1.5 md:gap-2 mb-4 md:mb-5">
           {[
@@ -424,8 +477,33 @@ export default function ContractorDashboard() {
           ))}
         </div>
 
-        {/* Network Points */}
-        <div className="mb-5">
+        {/* Profile Completion + Views */}
+        <div className="mb-5 space-y-4">
+          {contractorData && (contractorData.profile?.profile_completeness ?? 100) < 100 && (
+            <ProfileCompletionBar
+              completeness={contractorData.profile?.profile_completeness ?? 0}
+              profile={contractorData}
+            />
+          )}
+          {contractorData?.profile?.slug && viewStats && (
+            <div className="glass-panel p-4 flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-[#fff4ef] flex items-center justify-center">
+                <Eye className="w-4.5 h-4.5 text-[#fe5b25]" />
+              </div>
+              <div>
+                <p className="text-lg font-bold text-stone-900 leading-none">{viewStats.views_this_week}</p>
+                <p className="text-[11px] text-stone-400 font-medium mt-0.5">
+                  {locale === 'he' ? 'צפיות בפרופיל השבוע' : 'Profile views this week'}
+                </p>
+              </div>
+              <Link
+                to={`/pro/${contractorData.profile.slug}`}
+                className="ml-auto text-[10px] font-bold text-[#fe5b25] hover:underline"
+              >
+                {locale === 'he' ? 'צפה בפרופיל' : 'View profile'}
+              </Link>
+            </div>
+          )}
           <NetworkPointsCard />
         </div>
 
@@ -831,6 +909,16 @@ export default function ContractorDashboard() {
         context={upsellContext}
         currentUsage={{ professions: selectedProfs.length, zips: zipCodes.length }}
       />
+
+      {/* Onboarding Modal */}
+      {showOnboarding && (
+        <ProfileOnboarding
+          onClose={() => {
+            setShowOnboarding(false)
+            localStorage.setItem('mlf_onboarding_dismissed', 'true')
+          }}
+        />
+      )}
     </div>
   )
 }
