@@ -36,6 +36,9 @@ import ProfileOnboarding from '../components/ProfileOnboarding'
 import { useContractorProfile } from '../hooks/useContractorProfile'
 import { useSubscriptionAccess } from '../hooks/useSubscriptionAccess'
 import { usePushNotifications } from '../hooks/usePushNotifications'
+import InstallAnimation from '../components/InstallAnimation'
+import OnboardingProgress from '../components/OnboardingProgress'
+import EnableAlertsScreen from '../components/EnableAlertsScreen'
 
 /* ───────────────────── Types ───────────────────── */
 
@@ -165,6 +168,18 @@ export default function ContractorDashboard() {
   const [pushDismissed, setPushDismissed] = useState(() => sessionStorage.getItem('push_banner_dismissed') === '1')
   const [viewStats, setViewStats] = useState<{ views_this_week: number } | null>(null)
   const [showOnboarding, setShowOnboarding] = useState(false)
+  const [onboardingStep, setOnboardingStep] = useState<string | null>(null)
+
+  // Fetch onboarding step to show install/alerts overlay
+  useEffect(() => {
+    if (!effectiveUserId) return
+    supabase.from('contractors').select('onboarding_step').eq('user_id', effectiveUserId).maybeSingle()
+      .then(({ data }) => {
+        if (data?.onboarding_step && data.onboarding_step !== 'push_enabled') {
+          setOnboardingStep(data.onboarding_step)
+        }
+      })
+  }, [effectiveUserId])
 
   // Fetch profile view stats
   useEffect(() => {
@@ -336,6 +351,85 @@ export default function ContractorDashboard() {
         </div>
       </div>
     )
+  }
+
+  // Show install overlay on dashboard
+  if (onboardingStep === 'registered' || onboardingStep === 'credentials_set') {
+    const platform = /iPhone|iPad|iPod/i.test(navigator.userAgent) ? 'ios' as const
+      : /Android/i.test(navigator.userAgent) ? 'android' as const : null
+
+    function isStandalone() {
+      return window.matchMedia('(display-mode: standalone)').matches
+        || ('standalone' in navigator && (navigator as any).standalone === true)
+    }
+
+    async function handleInstallDone() {
+      await supabase.from('contractors').update({ onboarding_step: 'installed' }).eq('user_id', effectiveUserId!)
+      setOnboardingStep('installed')
+    }
+
+    // Desktop or already standalone — skip install step
+    if (!platform || isStandalone()) {
+      supabase.from('contractors').update({ onboarding_step: 'installed' }).eq('user_id', effectiveUserId!)
+      setOnboardingStep('installed')
+    } else {
+      return (
+        <div className="min-h-screen flex flex-col bg-white">
+          <div className="flex-1 flex flex-col px-5 pt-8 pb-6 max-w-md mx-auto w-full">
+            <OnboardingProgress current={2} />
+            <div className="flex items-center justify-center gap-2 mb-4">
+              <img src="/icon.png" alt="" className="w-7 h-7 rounded-xl" />
+              <span className="text-sm font-semibold text-gray-900">MasterLeadFlow</span>
+            </div>
+            <div className="text-center mb-4">
+              <h1 className="text-xl font-bold text-gray-900 mb-1">Install the app</h1>
+              <p className="text-gray-500 text-sm">We need this to send you matching leads directly to your phone</p>
+              <p className="text-amber-600 text-xs font-medium mt-1">⚡ Without it, you won't receive job alerts</p>
+            </div>
+            <div className="flex-1 flex flex-col items-center justify-center">
+              <InstallAnimation platform={platform} />
+            </div>
+            <div className="space-y-3 mt-4">
+              <button
+                onClick={handleInstallDone}
+                className="w-full py-4 rounded-2xl text-base font-semibold text-white flex items-center justify-center gap-2.5 transition-all hover:brightness-110 active:scale-[0.97]"
+                style={{ background: '#fe5b25', boxShadow: '0 4px 24px #fe5b2535' }}
+              >
+                <CheckCircle2 className="w-5 h-5" />
+                Done — I've added it!
+              </button>
+              <button
+                onClick={() => setOnboardingStep('installed')}
+                className="w-full py-3 text-sm text-gray-400 hover:text-gray-600 transition-colors text-center"
+              >
+                Skip for now
+              </button>
+            </div>
+          </div>
+          <style>{`
+            @keyframes animate-in { from { opacity: 0; transform: scale(0.97) translateY(4px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+            .animate-in { animation: animate-in 0.25s ease-out; }
+            @keyframes tap { 0%,100% { transform: scale(1); } 50% { transform: scale(0.85); } }
+            @keyframes bounce-once { 0% { transform: scale(0) translateY(-20px); } 60% { transform: scale(1.1) translateY(0); } 80% { transform: scale(0.95); } 100% { transform: scale(1); } }
+          `}</style>
+        </div>
+      )
+    }
+  }
+
+  // Show enable alerts overlay
+  if (onboardingStep === 'installed') {
+    if (pushStatus === 'unsupported' || pushStatus === 'denied' || pushStatus === 'granted') {
+      // Auto-advance
+      if (pushStatus === 'granted') {
+        supabase.from('contractors').update({ onboarding_step: 'push_enabled' }).eq('user_id', effectiveUserId!)
+      }
+      setOnboardingStep(null)
+    } else if (pushStatus === 'default') {
+      return (
+        <EnableAlertsScreen />
+      )
+    }
   }
 
   return (

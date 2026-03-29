@@ -99,7 +99,7 @@ export default function CompleteAccount() {
 
       setLoading(false)
       setStep('done')
-      setTimeout(() => navigate('/install'), 1500)
+      setTimeout(() => navigate('/'), 1500)
     } catch (err) {
       console.error('handleSubmit error:', err)
       setError('Something went wrong. Please try again.')
