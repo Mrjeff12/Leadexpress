@@ -2,8 +2,8 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/auth'
-import { usePushNotifications } from '../hooks/usePushNotifications'
-import { CheckCircle, Mail, Lock, User, MapPin, Briefcase, Calendar, Loader2, ArrowRight, Bell, BellRing, Smartphone } from 'lucide-react'
+import OnboardingProgress from '../components/OnboardingProgress'
+import { CheckCircle, Mail, Lock, User, MapPin, Briefcase, Calendar, Loader2, ArrowRight } from 'lucide-react'
 
 const PROF_LABELS: Record<string, string> = {
   hvac: '❄️ HVAC', renovation: '🔨 Renovation', fencing: '🧱 Fencing',
@@ -16,27 +16,12 @@ const PROF_LABELS: Record<string, string> = {
 
 const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 
-type Step = 'install' | 'form' | 'notifications' | 'done'
-
-function isStandalone(): boolean {
-  return window.matchMedia('(display-mode: standalone)').matches
-    || ('standalone' in navigator && (navigator as any).standalone === true)
-}
-
-function isMobile(): boolean {
-  return /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)
-}
+type Step = 'form' | 'done'
 
 export default function CompleteAccount() {
   const { profile } = useAuth()
   const navigate = useNavigate()
-  const { status: pushStatus, enable: enablePush, isLoading: pushLoading } = usePushNotifications()
-  // On mobile, if not running as PWA, show install step first
-  // Skip install step if user already visited it (came back from /install page)
-  const [step, setStep] = useState<Step>(() => {
-    if (isMobile() && !isStandalone() && !sessionStorage.getItem('install_seen')) return 'install'
-    return 'form'
-  })
+  const [step, setStep] = useState<Step>('form')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
@@ -109,15 +94,12 @@ export default function CompleteAccount() {
         // Non-critical: user is already authenticated, proceed anyway
       }
 
-      setLoading(false)
+      // Update onboarding step
+      supabase.from('contractors').update({ onboarding_step: 'credentials_set' }).eq('user_id', profile!.id)
 
-      // Move to notifications step instead of redirecting immediately
-      if (pushStatus === 'default') {
-        setStep('notifications')
-      } else {
-        setStep('done')
-        setTimeout(() => navigate('/'), 1500)
-      }
+      setLoading(false)
+      setStep('done')
+      setTimeout(() => navigate('/install'), 1500)
     } catch (err) {
       console.error('handleSubmit error:', err)
       setError('Something went wrong. Please try again.')
@@ -125,18 +107,6 @@ export default function CompleteAccount() {
     }
   }
 
-  async function handleEnableNotifications() {
-    await enablePush()
-    setStep('done')
-    setTimeout(() => navigate('/'), 1500)
-  }
-
-  function handleSkipNotifications() {
-    setStep('done')
-    setTimeout(() => navigate('/'), 1500)
-  }
-
-  const firstName = profile?.full_name?.split(' ')[0] || 'there'
   const trialDaysLeft = sub?.current_period_end
     ? Math.max(0, Math.ceil((new Date(sub.current_period_end).getTime() - Date.now()) / (1000 * 60 * 60 * 24)))
     : 7
@@ -167,65 +137,17 @@ export default function CompleteAccount() {
             </span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight mb-2">
-            {step === 'install' && `Welcome, ${firstName}! 📱`}
-            {step === 'form' && `Welcome, ${firstName}! 🎉`}
-            {step === 'notifications' && `One last step! 🔔`}
+            {step === 'form' && `Set up your login`}
             {step === 'done' && `You're all set! 🚀`}
           </h1>
           <p className="text-gray-500 text-sm">
-            {step === 'install' && 'Add MasterLeadFlow to your home screen for instant lead alerts.'}
-            {step === 'form' && 'Your profile is set up. Add email & password so you can log in anytime.'}
-            {step === 'notifications' && 'Just allow notifications and you\'re done!'}
-            {step === 'done' && 'Redirecting to your dashboard...'}
+            {step === 'form' && 'Create your email and password to sign in anytime'}
+            {step === 'done' && 'Redirecting to install...'}
           </p>
         </div>
 
         {/* Step indicator */}
-        {step !== 'done' && (
-          <div className="flex items-center justify-center gap-2 mb-6">
-            {isMobile() && (
-              <>
-                <StepPill label="Home Screen" active={step === 'install'} done={step !== 'install'} num={1} />
-                <div className="w-4 h-px bg-gray-200" />
-              </>
-            )}
-            <StepPill label="Account" active={step === 'form'} done={step === 'notifications' || step === 'done'} num={isMobile() ? 2 : 1} />
-            <div className="w-4 h-px bg-gray-200" />
-            <StepPill label="Notifications" active={step === 'notifications'} done={step === 'done'} num={isMobile() ? 3 : 2} />
-          </div>
-        )}
-
-        {/* ─── Install Step (mobile only) ─── */}
-        {step === 'install' && (
-          <div className="rounded-2xl border border-white/60 bg-white/70 backdrop-blur-2xl shadow-[0_8px_60px_-12px_rgba(0,0,0,0.08)] p-6 sm:p-8 text-center">
-            <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-orange-100 to-amber-50 flex items-center justify-center mx-auto mb-5 shadow-lg shadow-orange-100/50">
-              <Smartphone className="w-10 h-10 text-[#fe5b25]" />
-            </div>
-
-            <h2 className="text-xl font-bold text-gray-900 mb-2">
-              Add to Home Screen
-            </h2>
-            <p className="text-gray-500 text-sm mb-6 max-w-xs mx-auto">
-              Add MasterLeadFlow to your home screen so you can receive push notifications for new leads.
-            </p>
-
-            <button
-              onClick={() => { sessionStorage.setItem('install_seen', '1'); navigate('/install') }}
-              className="w-full py-3.5 rounded-xl text-sm font-semibold text-white flex items-center justify-center gap-2 transition-all hover:brightness-110 active:scale-[0.98] shadow-lg shadow-orange-200/50 mb-3"
-              style={{ background: 'linear-gradient(135deg, #fe5b25, #e04d1f)' }}
-            >
-              <Smartphone className="w-4 h-4" />
-              Add to Home Screen
-            </button>
-
-            <button
-              onClick={() => { sessionStorage.setItem('install_seen', '1'); setStep('form') }}
-              className="w-full py-2.5 text-sm text-gray-400 hover:text-gray-600 transition-colors"
-            >
-              Skip for now
-            </button>
-          </div>
-        )}
+        {step !== 'done' && <OnboardingProgress current={1} />}
 
         {/* ─── Email/Password Form ─── */}
         {step === 'form' && (
@@ -368,60 +290,10 @@ export default function CompleteAccount() {
                 onClick={() => navigate('/')}
                 className="w-full py-2.5 text-sm text-gray-400 hover:text-gray-600 transition-colors"
               >
-                Skip for now — use WhatsApp login
+                Skip for now
               </button>
             </form>
           </>
-        )}
-
-        {/* ─── Step 2: Enable Notifications ─── */}
-        {step === 'notifications' && (
-          <div className="rounded-2xl border border-white/60 bg-white/70 backdrop-blur-2xl shadow-[0_8px_60px_-12px_rgba(0,0,0,0.08)] p-6 sm:p-8 text-center">
-            <h2 className="text-xl font-bold text-gray-900 mb-1">
-              One last step 🔔
-            </h2>
-            <p className="text-gray-500 text-sm mb-4 max-w-xs mx-auto">
-              Allow notifications so you get alerted the moment a lead comes in.
-              <span className="block text-amber-600 text-xs font-medium mt-1">
-                ⚡ First to respond = wins the job
-              </span>
-            </p>
-
-            {/* Visual mockup — compact */}
-            <div className="mb-4">
-              <p className="text-gray-400 text-[10px] font-semibold uppercase tracking-wider mb-2">
-                Tap "Allow" when this pops up:
-              </p>
-              {/iPhone|iPad|iPod/i.test(navigator.userAgent) ? (
-                <NotifMockupIOS />
-              ) : (
-                <NotifMockupAndroid />
-              )}
-            </div>
-
-            <button
-              onClick={handleEnableNotifications}
-              disabled={pushLoading}
-              className="w-full py-3.5 rounded-xl text-sm font-semibold text-white flex items-center justify-center gap-2 transition-all hover:brightness-110 active:scale-[0.98] disabled:opacity-50 shadow-lg shadow-orange-200/50 mb-3"
-              style={{ background: 'linear-gradient(135deg, #fe5b25, #e04d1f)' }}
-            >
-              {pushLoading ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <>
-                  <Bell className="w-4 h-4" />
-                  Enable Notifications
-                </>
-              )}
-            </button>
-
-            <button
-              onClick={handleSkipNotifications}
-              className="w-full py-2.5 text-sm text-gray-400 hover:text-gray-600 transition-colors"
-            >
-              Maybe later
-            </button>
-          </div>
         )}
 
         {/* ─── Done ─── */}
@@ -429,111 +301,9 @@ export default function CompleteAccount() {
           <div className="rounded-2xl border border-green-200 bg-green-50 p-6 text-center">
             <CheckCircle className="w-12 h-12 text-green-500 mx-auto mb-3" />
             <p className="text-gray-900 font-semibold text-lg">You're all set!</p>
-            <p className="text-gray-500 text-sm mt-1">Redirecting to your dashboard...</p>
+            <p className="text-gray-500 text-sm mt-1">Redirecting to install...</p>
           </div>
         )}
-      </div>
-    </div>
-  )
-}
-
-function StepPill({ label, active, done, num }: { label: string; active: boolean; done: boolean; num: number }) {
-  const cls = active
-    ? 'bg-[#fe5b25] text-white shadow-md shadow-orange-200'
-    : done
-      ? 'bg-green-100 text-green-700'
-      : 'bg-gray-100 text-gray-400'
-
-  return (
-    <div className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold transition-all ${cls}`}>
-      {done && !active ? (
-        <CheckCircle className="w-3 h-3" />
-      ) : (
-        <span className="w-4 h-4 rounded-full bg-white/30 flex items-center justify-center text-[10px]">{num}</span>
-      )}
-      {label}
-    </div>
-  )
-}
-
-/* ── Notification Permission Mockup — iOS ── */
-function NotifMockupIOS() {
-  return (
-    <div className="rounded-xl overflow-hidden border border-gray-200 bg-[#00000010] flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-[280px] overflow-hidden">
-        {/* iOS-style dialog */}
-        <div className="px-5 pt-5 pb-4 text-center">
-          <p className="text-[15px] font-semibold text-gray-900 mb-1.5">
-            "MasterLeadFlow" Would Like to Send You Notifications
-          </p>
-          <p className="text-[12px] text-gray-500 leading-relaxed">
-            Notifications may include alerts, sounds, and icon badges.
-          </p>
-        </div>
-        <div className="border-t border-gray-200 flex">
-          <button className="flex-1 py-3 text-[15px] text-[#007AFF] border-r border-gray-200 opacity-40">
-            Don't Allow
-          </button>
-          <div className="relative flex-1">
-            <div className="absolute inset-0 border-2 border-[#fe5b25] rounded-br-2xl rounded-tr-sm animate-[pulse-ring_1.5s_ease-in-out_infinite]" />
-            <button className="w-full py-3 text-[15px] font-semibold text-[#007AFF]">
-              Allow
-            </button>
-            {/* Arrow label */}
-            <div className="absolute -right-1 top-1/2 -translate-y-1/2 translate-x-full flex items-center gap-0.5">
-              <span className="text-[#fe5b25] text-xs">◀</span>
-              <span className="text-[#fe5b25] text-[10px] font-bold bg-[#fe5b25]/10 px-1.5 py-0.5 rounded whitespace-nowrap">TAP</span>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  )
-}
-
-/* ── Notification Permission Mockup — Android / Chrome ── */
-function NotifMockupAndroid() {
-  return (
-    <div className="rounded-xl overflow-hidden border border-gray-200 bg-[#00000010] p-4">
-      {/* Chrome-style permission bar */}
-      <div className="bg-white rounded-xl shadow-xl w-full max-w-[300px] mx-auto overflow-hidden border border-gray-100">
-        {/* URL bar hint */}
-        <div className="bg-[#f1f3f4] px-3 py-2 flex items-center gap-2">
-          <span className="text-[10px] text-gray-400">🔒</span>
-          <span className="text-[11px] text-gray-500">app.masterleadflow.com</span>
-        </div>
-        {/* Permission popup */}
-        <div className="px-4 py-4">
-          <div className="flex items-start gap-3 mb-4">
-            <div className="w-8 h-8 rounded-lg bg-[#fe5b25] flex items-center justify-center flex-shrink-0 mt-0.5">
-              <span className="text-[10px] text-white font-bold">M</span>
-            </div>
-            <div>
-              <p className="text-[13px] font-medium text-gray-900 leading-tight">
-                app.masterleadflow.com wants to
-              </p>
-              <p className="text-[13px] text-gray-900 leading-tight">
-                <span className="font-semibold">Show notifications</span>
-              </p>
-            </div>
-          </div>
-          <div className="flex gap-2 justify-end">
-            <button className="px-4 py-2 text-[13px] text-gray-500 font-medium rounded-full opacity-40">
-              Block
-            </button>
-            <div className="relative">
-              <div className="absolute -inset-1 rounded-full border-2 border-[#fe5b25] animate-[pulse-ring_1.5s_ease-in-out_infinite]" />
-              <button className="px-5 py-2 text-[13px] text-[#1a73e8] font-semibold rounded-full bg-blue-50">
-                Allow
-              </button>
-              {/* Arrow label */}
-              <div className="absolute -top-6 left-1/2 -translate-x-1/2 flex flex-col items-center">
-                <span className="text-[#fe5b25] text-[10px] font-bold bg-[#fe5b25]/10 px-1.5 py-0.5 rounded whitespace-nowrap">TAP HERE</span>
-                <span className="text-[#fe5b25] text-xs">▼</span>
-              </div>
-            </div>
-          </div>
-        </div>
       </div>
     </div>
   )
