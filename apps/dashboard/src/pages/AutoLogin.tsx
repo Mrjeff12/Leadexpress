@@ -71,32 +71,45 @@ export default function AutoLogin() {
       }
 
       if (data.type === 'session' && data.access_token && data.refresh_token) {
-        const { error: sessionError } = await supabase.auth.setSession({
+        // Store session directly in localStorage — avoids setSession() hanging
+        // in WhatsApp's in-app browser and other embedded WebViews.
+        // Supabase client picks these up automatically on next page load.
+        const storageKey = `sb-${new URL(SUPA_URL).hostname.split('.')[0]}-auth-token`
+        const sessionPayload = {
           access_token: data.access_token,
           refresh_token: data.refresh_token,
-        })
-
-        if (sessionError) {
-          setStatus('error')
-          setError('Could not save your session. Try opening this link in your phone\'s default browser instead of WhatsApp.')
-          return
+          token_type: 'bearer',
+          expires_in: 3600,
+          expires_at: Math.floor(Date.now() / 1000) + 3600,
         }
-
-        // Set onboarding step (non-critical)
         try {
-          const { data: { user } } = await supabase.auth.getUser()
-          if (user) {
-            await supabase.from('contractors').update({ onboarding_step: 'registered' }).eq('user_id', user.id)
+          localStorage.setItem(storageKey, JSON.stringify(sessionPayload))
+        } catch {
+          // Fallback: try setSession with a tight timeout
+          const sessionPromise = supabase.auth.setSession({
+            access_token: data.access_token,
+            refresh_token: data.refresh_token,
+          })
+          const timeoutPromise = new Promise((_, reject) =>
+            setTimeout(() => reject(new Error('setSession timeout')), 5000)
+          )
+          try {
+            await Promise.race([sessionPromise, timeoutPromise])
+          } catch {
+            setStatus('error')
+            setError('Could not save your session. Try opening this link in your phone\'s default browser.')
+            return
           }
-        } catch {}
+        }
 
         setStatus('success')
 
         const safePath = (data.redirect_path && data.redirect_path.startsWith('/') && !data.redirect_path.startsWith('//'))
           ? data.redirect_path : '/complete-account'
+        // Hard redirect — forces Supabase client to re-initialize with stored tokens
         setTimeout(() => {
           window.location.replace(safePath)
-        }, 600)
+        }, 400)
         return
       }
 
