@@ -14,34 +14,20 @@ const REBECA_PHONE = Deno.env.get("REBECA_PHONE") || "14155238886";
 
 const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
 
-Deno.serve(async (req) => {
-  // Allow invocation from pg_cron (no auth) or with service role key
-  const authHeader = req.headers.get("authorization") ?? "";
-  const isServiceRole = authHeader.includes(SERVICE_ROLE_KEY);
-  const isCron = req.headers.get("x-pg-cron") === "true";
-
-  if (!isServiceRole && !isCron) {
-    // Also allow if called from Supabase dashboard/CLI
-    const apiKey = req.headers.get("apikey") ?? "";
-    if (apiKey !== SERVICE_ROLE_KEY) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 });
-    }
-  }
-
+Deno.serve(async (_req) => {
+  // Auth is handled by Supabase gateway (service_role JWT required).
+  // pg_cron calls with the service_role key in the Authorization header.
   try {
-    // Find contractors whose 24h window closes in < 2 hours
-    // AND who haven't been reminded in the last 12 hours
-    // AND who have push subscriptions
-    const { data: targets, error } = await supabase
+    // Step 1: Find contractors whose 24h window closes in < 2 hours
+    const now = new Date();
+    const twoHoursFromNow = new Date(Date.now() + 2 * 60 * 60 * 1000);
+    const twelveHoursAgo = new Date(Date.now() - 12 * 60 * 60 * 1000).toISOString();
+
+    const { data: contractors, error } = await supabase
       .from("contractors")
-      .select(`
-        user_id,
-        last_push_reminder_at,
-        profiles!inner(full_name),
-        push_subscriptions!inner(endpoint, p256dh, auth)
-      `)
-      .gt("wa_window_until", new Date().toISOString())
-      .lt("wa_window_until", new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString())
+      .select("user_id, last_push_reminder_at")
+      .gt("wa_window_until", now.toISOString())
+      .lt("wa_window_until", twoHoursFromNow.toISOString())
       .eq("wa_notify", true)
       .eq("is_active", true);
 
@@ -50,24 +36,55 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: error.message }), { status: 500 });
     }
 
-    if (!targets || targets.length === 0) {
+    if (!contractors || contractors.length === 0) {
       return new Response(JSON.stringify({ sent: 0, message: "No targets found" }));
     }
 
     // Filter out recently reminded
-    const twelveHoursAgo = new Date(Date.now() - 12 * 60 * 60 * 1000).toISOString();
-    const eligible = targets.filter(
+    const eligible = contractors.filter(
       (t) => !t.last_push_reminder_at || t.last_push_reminder_at < twelveHoursAgo
     );
+
+    if (eligible.length === 0) {
+      return new Response(JSON.stringify({ sent: 0, message: "All recently reminded", total: contractors.length }));
+    }
+
+    const userIds = eligible.map((c) => c.user_id);
+
+    // Step 2: Get profiles for eligible users
+    const { data: profiles } = await supabase
+      .from("profiles")
+      .select("id, full_name")
+      .in("id", userIds);
+
+    const profileMap = new Map((profiles ?? []).map((p) => [p.id, p.full_name]));
+
+    // Step 3: Get push subscriptions for eligible users
+    const { data: subscriptions } = await supabase
+      .from("push_subscriptions")
+      .select("user_id, endpoint, p256dh, auth")
+      .in("user_id", userIds);
+
+    if (!subscriptions || subscriptions.length === 0) {
+      return new Response(JSON.stringify({ sent: 0, message: "No push subscriptions", eligible: eligible.length }));
+    }
+
+    // Group subscriptions by user_id
+    const subsByUser = new Map<string, typeof subscriptions>();
+    for (const sub of subscriptions) {
+      const arr = subsByUser.get(sub.user_id) ?? [];
+      arr.push(sub);
+      subsByUser.set(sub.user_id, arr);
+    }
 
     let sentCount = 0;
 
     for (const target of eligible) {
-      const profile = Array.isArray(target.profiles) ? target.profiles[0] : target.profiles;
-      const firstName = (profile?.full_name ?? "").split(" ")[0] || "there";
-      const subscriptions = Array.isArray(target.push_subscriptions)
-        ? target.push_subscriptions
-        : [target.push_subscriptions];
+      const userSubs = subsByUser.get(target.user_id);
+      if (!userSubs || userSubs.length === 0) continue;
+
+      const fullName = profileMap.get(target.user_id) ?? "";
+      const firstName = fullName.split(" ")[0] || "there";
 
       const payload = JSON.stringify({
         title: "MasterLeadFlow",
@@ -75,7 +92,7 @@ Deno.serve(async (req) => {
         url: `https://wa.me/${REBECA_PHONE}?text=${encodeURIComponent("👋")}`,
       });
 
-      for (const sub of subscriptions) {
+      for (const sub of userSubs) {
         try {
           await sendWebPush(sub.endpoint, sub.p256dh, sub.auth, payload);
           sentCount++;
@@ -99,7 +116,7 @@ Deno.serve(async (req) => {
     }
 
     return new Response(
-      JSON.stringify({ sent: sentCount, eligible: eligible.length, total: targets.length })
+      JSON.stringify({ sent: sentCount, eligible: eligible.length, total: contractors.length })
     );
   } catch (err) {
     console.error("Unexpected error:", err);
