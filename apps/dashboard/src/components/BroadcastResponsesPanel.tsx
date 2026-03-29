@@ -2,8 +2,14 @@ import { useState, useEffect, useRef } from 'react'
 import { useI18n } from '../lib/i18n'
 import { supabase } from '../lib/supabase'
 import { timeAgo } from '../lib/shared'
-import TrustBadge from './TrustBadge'
-import StarRating from './StarRating'
+// Inline stubs for TrustBadge and StarRating (full components are local-only)
+function TrustBadge({ tier, size: _ }: { tier?: string | null; size?: string }) {
+  if (!tier) return null
+  return <span className="text-xs text-stone-500 border border-stone-200 rounded px-1">{tier}</span>
+}
+function StarRating({ rating, size: _, showValue, count }: { rating: number; size?: string; showValue?: boolean; count?: number }) {
+  return <span className="text-xs text-amber-600">★ {showValue ? rating.toFixed(1) : ''}{count ? ` (${count})` : ''}</span>
+}
 import {
   X,
   Loader2,
