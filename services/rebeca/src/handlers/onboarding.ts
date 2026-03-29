@@ -92,7 +92,7 @@ async function generateMagicLink(userId: string): Promise<string | null> {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${config.supabase.serviceKey}`,
       },
-      body: JSON.stringify({ action: 'generate', user_id: userId, redirect_path: '/' }),
+      body: JSON.stringify({ action: 'generate', user_id: userId, redirect_path: '/complete-account' }),
     });
     const data = await res.json() as { link?: string };
     return data.link ?? null;
