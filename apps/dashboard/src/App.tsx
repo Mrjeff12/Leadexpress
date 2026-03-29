@@ -18,7 +18,7 @@ import SubscriptionBanner from './components/SubscriptionBanner'
 import CompleteAccountBanner from './components/CompleteAccountBanner'
 import { supabase } from './lib/supabase'
 import { Globe } from 'lucide-react'
-import { PushBanner } from './components/PushBanner'
+import PushBanner from './components/PushBanner'
 import { PWAInstallBanner } from './components/PWAInstallBanner'
 
 /* ─── Lazy-loaded pages ─── */
