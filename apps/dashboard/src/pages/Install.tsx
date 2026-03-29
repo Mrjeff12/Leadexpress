@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { CheckCircle, Share, MoreVertical, Plus, Download, ArrowRight, Smartphone } from 'lucide-react'
+import { CheckCircle, ChevronRight, Download, Zap } from 'lucide-react'
 
 type Platform = 'ios' | 'android' | 'desktop'
 
@@ -18,9 +18,28 @@ function isStandalone(): boolean {
 
 function isWebView(): boolean {
   const ua = navigator.userAgent
-  // WhatsApp in-app browser, Facebook, Instagram, etc.
   return /FBAN|FBAV|Instagram|WhatsApp|Line/i.test(ua)
     || (/wv/i.test(ua) && /Android/i.test(ua))
+}
+
+// Animated counter for the "3 seconds" claim
+function AnimatedTimer() {
+  const [count, setCount] = useState(0)
+  const ref = useRef<HTMLSpanElement>(null)
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCount(prev => {
+        if (prev >= 3) { clearInterval(interval); return 3 }
+        return prev + 1
+      })
+    }, 400)
+    return () => clearInterval(interval)
+  }, [])
+
+  return (
+    <span ref={ref} className="tabular-nums">{count}</span>
+  )
 }
 
 export default function Install() {
@@ -29,20 +48,18 @@ export default function Install() {
   const [installed, setInstalled] = useState(false)
   const [inWebView] = useState(isWebView)
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null)
+  const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
+    setMounted(true)
     if (isStandalone()) {
       setInstalled(true)
-      setTimeout(() => navigate('/complete-account'), 1500)
+      setTimeout(() => navigate('/complete-account'), 1200)
     }
   }, [])
 
-  // Listen for the beforeinstallprompt event (Chrome/Android)
   useEffect(() => {
-    const handler = (e: Event) => {
-      e.preventDefault()
-      setDeferredPrompt(e)
-    }
+    const handler = (e: Event) => { e.preventDefault(); setDeferredPrompt(e) }
     window.addEventListener('beforeinstallprompt', handler)
     return () => window.removeEventListener('beforeinstallprompt', handler)
   }, [])
@@ -53,183 +70,214 @@ export default function Install() {
     const result = await deferredPrompt.userChoice
     if (result.outcome === 'accepted') {
       setInstalled(true)
-      setTimeout(() => navigate('/complete-account'), 1500)
+      setTimeout(() => navigate('/complete-account'), 1200)
     }
     setDeferredPrompt(null)
   }
 
   function handleOpenInBrowser() {
-    // Try to open in the device's default browser
-    const url = window.location.href
-    window.open(url, '_system')
+    window.open(window.location.href, '_system')
   }
 
+  // ── Success state ──
   if (installed) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-4" style={{ background: 'linear-gradient(135deg, #fafafa 0%, #fff5f0 100%)' }}>
-        <div className="text-center">
-          <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">App Installed!</h1>
-          <p className="text-gray-500">Redirecting to your account setup...</p>
+      <div className="min-h-screen flex items-center justify-center" style={{ background: '#faf9f6' }}>
+        <div className="text-center animate-in">
+          <div className="w-20 h-20 rounded-full bg-green-500 flex items-center justify-center mx-auto mb-5 shadow-lg shadow-green-200">
+            <CheckCircle className="w-10 h-10 text-white" />
+          </div>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">Installed!</h1>
+          <p className="text-gray-500">Opening your dashboard...</p>
         </div>
       </div>
     )
   }
 
+  const iosSteps = [
+    { icon: '⬆️', title: 'Tap Share', desc: 'Bottom bar in Safari' },
+    { icon: '➕', title: 'Add to Home Screen', desc: 'Scroll down in the menu' },
+    { icon: '✅', title: 'Tap "Add"', desc: 'Top right corner' },
+  ]
+
+  const androidSteps = [
+    { icon: '⋮', title: 'Tap Menu', desc: '3 dots, top right' },
+    { icon: '📲', title: 'Install App', desc: 'Or "Add to Home Screen"' },
+    { icon: '✅', title: 'Tap Install', desc: 'Confirm the prompt' },
+  ]
+
+  const steps = platform === 'ios' ? iosSteps : androidSteps
+
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
-      <div className="fixed inset-0 bg-gradient-to-br from-slate-50 via-gray-50 to-orange-50/30" />
-      <div className="relative z-10 w-full max-w-lg">
+    <div className="min-h-screen relative overflow-hidden" style={{ background: '#faf9f6' }}>
+      {/* Background elements */}
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[400px] rounded-full blur-[120px] opacity-30"
+        style={{ background: 'radial-gradient(circle, #fe5b2520 0%, transparent 70%)' }} />
+      <div className="absolute bottom-0 right-0 w-[400px] h-[300px] rounded-full blur-[100px] opacity-20"
+        style={{ background: 'radial-gradient(circle, #25D36615 0%, transparent 70%)' }} />
+
+      {/* Subtle dot grid */}
+      <div className="absolute inset-0 opacity-[0.03]" style={{
+        backgroundImage: 'radial-gradient(circle at 1px 1px, #000 0.5px, transparent 0)',
+        backgroundSize: '40px 40px',
+      }} />
+
+      <div className={`relative z-10 max-w-md mx-auto px-5 py-10 transition-all duration-700 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
         {/* Logo */}
-        <div className="flex items-center justify-center gap-2.5 mb-6">
-          <img src="/icon.png" alt="MasterLeadFlow" className="w-9 h-9 rounded-xl shadow-md shadow-orange-200/50" />
-          <span className="text-lg font-semibold tracking-tight text-gray-900">MasterLeadFlow</span>
+        <div className="flex items-center justify-center gap-2.5 mb-10">
+          <img src="/icon.png" alt="" className="w-8 h-8 rounded-xl" />
+          <span className="text-base font-semibold tracking-tight text-gray-900">MasterLeadFlow</span>
         </div>
 
-        {/* Header */}
-        <div className="text-center mb-6">
-          <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-orange-100 to-amber-50 flex items-center justify-center mx-auto mb-4 shadow-lg shadow-orange-100/50">
-            <Smartphone className="w-8 h-8 text-[#fe5b25]" />
+        {/* Hero — big countdown claim */}
+        <div className="text-center mb-8">
+          <div className="inline-flex items-center gap-2 bg-[#fe5b25]/10 text-[#fe5b25] rounded-full px-4 py-1.5 text-xs font-bold mb-5 tracking-wide uppercase">
+            <Zap className="w-3.5 h-3.5" />
+            Takes <AnimatedTimer /> seconds
           </div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight mb-2">
-            Install the App
+
+          <h1 className="text-[2rem] leading-[1.1] font-bold tracking-[-0.03em] text-gray-900 mb-3">
+            Never miss a lead
+            <br />
+            <span style={{ color: '#fe5b25' }}>again.</span>
           </h1>
-          <p className="text-gray-500 text-sm max-w-xs mx-auto">
-            Get instant push notifications for new leads — even when your browser is closed.
+
+          <p className="text-gray-500 text-[15px] leading-relaxed max-w-[300px] mx-auto">
+            Install the app and get instant push alerts the moment a matching job drops.
           </p>
         </div>
 
-        {/* Benefits */}
-        <div className="space-y-2.5 mb-6">
-          <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-green-50/80 border border-green-100">
-            <span className="text-lg">⚡</span>
-            <span className="text-gray-700 text-sm font-medium">Instant alerts — be first to grab leads</span>
+        {/* WebView blocker */}
+        {inWebView ? (
+          <div className={`transition-all duration-500 delay-200 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
+            <div className="rounded-2xl bg-white border border-gray-100 shadow-[0_2px_40px_-12px_rgba(0,0,0,0.08)] p-6 text-center mb-4">
+              <div className="w-14 h-14 rounded-2xl bg-amber-50 flex items-center justify-center mx-auto mb-4">
+                <span className="text-2xl">🌐</span>
+              </div>
+              <p className="text-gray-900 font-semibold text-[15px] mb-1.5">
+                Open in {platform === 'ios' ? 'Safari' : 'Chrome'}
+              </p>
+              <p className="text-gray-400 text-xs mb-5 leading-relaxed">
+                You're inside an in-app browser.<br />
+                Tap below to open in your real browser.
+              </p>
+              <button
+                onClick={handleOpenInBrowser}
+                className="w-full py-3.5 rounded-2xl text-sm font-semibold text-white flex items-center justify-center gap-2 transition-all hover:brightness-110 active:scale-[0.97]"
+                style={{ background: '#fe5b25', boxShadow: '0 4px 20px #fe5b2530' }}
+              >
+                Open in {platform === 'ios' ? 'Safari' : 'Chrome'}
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
           </div>
-          <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-blue-50/80 border border-blue-100">
-            <span className="text-lg">📱</span>
-            <span className="text-gray-700 text-sm font-medium">Works like a native app on your phone</span>
-          </div>
-          <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-purple-50/80 border border-purple-100">
-            <span className="text-lg">🔕</span>
-            <span className="text-gray-700 text-sm font-medium">Only relevant jobs — no spam, ever</span>
-          </div>
-        </div>
-
-        {/* WebView warning */}
-        {inWebView && (
-          <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5 mb-5 text-center">
-            <p className="text-amber-800 text-sm font-semibold mb-3">
-              Open in your browser first
-            </p>
-            <p className="text-amber-700 text-xs mb-4">
-              You're viewing this inside an app. Tap below to open in {platform === 'ios' ? 'Safari' : 'Chrome'} so you can install.
-            </p>
-            <button
-              onClick={handleOpenInBrowser}
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold text-white transition-all hover:brightness-110 shadow-md"
-              style={{ background: 'linear-gradient(135deg, #fe5b25, #e04d1f)' }}
-            >
-              Open in {platform === 'ios' ? 'Safari' : 'Chrome'}
-              <ArrowRight className="w-4 h-4" />
-            </button>
-          </div>
-        )}
-
-        {/* Native install prompt (Chrome/Android) */}
-        {deferredPrompt && !inWebView && (
-          <div className="rounded-2xl border border-white/60 bg-white/70 backdrop-blur-2xl shadow-[0_8px_60px_-12px_rgba(0,0,0,0.08)] p-5 mb-5 text-center">
+        ) : deferredPrompt ? (
+          /* Native install prompt (Chrome/Android) */
+          <div className={`transition-all duration-500 delay-200 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
             <button
               onClick={handleNativeInstall}
-              className="w-full py-3.5 rounded-xl text-sm font-semibold text-white flex items-center justify-center gap-2 transition-all hover:brightness-110 active:scale-[0.98] shadow-lg shadow-orange-200/50"
-              style={{ background: 'linear-gradient(135deg, #fe5b25, #e04d1f)' }}
+              className="w-full py-4 rounded-2xl text-base font-semibold text-white flex items-center justify-center gap-2.5 transition-all hover:brightness-110 active:scale-[0.97] mb-6"
+              style={{ background: '#fe5b25', boxShadow: '0 4px 24px #fe5b2535' }}
             >
-              <Download className="w-4 h-4" />
-              Install MasterLeadFlow
+              <Download className="w-5 h-5" />
+              Install Now — It's Free
             </button>
           </div>
-        )}
-
-        {/* Manual instructions */}
-        {!deferredPrompt && !inWebView && (
-          <div className="rounded-2xl border border-white/60 bg-white/70 backdrop-blur-2xl shadow-[0_8px_60px_-12px_rgba(0,0,0,0.08)] p-5 mb-5">
-            {platform === 'ios' && (
-              <>
-                <h3 className="text-gray-900 font-semibold text-sm mb-4">How to install on iPhone:</h3>
-                <div className="space-y-4">
-                  <Step num={1} icon={<Share className="w-5 h-5 text-blue-500" />}>
-                    Tap the <strong>Share</strong> button at the bottom of Safari
-                  </Step>
-                  <Step num={2} icon={<Plus className="w-5 h-5 text-gray-700" />}>
-                    Scroll down and tap <strong>"Add to Home Screen"</strong>
-                  </Step>
-                  <Step num={3} icon={<CheckCircle className="w-5 h-5 text-green-500" />}>
-                    Tap <strong>"Add"</strong> in the top right
-                  </Step>
-                </div>
-              </>
-            )}
-
-            {platform === 'android' && (
-              <>
-                <h3 className="text-gray-900 font-semibold text-sm mb-4">How to install on Android:</h3>
-                <div className="space-y-4">
-                  <Step num={1} icon={<MoreVertical className="w-5 h-5 text-gray-700" />}>
-                    Tap the <strong>menu</strong> (3 dots) in the top right
-                  </Step>
-                  <Step num={2} icon={<Download className="w-5 h-5 text-blue-500" />}>
-                    Tap <strong>"Add to Home Screen"</strong> or <strong>"Install app"</strong>
-                  </Step>
-                  <Step num={3} icon={<CheckCircle className="w-5 h-5 text-green-500" />}>
-                    Tap <strong>"Install"</strong> to confirm
-                  </Step>
-                </div>
-              </>
-            )}
-
-            {platform === 'desktop' && (
-              <div className="text-center py-4">
-                <p className="text-gray-700 text-sm mb-4">
-                  On desktop, you don't need to install anything — notifications work directly in your browser.
-                </p>
-                <button
-                  onClick={() => navigate('/complete-account')}
-                  className="inline-flex items-center gap-2 px-6 py-3 rounded-xl text-sm font-semibold text-white transition-all hover:brightness-110 shadow-lg shadow-orange-200/50"
-                  style={{ background: 'linear-gradient(135deg, #fe5b25, #e04d1f)' }}
-                >
-                  Continue to Setup
-                  <ArrowRight className="w-4 h-4" />
-                </button>
+        ) : platform === 'desktop' ? (
+          /* Desktop — no install needed */
+          <div className={`transition-all duration-500 delay-200 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
+            <div className="rounded-2xl bg-white border border-gray-100 shadow-[0_2px_40px_-12px_rgba(0,0,0,0.08)] p-6 text-center mb-4">
+              <div className="w-14 h-14 rounded-2xl bg-green-50 flex items-center justify-center mx-auto mb-4">
+                <CheckCircle className="w-7 h-7 text-green-500" />
               </div>
-            )}
+              <p className="text-gray-900 font-semibold text-[15px] mb-1.5">
+                No install needed
+              </p>
+              <p className="text-gray-400 text-xs mb-5">
+                On desktop, notifications work directly in your browser.
+              </p>
+              <button
+                onClick={() => navigate('/complete-account')}
+                className="w-full py-3.5 rounded-2xl text-sm font-semibold text-white flex items-center justify-center gap-2 transition-all hover:brightness-110 active:scale-[0.97]"
+                style={{ background: '#fe5b25', boxShadow: '0 4px 20px #fe5b2530' }}
+              >
+                Continue Setup
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        ) : (
+          /* Mobile install steps (iOS / Android) */
+          <div className={`transition-all duration-500 delay-300 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
+            <div className="rounded-2xl bg-white border border-gray-100 shadow-[0_2px_40px_-12px_rgba(0,0,0,0.08)] overflow-hidden mb-4">
+              {/* Header */}
+              <div className="px-5 pt-5 pb-3">
+                <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest">
+                  {platform === 'ios' ? 'Safari' : 'Chrome'} — 3 quick taps
+                </p>
+              </div>
+
+              {/* Steps */}
+              <div className="px-5 pb-5 space-y-0">
+                {steps.map((step, i) => (
+                  <div key={i} className="flex items-center gap-4 py-3.5 border-b border-gray-50 last:border-0">
+                    {/* Number circle */}
+                    <div className="flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center text-lg"
+                      style={{
+                        background: i === 0 ? '#fe5b2512' : i === 1 ? '#3b82f612' : '#22c55e12',
+                      }}>
+                      {step.icon}
+                    </div>
+                    {/* Text */}
+                    <div className="flex-1 min-w-0">
+                      <p className="text-gray-900 text-[15px] font-semibold leading-tight">{step.title}</p>
+                      <p className="text-gray-400 text-xs mt-0.5">{step.desc}</p>
+                    </div>
+                    {/* Step number */}
+                    <div className="flex-shrink-0 w-6 h-6 rounded-full bg-gray-100 flex items-center justify-center">
+                      <span className="text-[10px] font-bold text-gray-400">{i + 1}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
         )}
+
+        {/* Benefits — horizontal scroll pills */}
+        <div className={`flex gap-2 justify-center flex-wrap mb-6 transition-all duration-500 delay-500 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
+          {[
+            { emoji: '⚡', text: 'Instant alerts' },
+            { emoji: '🔕', text: 'No spam' },
+            { emoji: '📱', text: 'Works offline' },
+          ].map((b, i) => (
+            <div key={i} className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white border border-gray-100 text-xs text-gray-600 font-medium shadow-sm">
+              <span>{b.emoji}</span>
+              {b.text}
+            </div>
+          ))}
+        </div>
 
         {/* Skip */}
         {platform !== 'desktop' && (
-          <div className="text-center">
+          <div className={`text-center transition-all duration-500 delay-700 ${mounted ? 'opacity-100' : 'opacity-0'}`}>
             <button
               onClick={() => navigate('/complete-account')}
-              className="text-sm text-gray-400 hover:text-gray-600 transition-colors"
+              className="text-[13px] text-gray-400 hover:text-gray-600 transition-colors"
             >
-              Skip for now — I'll install later
+              Skip — I'll install later
             </button>
           </div>
         )}
       </div>
-    </div>
-  )
-}
 
-function Step({ num, icon, children }: { num: number; icon: React.ReactNode; children: React.ReactNode }) {
-  return (
-    <div className="flex items-start gap-3">
-      <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-xs font-bold text-gray-500">
-        {num}
-      </div>
-      <div className="flex items-center gap-2 pt-1">
-        {icon}
-        <p className="text-gray-700 text-sm">{children}</p>
-      </div>
+      <style>{`
+        @keyframes animate-in {
+          from { opacity: 0; transform: scale(0.95); }
+          to { opacity: 1; transform: scale(1); }
+        }
+        .animate-in { animation: animate-in 0.5s ease-out; }
+      `}</style>
     </div>
   )
 }
