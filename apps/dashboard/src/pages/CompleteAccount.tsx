@@ -32,8 +32,9 @@ export default function CompleteAccount() {
   const navigate = useNavigate()
   const { status: pushStatus, enable: enablePush, isLoading: pushLoading } = usePushNotifications()
   // On mobile, if not running as PWA, show install step first
+  // Skip install step if user already visited it (came back from /install page)
   const [step, setStep] = useState<Step>(() => {
-    if (isMobile() && !isStandalone()) return 'install'
+    if (isMobile() && !isStandalone() && !sessionStorage.getItem('install_seen')) return 'install'
     return 'form'
   })
   const [email, setEmail] = useState('')
@@ -209,7 +210,7 @@ export default function CompleteAccount() {
             </p>
 
             <button
-              onClick={() => navigate('/install')}
+              onClick={() => { sessionStorage.setItem('install_seen', '1'); navigate('/install') }}
               className="w-full py-3.5 rounded-xl text-sm font-semibold text-white flex items-center justify-center gap-2 transition-all hover:brightness-110 active:scale-[0.98] shadow-lg shadow-orange-200/50 mb-3"
               style={{ background: 'linear-gradient(135deg, #fe5b25, #e04d1f)' }}
             >
@@ -218,7 +219,7 @@ export default function CompleteAccount() {
             </button>
 
             <button
-              onClick={() => setStep('form')}
+              onClick={() => { sessionStorage.setItem('install_seen', '1'); setStep('form') }}
               className="w-full py-2.5 text-sm text-gray-400 hover:text-gray-600 transition-colors"
             >
               Skip for now
