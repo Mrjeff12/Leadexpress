@@ -87,27 +87,40 @@ export default function CompleteAccount() {
     setLoading(true)
     setError('')
 
-    const { data: fnData, error: fnError } = await supabase.functions.invoke('update-account', {
-      body: { email, password },
-    })
+    try {
+      const { data: fnData, error: fnError } = await supabase.functions.invoke('update-account', {
+        body: { email, password },
+      })
 
-    if (fnError || fnData?.error) {
-      setError(fnData?.error || fnError?.message || 'Failed to update account')
+      if (fnError || fnData?.error) {
+        setError(fnData?.error || fnError?.message || 'Failed to update account')
+        setLoading(false)
+        return
+      }
+
+      // Update the profile email (don't await — non-critical)
+      supabase.from('profiles').update({ email }).eq('id', profile!.id).then(() => {})
+
+      // Sign in with new credentials
+      const { error: signInError } = await supabase.auth.signInWithPassword({ email, password })
+      if (signInError) {
+        console.warn('SignIn after update failed (non-critical):', signInError.message)
+        // Non-critical: user is already authenticated, proceed anyway
+      }
+
       setLoading(false)
-      return
-    }
 
-    await supabase.from('profiles').update({ email }).eq('id', profile!.id)
-    await supabase.auth.signInWithPassword({ email, password })
-
-    setLoading(false)
-
-    // Move to notifications step instead of redirecting immediately
-    if (pushStatus === 'default') {
-      setStep('notifications')
-    } else {
-      setStep('done')
-      setTimeout(() => navigate('/'), 1500)
+      // Move to notifications step instead of redirecting immediately
+      if (pushStatus === 'default') {
+        setStep('notifications')
+      } else {
+        setStep('done')
+        setTimeout(() => navigate('/'), 1500)
+      }
+    } catch (err) {
+      console.error('handleSubmit error:', err)
+      setError('Something went wrong. Please try again.')
+      setLoading(false)
     }
   }
 
