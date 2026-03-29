@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom'
 import { Loader2, CheckCircle, XCircle } from 'lucide-react'
 
 const SUPA_URL = import.meta.env.VITE_SUPABASE_URL || 'https://zyytzwlvtuhgbjpalbgd.supabase.co'
+const SUPA_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || ''
 const STORAGE_KEY = 'sb-zyytzwlvtuhgbjpalbgd-auth-token'
 
 export default function AutoLogin() {
@@ -27,7 +28,10 @@ export default function AutoLogin() {
 
       const res = await fetch(`${SUPA_URL}/functions/v1/magic-login`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': SUPA_ANON_KEY,
+        },
         body: JSON.stringify({ action: 'exchange', token }),
       })
 
