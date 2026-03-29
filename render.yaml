@@ -53,7 +53,7 @@ services:
       - fromGroup: redis-shared
 
   # ── whatsapp-notify: wa-notifications → Twilio WhatsApp free text ──
-  - type: worker
+  - type: web
     name: whatsapp-notify
     env: docker
     dockerfilePath: services/whatsapp-notify/Dockerfile
