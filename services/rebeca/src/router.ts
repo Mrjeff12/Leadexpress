@@ -3,8 +3,7 @@ import { sendText } from './lib/twilio.js';
 import { t } from './lib/i18n.js';
 import { getState } from './lib/state.js';
 import { findProfile, linkWhatsAppPhone, isOptedOut } from './lib/profile.js';
-import { handleOnboarding, startOnboarding } from './handlers/onboarding.js';
-import { handleRegistration, startRegistration } from './handlers/registration.js';
+import { handleOnboarding, startOnboarding, startNewUserOnboarding } from './handlers/onboarding.js';
 import { handleKnownUser } from './handlers/known-user.js';
 import { handleLeadClaim, handleLeadPass } from './handlers/lead-action.js';
 import pino from 'pino';
@@ -60,14 +59,10 @@ async function processMessage(phone: string, text: string, buttonPayload: string
     return;
   }
 
-  // 4. Active onboarding/registration state
+  // 4. Active onboarding state (both new & existing users)
   const state = await getState(phone);
   if (state) {
-    if (state.flow === 'registration') {
-      await handleRegistration(phone, text);
-    } else {
-      await handleOnboarding(phone, text);
-    }
+    await handleOnboarding(phone, text);
     return;
   }
 
@@ -87,9 +82,9 @@ async function processMessage(phone: string, text: string, buttonPayload: string
     return;
   }
 
-  // 7. Unknown → start registration
-  log.info({ phone }, 'Unknown phone — starting registration');
-  await startRegistration(phone);
+  // 7. Unknown → start onboarding (will create account at end)
+  log.info({ phone }, 'Unknown phone — starting new user onboarding');
+  await startNewUserOnboarding(phone);
 }
 
 async function handleButtonPayload(phone: string, payload: string): Promise<void> {

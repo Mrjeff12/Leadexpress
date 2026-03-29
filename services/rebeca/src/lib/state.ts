@@ -7,8 +7,6 @@ export interface BotState {
   language: 'he' | 'en';
   openaiResponseId: string | null;
   sessionStartedAt: string;
-  /** 'registration' = new user (no account), 'onboarding' = existing user (has account) */
-  flow?: 'registration' | 'onboarding';
   collected: {
     name?: string;
     email?: string;
