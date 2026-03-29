@@ -12,6 +12,7 @@ import Login from './pages/Login'
 import AutoLogin from './pages/AutoLogin'
 const CompleteAccount = lazy(() => import('./pages/CompleteAccount'))
 const Install = lazy(() => import('./pages/Install'))
+const EnableAlerts = lazy(() => import('./components/EnableAlertsScreen'))
 import RequireSubscription from './components/Paywall'
 import SubscriptionBanner from './components/SubscriptionBanner'
 import CompleteAccountBanner from './components/CompleteAccountBanner'
@@ -245,6 +246,7 @@ function App() {
                   <Route path="/login" element={<Login />} />
                   <Route path="/auto-login" element={<AutoLogin />} />
                   <Route path="/install" element={<Install />} />
+                  <Route path="/enable-alerts" element={<RequireAuth><EnableAlerts /></RequireAuth>} />
                   <Route path="/complete-account" element={<RequireAuth><CompleteAccount /></RequireAuth>} />
                   <Route path="/admin/*" element={
                     <RequireAuth><RequireAdmin><AdminLayout /></RequireAdmin></RequireAuth>

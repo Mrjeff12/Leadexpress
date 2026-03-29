@@ -67,6 +67,14 @@ export default function AutoLogin() {
           return
         }
 
+        // Set onboarding step for tracking
+        try {
+          const { data: { user } } = await supabase.auth.getUser()
+          if (user) {
+            await supabase.from('contractors').update({ onboarding_step: 'registered' }).eq('user_id', user.id)
+          }
+        } catch {} // non-critical, don't block login flow
+
         setStatus('success')
 
         const safePath = (data.redirect_path && data.redirect_path.startsWith('/') && !data.redirect_path.startsWith('//'))
