@@ -21,11 +21,13 @@ export interface ContractorRecord {
  * Returns null if not found.
  */
 export async function findProfile(phone: string): Promise<Profile | null> {
-  const stripped = phone.replace(/^\+/, '');
+  const withPlus = phone.startsWith('+') ? phone : `+${phone}`;
+  const withoutPlus = phone.replace(/^\+/, '');
+
   const { data } = await supabase
     .from('profiles')
     .select('id, full_name, whatsapp_phone, phone')
-    .or(`whatsapp_phone.eq.${phone},phone.eq.${phone},phone.eq.${stripped}`)
+    .or(`whatsapp_phone.eq.${withPlus},whatsapp_phone.eq.${withoutPlus},phone.eq.${withPlus},phone.eq.${withoutPlus}`)
     .maybeSingle();
   return data ?? null;
 }
@@ -79,10 +81,12 @@ export async function hasActiveSubscription(userId: string): Promise<boolean> {
  * Check if phone is opted out of WA messages.
  */
 export async function isOptedOut(phone: string): Promise<boolean> {
+  const withPlus = phone.startsWith('+') ? phone : `+${phone}`;
+  const withoutPlus = phone.replace(/^\+/, '');
   const { data } = await supabase
     .from('wa_opt_outs')
     .select('id')
-    .eq('phone', phone)
+    .or(`phone.eq.${withPlus},phone.eq.${withoutPlus}`)
     .maybeSingle();
   return !!data;
 }
