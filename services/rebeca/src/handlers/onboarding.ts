@@ -15,6 +15,26 @@ const VALID_PROFESSIONS = new Set([
   'chimney','garage_doors','security','windows',
 ]);
 
+// Map common aliases / AI variations to valid profession keys
+const PROFESSION_ALIASES: Record<string, string> = {
+  ac: 'hvac', air_conditioning: 'hvac', ac_repair: 'hvac', ac_cleaning: 'air_duct',
+  duct_cleaning: 'air_duct', duct: 'air_duct', ducts: 'air_duct',
+  remodel: 'renovation', remodeling: 'renovation', general_contractor: 'renovation',
+  plumber: 'plumbing', electrician: 'electrical', painter: 'painting',
+  roofer: 'roofing', roof: 'roofing', floors: 'flooring', floor: 'flooring',
+  fence: 'fencing', fences: 'fencing', cleaner: 'cleaning', clean: 'cleaning',
+  locks: 'locksmith', landscape: 'landscaping', lawn: 'landscaping',
+  chimney_sweep: 'chimney', garage_door: 'garage_doors', garage: 'garage_doors',
+  security_system: 'security', alarm: 'security', window: 'windows',
+};
+
+function normalizeProfession(p: string): string | null {
+  const key = p.toLowerCase().trim();
+  if (VALID_PROFESSIONS.has(key)) return key;
+  if (PROFESSION_ALIASES[key]) return PROFESSION_ALIASES[key];
+  return null;
+}
+
 const CITY_ZIPS: Record<string, string> = {
   miami: '33101', fort_lauderdale: '33301', hollywood: '33019',
   hialeah: '33010', coral_gables: '33146', boca_raton: '33431',
@@ -27,6 +47,17 @@ const CITY_ZIPS: Record<string, string> = {
   long_island: '11501', houston: '77001', dallas: '75201',
   san_antonio: '78201', austin: '78701',
 };
+
+const STATE_CITIES: Record<string, string[]> = {
+  FL: ['miami','fort_lauderdale','hollywood','hialeah','coral_gables','boca_raton','west_palm','pompano','delray','homestead','doral','pembroke_pines','miramar','plantation','sunrise','weston','aventura','miami_beach'],
+  NY: ['manhattan','brooklyn','queens','bronx','staten_island','yonkers','long_island'],
+  TX: ['houston','dallas','san_antonio','austin'],
+};
+
+const CONFIRMATION_WORDS = new Set([
+  'מאשר','כן','yes','confirm','ok','אוקי','נכון','בסדר','יאללה','אישור',
+  'approve','correct','sure','בטח','כמובן','yep','yeah','y','1','👍',
+]);
 
 /**
  * Start onboarding for a user who has a profile but no contractor setup.
@@ -119,11 +150,19 @@ Still missing: ${missing.length > 0 ? missing.join(', ') : 'NOTHING — all fiel
 
       if (args.name) patch.name = args.name as string;
       if (Array.isArray(args.professions) && args.professions.length > 0) {
-        patch.professions = (args.professions as string[]).filter(p => VALID_PROFESSIONS.has(p));
+        const mapped = (args.professions as string[]).map(normalizeProfession).filter(Boolean) as string[];
+        if (mapped.length > 0) patch.professions = [...new Set(mapped)];
       }
       if (args.state) patch.state = args.state as string;
       if (Array.isArray(args.cities) && args.cities.length > 0) {
-        patch.cities = args.cities as string[];
+        const cities = args.cities as string[];
+        const hasAll = cities.some(c => /^all/i.test(c) || c === 'כל_האזורים' || c === 'all_areas');
+        const currentState = (await getState(phone))?.collected.state;
+        if (hasAll && currentState && STATE_CITIES[currentState]) {
+          patch.cities = STATE_CITIES[currentState];
+        } else {
+          patch.cities = cities;
+        }
       }
       if (Array.isArray(args.working_days) && args.working_days.length > 0) {
         patch.workingDays = args.working_days as number[];
@@ -148,6 +187,16 @@ Still missing: ${missing.length > 0 ? missing.join(', ') : 'NOTHING — all fiel
     }
   }
 
+  // Fallback: if user sent a confirmation word and all fields are collected,
+  // auto-complete even if the AI forgot to call complete_onboarding
+  const latest = await getState(phone);
+  const col = latest?.collected ?? {};
+  if (CONFIRMATION_WORDS.has(lower) && col.professions?.length && col.state && col.cities?.length) {
+    log.info({ phone }, 'Auto-completing onboarding (AI missed complete_onboarding tool call)');
+    await executeCompletion(phone, latest!);
+    return;
+  }
+
   const text_response = extractTextFromResponse(aiResponse);
   if (text_response) {
     await sendText(phone, text_response);
@@ -163,9 +212,14 @@ async function executeCompletion(phone: string, state: BotState): Promise<void> 
     return;
   }
 
-  const zipCodes = (collected.cities ?? [])
+  let zipCodes = (collected.cities ?? [])
     .map(city => CITY_ZIPS[city])
     .filter(Boolean) as string[];
+
+  // If no zips resolved but we have a state, use all zips for that state
+  if (zipCodes.length === 0 && collected.state && STATE_CITIES[collected.state]) {
+    zipCodes = STATE_CITIES[collected.state].map(c => CITY_ZIPS[c]).filter(Boolean) as string[];
+  }
 
   const { data: existing } = await supabase
     .from('contractors')
