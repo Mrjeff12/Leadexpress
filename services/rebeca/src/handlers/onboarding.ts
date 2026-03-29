@@ -1,63 +1,32 @@
 import { supabase } from '../lib/supabase.js';
 import { sendText } from '../lib/twilio.js';
-import { t, lang } from '../lib/i18n.js';
-import { getState, setState, clearState, updateCollected, newOnboardState } from '../lib/state.js';
-import { callOpenAI, extractTextFromResponse, extractToolCalls } from '../agents/client.js';
-import { ONBOARDING_TOOLS, ONBOARDING_AGENT_INSTRUCTIONS } from '../agents/tools.js';
+import { lang } from '../lib/i18n.js';
+import { getState, setState, clearState, newOnboardState } from '../lib/state.js';
+import { getCitiesByState, getAllZipsForCities } from '../lib/city-zips.js';
 import type { BotState } from '../lib/state.js';
 import pino from 'pino';
 
 const log = pino({ name: 'onboarding' });
 
-const VALID_PROFESSIONS = new Set([
-  'hvac','air_duct','renovation','plumbing','electrical','painting',
-  'roofing','flooring','fencing','cleaning','locksmith','landscaping',
-  'chimney','garage_doors','security','windows',
-]);
+const PROFESSIONS = [
+  { key: 'hvac', en: 'HVAC / AC', he: 'מיזוג / מזגנים', emoji: '❄️' },
+  { key: 'air_duct', en: 'Air Duct Cleaning', he: 'ניקוי תעלות אוויר', emoji: '💨' },
+  { key: 'renovation', en: 'Renovation', he: 'שיפוצים', emoji: '🔨' },
+  { key: 'plumbing', en: 'Plumbing', he: 'אינסטלציה', emoji: '🚰' },
+  { key: 'electrical', en: 'Electrical', he: 'חשמל', emoji: '⚡' },
+  { key: 'painting', en: 'Painting', he: 'צביעה', emoji: '🎨' },
+  { key: 'roofing', en: 'Roofing', he: 'גגות', emoji: '🏠' },
+  { key: 'flooring', en: 'Flooring', he: 'ריצוף', emoji: '🪵' },
+  { key: 'fencing', en: 'Fencing & Railing', he: 'גדרות ומעקות', emoji: '🧱' },
+  { key: 'cleaning', en: 'Cleaning', he: 'ניקיון', emoji: '✨' },
+  { key: 'locksmith', en: 'Locksmith', he: 'מנעולן', emoji: '🔑' },
+  { key: 'landscaping', en: 'Landscaping', he: 'גינון', emoji: '🌿' },
+  { key: 'garage_doors', en: 'Garage Doors', he: 'דלתות מוסך', emoji: '🚪' },
+  { key: 'windows', en: 'Windows & Doors', he: 'חלונות ודלתות', emoji: '🪟' },
+] as const;
 
-// Map common aliases / AI variations to valid profession keys
-const PROFESSION_ALIASES: Record<string, string> = {
-  ac: 'hvac', air_conditioning: 'hvac', ac_repair: 'hvac', ac_cleaning: 'air_duct',
-  duct_cleaning: 'air_duct', duct: 'air_duct', ducts: 'air_duct',
-  remodel: 'renovation', remodeling: 'renovation', general_contractor: 'renovation',
-  plumber: 'plumbing', electrician: 'electrical', painter: 'painting',
-  roofer: 'roofing', roof: 'roofing', floors: 'flooring', floor: 'flooring',
-  fence: 'fencing', fences: 'fencing', cleaner: 'cleaning', clean: 'cleaning',
-  locks: 'locksmith', landscape: 'landscaping', lawn: 'landscaping',
-  chimney_sweep: 'chimney', garage_door: 'garage_doors', garage: 'garage_doors',
-  security_system: 'security', alarm: 'security', window: 'windows',
-};
-
-function normalizeProfession(p: string): string | null {
-  const key = p.toLowerCase().trim();
-  if (VALID_PROFESSIONS.has(key)) return key;
-  if (PROFESSION_ALIASES[key]) return PROFESSION_ALIASES[key];
-  return null;
-}
-
-const CITY_ZIPS: Record<string, string> = {
-  miami: '33101', fort_lauderdale: '33301', hollywood: '33019',
-  hialeah: '33010', coral_gables: '33146', boca_raton: '33431',
-  west_palm: '33401', pompano: '33060', delray: '33444',
-  homestead: '33030', doral: '33178', pembroke_pines: '33024',
-  miramar: '33025', plantation: '33317', sunrise: '33325',
-  weston: '33326', aventura: '33160', miami_beach: '33139',
-  manhattan: '10001', brooklyn: '11201', queens: '11101',
-  bronx: '10451', staten_island: '10301', yonkers: '10701',
-  long_island: '11501', houston: '77001', dallas: '75201',
-  san_antonio: '78201', austin: '78701',
-};
-
-const STATE_CITIES: Record<string, string[]> = {
-  FL: ['miami','fort_lauderdale','hollywood','hialeah','coral_gables','boca_raton','west_palm','pompano','delray','homestead','doral','pembroke_pines','miramar','plantation','sunrise','weston','aventura','miami_beach'],
-  NY: ['manhattan','brooklyn','queens','bronx','staten_island','yonkers','long_island'],
-  TX: ['houston','dallas','san_antonio','austin'],
-};
-
-const CONFIRMATION_WORDS = new Set([
-  'מאשר','כן','yes','confirm','ok','אוקי','נכון','בסדר','יאללה','אישור',
-  'approve','correct','sure','בטח','כמובן','yep','yeah','y','1','👍',
-]);
+const DAY_NAMES_EN = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const DAY_NAMES_HE = ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי', 'שישי', 'שבת'];
 
 /**
  * Start onboarding for a user who has a profile but no contractor setup.
@@ -70,17 +39,17 @@ export async function startOnboarding(phone: string, profile: { id: string; full
   const state = newOnboardState(profile.id, null, l, hasRealName ? profile.full_name : undefined);
   await setState(phone, state);
 
+  const profList = PROFESSIONS.map((p, i) =>
+    `${i + 1}️⃣ ${p.emoji} ${l === 'he' ? p.he : p.en}`
+  ).join('\n');
+
   if (l === 'he') {
     await sendText(phone,
-      hasRealName
-        ? `היי ${firstName}! אני רבקה 👋\nספר לי מה אתה עושה ואיפה אתה עובד — ואני אתחיל לחפש לך עבודות.`
-        : `היי! אני רבקה 👋\nספר לי מה השם שלך, מה אתה עושה ואיפה — ואני אתחיל לחפש לך עבודות.`,
+      `היי${firstName ? ` ${firstName}` : ''}! אני רבקה 👋\nבוא נגדיר את הפרופיל שלך כדי שתקבל עבודות מתאימות.\n\n*שלב 1:* מה המקצוע שלך?\nשלח מספרים מופרדים בפסיקים:\n\n${profList}\n\nלדוגמה: *1, 4* למיזוג ואינסטלציה`,
     );
   } else {
     await sendText(phone,
-      hasRealName
-        ? `Hey ${firstName}! I'm Rebeca 👋\nTell me what you do and where you work — I'll start finding you jobs.`
-        : `Hey! I'm Rebeca 👋\nTell me your name, what you do, and where — I'll start finding you jobs.`,
+      `Hey${firstName ? ` ${firstName}` : ''}! I'm Rebeca 👋\nLet's set up your profile so you get the right leads.\n\n*Step 1:* What type of work do you do?\nReply with numbers separated by commas:\n\n${profList}\n\nExample: *1, 4* for HVAC and Plumbing`,
     );
   }
 }
@@ -90,186 +59,285 @@ export async function startOnboarding(phone: string, profile: { id: string; full
  */
 export async function handleOnboarding(phone: string, text: string): Promise<void> {
   const state = await getState(phone);
-  if (!state) {
-    await sendText(phone, t(phone, 'error_generic'));
-    return;
-  }
+  if (!state) return;
 
   const lower = text.trim().toLowerCase();
   if (['menu', 'help', 'cancel', 'stop', 'תפריט', 'ביטול'].includes(lower)) {
     await clearState(phone);
-    await sendText(phone, t(phone, 'menu'));
+    const l = state.language;
+    await sendText(phone, l === 'he' ? 'בוטל. שלח MENU לאפשרויות.' : 'Cancelled. Send MENU for options.');
     return;
   }
 
-  const c = state.collected;
-  const missing: string[] = [];
-  if (!c.name) missing.push('name (full name)');
-  if (!c.professions?.length) missing.push('professions (trade/s)');
-  if (!c.state) missing.push('state (US state: FL, NY, TX)');
-  if (!c.cities?.length) missing.push('cities (within their state)');
-  if (!c.workingDays?.length) missing.push('working_days (days of week)');
-
-  const contextBlock = `<onboarding_state>
-Collected so far:
-- Name: ${c.name || '(not yet)'}
-- Professions: ${c.professions?.join(', ') || '(not yet)'}
-- State: ${c.state || '(not yet)'}
-- Cities: ${c.cities?.join(', ') || '(not yet)'}
-- Working days: ${c.workingDays?.map(d => ['','Mon','Tue','Wed','Thu','Fri','Sat','Sun'][d]).join(', ') || '(not yet)'}
-
-Still missing: ${missing.length > 0 ? missing.join(', ') : 'NOTHING — all fields collected, show summary and ask for confirmation'}
-</onboarding_state>`;
-
-  const instructions = ONBOARDING_AGENT_INSTRUCTIONS + '\n\n' + contextBlock;
-
-  let aiResponse;
-  try {
-    aiResponse = await callOpenAI({
-      instructions,
-      userMessage: text,
-      tools: ONBOARDING_TOOLS,
-      state,
-      maxTokens: 500,
-    });
-  } catch (err) {
-    log.error({ err, phone }, 'OpenAI call failed');
-    await sendText(phone, t(phone, 'profession_fallback'));
-    return;
-  }
-
-  // Save session ID before processing output
-  await updateCollected(phone, {}, aiResponse.id);
-
-  // Process tool calls
-  const toolCalls = extractToolCalls(aiResponse);
-  for (const call of toolCalls) {
-    if (call.name === 'save_profile') {
-      const args = call.args as Partial<BotState['collected']> & { working_days?: number[] };
-      const patch: Partial<BotState['collected']> = {};
-
-      if (args.name) patch.name = args.name as string;
-      if (Array.isArray(args.professions) && args.professions.length > 0) {
-        const mapped = (args.professions as string[]).map(normalizeProfession).filter(Boolean) as string[];
-        if (mapped.length > 0) patch.professions = [...new Set(mapped)];
-      }
-      if (args.state) patch.state = args.state as string;
-      if (Array.isArray(args.cities) && args.cities.length > 0) {
-        const cities = args.cities as string[];
-        const hasAll = cities.some(c => /^all/i.test(c) || c === 'כל_האזורים' || c === 'all_areas');
-        const currentState = (await getState(phone))?.collected.state;
-        if (hasAll && currentState && STATE_CITIES[currentState]) {
-          patch.cities = STATE_CITIES[currentState];
-        } else {
-          patch.cities = cities;
-        }
-      }
-      if (Array.isArray(args.working_days) && args.working_days.length > 0) {
-        patch.workingDays = args.working_days as number[];
-      }
-
-      await updateCollected(phone, patch);
-      log.info({ phone, patch }, 'Profile data saved');
-    }
-
-    if (call.name === 'complete_onboarding') {
-      const latest = await getState(phone);
-      const col = latest?.collected ?? {};
-
-      if (!col.professions?.length || !col.state || !col.cities?.length) {
-        log.warn({ phone, col }, 'complete_onboarding called with incomplete data');
-        await sendText(phone, t(phone, 'incomplete_profile'));
-        return;
-      }
-
-      await executeCompletion(phone, latest!);
+  switch (state.step) {
+    case 'profession':
+      await handleProfessionStep(phone, text, state);
       return;
-    }
-  }
-
-  // Fallback: if user sent a confirmation word and all fields are collected,
-  // auto-complete even if the AI forgot to call complete_onboarding
-  const latest = await getState(phone);
-  const col = latest?.collected ?? {};
-  if (CONFIRMATION_WORDS.has(lower) && col.professions?.length && col.state && col.cities?.length) {
-    log.info({ phone }, 'Auto-completing onboarding (AI missed complete_onboarding tool call)');
-    await executeCompletion(phone, latest!);
-    return;
-  }
-
-  const text_response = extractTextFromResponse(aiResponse);
-  if (text_response) {
-    await sendText(phone, text_response);
-  } else {
-    await sendText(phone, t(phone, 'profession_fallback2'));
+    case 'state_select':
+      await handleStateStep(phone, text, state);
+      return;
+    case 'city':
+      await handleCityStep(phone, text, state);
+      return;
+    case 'working_days':
+      await handleWorkingDaysStep(phone, text, state);
+      return;
+    case 'confirm':
+      await handleConfirmStep(phone, text, state);
+      return;
+    default:
+      // Legacy 'ai' step — treat as profession step
+      state.step = 'profession';
+      await setState(phone, state);
+      await handleProfessionStep(phone, text, state);
+      return;
   }
 }
 
-async function executeCompletion(phone: string, state: BotState): Promise<void> {
-  const { userId, collected, language: l } = state;
+// ── Step 1: Profession ──
+
+async function handleProfessionStep(phone: string, text: string, state: BotState): Promise<void> {
+  const l = state.language;
+  const numbers = text.match(/\d+/g)?.map(Number) ?? [];
+  const valid = numbers.filter(n => n >= 1 && n <= PROFESSIONS.length);
+
+  if (valid.length === 0) {
+    await sendText(phone,
+      l === 'he'
+        ? `שלח מספרים (1-${PROFESSIONS.length}) מופרדים בפסיקים.\nלדוגמה: *1, 4*`
+        : `Reply with numbers (1-${PROFESSIONS.length}) separated by commas.\nExample: *1, 4*`,
+    );
+    return;
+  }
+
+  const selected = [...new Set(valid.map(n => PROFESSIONS[n - 1].key))];
+  state.collected.professions = selected;
+  state.step = 'state_select';
+  await setState(phone, state);
+
+  const labels = selected.map(key => {
+    const p = PROFESSIONS.find(pr => pr.key === key)!;
+    return `${p.emoji} ${l === 'he' ? p.he : p.en}`;
+  }).join('\n');
+
+  if (l === 'he') {
+    await sendText(phone,
+      `מעולה! בחרת:\n${labels}\n\n*שלב 2:* באיזה מדינה אתה עובד?\n\n1️⃣ 🌴 פלורידה\n2️⃣ 🗽 ניו יורק\n3️⃣ 🤠 טקסס`,
+    );
+  } else {
+    await sendText(phone,
+      `Great! You selected:\n${labels}\n\n*Step 2:* Which state do you work in?\n\n1️⃣ 🌴 Florida\n2️⃣ 🗽 New York\n3️⃣ 🤠 Texas`,
+    );
+  }
+}
+
+// ── Step 2a: State selection ──
+
+async function handleStateStep(phone: string, text: string, state: BotState): Promise<void> {
+  const l = state.language;
+  const trimmed = text.trim().toLowerCase();
+
+  const stateMap: Record<string, string> = {
+    '1': 'FL', 'fl': 'FL', 'florida': 'FL', 'פלורידה': 'FL',
+    '2': 'NY', 'ny': 'NY', 'new york': 'NY', 'ניו יורק': 'NY',
+    '3': 'TX', 'tx': 'TX', 'texas': 'TX', 'טקסס': 'TX',
+  };
+
+  const selectedState = stateMap[trimmed];
+  if (!selectedState) {
+    await sendText(phone,
+      l === 'he'
+        ? 'שלח *1* לפלורידה, *2* לניו יורק, או *3* לטקסס.'
+        : 'Reply *1* for Florida, *2* for New York, or *3* for Texas.',
+    );
+    return;
+  }
+
+  state.collected.state = selectedState;
+  state.step = 'city';
+  await setState(phone, state);
+
+  const cities = getCitiesByState(selectedState);
+  const allOption = l === 'he' ? '0️⃣ 🗺️ כל האזורים' : '0️⃣ 🗺️ All areas';
+  const cityList = cities.map((c, i) => `${i + 1}️⃣ ${c.label}`).join('\n');
+
+  if (l === 'he') {
+    await sendText(phone,
+      `*${selectedState}* — בחר את האזורים שלך.\nשלח מספרים מופרדים בפסיקים:\n\n${allOption}\n${cityList}\n\nלדוגמה: *1, 3, 5* או *0* לכל האזורים`,
+    );
+  } else {
+    await sendText(phone,
+      `*${selectedState}* — select your service areas.\nReply with numbers separated by commas:\n\n${allOption}\n${cityList}\n\nExample: *1, 3, 5* or *0* for all areas`,
+    );
+  }
+}
+
+// ── Step 2b: City selection ──
+
+async function handleCityStep(phone: string, text: string, state: BotState): Promise<void> {
+  const l = state.language;
+  const selectedState = state.collected.state!;
+  const cities = getCitiesByState(selectedState);
+
+  const numbers = text.match(/\d+/g)?.map(Number) ?? [];
+
+  // 0 = all areas
+  if (numbers.includes(0)) {
+    const allKeys = cities.map(c => c.id);
+    const allZips = getAllZipsForCities(selectedState, allKeys);
+    state.collected.cities = allKeys;
+    state.collected.zipCodes = allZips;
+  } else {
+    const valid = numbers.filter(n => n >= 1 && n <= cities.length);
+    if (valid.length === 0) {
+      await sendText(phone,
+        l === 'he'
+          ? `שלח מספרי ערים (0-${cities.length}) מופרדים בפסיקים. *0* = כל האזורים.`
+          : `Reply with city numbers (0-${cities.length}) separated by commas. *0* = all areas.`,
+      );
+      return;
+    }
+    const selectedKeys = [...new Set(valid.map(n => cities[n - 1].id))];
+    const zips = getAllZipsForCities(selectedState, selectedKeys);
+    state.collected.cities = selectedKeys;
+    state.collected.zipCodes = zips;
+  }
+
+  state.step = 'working_days';
+  await setState(phone, state);
+
+  const cityCount = state.collected.cities!.length;
+  const zipCount = state.collected.zipCodes!.length;
+
+  if (l === 'he') {
+    await sendText(phone,
+      `נבחרו ${cityCount} אזורים (${zipCount} מיקודים)\n\n*שלב 3:* באילו ימים אתה עובד?\n\n1️⃣ ראשון-חמישי\n2️⃣ כל יום\n3️⃣ מותאם אישית\n\nשלח *1*, *2*, או *3*`,
+    );
+  } else {
+    await sendText(phone,
+      `Selected ${cityCount} areas (${zipCount} ZIP codes)\n\n*Step 3:* Which days do you work?\n\n1️⃣ Mon-Fri (default)\n2️⃣ Every day\n3️⃣ Custom\n\nReply *1*, *2*, or *3*`,
+    );
+  }
+}
+
+// ── Step 3: Working days ──
+
+async function handleWorkingDaysStep(phone: string, text: string, state: BotState): Promise<void> {
+  const l = state.language;
+  const trimmed = text.trim().toLowerCase();
+
+  if (trimmed === '1' || trimmed.includes('mon-fri') || trimmed.includes('ראשון-חמישי')) {
+    state.collected.workingDays = [1, 2, 3, 4, 5];
+  } else if (trimmed === '2' || trimmed.includes('every') || trimmed.includes('כל יום')) {
+    state.collected.workingDays = [0, 1, 2, 3, 4, 5, 6];
+  } else if (trimmed === '3' || trimmed.includes('custom') || trimmed.includes('מותאם')) {
+    await sendText(phone,
+      l === 'he'
+        ? 'שלח מספרי ימים:\n0=ראשון, 1=שני, 2=שלישי, 3=רביעי, 4=חמישי, 5=שישי, 6=שבת\n\nלדוגמה: *1,2,3,4,5*'
+        : 'Reply with day numbers:\n0=Sun, 1=Mon, 2=Tue, 3=Wed, 4=Thu, 5=Fri, 6=Sat\n\nExample: *1,2,3,4,5* for Mon-Fri',
+    );
+    return;
+  } else {
+    const nums = text.match(/\d/g)?.map(Number).filter(n => n >= 0 && n <= 6) ?? [];
+    if (nums.length === 0) {
+      await sendText(phone,
+        l === 'he'
+          ? 'שלח *1* לראשון-חמישי, *2* לכל יום, או *3* למותאם אישית.'
+          : 'Reply *1* for Mon-Fri, *2* for every day, or *3* for custom.',
+      );
+      return;
+    }
+    state.collected.workingDays = [...new Set(nums)].sort();
+  }
+
+  state.step = 'confirm';
+  await setState(phone, state);
+
+  const dayNames = l === 'he' ? DAY_NAMES_HE : DAY_NAMES_EN;
+  const profLabels = (state.collected.professions ?? []).map(key => {
+    const p = PROFESSIONS.find(pr => pr.key === key);
+    return p ? `${p.emoji} ${l === 'he' ? p.he : p.en}` : key;
+  }).join(', ');
+  const dayLabels = (state.collected.workingDays ?? []).map(d => dayNames[d]).join(', ');
+  const cityCount = state.collected.cities?.length ?? 0;
+  const zipCount = state.collected.zipCodes?.length ?? 0;
+
+  if (l === 'he') {
+    await sendText(phone,
+      `*הפרופיל שלך:*\n\n🔧 *מקצועות:* ${profLabels}\n📍 *אזורים:* ${cityCount} ערים (${zipCount} מיקודים)\n📅 *ימים:* ${dayLabels}\n\nשלח *כן* לאישור או *מחדש* להתחיל מחדש.`,
+    );
+  } else {
+    await sendText(phone,
+      `*Your profile:*\n\n🔧 *Trades:* ${profLabels}\n📍 *Areas:* ${cityCount} cities (${zipCount} ZIPs)\n📅 *Days:* ${dayLabels}\n\nReply *YES* to confirm or *REDO* to start over.`,
+    );
+  }
+}
+
+// ── Step 4: Confirm ──
+
+async function handleConfirmStep(phone: string, text: string, state: BotState): Promise<void> {
+  const l = state.language;
+  const trimmed = text.trim().toLowerCase();
+
+  if (['redo', 'מחדש', 'no', 'לא', 'start over', 'התחל מחדש'].includes(trimmed)) {
+    state.step = 'profession';
+    state.collected = { name: state.collected.name };
+    await setState(phone, state);
+    // Re-show profession selection
+    await startOnboarding(phone, { id: state.userId!, full_name: state.collected.name ?? '' });
+    return;
+  }
+
+  const positives = ['yes', 'y', 'yeah', 'yep', 'ok', 'sure', 'confirm', 'כן', 'מאשר', 'אוקי', 'בסדר', '1', '👍', 'בטח'];
+  if (!positives.some(w => trimmed.includes(w))) {
+    await sendText(phone,
+      l === 'he'
+        ? 'שלח *כן* לאישור או *מחדש* להתחיל מחדש.'
+        : 'Reply *YES* to confirm or *REDO* to start over.',
+    );
+    return;
+  }
+
+  // Save to DB
+  const userId = state.userId;
   if (!userId) {
-    log.error({ phone }, 'executeCompletion called with no userId');
+    log.error({ phone }, 'Confirm step with no userId');
     return;
   }
 
-  let zipCodes = (collected.cities ?? [])
-    .map(city => CITY_ZIPS[city])
-    .filter(Boolean) as string[];
-
-  // If no zips resolved but we have a state, use all zips for that state
-  if (zipCodes.length === 0 && collected.state && STATE_CITIES[collected.state]) {
-    zipCodes = STATE_CITIES[collected.state].map(c => CITY_ZIPS[c]).filter(Boolean) as string[];
-  }
-
-  const { data: existing } = await supabase
+  const { error } = await supabase
     .from('contractors')
-    .select('user_id, professions')
-    .eq('user_id', userId)
-    .maybeSingle();
-
-  if ((existing as { professions?: string[] } | null)?.professions?.length) {
-    await clearState(phone);
-    const msg = l === 'he'
-      ? '✅ הפרופיל שלך כבר מוגדר! תתחיל לקבל לידים.'
-      : '✅ Your profile is already set up! You\'ll start receiving leads.';
-    await sendText(phone, msg);
-    return;
-  }
-
-  const { error } = existing
-    ? await supabase.from('contractors').update({
-        professions: collected.professions,
-        zip_codes: zipCodes,
-        working_days: collected.workingDays ?? [1,2,3,4,5],
-        wa_notify: true,
-        is_active: true,
-      }).eq('user_id', userId)
-    : await supabase.from('contractors').insert({
-        user_id: userId,
-        professions: collected.professions,
-        zip_codes: zipCodes,
-        working_days: collected.workingDays ?? [1,2,3,4,5],
-        wa_notify: true,
-        is_active: true,
-      });
+    .update({
+      professions: state.collected.professions,
+      zip_codes: state.collected.zipCodes,
+      working_days: state.collected.workingDays ?? [1, 2, 3, 4, 5],
+      wa_notify: true,
+      is_active: true,
+    })
+    .eq('user_id', userId);
 
   if (error) {
-    log.error({ error, userId }, 'Failed to save contractor');
-    await sendText(phone, t(phone, 'error_generic'));
+    log.error({ error, userId }, 'Failed to save onboarding');
+    await sendText(phone, l === 'he' ? 'משהו השתבש, נסה שוב.' : 'Something went wrong. Please try again.');
     return;
   }
 
-  if (collected.name) {
-    await supabase.from('profiles').update({ full_name: collected.name }).eq('id', userId);
+  if (state.collected.name) {
+    await supabase.from('profiles').update({ full_name: state.collected.name }).eq('id', userId);
   }
 
   await clearState(phone);
 
-  const name = collected.name?.split(' ')[0] ?? '';
-  const msg = l === 'he'
-    ? `✅ ${name ? `${name}, ` : ''}הפרופיל שלך מוגדר!\nתתחיל לקבל לידים בהתאם למקצוע ואזור שלך.\n\nשלח *MENU* לאפשרויות.`
-    : `✅ ${name ? `${name}, ` : ''}you're all set!\nYou'll start receiving leads matching your trade and area.\n\nSend *MENU* for options.`;
+  const name = state.collected.name?.split(' ')[0] ?? '';
+  if (l === 'he') {
+    await sendText(phone,
+      `✅ ${name ? `${name}, ` : ''}הפרופיל שלך מוגדר!\nלידים שמתאימים לך יגיעו ישירות לפה.\n\nשלח *MENU* לאפשרויות.`,
+    );
+  } else {
+    await sendText(phone,
+      `✅ ${name ? `${name}, ` : ''}you're all set!\nYou'll receive matching leads straight here.\n\nSend *MENU* for options.`,
+    );
+  }
 
-  await sendText(phone, msg);
-  log.info({ phone, userId, professions: collected.professions, zipCodes }, 'Onboarding complete');
+  log.info({ phone, userId, professions: state.collected.professions, zipCount: state.collected.zipCodes?.length }, 'Onboarding complete');
 }

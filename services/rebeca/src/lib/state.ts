@@ -1,7 +1,7 @@
 import { supabase } from './supabase.js';
 
 export interface BotState {
-  step: 'ai' | 'confirm' | 'groups' | 'menu' | 'post_job' | 'lead_pending';
+  step: 'profession' | 'state_select' | 'city' | 'working_days' | 'confirm' | 'ai' | 'groups' | 'menu' | 'post_job' | 'lead_pending';
   userId: string | null;
   prospectId: string | null;
   language: 'he' | 'en';
@@ -12,6 +12,7 @@ export interface BotState {
     professions?: string[];
     state?: string;
     cities?: string[];
+    zipCodes?: string[];
     workingDays?: number[];
   };
   extra?: Record<string, unknown>;
@@ -86,7 +87,7 @@ export function newOnboardState(
   knownName?: string,
 ): BotState {
   return {
-    step: 'ai',
+    step: 'profession',
     userId,
     prospectId,
     language: lang,
