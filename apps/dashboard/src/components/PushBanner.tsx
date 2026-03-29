@@ -1,11 +1,9 @@
 import { useState } from 'react'
 import { Bell, X } from 'lucide-react'
 import { usePushNotifications } from '../hooks/usePushNotifications'
-import { useNavigate } from 'react-router-dom'
 
 export default function PushBanner() {
-  const { status } = usePushNotifications()
-  const navigate = useNavigate()
+  const { status, enable } = usePushNotifications()
   const [dismissed, setDismissed] = useState(() => sessionStorage.getItem('push_banner_dismissed') === '1')
 
   if (dismissed || status !== 'default') return null
@@ -22,7 +20,7 @@ export default function PushBanner() {
         Enable alerts to start your free trial
       </p>
       <button
-        onClick={() => navigate('/enable-alerts')}
+        onClick={enable}
         className="px-3 py-1.5 rounded-lg bg-[#fe5b25] text-white text-xs font-semibold hover:brightness-110 transition-all flex-shrink-0"
       >
         Enable

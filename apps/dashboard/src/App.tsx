@@ -11,8 +11,6 @@ import ImpersonationBanner from './components/ImpersonationBanner'
 import Login from './pages/Login'
 import AutoLogin from './pages/AutoLogin'
 const CompleteAccount = lazy(() => import('./pages/CompleteAccount'))
-const Install = lazy(() => import('./pages/Install'))
-const EnableAlerts = lazy(() => import('./components/EnableAlertsScreen'))
 import RequireSubscription from './components/Paywall'
 import SubscriptionBanner from './components/SubscriptionBanner'
 import CompleteAccountBanner from './components/CompleteAccountBanner'
@@ -20,6 +18,7 @@ import { supabase } from './lib/supabase'
 import { Globe } from 'lucide-react'
 import PushBanner from './components/PushBanner'
 import { PWAInstallBanner } from './components/PWAInstallBanner'
+import { OnboardingOverlayContext } from './components/OnboardingOverlayContext'
 
 /* ─── Lazy-loaded pages ─── */
 const AdminLayout = lazy(() => import('./components/AdminLayout'))
@@ -134,6 +133,7 @@ function AppShell() {
   const { isAdmin, impersonatedUserId } = useAuth()
   const location = useLocation()
   const isFullBleed = location.pathname === '/'
+  const [onboardingActive, setOnboardingActive] = useState(false)
 
   if (isAdmin && !impersonatedUserId) return <Navigate to="/admin" replace />
 
@@ -152,17 +152,17 @@ function AppShell() {
   }
 
   return (
+    <OnboardingOverlayContext.Provider value={{ active: onboardingActive, setActive: setOnboardingActive }}>
     <div className="min-h-screen">
       <div className="le-bg" />
       <div className="le-grain" />
-      <PWAInstallBanner />
-      <PushBanner />
-      <CompleteAccountBanner />
-      <SubscriptionBanner />
+      {!onboardingActive && <PWAInstallBanner />}
+      {!onboardingActive && <PushBanner />}
+      {!onboardingActive && <CompleteAccountBanner />}
+      {!onboardingActive && <SubscriptionBanner />}
       <ImpersonationBanner />
-      <Sidebar />
-      {/* Mobile Tab Bar */}
-      <MobileTabBar />
+      {!onboardingActive && <Sidebar />}
+      {!onboardingActive && <MobileTabBar />}
       <main className="relative contractor-main-content">
         {isFullBleed ? (
           <div className="h-screen">
@@ -193,6 +193,7 @@ function AppShell() {
         )}
       </main>
     </div>
+    </OnboardingOverlayContext.Provider>
   )
 }
 
@@ -245,8 +246,8 @@ function App() {
                   <Route path="/portal/job/:token" element={<JobPortal />} />
                   <Route path="/login" element={<Login />} />
                   <Route path="/auto-login" element={<AutoLogin />} />
-                  <Route path="/install" element={<RequireAuth><Install /></RequireAuth>} />
-                  <Route path="/enable-alerts" element={<RequireAuth><EnableAlerts /></RequireAuth>} />
+                  <Route path="/install" element={<RequireAuth><Navigate to="/" replace /></RequireAuth>} />
+                  <Route path="/enable-alerts" element={<RequireAuth><Navigate to="/" replace /></RequireAuth>} />
                   <Route path="/complete-account" element={<RequireAuth><CompleteAccount /></RequireAuth>} />
                   <Route path="/admin/*" element={
                     <RequireAuth><RequireAdmin><AdminLayout /></RequireAdmin></RequireAuth>

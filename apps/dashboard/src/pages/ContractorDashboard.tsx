@@ -39,6 +39,7 @@ import { usePushNotifications } from '../hooks/usePushNotifications'
 import InstallAnimation from '../components/InstallAnimation'
 import OnboardingProgress from '../components/OnboardingProgress'
 import EnableAlertsScreen from '../components/EnableAlertsScreen'
+import { useOnboardingOverlay } from '../components/OnboardingOverlayContext'
 
 /* ───────────────────── Types ───────────────────── */
 
@@ -169,12 +170,14 @@ export default function ContractorDashboard() {
   const [viewStats, setViewStats] = useState<{ views_this_week: number } | null>(null)
   const [showOnboarding, setShowOnboarding] = useState(false)
   const [onboardingStep, setOnboardingStep] = useState<string | null>(null)
+  const { setActive: setOnboardingOverlayActive } = useOnboardingOverlay()
 
   // Fetch onboarding step to show install/alerts overlay
   useEffect(() => {
     if (!effectiveUserId) return
     supabase.from('contractors').select('onboarding_step').eq('user_id', effectiveUserId).maybeSingle()
-      .then(({ data }) => {
+      .then(({ data, error }) => {
+        if (error) { console.warn('Failed to fetch onboarding_step:', error); return }
         if (data?.onboarding_step && data.onboarding_step !== 'push_enabled') {
           setOnboardingStep(data.onboarding_step)
         }
@@ -192,16 +195,23 @@ export default function ContractorDashboard() {
     // Desktop or already installed → skip install step
     if ((onboardingStep === 'registered' || onboardingStep === 'credentials_set') && (!mobile || standalone)) {
       supabase.from('contractors').update({ onboarding_step: 'installed' }).eq('user_id', effectiveUserId)
-      setOnboardingStep('installed')
+        .then(() => setOnboardingStep('installed'))
       return
     }
 
     // Push already granted/unsupported/denied → skip alerts step
     if (onboardingStep === 'installed' && pushStatus !== 'loading' && pushStatus !== 'default') {
       supabase.from('contractors').update({ onboarding_step: 'push_enabled' }).eq('user_id', effectiveUserId)
-      setOnboardingStep(null)
+        .then(() => setOnboardingStep(null))
     }
   }, [onboardingStep, pushStatus, effectiveUserId])
+
+  // Signal to AppShell whether onboarding overlay is active (hides sidebar/banners)
+  useEffect(() => {
+    const isOverlayActive = onboardingStep !== null && onboardingStep !== 'push_enabled'
+    setOnboardingOverlayActive(isOverlayActive)
+    return () => setOnboardingOverlayActive(false)
+  }, [onboardingStep, setOnboardingOverlayActive])
 
   // Fetch profile view stats
   useEffect(() => {
@@ -441,7 +451,7 @@ export default function ContractorDashboard() {
 
   // Show enable alerts overlay (auto-advance for non-default handled by useEffect)
   if (onboardingStep === 'installed' && pushStatus === 'default') {
-    return <EnableAlertsScreen />
+    return <EnableAlertsScreen onComplete={() => setOnboardingStep(null)} />
   }
 
   return (

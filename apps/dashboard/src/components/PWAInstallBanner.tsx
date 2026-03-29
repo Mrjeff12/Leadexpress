@@ -1,6 +1,5 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Download, X } from 'lucide-react'
-import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../lib/auth'
 
 function isStandalone(): boolean {
@@ -12,12 +11,24 @@ function isMobile(): boolean {
   return /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)
 }
 
+let deferredPrompt: any = null
+
 export function PWAInstallBanner() {
   const { user } = useAuth()
-  const navigate = useNavigate()
   const [dismissed, setDismissed] = useState(() =>
     sessionStorage.getItem('pwa-banner-dismissed') === '1'
   )
+  const [canInstall, setCanInstall] = useState(false)
+
+  useEffect(() => {
+    function handleBeforeInstall(e: Event) {
+      e.preventDefault()
+      deferredPrompt = e
+      setCanInstall(true)
+    }
+    window.addEventListener('beforeinstallprompt', handleBeforeInstall)
+    return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstall)
+  }, [])
 
   if (!user) return null
   if (!isMobile()) return null
@@ -27,6 +38,15 @@ export function PWAInstallBanner() {
   function handleDismiss() {
     setDismissed(true)
     sessionStorage.setItem('pwa-banner-dismissed', '1')
+  }
+
+  async function handleInstall() {
+    if (deferredPrompt) {
+      deferredPrompt.prompt()
+      await deferredPrompt.userChoice
+      deferredPrompt = null
+      setCanInstall(false)
+    }
   }
 
   return (
@@ -45,12 +65,14 @@ export function PWAInstallBanner() {
       </div>
 
       <div className="flex items-center gap-2 flex-shrink-0">
-        <button
-          onClick={() => navigate('/install')}
-          className="flex items-center gap-1.5 bg-white/20 hover:bg-white/30 active:bg-white/40 transition-colors rounded-lg px-3 py-1 text-xs font-semibold whitespace-nowrap"
-        >
-          Install
-        </button>
+        {canInstall && (
+          <button
+            onClick={handleInstall}
+            className="flex items-center gap-1.5 bg-white/20 hover:bg-white/30 active:bg-white/40 transition-colors rounded-lg px-3 py-1 text-xs font-semibold whitespace-nowrap"
+          >
+            Install
+          </button>
+        )}
         <button
           onClick={handleDismiss}
           className="p-0.5 rounded hover:bg-white/20 transition-colors"

@@ -6,7 +6,7 @@ import { useAuth } from '../lib/auth'
 import { supabase } from '../lib/supabase'
 import OnboardingProgress from './OnboardingProgress'
 
-export default function EnableAlertsScreen() {
+export default function EnableAlertsScreen({ onComplete }: { onComplete?: () => void } = {}) {
   const navigate = useNavigate()
   const { profile } = useAuth()
   const { status: pushStatus, enable: enablePush, isLoading } = usePushNotifications()
@@ -16,26 +16,27 @@ export default function EnableAlertsScreen() {
     await supabase.from('contractors').update({ onboarding_step: step }).eq('user_id', profile.id)
   }
 
+  function done() {
+    if (onComplete) onComplete()
+    else navigate('/', { replace: true })
+  }
+
   async function handleEnable() {
     await enablePush()
     await updateStep('push_enabled')
-    navigate('/', { replace: true })
+    done()
   }
 
-  function handleSkip() {
-    navigate('/', { replace: true })
+  async function handleSkip() {
+    await updateStep('push_enabled')
+    done()
   }
 
   // Auto-skip if already granted or unsupported
   useEffect(() => {
     if (pushStatus === 'loading') return
-    if (pushStatus === 'granted') {
-      updateStep('push_enabled')
-      navigate('/', { replace: true })
-    } else if (pushStatus === 'unsupported' || pushStatus === 'denied') {
-      // Mark as done so overlay won't re-appear
-      updateStep('push_enabled')
-      navigate('/', { replace: true })
+    if (pushStatus === 'granted' || pushStatus === 'unsupported' || pushStatus === 'denied') {
+      updateStep('push_enabled').then(done)
     }
   }, [pushStatus])
 

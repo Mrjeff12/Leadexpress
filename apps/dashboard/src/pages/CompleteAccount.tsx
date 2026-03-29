@@ -36,6 +36,14 @@ export default function CompleteAccount() {
 
   useEffect(() => {
     if (!profile?.id) return
+    // Guard: if user already set credentials, redirect to dashboard
+    supabase.from('contractors').select('onboarding_step').eq('user_id', profile.id).maybeSingle()
+      .then(({ data }) => {
+        if (data?.onboarding_step && data.onboarding_step !== 'registered') {
+          navigate('/', { replace: true })
+          return
+        }
+      })
     loadData()
   }, [profile?.id])
 
