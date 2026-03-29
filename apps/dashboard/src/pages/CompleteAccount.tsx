@@ -168,13 +168,13 @@ export default function CompleteAccount() {
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight mb-2">
             {step === 'install' && `Welcome, ${firstName}! 📱`}
             {step === 'form' && `Welcome, ${firstName}! 🎉`}
-            {step === 'notifications' && `Almost there! 🔔`}
+            {step === 'notifications' && `One last step! 🔔`}
             {step === 'done' && `You're all set! 🚀`}
           </h1>
           <p className="text-gray-500 text-sm">
             {step === 'install' && 'Install the app to get instant push notifications for new leads.'}
             {step === 'form' && 'Your profile is set up. Add email & password so you can log in anytime.'}
-            {step === 'notifications' && 'Enable notifications to get leads instantly — don\'t miss any job!'}
+            {step === 'notifications' && 'Just allow notifications and you\'re done!'}
             {step === 'done' && 'Redirecting to your dashboard...'}
           </p>
         </div>
@@ -376,45 +376,20 @@ export default function CompleteAccount() {
         {/* ─── Step 2: Enable Notifications ─── */}
         {step === 'notifications' && (
           <div className="rounded-2xl border border-white/60 bg-white/70 backdrop-blur-2xl shadow-[0_8px_60px_-12px_rgba(0,0,0,0.08)] p-6 sm:p-8 text-center">
-            <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-orange-100 to-amber-50 flex items-center justify-center mx-auto mb-5 shadow-lg shadow-orange-100/50">
-              <BellRing className="w-10 h-10 text-[#fe5b25]" />
-            </div>
-
-            <h2 className="text-xl font-bold text-gray-900 mb-2">
-              Don't miss any lead!
+            <h2 className="text-xl font-bold text-gray-900 mb-1">
+              One last step 🔔
             </h2>
-            <p className="text-gray-500 text-sm mb-2 max-w-xs mx-auto">
-              Get instant notifications when a matching job is found — even when this tab is closed.
+            <p className="text-gray-500 text-sm mb-4 max-w-xs mx-auto">
+              Allow notifications so you get alerted the moment a lead comes in.
+              <span className="block text-amber-600 text-xs font-medium mt-1">
+                ⚡ First to respond = wins the job
+              </span>
             </p>
 
-            {/* Why this matters */}
-            <div className="rounded-xl bg-amber-50/80 border border-amber-200/60 px-4 py-3 mb-5 text-left">
-              <p className="text-amber-900 text-[13px] font-semibold mb-1">⚠️ Why is this important?</p>
-              <p className="text-amber-800/80 text-[12px] leading-relaxed">
-                Leads are time-sensitive — the first contractor to respond usually wins the job.
-                Without notifications, you'll have to keep checking the app manually and risk missing jobs entirely.
-              </p>
-            </div>
-
-            <div className="space-y-2.5 mb-5 text-left">
-              <div className="flex items-center gap-3 px-4 py-2.5 rounded-xl bg-green-50/80 border border-green-100">
-                <span className="text-lg">⚡</span>
-                <span className="text-gray-700 text-sm font-medium">Instant alerts — be first to grab the lead</span>
-              </div>
-              <div className="flex items-center gap-3 px-4 py-2.5 rounded-xl bg-blue-50/80 border border-blue-100">
-                <span className="text-lg">📱</span>
-                <span className="text-gray-700 text-sm font-medium">Works on phone + desktop</span>
-              </div>
-              <div className="flex items-center gap-3 px-4 py-2.5 rounded-xl bg-purple-50/80 border border-purple-100">
-                <span className="text-lg">🔕</span>
-                <span className="text-gray-700 text-sm font-medium">Only relevant jobs — no spam, ever</span>
-              </div>
-            </div>
-
-            {/* Visual mockup of the browser permission popup */}
-            <div className="mb-5">
-              <p className="text-gray-400 text-[11px] font-bold uppercase tracking-widest mb-2.5">
-                What you'll see:
+            {/* Visual mockup — compact */}
+            <div className="mb-4">
+              <p className="text-gray-400 text-[10px] font-semibold uppercase tracking-wider mb-2">
+                Tap "Allow" when this pops up:
               </p>
               {/iPhone|iPad|iPod/i.test(navigator.userAgent) ? (
                 <NotifMockupIOS />
