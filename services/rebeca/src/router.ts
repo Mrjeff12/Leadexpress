@@ -4,8 +4,8 @@ import { t } from './lib/i18n.js';
 import { getState } from './lib/state.js';
 import { findProfile, linkWhatsAppPhone, isOptedOut } from './lib/profile.js';
 import { handleOnboarding, startOnboarding } from './handlers/onboarding.js';
+import { handleRegistration, startRegistration } from './handlers/registration.js';
 import { handleKnownUser } from './handlers/known-user.js';
-import { handleSales } from './handlers/sales.js';
 import { handleLeadClaim, handleLeadPass } from './handlers/lead-action.js';
 import pino from 'pino';
 
@@ -60,10 +60,14 @@ async function processMessage(phone: string, text: string, buttonPayload: string
     return;
   }
 
-  // 4. Active onboarding state
+  // 4. Active onboarding/registration state
   const state = await getState(phone);
   if (state) {
-    await handleOnboarding(phone, text);
+    if (state.flow === 'registration') {
+      await handleRegistration(phone, text);
+    } else {
+      await handleOnboarding(phone, text);
+    }
     return;
   }
 
@@ -83,9 +87,9 @@ async function processMessage(phone: string, text: string, buttonPayload: string
     return;
   }
 
-  // 7. Unknown → sales agent
-  log.info({ phone }, 'Unknown phone — routing to sales');
-  await handleSales(phone, text);
+  // 7. Unknown → start registration
+  log.info({ phone }, 'Unknown phone — starting registration');
+  await startRegistration(phone);
 }
 
 async function handleButtonPayload(phone: string, payload: string): Promise<void> {

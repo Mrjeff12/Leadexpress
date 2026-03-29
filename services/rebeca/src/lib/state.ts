@@ -1,14 +1,17 @@
 import { supabase } from './supabase.js';
 
 export interface BotState {
-  step: 'profession' | 'state_select' | 'city' | 'working_days' | 'confirm' | 'ai' | 'groups' | 'menu' | 'post_job' | 'lead_pending';
+  step: 'profession' | 'state_select' | 'city' | 'working_days' | 'name' | 'email' | 'confirm' | 'ai' | 'groups' | 'menu' | 'post_job' | 'lead_pending';
   userId: string | null;
   prospectId: string | null;
   language: 'he' | 'en';
   openaiResponseId: string | null;
   sessionStartedAt: string;
+  /** 'registration' = new user (no account), 'onboarding' = existing user (has account) */
+  flow?: 'registration' | 'onboarding';
   collected: {
     name?: string;
+    email?: string;
     professions?: string[];
     state?: string;
     cities?: string[];

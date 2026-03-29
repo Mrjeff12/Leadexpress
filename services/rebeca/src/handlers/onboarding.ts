@@ -16,7 +16,7 @@ const PROFESSIONS = [
   { key: 'locksmith', en: 'Locksmith', he: 'מנעולן', emoji: '🔑' },
   { key: 'plumbing', en: 'Plumbing', he: 'אינסטלציה', emoji: '🚰' },
   { key: 'electrical', en: 'Electrical', he: 'חשמל', emoji: '⚡' },
-] as const;
+];
 
 const OTHER_INDEX = 8; // "Other" is always last option
 
