@@ -93,7 +93,7 @@ export async function matchLead(
       )
     `)
     .eq('is_active', true)
-    .eq('profiles.subscriptions.status', 'active')
+    .in('profiles.subscriptions.status', ['active', 'trialing'])
     .contains('professions', [lead.profession]);
 
   if (lead.zip_code) {
