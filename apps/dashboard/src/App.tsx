@@ -35,17 +35,6 @@ const PublishChat = lazy(() => import('./pages/PublishChat'))
 const MyPublishedLeads = lazy(() => import('./pages/MyPublishedLeads'))
 const PartnerOnboarding = lazy(() => import('./pages/partner/PartnerOnboarding'))
 const PartnerLayout = lazy(() => import('./pages/partner/PartnerLayout'))
-const ProfileEdit = lazy(() => import('./pages/ProfileEdit'))
-const PublicProfile = lazy(() => import('./pages/PublicProfile'))
-const ReviewSubmit = lazy(() => import('./pages/ReviewSubmit'))
-const ContractorDirectory = lazy(() => import('./pages/ContractorDirectory'))
-const NewJobOffer = lazy(() => import('./pages/NewJobOffer'))
-
-function Redirect({ to }: { to: string }) {
-  window.location.href = to
-  return null
-}
-const MyReviews = lazy(() => import('./pages/MyReviews'))
 import RequirePartner from './components/RequirePartner'
 
 /* ─── Auth guard ─── */
@@ -186,9 +175,6 @@ function AppShell() {
               <Route path="/subcontractors" element={<Subcontractors />} />
               <Route path="/jobs" element={<JobsDashboard />} />
               <Route path="/profile" element={<Profile />} />
-              <Route path="/profile/edit" element={<ProfileEdit />} />
-              <Route path="/reviews" element={<MyReviews />} />
-              <Route path="/reviews/new/:jobOrderId" element={<ReviewSubmit />} />
               <Route path="/subscription" element={<Subscription />} />
               <Route path="/telegram" element={<RequireSubscription><TelegramConnect /></RequireSubscription>} />
               <Route path="/onboarding" element={<RequireSubscription><OnboardingWizard /></RequireSubscription>} />
@@ -244,7 +230,6 @@ function App() {
 
   return (
     <ErrorBoundary>
-      <HelmetProvider>
       <I18nContext.Provider value={{ locale, setLocale: handleSetLocale, t }}>
         <div dir={rtl ? 'rtl' : 'ltr'}>
           <AuthProvider>
@@ -254,10 +239,6 @@ function App() {
               <Suspense fallback={<LoadingScreen />}>
                 <Routes>
                   <Route path="/portal/job/:token" element={<JobPortal />} />
-                  <Route path="/directory" element={<ContractorDirectory />} />
-                  <Route path="/secure-jobs" element={<Redirect to={import.meta.env.PROD ? 'https://masterleadflow.com/secure-jobs' : 'http://localhost:5174/secure-jobs'} />} />
-                  <Route path="/pro/:slug" element={<PublicProfile />} />
-                  <Route path="/jobs/new" element={<NewJobOffer />} />
                   <Route path="/login" element={<Login />} />
                   <Route path="/auto-login" element={<AutoLogin />} />
                   <Route path="/complete-account" element={<RequireAuth><CompleteAccount /></RequireAuth>} />
@@ -273,7 +254,6 @@ function App() {
           </AuthProvider>
         </div>
       </I18nContext.Provider>
-      </HelmetProvider>
     </ErrorBoundary>
   )
 }
