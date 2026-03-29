@@ -66,6 +66,7 @@ export async function matchLead(
   notificationQueue: Queue,
   log: Logger,
   waNotificationQueue?: Queue,
+  pushNotificationQueue?: Queue,
 ): Promise<number> {
   const start = performance.now();
 
@@ -131,11 +132,21 @@ export async function matchLead(
   // Cap the number of contractors
   const capped = contractors.slice(0, config.matching.maxContractorsPerLead);
 
+  // Fetch contractors that have push subscriptions
+  const contractorIds = capped.map((c) => c.user_id);
+  const { data: pushSubs } = await supabase
+    .from('push_subscriptions')
+    .select('user_id')
+    .in('user_id', contractorIds);
+
+  const contractorsWithPush = new Set((pushSubs ?? []).map((s: { user_id: string }) => s.user_id));
+
   const telegramMessage = formatTelegramMessage(lead);
   const whatsappMessage = formatWhatsAppMessage(lead);
 
   const telegramJobs: Array<{ name: string; data: Record<string, unknown>; opts: Record<string, unknown> }> = [];
   const waJobs: Array<{ name: string; data: Record<string, unknown>; opts: Record<string, unknown> }> = [];
+  const pushJobs: Array<{ name: string; data: Record<string, unknown>; opts: Record<string, unknown> }> = [];
 
   for (const contractor of capped) {
     const hasWaWindow =
@@ -182,6 +193,27 @@ export async function matchLead(
         },
       });
     }
+
+    // Push notification (additive — sent regardless of WA/Telegram routing)
+    if (contractorsWithPush.has(contractor.user_id)) {
+      const professionLabel = lead.profession.replace(/_/g, ' ').toUpperCase();
+      const location = [lead.city, lead.zip_code].filter(Boolean).join(', ');
+      pushJobs.push({
+        name: 'send-push-notification',
+        data: {
+          leadId: lead.id,
+          contractorId: contractor.user_id,
+          title: `🔥 New ${professionLabel} Lead`,
+          body: `${location} — ${lead.urgency === 'hot' ? 'ASAP' : lead.urgency === 'warm' ? 'This Week' : 'Flexible'}`,
+          url: '/leads',
+        },
+        opts: {
+          jobId: `push-notif-${lead.id}-${contractor.user_id}`,
+          attempts: 2,
+          backoff: { type: 'exponential' as const, delay: 1000 },
+        },
+      });
+    }
   }
 
   // Enqueue to both queues
@@ -191,8 +223,11 @@ export async function matchLead(
   if (waJobs.length > 0 && waNotificationQueue) {
     await waNotificationQueue.addBulk(waJobs);
   }
+  if (pushJobs.length > 0 && pushNotificationQueue) {
+    await pushNotificationQueue.addBulk(pushJobs);
+  }
 
-  const totalSent = telegramJobs.length + waJobs.length;
+  const totalSent = telegramJobs.length + waJobs.length + pushJobs.length;
   
   // Update lead status and save the matched contractors to lock in access
   const matchedContractorIds = capped.map(c => c.user_id);

@@ -44,6 +44,14 @@ export function createMatchingWorker(log: Logger): { worker: Worker; cleanup: ()
     },
   });
 
+  const pushNotificationQueue = new Queue('push-notifications', {
+    connection,
+    defaultJobOptions: {
+      removeOnComplete: { count: 1000 },
+      removeOnFail: { count: 5000 },
+    },
+  });
+
   const worker = new Worker(
     config.queues.parsedLeads,
     async (job) => {
@@ -120,7 +128,7 @@ export function createMatchingWorker(log: Logger): { worker: Worker; cleanup: ()
       // ---- Log pipeline event: matching ----
       await logPipelineEvent('matched', row.group_id, leadId);
 
-      const matched = await matchLead(lead, notificationQueue, jobLog, waNotificationQueue);
+      const matched = await matchLead(lead, notificationQueue, jobLog, waNotificationQueue, pushNotificationQueue);
 
       // ---- Log pipeline event: sent ----
       if (matched > 0) {
@@ -155,6 +163,7 @@ export function createMatchingWorker(log: Logger): { worker: Worker; cleanup: ()
     await worker.close();
     await notificationQueue.close();
     await waNotificationQueue.close();
+    await pushNotificationQueue.close();
   };
 
   return { worker, cleanup };
