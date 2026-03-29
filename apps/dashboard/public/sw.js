@@ -32,17 +32,22 @@ self.addEventListener('notificationclick', (event) => {
 
   const targetUrl = (event.notification.data && event.notification.data.url) || '/';
 
+  // For external URLs (like wa.me links), always open in a new window
+  const isExternal = targetUrl.startsWith('http') && !targetUrl.includes(self.location.origin);
+
   event.waitUntil(
-    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {
-      for (const client of windowClients) {
-        if (client.url.includes(self.location.origin) && 'focus' in client) {
-          client.focus();
-          return;
-        }
-      }
-      if (clients.openWindow) {
-        return clients.openWindow(targetUrl);
-      }
-    })
+    isExternal
+      ? clients.openWindow(targetUrl)
+      : clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {
+          for (const client of windowClients) {
+            if (client.url.includes(self.location.origin) && 'focus' in client) {
+              client.focus();
+              return;
+            }
+          }
+          if (clients.openWindow) {
+            return clients.openWindow(targetUrl);
+          }
+        })
   );
 });

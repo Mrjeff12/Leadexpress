@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/auth'
 import { usePushNotifications } from '../hooks/usePushNotifications'
-import { CheckCircle, Mail, Lock, User, MapPin, Briefcase, Calendar, Loader2, ArrowRight, Bell, BellRing } from 'lucide-react'
+import { CheckCircle, Mail, Lock, User, MapPin, Briefcase, Calendar, Loader2, ArrowRight, Bell, BellRing, Smartphone } from 'lucide-react'
 
 const PROF_LABELS: Record<string, string> = {
   hvac: '❄️ HVAC', renovation: '🔨 Renovation', fencing: '🧱 Fencing',
@@ -16,13 +16,26 @@ const PROF_LABELS: Record<string, string> = {
 
 const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 
-type Step = 'form' | 'notifications' | 'done'
+type Step = 'install' | 'form' | 'notifications' | 'done'
+
+function isStandalone(): boolean {
+  return window.matchMedia('(display-mode: standalone)').matches
+    || ('standalone' in navigator && (navigator as any).standalone === true)
+}
+
+function isMobile(): boolean {
+  return /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)
+}
 
 export default function CompleteAccount() {
   const { profile } = useAuth()
   const navigate = useNavigate()
   const { status: pushStatus, enable: enablePush, isLoading: pushLoading } = usePushNotifications()
-  const [step, setStep] = useState<Step>('form')
+  // On mobile, if not running as PWA, show install step first
+  const [step, setStep] = useState<Step>(() => {
+    if (isMobile() && !isStandalone()) return 'install'
+    return 'form'
+  })
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
@@ -140,11 +153,13 @@ export default function CompleteAccount() {
             </span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight mb-2">
+            {step === 'install' && `Welcome, ${firstName}! 📱`}
             {step === 'form' && `Welcome, ${firstName}! 🎉`}
             {step === 'notifications' && `Almost there! 🔔`}
             {step === 'done' && `You're all set! 🚀`}
           </h1>
           <p className="text-gray-500 text-sm">
+            {step === 'install' && 'Install the app to get instant push notifications for new leads.'}
             {step === 'form' && 'Your profile is set up. Add email & password so you can log in anytime.'}
             {step === 'notifications' && 'Enable notifications to get leads instantly — don\'t miss any job!'}
             {step === 'done' && 'Redirecting to your dashboard...'}
@@ -153,20 +168,52 @@ export default function CompleteAccount() {
 
         {/* Step indicator */}
         {step !== 'done' && (
-          <div className="flex items-center justify-center gap-3 mb-6">
-            <div className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold transition-all ${step === 'form' ? 'bg-[#fe5b25] text-white shadow-md shadow-orange-200' : 'bg-green-100 text-green-700'}`}>
-              {step !== 'form' ? <CheckCircle className="w-3 h-3" /> : <span className="w-4 h-4 rounded-full bg-white/30 flex items-center justify-center text-[10px]">1</span>}
-              Account
-            </div>
-            <div className="w-6 h-px bg-gray-200" />
-            <div className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold transition-all ${step === 'notifications' ? 'bg-[#fe5b25] text-white shadow-md shadow-orange-200' : 'bg-gray-100 text-gray-400'}`}>
-              <span className="w-4 h-4 rounded-full bg-white/30 flex items-center justify-center text-[10px]">2</span>
-              Notifications
-            </div>
+          <div className="flex items-center justify-center gap-2 mb-6">
+            {isMobile() && (
+              <>
+                <StepPill label="Install" active={step === 'install'} done={step !== 'install'} num={1} />
+                <div className="w-4 h-px bg-gray-200" />
+              </>
+            )}
+            <StepPill label="Account" active={step === 'form'} done={step === 'notifications' || step === 'done'} num={isMobile() ? 2 : 1} />
+            <div className="w-4 h-px bg-gray-200" />
+            <StepPill label="Notifications" active={step === 'notifications'} done={step === 'done'} num={isMobile() ? 3 : 2} />
           </div>
         )}
 
-        {/* ─── Step 1: Profile + Email/Password Form ─── */}
+        {/* ─── Install Step (mobile only) ─── */}
+        {step === 'install' && (
+          <div className="rounded-2xl border border-white/60 bg-white/70 backdrop-blur-2xl shadow-[0_8px_60px_-12px_rgba(0,0,0,0.08)] p-6 sm:p-8 text-center">
+            <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-orange-100 to-amber-50 flex items-center justify-center mx-auto mb-5 shadow-lg shadow-orange-100/50">
+              <Smartphone className="w-10 h-10 text-[#fe5b25]" />
+            </div>
+
+            <h2 className="text-xl font-bold text-gray-900 mb-2">
+              Install for Notifications
+            </h2>
+            <p className="text-gray-500 text-sm mb-6 max-w-xs mx-auto">
+              Add MasterLeadFlow to your home screen so you can receive push notifications for new leads.
+            </p>
+
+            <button
+              onClick={() => navigate('/install')}
+              className="w-full py-3.5 rounded-xl text-sm font-semibold text-white flex items-center justify-center gap-2 transition-all hover:brightness-110 active:scale-[0.98] shadow-lg shadow-orange-200/50 mb-3"
+              style={{ background: 'linear-gradient(135deg, #fe5b25, #e04d1f)' }}
+            >
+              <Smartphone className="w-4 h-4" />
+              Install App
+            </button>
+
+            <button
+              onClick={() => setStep('form')}
+              className="w-full py-2.5 text-sm text-gray-400 hover:text-gray-600 transition-colors"
+            >
+              Skip — I'll install later
+            </button>
+          </div>
+        )}
+
+        {/* ─── Email/Password Form ─── */}
         {step === 'form' && (
           <>
             {/* Glass Card — Collected Info */}
@@ -376,6 +423,25 @@ export default function CompleteAccount() {
           </div>
         )}
       </div>
+    </div>
+  )
+}
+
+function StepPill({ label, active, done, num }: { label: string; active: boolean; done: boolean; num: number }) {
+  const cls = active
+    ? 'bg-[#fe5b25] text-white shadow-md shadow-orange-200'
+    : done
+      ? 'bg-green-100 text-green-700'
+      : 'bg-gray-100 text-gray-400'
+
+  return (
+    <div className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold transition-all ${cls}`}>
+      {done && !active ? (
+        <CheckCircle className="w-3 h-3" />
+      ) : (
+        <span className="w-4 h-4 rounded-full bg-white/30 flex items-center justify-center text-[10px]">{num}</span>
+      )}
+      {label}
     </div>
   )
 }

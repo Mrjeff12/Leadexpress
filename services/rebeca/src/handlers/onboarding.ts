@@ -680,6 +680,14 @@ async function handleGroupsStep(phone: string, text: string, state: BotState): P
         ? '👍 מעולה! אפשר להוסיף קבוצות מתי שרוצים.\n\nשלח *MENU* לאפשרויות.'
         : `👍 Great! You can add groups anytime.\n\nSend *MENU* for options.`,
     );
+
+    // Send PWA install tip
+    const name = state.collected.name?.split(' ')[0] ?? '';
+    await sendText(phone,
+      l === 'he'
+        ? `📱 טיפ אחרון, ${name} —\n\nהתקן את האפליקציה שלנו כדי לקבל התרעות מיידיות גם כשוואטסאפ שקט:\n👉 https://app.masterleadflow.com/install\n\nלוקח 30 שניות. לא תפספס אף ליד!`
+        : `📱 One last tip, ${name} —\n\nInstall our app to get instant notifications even when WhatsApp is quiet:\n👉 https://app.masterleadflow.com/install\n\nTakes 30 seconds. You'll never miss a lead!`,
+    );
     return;
   }
 

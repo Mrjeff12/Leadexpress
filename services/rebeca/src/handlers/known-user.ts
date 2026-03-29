@@ -1,8 +1,9 @@
 import { supabase } from '../lib/supabase.js';
 import { sendText } from '../lib/twilio.js';
-import { t } from '../lib/i18n.js';
+import { t, lang } from '../lib/i18n.js';
 import { hasActiveSubscription, recordOptOut } from '../lib/profile.js';
 import { startOnboarding } from './onboarding.js';
+import { config } from '../config.js';
 import pino from 'pino';
 
 const log = pino({ name: 'known-user' });
@@ -62,6 +63,12 @@ export async function handleKnownUser(
     return;
   }
 
+  // Option 6 — Send dashboard link
+  if (lower === '6') {
+    await sendDashboardLink(phone, profile.id);
+    return;
+  }
+
   // Daily check-in positive response
   if ([...POSITIVE_RESPONSES].some(w => lower.includes(w))) {
     await markAvailable(phone, profile.id);
@@ -71,6 +78,35 @@ export async function handleKnownUser(
   // Unrecognized — show menu
   log.debug({ phone, text: lower }, 'Unrecognized message from known user');
   await sendText(phone, t(phone, 'menu'));
+}
+
+async function sendDashboardLink(phone: string, userId: string): Promise<void> {
+  const l = lang(phone);
+  try {
+    const res = await fetch(`${config.supabase.url}/functions/v1/magic-login`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${config.supabase.serviceKey}`,
+      },
+      body: JSON.stringify({ action: 'generate', user_id: userId, redirect_path: '/complete-account' }),
+    });
+    const data = await res.json() as { link?: string };
+    const link = data.link ?? 'https://app.masterleadflow.com/login';
+
+    await sendText(phone,
+      l === 'he'
+        ? `📱 הנה הלינק לממשק שלך:\n👉 ${link}`
+        : `📱 Here's your dashboard link:\n👉 ${link}`,
+    );
+  } catch (err) {
+    log.error({ err, userId }, 'Failed to generate dashboard link');
+    await sendText(phone,
+      l === 'he'
+        ? 'משהו השתבש. נסה שוב בעוד רגע.'
+        : 'Something went wrong. Try again in a moment.',
+    );
+  }
 }
 
 async function markAvailable(phone: string, userId: string): Promise<void> {

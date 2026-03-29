@@ -11,12 +11,14 @@ import ImpersonationBanner from './components/ImpersonationBanner'
 import Login from './pages/Login'
 import AutoLogin from './pages/AutoLogin'
 const CompleteAccount = lazy(() => import('./pages/CompleteAccount'))
+const Install = lazy(() => import('./pages/Install'))
 import RequireSubscription from './components/Paywall'
 import SubscriptionBanner from './components/SubscriptionBanner'
 import CompleteAccountBanner from './components/CompleteAccountBanner'
 import { supabase } from './lib/supabase'
 import { Globe } from 'lucide-react'
 import { PushBanner } from './components/PushBanner'
+import { PWAInstallBanner } from './components/PWAInstallBanner'
 
 /* ─── Lazy-loaded pages ─── */
 const AdminLayout = lazy(() => import('./components/AdminLayout'))
@@ -152,6 +154,7 @@ function AppShell() {
     <div className="min-h-screen">
       <div className="le-bg" />
       <div className="le-grain" />
+      <PWAInstallBanner />
       <PushBanner />
       <CompleteAccountBanner />
       <SubscriptionBanner />
@@ -241,6 +244,7 @@ function App() {
                   <Route path="/portal/job/:token" element={<JobPortal />} />
                   <Route path="/login" element={<Login />} />
                   <Route path="/auto-login" element={<AutoLogin />} />
+                  <Route path="/install" element={<Install />} />
                   <Route path="/complete-account" element={<RequireAuth><CompleteAccount /></RequireAuth>} />
                   <Route path="/admin/*" element={
                     <RequireAuth><RequireAdmin><AdminLayout /></RequireAdmin></RequireAuth>

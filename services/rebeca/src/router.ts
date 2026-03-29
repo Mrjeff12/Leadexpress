@@ -54,7 +54,14 @@ async function processMessage(phone: string, text: string, buttonPayload: string
   }
 
   // 3. WhatsApp group link
+  //    If user is in 'groups' onboarding step, let the onboarding handler process it
+  //    so they get the correct "send more or type DONE" prompt.
   if (GROUP_LINK_RE.test(text)) {
+    const activeState = await getState(phone);
+    if (activeState?.step === 'groups') {
+      await handleOnboarding(phone, text);
+      return;
+    }
     await handleGroupLink(phone, text);
     return;
   }
