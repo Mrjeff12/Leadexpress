@@ -6,6 +6,10 @@ function required(name: string): string {
   return val;
 }
 
+function optional(name: string): string | undefined {
+  return process.env[name] || undefined;
+}
+
 function parseRedis() {
   const url = process.env.REDIS_URL;
   if (url && !process.env.REDIS_HOST) {
@@ -31,11 +35,17 @@ function parseRedis() {
 export const config = {
   redis: {
     ...parseRedis(),
-    maxRetriesPerRequest: null as null, // required by BullMQ
+    maxRetriesPerRequest: null as null,
   },
 
   telegram: {
     botToken: required('TELEGRAM_BOT_TOKEN'),
+  },
+
+  vapid: {
+    publicKey: optional('VAPID_PUBLIC_KEY'),
+    privateKey: optional('VAPID_PRIVATE_KEY'),
+    subject: optional('VAPID_SUBJECT') ?? 'mailto:admin@leadexpress.io',
   },
 
   worker: {
@@ -49,5 +59,6 @@ export const config = {
 
   queues: {
     notifications: 'notifications',
+    pushNotifications: 'push-notifications',
   },
 } as const;
