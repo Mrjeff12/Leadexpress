@@ -1,53 +1,62 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+import { getCorsHeaders } from "../_shared/cors.ts";
+import { checkRateLimit, rateLimitResponse } from "../_shared/rate-limit.ts";
 
 const supabase = createClient(
   Deno.env.get('SUPABASE_URL')!,
   Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
 );
 
-const CORS = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
-
 Deno.serve(async (req: Request) => {
+  const corsHeaders = getCorsHeaders(req);
+
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: CORS });
+    return new Response('ok', { headers: corsHeaders });
   }
 
+  const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown';
+  if (!checkRateLimit(ip, 3, 60_000)) {
+    return rateLimitResponse(corsHeaders);
+  }
+
+  // Always return 200 so supabase.functions.invoke() can read the error message
+  const json = (data: unknown) =>
+    new Response(JSON.stringify(data), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+
   try {
-    // Verify the user is authenticated
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
-      return new Response(JSON.stringify({ error: 'Not authenticated' }), {
-        status: 401, headers: { ...CORS, 'Content-Type': 'application/json' },
-      });
+      return json({ error: 'Not authenticated' });
     }
 
     const token = authHeader.replace('Bearer ', '');
     const { data: { user }, error: authErr } = await supabase.auth.getUser(token);
     if (authErr || !user) {
-      return new Response(JSON.stringify({ error: 'Invalid session' }), {
-        status: 401, headers: { ...CORS, 'Content-Type': 'application/json' },
-      });
+      return json({ error: 'Invalid session. Please log in again.' });
     }
 
     const { email, password } = await req.json();
 
     if (!email || !password) {
-      return new Response(JSON.stringify({ error: 'Email and password required' }), {
-        status: 400, headers: { ...CORS, 'Content-Type': 'application/json' },
-      });
+      return json({ error: 'Email and password required' });
     }
 
     if (password.length < 6) {
-      return new Response(JSON.stringify({ error: 'Password must be at least 6 characters' }), {
-        status: 400, headers: { ...CORS, 'Content-Type': 'application/json' },
-      });
+      return json({ error: 'Password must be at least 6 characters' });
     }
 
-    // Update user via admin API — bypasses email validation issues
+    // Check if email is already taken by another user
+    const { data: existingUsers } = await supabase.auth.admin.listUsers();
+    const emailTaken = existingUsers?.users?.some(
+      (u) => u.email === email && u.id !== user.id
+    );
+    if (emailTaken) {
+      return json({ error: 'This email is already in use. Please use a different email.' });
+    }
+
     const { error: updateErr } = await supabase.auth.admin.updateUserById(user.id, {
       email,
       password,
@@ -56,21 +65,14 @@ Deno.serve(async (req: Request) => {
 
     if (updateErr) {
       console.error('[update-account] Error:', updateErr);
-      return new Response(JSON.stringify({ error: updateErr.message }), {
-        status: 400, headers: { ...CORS, 'Content-Type': 'application/json' },
-      });
+      return json({ error: updateErr.message });
     }
 
     console.log(`[update-account] Updated email+password for user ${user.id}`);
-
-    return new Response(JSON.stringify({ success: true }), {
-      headers: { ...CORS, 'Content-Type': 'application/json' },
-    });
+    return json({ success: true });
 
   } catch (err) {
     console.error('[update-account] Error:', err);
-    return new Response(JSON.stringify({ error: String(err) }), {
-      status: 500, headers: { ...CORS, 'Content-Type': 'application/json' },
-    });
+    return json({ error: 'Something went wrong. Please try again.' });
   }
 });
