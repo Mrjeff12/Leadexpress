@@ -8,12 +8,14 @@ import { startCheckinCron } from './outbound/checkin.js';
 
 const log = pino({ name: 'rebeca' });
 
-const redis = new Redis(process.env.REDIS_URL ?? {
-  host: config.redis.host,
-  port: config.redis.port,
-  password: config.redis.password,
-  maxRetriesPerRequest: null,
-} as never);
+const redis = process.env.REDIS_URL
+  ? new Redis(process.env.REDIS_URL, { maxRetriesPerRequest: null })
+  : new Redis({
+      host: config.redis.host,
+      port: config.redis.port,
+      password: config.redis.password,
+      maxRetriesPerRequest: null,
+    });
 
 log.info({
   port: config.server.port,
