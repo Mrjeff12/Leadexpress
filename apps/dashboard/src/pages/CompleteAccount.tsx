@@ -172,7 +172,7 @@ export default function CompleteAccount() {
             {step === 'done' && `You're all set! 🚀`}
           </h1>
           <p className="text-gray-500 text-sm">
-            {step === 'install' && 'Install the app to get instant push notifications for new leads.'}
+            {step === 'install' && 'Add MasterLeadFlow to your home screen for instant lead alerts.'}
             {step === 'form' && 'Your profile is set up. Add email & password so you can log in anytime.'}
             {step === 'notifications' && 'Just allow notifications and you\'re done!'}
             {step === 'done' && 'Redirecting to your dashboard...'}
@@ -184,7 +184,7 @@ export default function CompleteAccount() {
           <div className="flex items-center justify-center gap-2 mb-6">
             {isMobile() && (
               <>
-                <StepPill label="Install" active={step === 'install'} done={step !== 'install'} num={1} />
+                <StepPill label="Home Screen" active={step === 'install'} done={step !== 'install'} num={1} />
                 <div className="w-4 h-px bg-gray-200" />
               </>
             )}
@@ -202,7 +202,7 @@ export default function CompleteAccount() {
             </div>
 
             <h2 className="text-xl font-bold text-gray-900 mb-2">
-              Install for Notifications
+              Add to Home Screen
             </h2>
             <p className="text-gray-500 text-sm mb-6 max-w-xs mx-auto">
               Add MasterLeadFlow to your home screen so you can receive push notifications for new leads.
@@ -214,14 +214,14 @@ export default function CompleteAccount() {
               style={{ background: 'linear-gradient(135deg, #fe5b25, #e04d1f)' }}
             >
               <Smartphone className="w-4 h-4" />
-              Install App
+              Add to Home Screen
             </button>
 
             <button
               onClick={() => setStep('form')}
               className="w-full py-2.5 text-sm text-gray-400 hover:text-gray-600 transition-colors"
             >
-              Skip — I'll install later
+              Skip for now
             </button>
           </div>
         )}

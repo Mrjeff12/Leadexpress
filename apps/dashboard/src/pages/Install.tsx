@@ -298,9 +298,19 @@ function StepCard({ num, title, desc, children }: {
 
 export default function Install() {
   const navigate = useNavigate()
-  const [platform] = useState<Platform>(detectPlatform)
+  // DEBUG: force 'ios' for preview — remove before deploy
+  const [platform] = useState<Platform>(() => {
+    const params = new URLSearchParams(window.location.search)
+    if (params.get('p') === 'ios') return 'ios'
+    if (params.get('p') === 'android') return 'android'
+    return detectPlatform()
+  })
   const [installed, setInstalled] = useState(false)
-  const [inWebView] = useState(isWebView)
+  const [inWebView] = useState(() => {
+    const params = new URLSearchParams(window.location.search)
+    if (params.has('p')) return false // skip webview check in preview mode
+    return isWebView()
+  })
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null)
   const [mounted, setMounted] = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
@@ -363,7 +373,7 @@ export default function Install() {
           <div className="w-20 h-20 rounded-full bg-green-500 flex items-center justify-center mx-auto mb-5 shadow-lg shadow-green-200">
             <CheckCircle className="w-10 h-10 text-white" />
           </div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Installed!</h1>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">Added!</h1>
           <p className="text-gray-500">Opening your dashboard...</p>
         </div>
       </div>
@@ -428,7 +438,7 @@ export default function Install() {
               style={{ background: '#fe5b25', boxShadow: '0 4px 24px #fe5b2535' }}
             >
               <Download className="w-5 h-5" />
-              Install Now — It's Free
+              Add to Home Screen — It's Free
             </button>
           </div>
         ) : platform === 'desktop' ? (
@@ -436,7 +446,7 @@ export default function Install() {
           <div className={`transition-all duration-500 delay-200 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
             <div className="rounded-2xl bg-white border border-gray-100 shadow-lg p-6 text-center mb-4">
               <CheckCircle className="w-12 h-12 text-green-500 mx-auto mb-3" />
-              <p className="text-gray-900 font-semibold text-[15px] mb-1.5">No install needed</p>
+              <p className="text-gray-900 font-semibold text-[15px] mb-1.5">No setup needed</p>
               <p className="text-gray-400 text-xs mb-5">On desktop, notifications work directly in your browser.</p>
               <button
                 onClick={() => navigate('/complete-account')}
@@ -547,7 +557,7 @@ export default function Install() {
               onClick={() => navigate('/complete-account')}
               className="text-[13px] text-gray-400 hover:text-gray-600 transition-colors"
             >
-              Skip — I'll install later
+              Skip for now
             </button>
           </div>
         )}
