@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate, NavLink, useLocation } from 'react-router-dom'
-import { lazy, Suspense, useEffect, useCallback, type ReactNode } from 'react'
+import { lazy, Suspense, useState, useEffect, useCallback, type ReactNode } from 'react'
 import { AuthProvider, useAuth } from './lib/auth'
 import { I18nContext, createTranslator, type Locale } from './lib/i18n'
 import { Toaster } from './components/shadcn/ui/toaster'
