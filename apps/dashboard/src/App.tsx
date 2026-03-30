@@ -37,8 +37,14 @@ const NotFound = lazy(() => import('./pages/NotFound'))
 const PublishChat = lazy(() => import('./pages/PublishChat'))
 const MyPublishedLeads = lazy(() => import('./pages/MyPublishedLeads'))
 const IdentityVerification = lazy(() => import('./pages/IdentityVerification'))
+const PublishedJobDetail = lazy(() => import('./pages/PublishedJobDetail'))
+const MessagesInbox = lazy(() => import('./pages/MessagesInbox'))
+const RebecaChat = lazy(() => import('./pages/RebecaChat'))
+const DirectChat = lazy(() => import('./pages/DirectChat'))
 const PartnerOnboarding = lazy(() => import('./pages/partner/PartnerOnboarding'))
 const PartnerLayout = lazy(() => import('./pages/partner/PartnerLayout'))
+const NotificationsPage = lazy(() => import('./pages/NotificationsPage'))
+const PublicProfileView = lazy(() => import('./pages/PublicProfileView'))
 import RequirePartner from './components/RequirePartner'
 
 /* ─── Auth guard ─── */
@@ -181,13 +187,19 @@ function AppShell() {
               <Route path="/group-scan" element={<RequireSubscription><RequireSetup><ContractorGroupScan /></RequireSetup></RequireSubscription>} />
               <Route path="/subcontractors" element={<Subcontractors />} />
               <Route path="/jobs" element={<JobsDashboard />} />
+              <Route path="/published-job/:id" element={<PublishedJobDetail />} />
               <Route path="/profile" element={<Profile />} />
               <Route path="/subscription" element={<Subscription />} />
               <Route path="/telegram" element={<RequireSubscription><TelegramConnect /></RequireSubscription>} />
               <Route path="/onboarding" element={<RequireSubscription><OnboardingWizard /></RequireSubscription>} />
               <Route path="/verify-identity" element={<IdentityVerification />} />
+              <Route path="/messages" element={<MessagesInbox />} />
+              <Route path="/chat/rebeca" element={<RebecaChat />} />
+              <Route path="/chat/:id" element={<DirectChat />} />
               <Route path="/publish" element={<PublishChat />} />
               <Route path="/my-published" element={<MyPublishedLeads />} />
+              <Route path="/notifications" element={<NotificationsPage />} />
+              <Route path="/profile-preview" element={<PublicProfileView />} />
               <Route path="/partner/join" element={<PartnerOnboarding />} />
               <Route path="/partner/*" element={<RequirePartner><PartnerLayout /></RequirePartner>} />
               <Route path="/settings" element={<Navigate to="/" replace />} />
