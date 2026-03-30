@@ -528,7 +528,7 @@ export default function AdminWhatsApp() {
           {he ? 'חשבון חדש' : 'Add Account'}
         </button>
         <div className="flex-1" />
-        <a href="/admin/group-scan" className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium shrink-0 transition-all bg-emerald-50 text-emerald-600 hover:bg-emerald-100 relative">
+        <a href="/admin/channels/scan" className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium shrink-0 transition-all bg-emerald-50 text-emerald-600 hover:bg-emerald-100 relative">
           <Users className="w-3.5 h-3.5" />
           {he ? 'בקשות סריקת קבוצות' : 'Group Scan Requests'}
           {pendingGroupCount > 0 && (

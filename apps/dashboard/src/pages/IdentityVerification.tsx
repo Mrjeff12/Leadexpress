@@ -46,11 +46,28 @@ export default function IdentityVerification() {
     refetch,
   } = useIdentityVerification()
 
-  // Refetch when returning from Stripe
+  // Poll for verification result after returning from Stripe (every 3s for up to 30s)
   useEffect(() => {
-    if (completed) {
-      const timer = setTimeout(() => refetch(), 2000)
-      return () => clearTimeout(timer)
+    if (!completed) return
+    let cancelled = false
+    let attempts = 0
+    const maxAttempts = 10 // 10 * 3s = 30s
+
+    const poll = async () => {
+      if (cancelled || attempts >= maxAttempts) return
+      attempts++
+      await refetch()
+      if (!cancelled && attempts < maxAttempts) {
+        timer = setTimeout(poll, 3000)
+      }
+    }
+
+    // Start first poll after 2s delay for Stripe webhook processing
+    let timer: ReturnType<typeof setTimeout> = setTimeout(poll, 2000)
+
+    return () => {
+      cancelled = true
+      clearTimeout(timer)
     }
   }, [completed, refetch])
 

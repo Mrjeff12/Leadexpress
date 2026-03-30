@@ -58,10 +58,10 @@ export function useGrowthMetrics(): GrowthMetrics {
           recentSignupsRes,
           recentGroupsRes,
         ] = await Promise.all([
-          // Paying users: active subscriptions (with plan_id for MRR)
+          // Paying users: active subscriptions (join plans for MRR)
           supabase
             .from('subscriptions')
-            .select('id, plan_id')
+            .select('id, plan_id, plans(slug, price_cents)')
             .in('status', ['active']),
 
           // Active trials
@@ -120,9 +120,10 @@ export function useGrowthMetrics(): GrowthMetrics {
         const activeTrials = trialsRes.count ?? 0
         const totalContractors = contractorsRes.count ?? 0
         const freeUsers = Math.max(0, totalContractors - payingUsers)
-        // MRR from actual plan prices (cents)
+        // MRR from actual plan prices (cents) via joined plans table
         const mrr = payingSubs.reduce((sum, s) => {
-          const price = PLAN_PRICES_CENTS[s.plan_id as string] ?? DEFAULT_PLAN_PRICE_CENTS
+          const plan = (s as any).plans
+          const price = plan?.price_cents ?? DEFAULT_PLAN_PRICE_CENTS
           return sum + price
         }, 0)
         const conversionRate = totalContractors > 0 ? (payingUsers / totalContractors) * 100 : 0

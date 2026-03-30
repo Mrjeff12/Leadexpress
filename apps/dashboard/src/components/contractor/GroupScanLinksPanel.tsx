@@ -1,7 +1,8 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { useI18n } from '../../lib/i18n'
 import { useContractorGroupScanLinks, type GroupScanStatus } from '../../hooks/useContractorGroupScanLinks'
-import { Plus, Link as LinkIcon, CheckCircle2, XCircle, Clock, ShieldAlert, Users, UserPlus, Copy, Check } from 'lucide-react'
+import { useContractorGroupLinks } from '../../hooks/useContractorGroupLinks'
+import { Plus, Link as LinkIcon, CheckCircle2, XCircle, Clock, ShieldAlert, Users, UserPlus, Copy, Check, Upload } from 'lucide-react'
 
 const StatusBadge = ({ status, locale }: { status: GroupScanStatus; locale: string }) => {
   switch (status) {
@@ -130,12 +131,28 @@ function InviteToGroupCard({ locale }: { locale: string }) {
   )
 }
 
+/** Normalize a WhatsApp invite URL to a canonical form for dedup */
+function normalizeInviteUrl(url: string): string {
+  const match = url.match(/chat\.whatsapp\.com\/([A-Za-z0-9]+)/)
+  return match ? `https://chat.whatsapp.com/${match[1]}` : url.trim().toLowerCase()
+}
+
 export default function GroupScanLinksPanel() {
   const { locale } = useI18n()
   const { data, loading, addLink } = useContractorGroupScanLinks()
+  const { links: onboardingLinks, loading: onboardingLoading } = useContractorGroupLinks()
   const [newLink, setNewLink] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
+
+  // Merge onboarding links (contractor_group_links) that are NOT already
+  // present in the scan requests table, so users can see everything.
+  const onboardingOnly = useMemo(() => {
+    const scanUrls = new Set(
+      data.own.map(l => normalizeInviteUrl(l.invite_link_normalized || l.invite_link_raw))
+    )
+    return onboardingLinks.filter(l => !scanUrls.has(normalizeInviteUrl(l.invite_link)))
+  }, [data.own, onboardingLinks])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -200,14 +217,14 @@ export default function GroupScanLinksPanel() {
       {/* Option B: No link — invite scanner */}
       <InviteToGroupCard locale={locale} />
 
-      <div className="space-y-4 max-h-[200px] overflow-y-auto pr-1 custom-scrollbar">
-        {loading && data.own.length === 0 && data.admin.length === 0 ? (
+      <div className="space-y-4 max-h-[300px] overflow-y-auto pr-1 custom-scrollbar">
+        {(loading || onboardingLoading) && data.own.length === 0 && data.admin.length === 0 && onboardingOnly.length === 0 ? (
           <div className="text-center py-4 text-[11px] text-stone-400">
             {locale === 'he' ? 'טוען...' : 'Loading...'}
           </div>
         ) : (
           <>
-            {/* Own Groups */}
+            {/* Own Groups (from scan requests) */}
             {data.own.length > 0 && (
               <div>
                 <h4 className="text-[10px] font-bold text-stone-400 uppercase tracking-wider mb-2">
@@ -225,6 +242,38 @@ export default function GroupScanLinksPanel() {
                         </span>
                       </div>
                       <StatusBadge status={link.status} locale={locale} />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Onboarding Groups (from contractor_group_links, not yet in scan requests) */}
+            {onboardingOnly.length > 0 && (
+              <div>
+                <h4 className="text-[10px] font-bold text-stone-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                  <Upload className="w-3 h-3" />
+                  {locale === 'he' ? 'קבוצות מההרשמה' : 'From Onboarding'}
+                </h4>
+                <div className="space-y-1.5">
+                  {onboardingOnly.map((link) => (
+                    <div key={`onb-${link.id}`} className="flex items-center justify-between bg-amber-50/50 border border-amber-100 rounded-lg p-2">
+                      <div className="flex flex-col gap-0.5 overflow-hidden">
+                        <span className="text-[11px] font-medium text-stone-700 truncate" dir="ltr">
+                          {link.group_name || link.invite_link}
+                        </span>
+                        <span className="text-[9px] text-amber-600 font-medium">
+                          {locale === 'he' ? 'נוסף בהרשמה' : 'Added during onboarding'}
+                        </span>
+                      </div>
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-50 text-amber-600 text-[10px] font-bold">
+                        <Clock className="w-3 h-3" />
+                        {link.status === 'joined'
+                          ? (locale === 'he' ? 'נכנסנו' : 'Joined')
+                          : link.status === 'failed'
+                            ? (locale === 'he' ? 'נכשל' : 'Failed')
+                            : (locale === 'he' ? 'ממתין' : 'Pending')}
+                      </span>
                     </div>
                   ))}
                 </div>
@@ -261,7 +310,7 @@ export default function GroupScanLinksPanel() {
               </div>
             )}
 
-            {data.own.length === 0 && data.admin.length === 0 && (
+            {data.own.length === 0 && data.admin.length === 0 && onboardingOnly.length === 0 && (
               <div className="text-center py-4 text-[11px] text-stone-400">
                 {locale === 'he' ? 'לא הוספו קבוצות עדיין' : 'No groups added yet'}
               </div>

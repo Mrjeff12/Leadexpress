@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useRef } from 'react'
 import { useAuth } from '../lib/auth'
 import { useI18n } from '../lib/i18n'
+import { useUserSubscription } from '../hooks/useUserSubscription'
 import { timeAgo } from '../lib/shared'
 import { supabase } from '../lib/supabase'
 import ForwardLeadModal from '../components/ForwardLeadModal'
@@ -45,6 +46,7 @@ import {
   Truck,
   Settings,
   Send,
+  Lock,
 } from 'lucide-react'
 
 /* ── Types ─────────────────────────────────────────────────────────── */
@@ -102,6 +104,7 @@ function getProf(p: string) { return PROF[p] ?? PROF.other }
 export default function LeadsFeed() {
   const { user, effectiveUserId } = useAuth()
   const { locale } = useI18n()
+  const { canSeeLeadDetails } = useUserSubscription()
   const he = locale === 'he'
 
   const [leads, setLeads] = useState<Lead[]>([])
@@ -128,6 +131,10 @@ export default function LeadsFeed() {
 
   /** Open WhatsApp chat with the lead's advertiser (group poster) */
   async function contactAdvertiser(lead: Lead) {
+    if (!canSeeLeadDetails) {
+      setShowUpsell(true)
+      return
+    }
     if (!lead.sender_id) return
     // sender_id is like "972501234567@c.us" — strip the @c.us suffix
     const phone = lead.sender_id.replace(/@.*$/, '')
@@ -628,8 +635,18 @@ export default function LeadsFeed() {
                       <div className="flex items-center gap-1.5 text-stone-400">
                         <Users className="w-3.5 h-3.5" strokeWidth={2} />
                         <span className="text-[11px] font-bold uppercase tracking-wider">
-                          {senderNames[lead.sender_id || ''] || lead.sender_id?.split('@')[0] || 'Unknown Sender'}
+                          {canSeeLeadDetails
+                            ? (senderNames[lead.sender_id || ''] || lead.sender_id?.split('@')[0] || 'Unknown Sender')
+                            : 'XXX-XXX-XXXX'}
                         </span>
+                        {!canSeeLeadDetails && (
+                          <button
+                            onClick={(e) => { e.stopPropagation(); setShowUpsell(true) }}
+                            className="text-[9px] font-bold text-[#e04d1c] hover:underline ml-1"
+                          >
+                            {he ? 'שדרג לצפייה' : 'Upgrade to view'}
+                          </button>
+                        )}
                       </div>
                     </div>
 
@@ -666,10 +683,20 @@ export default function LeadsFeed() {
                           e.stopPropagation();
                           contactAdvertiser(lead)
                         }}
-                        className="flex items-center justify-center gap-2 bg-[#25D366] text-white h-10 rounded-xl font-bold text-xs hover:bg-[#1da851] transition-all w-full"
+                        className={`flex items-center justify-center gap-2 text-white h-10 rounded-xl font-bold text-xs transition-all w-full ${
+                          canSeeLeadDetails
+                            ? 'bg-[#25D366] hover:bg-[#1da851]'
+                            : 'bg-stone-400 hover:bg-stone-500'
+                        }`}
                       >
-                        <MessageCircle className="w-3.5 h-3.5" />
-                        {he ? 'פנה למפרסם' : 'Contact Advertiser'}
+                        {canSeeLeadDetails ? (
+                          <MessageCircle className="w-3.5 h-3.5" />
+                        ) : (
+                          <Lock className="w-3.5 h-3.5" />
+                        )}
+                        {canSeeLeadDetails
+                          ? (he ? 'פנה למפרסם' : 'Contact Advertiser')
+                          : (he ? 'שדרג לפרימיום' : 'Upgrade to Contact')}
                       </button>
                     </div>
                   </div>
@@ -711,10 +738,20 @@ export default function LeadsFeed() {
                               e.stopPropagation();
                               contactAdvertiser(lead)
                             }}
-                            className="flex-1 flex items-center justify-center gap-2 bg-[#25D366] text-white h-12 rounded-2xl font-bold text-sm hover:bg-[#1da851] transition-all"
+                            className={`flex-1 flex items-center justify-center gap-2 text-white h-12 rounded-2xl font-bold text-sm transition-all ${
+                              canSeeLeadDetails
+                                ? 'bg-[#25D366] hover:bg-[#1da851]'
+                                : 'bg-stone-400 hover:bg-stone-500'
+                            }`}
                           >
-                            <MessageCircle className="w-4 h-4" />
-                            {he ? 'פנה למפרסם' : 'Contact Advertiser'}
+                            {canSeeLeadDetails ? (
+                              <MessageCircle className="w-4 h-4" />
+                            ) : (
+                              <Lock className="w-4 h-4" />
+                            )}
+                            {canSeeLeadDetails
+                              ? (he ? 'פנה למפרסם' : 'Contact Advertiser')
+                              : (he ? 'שדרג לפרימיום' : 'Upgrade to Contact')}
                           </button>
                           <button
                             onClick={(e) => {

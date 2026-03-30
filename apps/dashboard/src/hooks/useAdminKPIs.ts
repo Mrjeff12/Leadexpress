@@ -25,7 +25,6 @@ export function useAdminKPIs() {
           activeLeadsRes,
           groupsRes,
           contractorsRes,
-          subsRes,
           professionsRes,
           scanQueueRes,
           waRes,
@@ -41,8 +40,7 @@ export function useAdminKPIs() {
           supabase.from('leads').select('id', { count: 'exact', head: true }).eq('status', 'sent'),
           supabase.from('leads').select('id', { count: 'exact', head: true }).neq('status', 'archived'),
           supabase.from('groups').select('id', { count: 'exact', head: true }),
-          supabase.from('subscriptions').select('id, plan_id, user_id').eq('status', 'active'),
-          supabase.from('subscriptions').select('id, plan_id').eq('status', 'active'),
+          supabase.from('subscriptions').select('id, plan_id, user_id, plans(slug, price_cents)').eq('status', 'active'),
           supabase.from('professions').select('id', { count: 'exact', head: true }),
           supabase.from('contractor_group_scan_requests').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
           supabase.from('wa_accounts').select('id', { count: 'exact', head: true }).eq('status', 'connected'),
@@ -55,7 +53,7 @@ export function useAdminKPIs() {
 
         // Check for critical errors
         if (totalLeadsRes.error) throw new Error(`Leads query failed: ${totalLeadsRes.error.message}`)
-        if (subsRes.error) throw new Error(`Subscriptions query failed: ${subsRes.error.message}`)
+        if (contractorsRes.error) throw new Error(`Subscriptions query failed: ${contractorsRes.error.message}`)
 
         const totalLeads = totalLeadsRes.count ?? 0
         const leadsToday = leadsTodayRes.count ?? 0
@@ -63,9 +61,8 @@ export function useAdminKPIs() {
         const sent = sentLeadsRes.count ?? 0
         const activeGroups = groupsRes.count ?? 0
         // activeContractors = count of unique users with active subscriptions
-        const activeContractorSubs = contractorsRes.data ?? []
-        const activeContractors = activeContractorSubs.length
-        const activeSubs = subsRes.data ?? []
+        const activeSubs = contractorsRes.data ?? []
+        const activeContractors = activeSubs.length
         const activeSubsCount = activeSubs.length
         const convRate = totalLeads > 0 ? Math.round((sent / totalLeads) * 1000) / 10 : 0
 
@@ -77,9 +74,10 @@ export function useAdminKPIs() {
           }
         }
 
-        // Calculate MRR from actual plan prices
+        // Calculate MRR from actual plan prices via joined plans table
         const mrr = activeSubs.reduce((sum, s) => {
-          const price = planPrices[s.plan_id as string] ?? DEFAULT_PLAN_PRICE
+          const plan = (s as any).plans
+          const price = plan ? Math.round((plan.price_cents as number) / 100) : DEFAULT_PLAN_PRICE
           return sum + price
         }, 0)
 

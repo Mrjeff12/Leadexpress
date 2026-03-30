@@ -87,13 +87,17 @@ export function useContractorSettings(): UseContractorSettingsReturn {
 
   const addZipCode = useCallback((zip: string): boolean => {
     const cleaned = zip.trim().replace(/\D/g, '')
-    if (!cleaned || zipCodes.includes(cleaned)) return false
-    // Enforce plan limit
-    if (planLimits.maxZipCodes > 0 && zipCodes.length >= planLimits.maxZipCodes) return false
-    setZipCodes((prev) => [...prev, cleaned])
-    setSaved(false)
-    return true
-  }, [zipCodes, planLimits.maxZipCodes])
+    if (!cleaned) return false
+    let added = false
+    setZipCodes((prev) => {
+      if (prev.includes(cleaned)) return prev
+      if (planLimits.maxZipCodes > 0 && prev.length >= planLimits.maxZipCodes) return prev
+      added = true
+      return [...prev, cleaned]
+    })
+    if (added) setSaved(false)
+    return added
+  }, [planLimits.maxZipCodes])
 
   const addZipCodes = useCallback((zips: string[]): void => {
     setZipCodes((prev) => {

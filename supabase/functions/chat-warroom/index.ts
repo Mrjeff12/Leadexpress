@@ -16,6 +16,34 @@ Deno.serve(async (req: Request) => {
     return new Response('ok', { headers: CORS });
   }
 
+  // ── Auth: require admin JWT ──
+  const authHeader = req.headers.get('Authorization');
+  if (!authHeader?.startsWith('Bearer ')) {
+    return new Response(JSON.stringify({ error: 'Missing or invalid Authorization header' }), {
+      status: 401,
+      headers: { ...CORS, 'Content-Type': 'application/json' },
+    });
+  }
+  const jwt = authHeader.replace('Bearer ', '');
+  const { data: { user: caller }, error: authErr } = await supabase.auth.getUser(jwt);
+  if (authErr || !caller) {
+    return new Response(JSON.stringify({ error: 'Invalid token' }), {
+      status: 401,
+      headers: { ...CORS, 'Content-Type': 'application/json' },
+    });
+  }
+  const { data: callerProfile } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', caller.id)
+    .single();
+  if (!callerProfile || callerProfile.role !== 'admin') {
+    return new Response(JSON.stringify({ error: 'Admin access required' }), {
+      status: 403,
+      headers: { ...CORS, 'Content-Type': 'application/json' },
+    });
+  }
+
   try {
     // Load Twilio secrets from DB
     const { data: secrets } = await supabase.rpc('get_twilio_secrets');

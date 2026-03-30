@@ -3,7 +3,8 @@ import { useSearchParams } from 'react-router-dom'
 import { Loader2, CheckCircle, XCircle, RefreshCw } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 
-const SUPA_URL = import.meta.env.VITE_SUPABASE_URL || 'https://zyytzwlvtuhgbjpalbgd.supabase.co'
+const SUPA_URL = import.meta.env.VITE_SUPABASE_URL
+if (!SUPA_URL) throw new Error('VITE_SUPABASE_URL environment variable is required')
 const SUPA_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || ''
 const MAX_RETRIES = 2
 const TIMEOUT_MS = 15_000

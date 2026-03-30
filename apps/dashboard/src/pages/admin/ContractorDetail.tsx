@@ -607,7 +607,7 @@ export default function ContractorDetail() {
     return (
       <div className="animate-fade-in text-center py-24">
         <p className="text-sm" style={{ color: C.muted }}>{he ? 'קבלן לא נמצא' : 'Contractor not found'}</p>
-        <Link to="/admin/contractors" className="text-sm mt-3 inline-block font-medium" style={{ color: C.primary }}>
+        <Link to="/admin/clients" className="text-sm mt-3 inline-block font-medium" style={{ color: C.primary }}>
           {he ? 'חזרה' : 'Back'}
         </Link>
       </div>
@@ -705,7 +705,7 @@ export default function ContractorDetail() {
     <div className="animate-fade-in space-y-6">
       {/* ═══ Back link ═══ */}
       <Link
-        to="/admin/contractors"
+        to="/admin/clients"
         className="inline-flex items-center gap-1.5 text-sm font-medium transition-colors hover:opacity-70"
         style={{ color: C.muted }}
       >

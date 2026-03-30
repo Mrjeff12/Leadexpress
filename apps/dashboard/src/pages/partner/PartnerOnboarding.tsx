@@ -63,7 +63,7 @@ export default function PartnerOnboarding() {
 
   function canNext(): boolean {
     if (step === 0) return true
-    if (step === 1) return displayName.trim().length > 0 && slug.trim().length > 0 && slugAvailable !== false
+    if (step === 1) return displayName.trim().length > 0 && slug.trim().length > 0 && slugAvailable === true
     return true
   }
 

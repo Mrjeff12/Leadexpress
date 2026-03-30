@@ -32,13 +32,31 @@ Deno.serve(async (req: Request) => {
     const { data: { user }, error: authError } = await supabase.auth.getUser(token);
     if (authError || !user) return new Response("Unauthorized", { status: 401 });
 
-    const { priceId, planSlug, billingInterval, refCode } = await req.json();
-    if (!priceId || !planSlug) {
-      return new Response(JSON.stringify({ error: "Missing priceId or planSlug" }), {
+    const { planSlug, billingInterval, refCode } = await req.json();
+    if (!planSlug) {
+      return new Response(JSON.stringify({ error: "Missing planSlug" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
+    // Look up the trusted Stripe price ID from the database — never trust client-supplied priceId
+    const priceColumn = billingInterval === "yearly" ? "stripe_yearly_price_id" : "stripe_price_id";
+    const { data: plan, error: planError } = await supabase
+      .from("plans")
+      .select(`slug, ${priceColumn}`)
+      .eq("slug", planSlug)
+      .eq("is_active", true)
+      .single();
+
+    if (planError || !plan || !plan[priceColumn]) {
+      return new Response(JSON.stringify({ error: "Invalid plan" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const priceId = plan[priceColumn] as string;
 
     // Validate referral partner if refCode provided
     let refPartnerSlug: string | undefined;
@@ -118,7 +136,7 @@ Deno.serve(async (req: Request) => {
     });
   } catch (err) {
     console.error("[checkout] Error:", err);
-    return new Response(JSON.stringify({ error: (err as Error).message }), {
+    return new Response(JSON.stringify({ error: "An unexpected error occurred" }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

@@ -169,10 +169,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signOut = async () => {
     localStorage.removeItem(IMPERSONATE_KEY)
+    localStorage.removeItem(ACTIVE_ROLE_KEY)
     await supabase.auth.signOut()
   }
 
-  const impersonate = async (userId: string) => {
+  const impersonate = useCallback(async (userId: string) => {
     if (!state.isAdmin) throw new Error('Only admins can impersonate users')
     const profile = await fetchProfile(userId)
     if (!profile) throw new Error('Could not fetch profile for user')
@@ -189,7 +190,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       resource_id: userId,
       details: { admin_email: state.user?.email },
     })
-  }
+  }, [state.isAdmin, state.user])
 
   const stopImpersonating = () => {
     const previousImpersonatedId = state.impersonatedUserId
@@ -205,7 +206,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         action: 'impersonate_stop',
         resource_type: 'user',
         resource_id: previousImpersonatedId,
-      })
+      }).then(({ error }) => { if (error) console.error('Audit log failed:', error) })
     }
   }
 
@@ -215,7 +216,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (savedId && !state.impersonatedUserId) {
       impersonate(savedId).catch(() => localStorage.removeItem(IMPERSONATE_KEY))
     }
-  }, [state.isAdmin, state.loading])
+  }, [state.isAdmin, state.loading, impersonate])
 
   const effectiveUserId = state.impersonatedUserId || state.user?.id
 

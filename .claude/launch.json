@@ -49,6 +49,12 @@
       "runtimeExecutable": "/bin/zsh",
       "runtimeArgs": ["-c", "export PATH=/Users/bigjeff/.nvm/versions/node/v20.19.6/bin:$PATH && cd apps/landing && npx vite --port 5176"],
       "port": 5176
+    },
+    {
+      "name": "prototype",
+      "runtimeExecutable": "/bin/zsh",
+      "runtimeArgs": ["-c", "export PATH=/Users/bigjeff/.nvm/versions/node/v20.19.6/bin:$PATH && cd prototype-mobile && npx vite --port 5555"],
+      "port": 5555
     }
   ]
 }

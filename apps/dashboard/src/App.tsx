@@ -1,6 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate, NavLink, useLocation } from 'react-router-dom'
 import { lazy, Suspense, useState, useEffect, useCallback, type ReactNode } from 'react'
-import { HelmetProvider } from 'react-helmet-async'
 import { AuthProvider, useAuth } from './lib/auth'
 import { I18nContext, createTranslator, isRtl, type Locale } from './lib/i18n'
 import { Toaster } from './components/shadcn/ui/toaster'
@@ -45,6 +44,7 @@ const PartnerOnboarding = lazy(() => import('./pages/partner/PartnerOnboarding')
 const PartnerLayout = lazy(() => import('./pages/partner/PartnerLayout'))
 const NotificationsPage = lazy(() => import('./pages/NotificationsPage'))
 const PublicProfileView = lazy(() => import('./pages/PublicProfileView'))
+const ProfileEdit = lazy(() => import('./pages/ProfileEdit'))
 import RequirePartner from './components/RequirePartner'
 
 /* ─── Auth guard ─── */
@@ -84,7 +84,13 @@ function RequireSetup({ children }: { children: ReactNode }) {
       .select('professions, zip_codes')
       .eq('user_id', effectiveUserId)
       .maybeSingle()
-      .then(({ data }) => {
+      .then(({ data, error }) => {
+        if (error) {
+          console.error('RequireSetup: failed to check contractor setup', error)
+          // Assume user is set up to avoid blocking access
+          setReady(true)
+          return
+        }
         const hasProfs = data?.professions && (data.professions as string[]).length > 0
         const hasZips = data?.zip_codes && (data.zip_codes as string[]).length > 0
         setReady(!!(hasProfs && hasZips))
@@ -189,6 +195,8 @@ function AppShell() {
               <Route path="/jobs" element={<JobsDashboard />} />
               <Route path="/published-job/:id" element={<PublishedJobDetail />} />
               <Route path="/profile" element={<Profile />} />
+              <Route path="/profile/edit" element={<ProfileEdit />} />
+              <Route path="/profile/public" element={<PublicProfileView />} />
               <Route path="/subscription" element={<Subscription />} />
               <Route path="/telegram" element={<RequireSubscription><TelegramConnect /></RequireSubscription>} />
               <Route path="/onboarding" element={<RequireSubscription><OnboardingWizard /></RequireSubscription>} />
@@ -262,8 +270,6 @@ function App() {
                   <Route path="/portal/job/:token" element={<JobPortal />} />
                   <Route path="/login" element={<Login />} />
                   <Route path="/auto-login" element={<AutoLogin />} />
-                  <Route path="/install" element={<RequireAuth><Navigate to="/" replace /></RequireAuth>} />
-                  <Route path="/enable-alerts" element={<RequireAuth><Navigate to="/" replace /></RequireAuth>} />
                   <Route path="/complete-account" element={<RequireAuth><CompleteAccount /></RequireAuth>} />
                   <Route path="/admin/*" element={
                     <RequireAuth><RequireAdmin><AdminLayout /></RequireAdmin></RequireAuth>

@@ -30,6 +30,25 @@ Deno.serve(async (req: Request) => {
 
     // ── ACTION: generate — create a new magic token for a user ──
     if (action === 'generate') {
+      // Auth: require admin JWT to generate tokens
+      const authHeader = req.headers.get('Authorization');
+      if (!authHeader?.startsWith('Bearer ')) {
+        return json({ error: 'Missing or invalid Authorization header' }, 401);
+      }
+      const jwt = authHeader.replace('Bearer ', '');
+      const { data: { user: caller }, error: authErr } = await supabase.auth.getUser(jwt);
+      if (authErr || !caller) {
+        return json({ error: 'Invalid token' }, 401);
+      }
+      const { data: callerProfile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', caller.id)
+        .single();
+      if (!callerProfile || callerProfile.role !== 'admin') {
+        return json({ error: 'Admin access required' }, 403);
+      }
+
       if (!user_id && !phone) {
         return json({ error: 'user_id or phone required' }, 400);
       }
@@ -180,7 +199,7 @@ Deno.serve(async (req: Request) => {
     return json({ error: 'Invalid action. Use "generate" or "exchange"' }, 400);
   } catch (err) {
     console.error('[magic-login]', err);
-    return json({ error: String(err) }, 500);
+    return json({ error: 'An unexpected error occurred' }, 500);
   }
 });
 

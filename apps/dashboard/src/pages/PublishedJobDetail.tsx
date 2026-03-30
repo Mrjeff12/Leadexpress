@@ -117,32 +117,6 @@ function getInitials(name: string | null): string {
     .join('')
 }
 
-/* ───────────────── Placeholder data ───────────────── */
-
-const PLACEHOLDER_BROADCAST: BroadcastDetail = {
-  id: 'placeholder',
-  lead_id: '',
-  publisher_id: '',
-  deal_type: 'fixed_price',
-  deal_value: '800',
-  description: 'Full bathroom plumbing job — replace pipes, install new fixtures, connect water heater. Tools provided.',
-  status: 'open',
-  max_recipients: 50,
-  sent_count: 31,
-  expires_at: new Date(Date.now() + 48 * 3_600_000).toISOString(),
-  created_at: new Date(Date.now() - 24 * 3_600_000).toISOString(),
-  updated_at: new Date(Date.now() - 24 * 3_600_000).toISOString(),
-  lead_profession: 'plumbing',
-  lead_city: 'Doral, FL',
-  lead_zip: '33178',
-  lead_summary: 'Full bathroom plumbing job — replace pipes, install new fixtures, connect water heater. Tools provided.',
-}
-
-const PLACEHOLDER_APPLICANTS: Applicant[] = [
-  { id: '1', contractor_id: 'a', status: 'interested', created_at: new Date(Date.now() - 12 * 60_000).toISOString(), full_name: 'Carlos M.', slug: null, headline: 'Licensed Plumber · 10yr exp', avg_rating: 4.9, review_count: 32, tier: 'trusted', insurance_verified: true, license_number: 'FL-12345', professions: ['plumbing'] },
-  { id: '2', contractor_id: 'b', status: 'interested', created_at: new Date(Date.now() - 35 * 60_000).toISOString(), full_name: 'Alex R.', slug: null, headline: 'General Contractor', avg_rating: 4.7, review_count: 18, tier: 'verified', insurance_verified: true, license_number: null, professions: ['renovation', 'plumbing'] },
-  { id: '3', contractor_id: 'c', status: 'interested', created_at: new Date(Date.now() - 60 * 60_000).toISOString(), full_name: 'David L.', slug: null, headline: 'Plumber', avg_rating: 4.5, review_count: 8, tier: 'verified', insurance_verified: false, license_number: null, professions: ['plumbing'] },
-]
 
 /* ───────────────── Component ───────────────── */
 
@@ -157,7 +131,6 @@ export default function PublishedJobDetail() {
   const [applicants, setApplicants] = useState<Applicant[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [usingPlaceholder, setUsingPlaceholder] = useState(false)
   const [choosing, setChoosing] = useState<string | null>(null)
 
   /* ─── Fetch broadcast + responses ─── */
@@ -185,12 +158,7 @@ export default function PublishedJobDetail() {
         if (bErr) throw bErr
 
         if (!bData) {
-          // Table may exist but row not found — show placeholder
-          if (!cancelled) {
-            setBroadcast(PLACEHOLDER_BROADCAST)
-            setApplicants(PLACEHOLDER_APPLICANTS)
-            setUsingPlaceholder(true)
-          }
+          if (!cancelled) setError('Job broadcast not found')
           return
         }
 
@@ -231,11 +199,8 @@ export default function PublishedJobDetail() {
         if (!cancelled) setApplicants(responses)
       } catch (e: any) {
         console.error('[PublishedJobDetail] load error:', e)
-        // Fallback to placeholder if tables don't exist or query fails
         if (!cancelled) {
-          setBroadcast(PLACEHOLDER_BROADCAST)
-          setApplicants(PLACEHOLDER_APPLICANTS)
-          setUsingPlaceholder(true)
+          setError(e?.message || 'Failed to load broadcast details')
         }
       } finally {
         if (!cancelled) setLoading(false)
@@ -249,7 +214,7 @@ export default function PublishedJobDetail() {
   /* ─── Accept contractor ─── */
 
   async function handleChoose(contractorId: string) {
-    if (!broadcast || broadcast.id === 'placeholder') return
+    if (!broadcast) return
     setChoosing(contractorId)
     try {
       const { error: err } = await supabase.rpc('choose_contractor_for_broadcast', {
@@ -307,14 +272,6 @@ export default function PublishedJobDetail() {
 
   return (
     <div className="max-w-3xl mx-auto pb-12" dir={isHe ? 'rtl' : 'ltr'}>
-
-      {/* Placeholder banner */}
-      {usingPlaceholder && (
-        <div className="mx-4 mt-4 px-4 py-2.5 rounded-xl bg-amber-50 border border-amber-200 flex items-center gap-2 text-amber-700 text-xs">
-          <AlertCircle size={14} />
-          <span>{isHe ? 'מציג נתונים לדוגמה — לא נמצאה שידור אמיתי' : 'Showing placeholder data — no real broadcast found for this ID'}</span>
-        </div>
-      )}
 
       {/* ─── Header ─── */}
       <div className="px-4 sm:px-6 pt-6 pb-5">

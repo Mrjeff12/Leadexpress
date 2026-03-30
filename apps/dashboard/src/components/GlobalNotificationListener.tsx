@@ -5,13 +5,18 @@ import { useToast } from './hooks/use-toast'
 import { useI18n } from '../lib/i18n'
 import { Bell } from 'lucide-react'
 import { useAuth } from '../lib/auth'
+import { useContractorProfile } from '../hooks/useContractorProfile'
 
 export function GlobalNotificationListener() {
   const { toast } = useToast()
   const { locale } = useI18n()
   const { user } = useAuth()
+  const { data: contractorData, isLoading: profileLoading } = useContractorProfile()
   const navigate = useNavigate()
   const isHe = locale === 'he'
+
+  const professions = contractorData?.professions ?? []
+  const zipCodes = contractorData?.zip_codes ?? []
 
   // Listen for service worker messages (notification clicks)
   useEffect(() => {
@@ -35,13 +40,18 @@ export function GlobalNotificationListener() {
   }, [navigate])
 
   useEffect(() => {
-    // Show notification for any logged in user
-    if (!user) return
+    // Only subscribe when user is logged in and profile is loaded with professions/zips
+    if (!user || profileLoading || professions.length === 0 || zipCodes.length === 0) return
 
     const ch = supabase
       .channel('global-leads-rt')
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'leads' }, (payload) => {
-        const newLead = payload.new
+        const newLead = payload.new as Record<string, any>
+
+        // Client-side filter: only show toast if lead matches contractor's professions AND zip codes
+        if (!professions.includes(newLead.profession) || !zipCodes.includes(newLead.zip_code)) {
+          return
+        }
 
         toast({
           title: (
@@ -53,7 +63,7 @@ export function GlobalNotificationListener() {
               </div>
               <div className="flex flex-col">
                 <span className="font-bold text-sm">
-                  {isHe ? 'ליד חדש במערכת!' : 'New Lead in System!'}
+                  {isHe ? 'ליד חדש בשבילך!' : 'New Lead for You!'}
                 </span>
                 <span className="text-xs text-gray-500 font-normal mt-0.5">
                   {newLead.name || (isHe ? 'ללא שם' : 'Unnamed')} • {newLead.profession || (isHe ? 'כללי' : 'General')}
@@ -70,7 +80,7 @@ export function GlobalNotificationListener() {
     return () => {
       supabase.removeChannel(ch)
     }
-  }, [toast, isHe, user])
+  }, [toast, isHe, user, profileLoading, professions, zipCodes])
 
   return null
 }

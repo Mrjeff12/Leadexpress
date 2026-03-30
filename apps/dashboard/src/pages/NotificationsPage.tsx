@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../lib/auth'
 import { useI18n } from '../lib/i18n'
+import { useContractorProfile } from '../hooks/useContractorProfile'
 import { supabase } from '../lib/supabase'
 import { timeAgo } from '../lib/shared'
 import {
@@ -14,6 +16,7 @@ import {
   BellOff,
   Loader2,
   Check,
+  AlertCircle,
 } from 'lucide-react'
 
 /* ───────────────────── Types ───────────────────── */
@@ -57,7 +60,13 @@ function notificationColors(type: Notification['type']) {
 export default function NotificationsPage() {
   const { effectiveUserId } = useAuth()
   const { t, locale } = useI18n()
+  const navigate = useNavigate()
+  const { data: contractorData, isLoading: profileLoading } = useContractorProfile()
   const isHe = locale === 'he'
+
+  const professions = contractorData?.professions ?? []
+  const zipCodes = contractorData?.zip_codes ?? []
+  const profileReady = !profileLoading && professions.length > 0 && zipCodes.length > 0
 
   const [notifications, setNotifications] = useState<Notification[]>([])
   const [loading, setLoading] = useState(true)
@@ -66,16 +75,23 @@ export default function NotificationsPage() {
   /* Build notifications from recent lead activity */
   const fetchNotifications = useCallback(async () => {
     if (!effectiveUserId) return
+    if (professions.length === 0 || zipCodes.length === 0) {
+      setNotifications([])
+      setLoading(false)
+      return
+    }
     setLoading(true)
 
     try {
-      // Fetch recent leads assigned to this contractor (last 30 days)
+      // Fetch recent leads filtered by contractor's professions & zip codes (last 30 days)
       const since = new Date()
       since.setDate(since.getDate() - 30)
 
       const { data: leads } = await supabase
         .from('leads')
         .select('id, profession, parsed_summary, city, zip_code, urgency, budget_range, created_at, groups ( name )')
+        .in('profession', professions)
+        .in('zip_code', zipCodes)
         .order('created_at', { ascending: false })
         .gte('created_at', since.toISOString())
         .limit(50)
@@ -148,13 +164,19 @@ export default function NotificationsPage() {
     } finally {
       setLoading(false)
     }
-  }, [effectiveUserId, isHe])
+  }, [effectiveUserId, isHe, professions, zipCodes])
 
   useEffect(() => { fetchNotifications() }, [fetchNotifications])
 
-  /* Mark single notification as read */
-  const markAsRead = (id: string) => {
-    setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n))
+  /* Mark single notification as read and navigate */
+  const handleNotificationClick = (n: Notification) => {
+    setNotifications(prev => prev.map(item => item.id === n.id ? { ...item, read: true } : item))
+    switch (n.type) {
+      case 'lead':   navigate('/leads'); break
+      case 'job':    navigate('/jobs'); break
+      case 'message': navigate('/messages'); break
+      default:       break
+    }
   }
 
   /* Mark all as read */
@@ -194,8 +216,31 @@ export default function NotificationsPage() {
         )}
       </div>
 
+      {/* Profile not configured */}
+      {!profileLoading && !profileReady && (
+        <div className="glass-panel rounded-2xl p-10 text-center">
+          <div className="w-16 h-16 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center mx-auto mb-4">
+            <AlertCircle size={28} className="text-amber-400" />
+          </div>
+          <h3 className="text-base font-semibold text-white/80 mb-1">
+            {isHe ? 'הגדר את הפרופיל שלך' : 'Set up your profile'}
+          </h3>
+          <p className="text-sm text-white/40 max-w-xs mx-auto mb-4">
+            {isHe
+              ? 'הוסף מקצועות ומיקודים כדי לקבל התראות על לידים רלוונטיים'
+              : 'Add your professions and zip codes to receive relevant lead notifications.'}
+          </p>
+          <button
+            onClick={() => navigate('/profile/edit')}
+            className="text-sm font-semibold text-[#fe5b25] hover:text-[#ff7a4d] transition-colors"
+          >
+            {isHe ? 'עבור להגדרות פרופיל' : 'Go to Profile Settings'}
+          </button>
+        </div>
+      )}
+
       {/* Loading state */}
-      {loading && (
+      {loading && profileReady && (
         <div className="flex items-center justify-center py-20">
           <Loader2 size={28} className="animate-spin text-white/30" />
         </div>
@@ -228,7 +273,7 @@ export default function NotificationsPage() {
             return (
               <div
                 key={n.id}
-                onClick={() => markAsRead(n.id)}
+                onClick={() => handleNotificationClick(n)}
                 className={`
                   glass-panel rounded-2xl p-4 flex items-start gap-3.5 cursor-pointer
                   transition-all duration-200 hover:bg-white/[0.06] active:scale-[0.99]

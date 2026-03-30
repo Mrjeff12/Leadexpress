@@ -158,11 +158,11 @@ export function useUserSubscription() {
   // Billing actions
   // ------------------------------------------------------------------
   const subscribe = useCallback(
-    async (priceId: string, planSlug: string, billingInterval: 'monthly' | 'yearly') => {
+    async (_priceId: string, planSlug: string, billingInterval: 'monthly' | 'yearly') => {
       setActionLoading(true)
       try {
         const { data, error } = await supabase.functions.invoke('create-checkout-session', {
-          body: { priceId, planSlug, billingInterval },
+          body: { planSlug, billingInterval },
         })
         if (error) throw error
         if (data?.url) window.location.href = data.url

@@ -107,13 +107,18 @@ export default function RebecaChat() {
       </div>
 
       {/* Coming Soon Banner */}
-      <div className="glass-panel p-3 mb-4 flex items-center gap-2.5 border-l-4 border-l-[#fe5b25]">
-        <Info size={15} className="text-[#fe5b25] flex-shrink-0" />
-        <p className="text-xs text-stone-500">
-          {isHe
-            ? 'צ\'אט AI בקרוב! זו תצוגה מקדימה של הממשק.'
-            : 'AI chat coming soon! This is a preview of the interface.'}
-        </p>
+      <div className="glass-panel p-4 mb-4 flex items-start gap-3 border-l-4 border-l-[#fe5b25]">
+        <Info size={18} className="text-[#fe5b25] mt-0.5 flex-shrink-0" />
+        <div>
+          <p className="text-sm font-semibold text-stone-800">
+            {isHe ? 'הודעות בזמן אמת בקרוב!' : 'Real-time messaging coming soon!'}
+          </p>
+          <p className="text-xs text-stone-500 mt-0.5">
+            {isHe
+              ? 'זו תצוגה מקדימה בלבד. ההודעות כאן אינן אמיתיות.'
+              : 'This is a preview only. The messages shown here are not real.'}
+          </p>
+        </div>
       </div>
 
       {/* Chat Area */}

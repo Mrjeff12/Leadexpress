@@ -3,13 +3,13 @@ import { Navigate, Link } from 'react-router-dom'
 import { useAuth } from '../lib/auth'
 import { useI18n } from '../lib/i18n'
 import { supabase } from '../lib/supabase'
-import { Clock, ArrowLeft } from 'lucide-react'
+import { Clock, ArrowLeft, AlertTriangle, RefreshCw } from 'lucide-react'
 
 export default function RequirePartner({ children }: { children: ReactNode }) {
   const { effectiveUserId, loading: authLoading } = useAuth()
   const { locale } = useI18n()
   const he = locale === 'he'
-  const [status, setStatus] = useState<'loading' | 'active' | 'pending' | 'none'>('loading')
+  const [status, setStatus] = useState<'loading' | 'active' | 'pending' | 'none' | 'error'>('loading')
 
   useEffect(() => {
     if (authLoading || !effectiveUserId) return
@@ -19,7 +19,12 @@ export default function RequirePartner({ children }: { children: ReactNode }) {
       .select('status')
       .eq('user_id', effectiveUserId)
       .maybeSingle()
-      .then(({ data }) => {
+      .then(({ data, error }) => {
+        if (error) {
+          console.error('RequirePartner: failed to check partner status', error)
+          setStatus('error')
+          return
+        }
         if (data?.status === 'active') {
           setStatus('active')
         } else if (data?.status === 'pending') {
@@ -41,6 +46,31 @@ export default function RequirePartner({ children }: { children: ReactNode }) {
             LE
           </div>
           <div className="text-sm" style={{ color: 'hsl(40 4% 42%)' }}>Loading...</div>
+        </div>
+      </div>
+    )
+  }
+
+  if (status === 'error') {
+    return (
+      <div className="fixed inset-0 flex items-center justify-center bg-zinc-50">
+        <div className="max-w-md w-full mx-4 p-8 rounded-2xl bg-white border border-zinc-200 shadow-lg text-center">
+          <div className="w-16 h-16 mx-auto rounded-2xl bg-red-50 text-red-500 flex items-center justify-center mb-6">
+            <AlertTriangle className="w-8 h-8" />
+          </div>
+          <h1 className="text-xl font-bold text-zinc-900 mb-2">
+            {he ? 'משהו השתבש' : 'Something went wrong'}
+          </h1>
+          <p className="text-sm text-zinc-500 mb-6">
+            {he ? 'לא הצלחנו לטעון את סטטוס השותף. נסה שוב.' : 'Could not load your partner status. Please try again.'}
+          </p>
+          <button
+            onClick={() => { setStatus('loading'); window.location.reload() }}
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold text-white transition-all bg-gradient-to-r from-[#fe5b25] to-[#ff7a4d] hover:from-[#e54e1a] hover:to-[#fe5b25] shadow-sm"
+          >
+            <RefreshCw className="w-4 h-4" />
+            {he ? 'נסה שוב' : 'Retry'}
+          </button>
         </div>
       </div>
     )

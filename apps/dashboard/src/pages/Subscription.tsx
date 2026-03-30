@@ -121,7 +121,8 @@ export default function Subscription() {
   function getPremiumPrice() {
     const plan = plans.find(p => p.slug === 'premium')
     if (!plan) return { monthly: 79, yearly: Math.round((7900 * 10) / 12 / 100) }
-    const yearlyTotal = plan.price_cents * 10 // 10 months = ~17% discount
+    // Yearly = 10 months of monthly price (2 months free, ~17% discount)
+    const yearlyTotal = plan.price_cents * 10
     return { monthly: plan.price_cents / 100, yearly: Math.round(yearlyTotal / 12 / 100) }
   }
 
