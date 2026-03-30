@@ -25,6 +25,7 @@ import {
   X as XIcon,
   Search,
   Star,
+  Fingerprint,
 } from 'lucide-react'
 import { useState, useEffect, useRef } from 'react'
 
@@ -355,6 +356,25 @@ export default function Sidebar() {
               <Settings className="w-3.5 h-3.5" />
               {locale === 'he' ? (inPartnerView ? 'הגדרות' : 'פרופיל') : (inPartnerView ? 'Settings' : 'Profile')}
             </NavLink>
+            {!inPartnerView && (
+              <NavLink
+                to="/verify-identity"
+                className={() => {
+                  const active = location.pathname === '/verify-identity'
+                  return `flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-[11px] font-medium transition-all ${
+                    active ? 'bg-[#fff4ef] text-[#fe5b25]'
+                    : profile?.identity_verified ? 'text-green-500 hover:text-green-600 hover:bg-green-50'
+                    : 'text-stone-400 hover:text-stone-600 hover:bg-stone-50'
+                  }`
+                }}
+              >
+                <Fingerprint className="w-3.5 h-3.5" />
+                {profile?.identity_verified
+                  ? (locale === 'he' ? 'מאומת' : 'Verified')
+                  : (locale === 'he' ? 'אימות' : 'Verify')
+                }
+              </NavLink>
+            )}
           </div>
         )}
 

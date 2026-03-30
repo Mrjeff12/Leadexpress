@@ -18,6 +18,7 @@ import {
   Activity,
   MessageSquare,
   Image,
+  Fingerprint,
 } from 'lucide-react'
 
 /* ── Checklist definition ──────────────────────────── */
@@ -43,6 +44,7 @@ const CHECKLIST: CheckItem[] = [
   { key: 'business_name', label: 'Business name',        labelHe: 'שם העסק',             points: 5,  icon: Building2,     check: p => !!p?.profile?.business_name },
   { key: 'languages',     label: 'Languages',            labelHe: 'שפות',                points: 5,  icon: Languages,     check: p => Array.isArray(p?.profile?.languages) && p.profile.languages.length > 0 },
   { key: 'license',       label: 'License number',       labelHe: 'מספר רישיון',         points: 5,  icon: ShieldCheck,   check: p => !!p?.profile?.license_number },
+  { key: 'identity',      label: 'Identity verified',    labelHe: 'זהות מאומתת',         points: 15, icon: Fingerprint,   check: p => !!p?.identity_verified },
   { key: 'lead_activity', label: 'Lead activity',        labelHe: 'פעילות לידים',        points: 5,  icon: Activity,      check: p => (p?.stats?.leads_contacted ?? 0) > 0 },
   { key: 'lead_feedback', label: 'Lead feedback',        labelHe: 'משוב על לידים',       points: 5,  icon: MessageSquare, check: p => (p?.stats?.feedbacks_given ?? 0) > 0 },
   { key: 'portfolio',     label: 'Portfolio',            labelHe: 'תיק עבודות',          points: 10, icon: Image,         check: p => (p?.portfolio_count ?? 0) > 0 || (p?.stats?.successful_jobs ?? 0) > 0 },
@@ -145,7 +147,7 @@ export default function ProfileCompletionBar({ completeness, profile }: ProfileC
             return (
               <Link
                 key={item.key}
-                to="/profile/edit"
+                to={item.key === 'identity' ? '/verify-identity' : '/profile/edit'}
                 className="flex items-center gap-2.5 px-3 py-2 rounded-xl
                            bg-orange-50/60 hover:bg-orange-100/80
                            transition-colors group"

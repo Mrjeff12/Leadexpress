@@ -111,6 +111,14 @@ Deno.serve(async (req: Request) => {
         break;
       }
 
+      // ── Identity Verification events ────────────────────────────────
+      case "identity.verification_session.verified":
+      case "identity.verification_session.requires_input":
+      case "identity.verification_session.canceled": {
+        await handleIdentityVerification(event.data.object, event.type);
+        break;
+      }
+
       // ── Plan/Price sync events ─────────────────────────────────────
       case "product.updated":
         await handleProductUpdated(event.data.object as Stripe.Product);
@@ -646,5 +654,105 @@ async function trackPartnerCommission(userId: string, invoice: Stripe.Invoice) {
     }
   } catch (err) {
     console.error("[webhook] Commission tracking error (non-blocking):", err);
+  }
+}
+
+// ── Identity Verification Handler ─────────────────────────────────────────
+
+async function handleIdentityVerification(session: any, eventType: string) {
+  const sessionId = session.id;
+  const userId = session.metadata?.supabase_user_id;
+
+  if (!userId) {
+    console.warn(`[webhook] identity event missing supabase_user_id: session=${sessionId}`);
+    return;
+  }
+
+  const statusMap: Record<string, string> = {
+    "identity.verification_session.verified": "verified",
+    "identity.verification_session.requires_input": "requires_input",
+    "identity.verification_session.canceled": "canceled",
+  };
+
+  const newStatus = statusMap[eventType] || "failed";
+
+  const updates: Record<string, unknown> = {
+    status: newStatus,
+    updated_at: new Date().toISOString(),
+  };
+
+  if (newStatus === "verified") {
+    updates.verified_at = new Date().toISOString();
+
+    // Extract verified outputs if available
+    try {
+      const fullSession = await stripe.identity.verificationSessions.retrieve(
+        sessionId,
+        { expand: ["verified_outputs", "last_verification_report"] },
+      );
+
+      const outputs = (fullSession as any).verified_outputs;
+      if (outputs) {
+        if (outputs.first_name) updates.first_name = outputs.first_name;
+        if (outputs.last_name) updates.last_name = outputs.last_name;
+        if (outputs.dob) {
+          updates.dob = `${outputs.dob.year}-${String(outputs.dob.month).padStart(2, "0")}-${String(outputs.dob.day).padStart(2, "0")}`;
+        }
+      }
+
+      const report = (fullSession as any).last_verification_report;
+      if (report?.document) {
+        updates.document_type = report.document.type || null;
+        updates.issuing_country = report.document.issuing_country || null;
+        if (report.document.expiration_date) {
+          const exp = report.document.expiration_date;
+          updates.expiration_date = `${exp.year}-${String(exp.month).padStart(2, "0")}-${String(exp.day).padStart(2, "0")}`;
+        }
+      }
+    } catch (err) {
+      console.error("[webhook] Failed to retrieve verification details:", err);
+    }
+
+    // Mark user as identity-verified in profiles
+    const { error: profileErr } = await supabase
+      .from("profiles")
+      .update({ identity_verified: true })
+      .eq("id", userId);
+
+    if (profileErr) {
+      console.error("[webhook] Failed to update profile identity_verified:", profileErr.message);
+    }
+
+    // Upgrade contractor tier to 'verified' if currently 'new'
+    const { error: tierErr } = await supabase
+      .from("contractor_profiles")
+      .update({ tier: "verified" })
+      .eq("user_id", userId)
+      .eq("tier", "new");
+
+    if (tierErr) {
+      console.error("[webhook] Failed to upgrade contractor tier:", tierErr.message);
+    } else {
+      console.log(`[webhook] Contractor tier upgraded to verified: user=${userId}`);
+    }
+  }
+
+  if (eventType === "identity.verification_session.requires_input") {
+    const lastError = session.last_error;
+    if (lastError) {
+      updates.error_code = lastError.code || null;
+      updates.error_reason = lastError.reason || null;
+    }
+  }
+
+  const { error } = await supabase
+    .from("identity_verifications")
+    .update(updates)
+    .eq("stripe_session_id", sessionId);
+
+  if (error) {
+    console.error(`[webhook] Failed to update identity verification:`, error.message);
+  } else {
+    console.log(`[webhook] Identity verification updated: user=${userId}, status=${newStatus}`);
   }
 }

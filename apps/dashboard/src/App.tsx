@@ -36,6 +36,7 @@ const OnboardingWizard = lazy(() => import('./pages/OnboardingWizard'))
 const NotFound = lazy(() => import('./pages/NotFound'))
 const PublishChat = lazy(() => import('./pages/PublishChat'))
 const MyPublishedLeads = lazy(() => import('./pages/MyPublishedLeads'))
+const IdentityVerification = lazy(() => import('./pages/IdentityVerification'))
 const PartnerOnboarding = lazy(() => import('./pages/partner/PartnerOnboarding'))
 const PartnerLayout = lazy(() => import('./pages/partner/PartnerLayout'))
 import RequirePartner from './components/RequirePartner'
@@ -184,6 +185,7 @@ function AppShell() {
               <Route path="/subscription" element={<Subscription />} />
               <Route path="/telegram" element={<RequireSubscription><TelegramConnect /></RequireSubscription>} />
               <Route path="/onboarding" element={<RequireSubscription><OnboardingWizard /></RequireSubscription>} />
+              <Route path="/verify-identity" element={<IdentityVerification />} />
               <Route path="/publish" element={<PublishChat />} />
               <Route path="/my-published" element={<MyPublishedLeads />} />
               <Route path="/partner/join" element={<PartnerOnboarding />} />

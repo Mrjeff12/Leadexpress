@@ -22,7 +22,10 @@ import {
   Eye,
   Camera,
   Download,
+  Fingerprint,
+  CheckCircle2,
 } from 'lucide-react'
+import { useIdentityVerification } from '../hooks/useIdentityVerification'
 
 /* ── Language options ──────────────────────────────── */
 
@@ -116,6 +119,7 @@ export default function ProfileEdit() {
   const { data, isLoading, save, isSaving, publishProfile, isPublishing, refetch } = useContractorProfile()
   const { effectiveUserId } = useAuth()
   const { toast } = useToast()
+  const { isVerified: idVerified, isPending: idPending, status: idStatus } = useIdentityVerification()
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [avatarUploading, setAvatarUploading] = useState(false)
 
@@ -481,6 +485,42 @@ export default function ProfileEdit() {
                            transition-all"
               />
             </div>
+          </div>
+          {/* Identity Verification */}
+          <div>
+            <FieldLabel>{isHe ? 'אימות זהות' : 'Identity Verification'}</FieldLabel>
+            <Link
+              to="/verify-identity"
+              className={`flex items-center gap-3 px-4 py-3 rounded-xl border transition-all ${
+                idVerified
+                  ? 'bg-green-50 border-green-200 hover:bg-green-100'
+                  : idPending
+                    ? 'bg-yellow-50 border-yellow-200 hover:bg-yellow-100'
+                    : 'bg-gray-50 border-gray-200 hover:bg-gray-100'
+              }`}
+            >
+              {idVerified ? (
+                <CheckCircle2 className="w-5 h-5 text-green-600 flex-shrink-0" />
+              ) : (
+                <Fingerprint className={`w-5 h-5 flex-shrink-0 ${idPending ? 'text-yellow-600' : 'text-gray-400'}`} />
+              )}
+              <div className="flex-1 min-w-0">
+                <p className={`text-sm font-medium ${idVerified ? 'text-green-800' : 'text-gray-700'}`}>
+                  {idVerified
+                    ? (isHe ? 'זהות מאומתת' : 'Identity Verified')
+                    : idPending
+                      ? (isHe ? 'אימות בתהליך...' : 'Verification in progress...')
+                      : (isHe ? 'אמת את הזהות שלך' : 'Verify your identity')
+                  }
+                </p>
+                {!idVerified && !idPending && (
+                  <p className="text-xs text-gray-500">
+                    {isHe ? 'הגדל אמון עם לקוחות וקבלנים אחרים' : 'Build trust with clients and other contractors'}
+                  </p>
+                )}
+              </div>
+              <ArrowRight className="w-4 h-4 text-gray-400 rtl:rotate-180" />
+            </Link>
           </div>
         </div>
       </Section>
