@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../lib/auth'
 import { useI18n } from '../lib/i18n'
 import { useUserSubscription } from '../hooks/useUserSubscription'
@@ -106,6 +107,7 @@ export default function LeadsFeed() {
   const { locale } = useI18n()
   const { canSeeLeadDetails } = useUserSubscription()
   const he = locale === 'he'
+  const nav = useNavigate()
 
   const [leads, setLeads] = useState<Lead[]>([])
   const [senderNames, setSenderNames] = useState<Record<string, string>>({})
@@ -752,6 +754,15 @@ export default function LeadsFeed() {
                             {canSeeLeadDetails
                               ? (he ? 'פנה למפרסם' : 'Contact Advertiser')
                               : (he ? 'שדרג לפרימיום' : 'Upgrade to Contact')}
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              nav(`/leads/${lead.id}`)
+                            }}
+                            className="flex items-center justify-center gap-2 bg-gray-100 text-gray-700 h-12 px-5 rounded-2xl font-bold text-sm hover:bg-gray-200 transition-all md:hidden"
+                          >
+                            {he ? 'פרטים' : 'Details'}
                           </button>
                           <button
                             onClick={(e) => {

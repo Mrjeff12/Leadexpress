@@ -5,7 +5,7 @@ import { supabase } from '../lib/supabase'
 import { PROFESSIONS } from '../lib/professions'
 import { formatDate } from '../lib/shared'
 import { useToast } from '../components/hooks/use-toast'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import {
   Briefcase,
   Activity,
@@ -138,6 +138,7 @@ export default function JobsDashboard() {
   const { effectiveUserId } = useAuth()
   const { locale } = useI18n()
   const { toast } = useToast()
+  const nav = useNavigate()
 
   const he = locale === 'he'
 
@@ -615,7 +616,13 @@ export default function JobsDashboard() {
                 return (
                   <tr
                     key={job.id}
-                    onClick={() => setSelectedJobId(job.id)}
+                    onClick={() => {
+                      if (window.innerWidth < 768) {
+                        nav(`/jobs/${job.id}`)
+                      } else {
+                        setSelectedJobId(job.id)
+                      }
+                    }}
                     className="border-b border-stone-50 hover:bg-stone-50/50 transition-colors cursor-pointer"
                   >
                     {/* Job: profession emoji + location */}

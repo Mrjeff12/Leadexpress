@@ -44,6 +44,9 @@ const PartnerLayout = lazy(() => import('./pages/partner/PartnerLayout'))
 const NotificationsPage = lazy(() => import('./pages/NotificationsPage'))
 const PublicProfileView = lazy(() => import('./pages/PublicProfileView'))
 const ProfileEdit = lazy(() => import('./pages/ProfileEdit'))
+const LeadDetail = lazy(() => import('./pages/LeadDetail'))
+const JobDetail = lazy(() => import('./pages/JobDetail'))
+const MyReviews = lazy(() => import('./pages/MyReviews'))
 import RequirePartner from './components/RequirePartner'
 
 /* ─── Auth guard ─── */
@@ -192,6 +195,7 @@ function AppShell() {
               <Route path="/group-scan" element={<RequireSubscription><RequireSetup><ContractorGroupScan /></RequireSetup></RequireSubscription>} />
               <Route path="/subcontractors" element={<Subcontractors />} />
               <Route path="/jobs" element={<JobsDashboard />} />
+              <Route path="/jobs/:id" element={<JobDetail />} />
               <Route path="/published-job/:id" element={<PublishedJobDetail />} />
               <Route path="/profile" element={<Profile />} />
               <Route path="/profile/edit" element={<ProfileEdit />} />
@@ -206,6 +210,8 @@ function AppShell() {
               <Route path="/publish" element={<PublishChat />} />
               <Route path="/my-published" element={<MyPublishedLeads />} />
               <Route path="/notifications" element={<NotificationsPage />} />
+              <Route path="/leads/:id" element={<LeadDetail />} />
+              <Route path="/reviews" element={<MyReviews />} />
               <Route path="/profile-preview" element={<PublicProfileView />} />
               <Route path="/partner/join" element={<PartnerOnboarding />} />
               <Route path="/partner/*" element={<RequirePartner><PartnerLayout /></RequirePartner>} />
