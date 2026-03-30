@@ -8,6 +8,12 @@ import { initSentry } from './lib/sentry.ts'
 
 initSentry()
 
+// Capture PWA install prompt globally for Android one-tap install
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault()
+  ;(window as any).__pwaInstallPrompt = e
+})
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>

@@ -26,6 +26,7 @@ import {
   SlidersHorizontal,
   Eye,
   Bell,
+  Download,
 } from 'lucide-react'
 const CoverageMap = lazy(() => import('../components/settings/CoverageMap'))
 import ForwardLeadModal from '../components/ForwardLeadModal'
@@ -36,7 +37,7 @@ import ProfileOnboarding from '../components/ProfileOnboarding'
 import { useContractorProfile } from '../hooks/useContractorProfile'
 import { useSubscriptionAccess } from '../hooks/useSubscriptionAccess'
 import { usePushNotifications } from '../hooks/usePushNotifications'
-import InstallAnimation from '../components/InstallAnimation'
+import InstallAnimation, { SwipeConfirmButton } from '../components/InstallAnimation'
 import OnboardingProgress from '../components/OnboardingProgress'
 import EnableAlertsScreen from '../components/EnableAlertsScreen'
 import { useOnboardingOverlay } from '../components/OnboardingOverlayContext'
@@ -405,45 +406,83 @@ export default function ContractorDashboard() {
         setOnboardingStep('installed')
       }
 
+      // Android: try native install prompt first (one tap!)
+      const handleAndroidInstall = async () => {
+        const deferredPrompt = (window as any).__pwaInstallPrompt
+        if (deferredPrompt) {
+          deferredPrompt.prompt()
+          const { outcome } = await deferredPrompt.userChoice
+          if (outcome === 'accepted') {
+            ;(window as any).__pwaInstallPrompt = null
+            advanceInstallStep()
+          }
+        }
+      }
+
+      const isAndroidWithPrompt = platform === 'android' && !!(window as any).__pwaInstallPrompt
+
       return (
         <div className="min-h-screen flex flex-col bg-white">
           <div className="flex-1 flex flex-col px-5 pt-8 pb-6 max-w-md mx-auto w-full">
             <OnboardingProgress current={2} />
-            <div className="flex items-center justify-center gap-2 mb-4">
+            <div className="flex items-center justify-center gap-2 mb-3">
               <img src="/icon.png" alt="" className="w-7 h-7 rounded-xl" />
               <span className="text-sm font-semibold text-gray-900">MasterLeadFlow</span>
             </div>
-            <div className="text-center mb-4">
-              <h1 className="text-xl font-bold text-gray-900 mb-1">Install the app</h1>
-              <p className="text-gray-500 text-sm">We need this to send you matching leads directly to your phone</p>
-              <p className="text-amber-600 text-xs font-medium mt-1">⚡ Without it, you won't receive job alerts</p>
+            <div className="text-center mb-3">
+              <h1 className="text-xl font-bold text-gray-900 mb-1">Get instant lead alerts</h1>
+              <p className="text-gray-500 text-sm">Install the app to receive job notifications the moment they match your area</p>
+              <div className="mt-2 mx-auto max-w-[280px] bg-amber-50 border border-amber-200 rounded-xl px-3 py-2">
+                <p className="text-amber-700 text-xs font-semibold">⚠️ Required step</p>
+                <p className="text-amber-600 text-[11px] mt-0.5">Without installing, you won't get notified and other contractors will grab your leads first</p>
+              </div>
+              <p className="text-[11px] text-gray-400 mt-2">✅ 5,000+ contractors already get instant alerts</p>
             </div>
-            <div className="flex-1 flex flex-col items-center justify-center">
-              <InstallAnimation platform={platform} />
-            </div>
-            <div className="space-y-3 mt-4">
-              <button
-                onClick={advanceInstallStep}
-                className="w-full py-4 rounded-2xl text-base font-semibold text-white flex items-center justify-center gap-2.5 transition-all hover:brightness-110 active:scale-[0.97]"
-                style={{ background: '#fe5b25', boxShadow: '0 4px 24px #fe5b2535' }}
-              >
-                <CheckCircle2 className="w-5 h-5" />
-                Done — I've added it!
-              </button>
-              <button
-                onClick={advanceInstallStep}
-                className="w-full py-3 text-sm text-gray-400 hover:text-gray-600 transition-colors text-center"
-              >
-                Skip for now
-              </button>
-            </div>
+
+            {isAndroidWithPrompt ? (
+              /* Android with native prompt — skip animation, one-tap install */
+              <div className="flex-1 flex flex-col items-center justify-center gap-6">
+                <div className="w-24 h-24 rounded-[20px] bg-[#fe5b25] flex items-center justify-center shadow-xl shadow-[#fe5b25]/20">
+                  <span className="text-white font-bold text-2xl">MLF</span>
+                </div>
+                <div className="text-center">
+                  <p className="text-base font-semibold text-gray-800">One tap to install</p>
+                  <p className="text-sm text-gray-400 mt-1">Takes 2 seconds</p>
+                </div>
+                <button
+                  onClick={handleAndroidInstall}
+                  className="w-full max-w-[280px] py-4 rounded-2xl text-lg font-bold text-white flex items-center justify-center gap-3 transition-all hover:brightness-110 active:scale-[0.97]"
+                  style={{ background: '#fe5b25', boxShadow: '0 6px 30px #fe5b2540' }}
+                >
+                  <Download className="w-6 h-6" />
+                  Install Now
+                </button>
+              </div>
+            ) : (
+              /* iOS or Android without prompt — show step-by-step animation */
+              <>
+                <div className="flex-1 flex flex-col items-center justify-center">
+                  <InstallAnimation platform={platform} />
+                </div>
+                <div className="space-y-3 mt-4">
+                  <p className="text-center text-xs text-gray-400 font-medium">
+                    ✅ After installing, swipe to continue
+                  </p>
+                  <SwipeConfirmButton
+                    onConfirm={advanceInstallStep}
+                    label="Swipe after installing →"
+                  />
+                </div>
+              </>
+            )}
+
+            <button
+              onClick={advanceInstallStep}
+              className="w-full py-2 mt-2 text-[11px] text-gray-300 hover:text-gray-500 transition-colors text-center"
+            >
+              skip
+            </button>
           </div>
-          <style>{`
-            @keyframes animate-in { from { opacity: 0; transform: scale(0.97) translateY(4px); } to { opacity: 1; transform: scale(1) translateY(0); } }
-            .animate-in { animation: animate-in 0.25s ease-out; }
-            @keyframes tap { 0%,100% { transform: scale(1); } 50% { transform: scale(0.85); } }
-            @keyframes bounce-once { 0% { transform: scale(0) translateY(-20px); } 60% { transform: scale(1.1) translateY(0); } 80% { transform: scale(0.95); } 100% { transform: scale(1); } }
-          `}</style>
         </div>
       )
     }
