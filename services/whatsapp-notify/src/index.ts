@@ -4,6 +4,7 @@ import Redis from 'ioredis';
 import { config } from './config.js';
 import { createWebhookApp } from './webhook.js';
 import { createWaNotificationWorker } from './worker.js';
+import { createWaTemplateWorker } from './template-worker.js';
 import { startCheckinCron } from './checkin-cron.js';
 
 const log = pino({ name: 'whatsapp-notify' });
@@ -24,8 +25,9 @@ log.info(
   'Starting WhatsApp notification service (Twilio)',
 );
 
-// 1. Start BullMQ worker for sending lead messages
+// 1. Start BullMQ workers for sending lead messages
 const { worker, cleanup: cleanupWorker } = createWaNotificationWorker(log);
+const { worker: templateWorker, cleanup: cleanupTemplate } = createWaTemplateWorker(log);
 
 // 2. Start daily check-in cron job
 const cronTask = startCheckinCron(log);
@@ -41,6 +43,7 @@ async function shutdown(signal: string) {
   log.info({ signal }, 'Shutting down');
   cronTask.stop();
   await cleanupWorker();
+  await cleanupTemplate();
   server.close();
   redis.disconnect();
   process.exit(0);
@@ -61,4 +64,8 @@ process.on('uncaughtException', (err) => {
 
 worker.on('ready', () => {
   log.info('WhatsApp notification worker ready');
+});
+
+templateWorker.on('ready', () => {
+  log.info('WhatsApp template notification worker ready');
 });

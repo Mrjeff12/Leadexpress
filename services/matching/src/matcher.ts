@@ -21,6 +21,7 @@ interface MatchedContractor {
   wa_notify: boolean;
   available_today: boolean;
   wa_window_until: string | null;
+  sms_opt_out: boolean;
   profiles: {
     telegram_chat_id: number | null;
     full_name: string;
@@ -71,22 +72,25 @@ const supabase: SupabaseClient = createClient(
   config.supabase.serviceKey,
 );
 
+/**
+ * 4-tier notification cascade:
+ *   Tier 1: WhatsApp free-form (open 24h window)
+ *   Tier 2: WhatsApp Content Template (closed window — bypasses 24h rule)
+ *   Tier 3: Web Push (existing push-worker)
+ *   Tier 4: SMS via Twilio (US numbers only, last resort)
+ *   Push is ALSO sent additively alongside any primary tier.
+ */
 export async function matchLead(
   lead: Lead,
   notificationQueue: Queue,
   log: Logger,
   waNotificationQueue?: Queue,
   pushNotificationQueue?: Queue,
+  waTemplateQueue?: Queue,
+  smsQueue?: Queue,
 ): Promise<number> {
   const start = performance.now();
 
-  // Find all matching contractors:
-  // - active contractor record
-  // - active subscription
-  // - has telegram OR whatsapp configured
-  // - matching profession AND zip_code
-  // Join path: contractors → profiles → subscriptions
-  // (no direct FK between contractors and subscriptions)
   let query = supabase
     .from('contractors')
     .select(`
@@ -96,6 +100,7 @@ export async function matchLead(
       wa_notify,
       available_today,
       wa_window_until,
+      sms_opt_out,
       profiles!inner(
         telegram_chat_id,
         full_name,
@@ -111,10 +116,9 @@ export async function matchLead(
   if (lead.zip_code) {
     query = query.contains('zip_codes', [lead.zip_code]);
   } else {
-    // No ZIP code — skip matching entirely to avoid flooding all contractors
     log.warn(
       { leadId: lead.id, profession: lead.profession },
-      'Lead has no zip_code — skipping matching (would match all contractors)',
+      'Lead has no zip_code — skipping matching',
     );
     await updateLeadStatus(lead.id, 'new', 0, []);
     return 0;
@@ -126,9 +130,18 @@ export async function matchLead(
     throw new Error(`Supabase query failed: ${error.message}`);
   }
 
-  // Filter: must have at least one notification channel
-  const contractors = ((matches ?? []) as unknown as MatchedContractor[]).filter(
-    (c) => c.profiles.telegram_chat_id || c.profiles.whatsapp_phone,
+  const allContractors = (matches ?? []) as unknown as MatchedContractor[];
+
+  // Fetch push subscriptions BEFORE filtering — contractors with only push should not be excluded
+  const allContractorIds = allContractors.map((c) => c.user_id);
+  const { data: pushSubs } = allContractorIds.length > 0
+    ? await supabase.from('push_subscriptions').select('user_id').in('user_id', allContractorIds)
+    : { data: [] };
+  const contractorsWithPush = new Set((pushSubs ?? []).map((s: { user_id: string }) => s.user_id));
+
+  // Filter: must have at least one notification channel (WA, Telegram, OR Push)
+  const contractors = allContractors.filter(
+    (c) => c.profiles.whatsapp_phone || c.profiles.telegram_chat_id || contractorsWithPush.has(c.user_id),
   );
 
   if (contractors.length === 0) {
@@ -140,26 +153,44 @@ export async function matchLead(
     return 0;
   }
 
-  // Shuffle for fair rotation, then cap the number of contractors
   const capped = shuffle(contractors).slice(0, config.matching.maxContractorsPerLead);
-
-  // Fetch contractors that have push subscriptions
   const contractorIds = capped.map((c) => c.user_id);
-  const { data: pushSubs } = await supabase
-    .from('push_subscriptions')
-    .select('user_id')
-    .in('user_id', contractorIds);
 
-  const contractorsWithPush = new Set((pushSubs ?? []).map((s: { user_id: string }) => s.user_id));
+  // Batch-load reconnect throttle state (12h window)
+  const twelveHoursAgo = new Date(Date.now() - 12 * 60 * 60 * 1000).toISOString();
+  const { data: throttleRows } = await supabase
+    .from('reconnect_throttle')
+    .select('contractor_id, channel')
+    .in('contractor_id', contractorIds)
+    .gt('sent_at', twelveHoursAgo);
 
-  const telegramMessage = formatTelegramMessage(lead);
+  const throttled = new Map<string, Set<string>>();
+  for (const row of throttleRows ?? []) {
+    if (!throttled.has(row.contractor_id)) throttled.set(row.contractor_id, new Set());
+    throttled.get(row.contractor_id)!.add(row.channel);
+  }
+
+  const isThrottled = (cId: string, channel: string) => throttled.get(cId)?.has(channel) ?? false;
+
   const whatsappMessage = formatWhatsAppMessage(lead);
+  const telegramMessage = formatTelegramMessage(lead);
 
-  const telegramJobs: Array<{ name: string; data: Record<string, unknown>; opts: Record<string, unknown> }> = [];
-  const waJobs: Array<{ name: string; data: Record<string, unknown>; opts: Record<string, unknown> }> = [];
-  const pushJobs: Array<{ name: string; data: Record<string, unknown>; opts: Record<string, unknown> }> = [];
+  type BulkJob = { name: string; data: Record<string, unknown>; opts: Record<string, unknown> };
+  const waJobs: BulkJob[] = [];
+  const waTemplateJobs: BulkJob[] = [];
+  const telegramJobs: BulkJob[] = [];
+  const pushJobs: BulkJob[] = [];
+  const smsJobs: BulkJob[] = [];
+
+  const notificationRows: Array<{ lead_id: string; contractor_id: string; channel: string; delivery_status: string; cascade_position: number }> = [];
+
+  let tier1 = 0, tier2 = 0, tier3 = 0, tier4 = 0, unreachable = 0;
 
   for (const contractor of capped) {
+    let primaryChannel: string | null = null;
+    let cascadePos = 0;
+
+    // ── Tier 1: WhatsApp free-form (open 24h window) ──
     const hasWaWindow =
       contractor.wa_notify &&
       contractor.available_today &&
@@ -168,7 +199,6 @@ export async function matchLead(
       contractor.profiles.whatsapp_phone;
 
     if (hasWaWindow) {
-      // Route to WhatsApp (free — within 24h window)
       waJobs.push({
         name: 'send-wa-notification',
         data: {
@@ -184,8 +214,38 @@ export async function matchLead(
           backoff: { type: 'exponential' as const, delay: 2000 },
         },
       });
-    } else if (contractor.profiles.telegram_chat_id) {
-      // Fallback to Telegram (always free)
+      primaryChannel = 'whatsapp';
+      cascadePos = 1;
+      tier1++;
+    }
+
+    // ── Tier 2: WhatsApp Content Template (closed window) ──
+    if (!primaryChannel && contractor.profiles.whatsapp_phone && !isThrottled(contractor.user_id, 'whatsapp_template')) {
+      waTemplateJobs.push({
+        name: 'send-wa-template',
+        data: {
+          leadId: lead.id,
+          contractorId: contractor.user_id,
+          whatsappPhone: contractor.profiles.whatsapp_phone,
+          contractorName: contractor.profiles.full_name,
+          profession: lead.profession,
+          city: lead.city,
+          summary: lead.summary,
+          urgency: lead.urgency,
+        },
+        opts: {
+          jobId: `wa-tpl-${lead.id}-${contractor.user_id}`,
+          attempts: 3,
+          backoff: { type: 'exponential' as const, delay: 2000 },
+        },
+      });
+      primaryChannel = 'whatsapp_template';
+      cascadePos = 2;
+      tier2++;
+    }
+
+    // ── Tier 2b: Telegram (if configured — fallback before push) ──
+    if (!primaryChannel && contractor.profiles.telegram_chat_id) {
       telegramJobs.push({
         name: 'send-notification',
         data: {
@@ -203,10 +263,63 @@ export async function matchLead(
           backoff: { type: 'exponential' as const, delay: 2000 },
         },
       });
+      primaryChannel = 'telegram';
+      cascadePos = 2;
     }
 
-    // Push notification (additive — sent regardless of WA/Telegram routing)
-    if (contractorsWithPush.has(contractor.user_id)) {
+    // ── Tier 3: Web Push as primary (if no other channel worked) ──
+    if (!primaryChannel && contractorsWithPush.has(contractor.user_id)) {
+      const professionLabel = lead.profession.replace(/_/g, ' ').toUpperCase();
+      const location = [lead.city, lead.zip_code].filter(Boolean).join(', ');
+      pushJobs.push({
+        name: 'send-push-notification',
+        data: {
+          leadId: lead.id,
+          contractorId: contractor.user_id,
+          title: `🔥 New ${professionLabel} Lead`,
+          body: `${location} — ${lead.urgency === 'hot' ? 'ASAP' : lead.urgency === 'warm' ? 'This Week' : 'Flexible'}`,
+          url: '/leads',
+        },
+        opts: {
+          jobId: `push-notif-${lead.id}-${contractor.user_id}`,
+          attempts: 2,
+          backoff: { type: 'exponential' as const, delay: 1000 },
+        },
+      });
+      primaryChannel = 'push';
+      cascadePos = 3;
+      tier3++;
+    }
+
+    // ── Tier 4: SMS (US numbers only, last resort) ──
+    if (
+      !primaryChannel &&
+      contractor.profiles.whatsapp_phone?.startsWith('+1') &&
+      !contractor.sms_opt_out &&
+      !isThrottled(contractor.user_id, 'sms')
+    ) {
+      smsJobs.push({
+        name: 'send-sms',
+        data: {
+          leadId: lead.id,
+          contractorId: contractor.user_id,
+          phone: contractor.profiles.whatsapp_phone,
+          profession: lead.profession,
+          city: lead.city,
+        },
+        opts: {
+          jobId: `sms-notif-${lead.id}-${contractor.user_id}`,
+          attempts: 2,
+          backoff: { type: 'exponential' as const, delay: 2000 },
+        },
+      });
+      primaryChannel = 'sms';
+      cascadePos = 4;
+      tier4++;
+    }
+
+    // ── Push additive (sent alongside primary if primary != push) ──
+    if (primaryChannel && primaryChannel !== 'push' && contractorsWithPush.has(contractor.user_id)) {
       const professionLabel = lead.profession.replace(/_/g, ' ').toUpperCase();
       const location = [lead.city, lead.zip_code].filter(Boolean).join(', ');
       pushJobs.push({
@@ -225,67 +338,46 @@ export async function matchLead(
         },
       });
     }
+
+    if (!primaryChannel) {
+      unreachable++;
+      log.warn({ contractorId: contractor.user_id, leadId: lead.id }, 'Contractor unreachable — no notification channel available');
+    }
+
+    // Track notification rows
+    if (primaryChannel) {
+      notificationRows.push({
+        lead_id: lead.id,
+        contractor_id: contractor.user_id,
+        channel: primaryChannel,
+        delivery_status: 'queued',
+        cascade_position: cascadePos,
+      });
+    }
   }
 
-  // Enqueue to both queues
-  if (telegramJobs.length > 0) {
-    await notificationQueue.addBulk(telegramJobs);
-  }
-  if (waJobs.length > 0 && waNotificationQueue) {
-    await waNotificationQueue.addBulk(waJobs);
-  }
-  if (pushJobs.length > 0 && pushNotificationQueue) {
-    await pushNotificationQueue.addBulk(pushJobs);
-  }
+  // ── Enqueue all jobs in bulk ──
+  if (waJobs.length > 0 && waNotificationQueue) await waNotificationQueue.addBulk(waJobs);
+  if (waTemplateJobs.length > 0 && waTemplateQueue) await waTemplateQueue.addBulk(waTemplateJobs);
+  if (telegramJobs.length > 0) await notificationQueue.addBulk(telegramJobs);
+  if (pushJobs.length > 0 && pushNotificationQueue) await pushNotificationQueue.addBulk(pushJobs);
+  if (smsJobs.length > 0 && smsQueue) await smsQueue.addBulk(smsJobs);
 
-  // Count unique contractors notified (push is additive, don't double-count)
   const notifiedContractorIds = new Set<string>();
-  for (const j of telegramJobs) notifiedContractorIds.add(j.data.contractorId as string);
-  for (const j of waJobs) notifiedContractorIds.add(j.data.contractorId as string);
-  for (const j of pushJobs) notifiedContractorIds.add(j.data.contractorId as string);
+  for (const j of [...waJobs, ...waTemplateJobs, ...telegramJobs, ...pushJobs, ...smsJobs]) {
+    notifiedContractorIds.add(j.data.contractorId as string);
+  }
   const totalSent = notifiedContractorIds.size;
 
-  // Track notification delivery in lead_notifications table
-  const notificationRows: Array<{
-    lead_id: string;
-    contractor_id: string;
-    channel: string;
-    delivery_status: string;
-  }> = [];
-  for (const j of telegramJobs) {
-    notificationRows.push({
-      lead_id: lead.id,
-      contractor_id: j.data.contractorId as string,
-      channel: 'telegram',
-      delivery_status: 'queued',
-    });
-  }
-  for (const j of waJobs) {
-    notificationRows.push({
-      lead_id: lead.id,
-      contractor_id: j.data.contractorId as string,
-      channel: 'whatsapp',
-      delivery_status: 'queued',
-    });
-  }
-  for (const j of pushJobs) {
-    notificationRows.push({
-      lead_id: lead.id,
-      contractor_id: j.data.contractorId as string,
-      channel: 'push',
-      delivery_status: 'queued',
-    });
-  }
   if (notificationRows.length > 0) {
     const { error: notifErr } = await supabase
       .from('lead_notifications')
-      .upsert(notificationRows, { onConflict: 'lead_id,contractor_id', ignoreDuplicates: true });
+      .upsert(notificationRows, { onConflict: 'lead_id,contractor_id,channel', ignoreDuplicates: true });
     if (notifErr) {
       log.warn({ error: notifErr }, 'Failed to insert lead_notifications rows');
     }
   }
 
-  // Update lead status and save the matched contractors to lock in access
   const matchedContractorIds = capped.map(c => c.user_id);
   await updateLeadStatus(lead.id, 'sent', totalSent, matchedContractorIds);
 
@@ -296,12 +388,15 @@ export async function matchLead(
       profession: lead.profession,
       zip: lead.zip_code,
       totalMatches: contractors.length,
-      sentTelegram: telegramJobs.length,
-      sentWhatsApp: waJobs.length,
+      tier1_wa: tier1,
+      tier2_template: tier2,
+      tier3_push: tier3,
+      tier4_sms: tier4,
+      unreachable,
       sentTotal: totalSent,
       durationMs,
     },
-    'Lead matched and notifications enqueued',
+    'Lead matched — cascade notifications enqueued',
   );
 
   return totalSent;

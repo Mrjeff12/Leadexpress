@@ -16,6 +16,7 @@ import SubscriptionBanner from './components/SubscriptionBanner'
 import CompleteAccountBanner from './components/CompleteAccountBanner'
 import { supabase } from './lib/supabase'
 import PushBanner from './components/PushBanner'
+import WhatsAppReconnectBanner from './components/WhatsAppReconnectBanner'
 import { PWAInstallBanner } from './components/PWAInstallBanner'
 import { OnboardingOverlayContext } from './components/OnboardingOverlayContext'
 import PushPermissionPopup from './components/PushPermissionPopup'
@@ -178,6 +179,7 @@ function AppShell() {
     <div className="min-h-screen">
       <div className="le-bg" />
       <div className="le-grain" />
+      {!onboardingActive && <WhatsAppReconnectBanner />}
       {!onboardingActive && <PWAInstallBanner />}
       {!onboardingActive && <PushBanner />}
       {!onboardingActive && <CompleteAccountBanner />}

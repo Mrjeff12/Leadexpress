@@ -49,6 +49,111 @@ export async function sendTextMessage(
 }
 
 /**
+ * Send a pre-approved Content Template via Twilio ContentSid.
+ * Bypasses the 24h WhatsApp conversation window — can be sent proactively.
+ */
+export async function sendContentTemplate(
+  to: string,
+  contentSid: string,
+  contentVariables: Record<string, string>,
+  log: Logger,
+): Promise<WaSendResult> {
+  const toWa = to.startsWith('whatsapp:') ? to : `whatsapp:${to.startsWith('+') ? to : '+' + to}`;
+
+  const formData = new URLSearchParams({
+    From: config.twilio.whatsappFrom,
+    To: toWa,
+    ContentSid: contentSid,
+    ContentVariables: JSON.stringify(contentVariables),
+  });
+
+  try {
+    const res = await fetch(TWILIO_API_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        Authorization: AUTH_HEADER,
+      },
+      body: formData.toString(),
+    });
+
+    const data = (await res.json()) as Record<string, unknown>;
+
+    if (res.ok || res.status === 201) {
+      const messageId = data.sid as string;
+      log.info({ messageId, to: toWa, contentSid }, 'WhatsApp template sent via Twilio');
+      return { success: true, messageId };
+    }
+
+    const errorCode = data.code as number | undefined;
+    const errorMsg = (data.message as string) ?? 'Unknown error';
+
+    if (res.status === 429 || errorCode === 20429) {
+      log.warn({ status: res.status, errorMsg }, 'Twilio rate limit hit (template)');
+      return { success: false, rateLimited: true, retryAfter: 60, error: errorMsg };
+    }
+
+    log.error({ status: res.status, errorMsg, errorCode, contentSid }, 'Twilio template API error');
+    return { success: false, error: errorMsg };
+  } catch (err) {
+    const errMsg = err instanceof Error ? err.message : 'Network error';
+    log.error({ err: errMsg, contentSid }, 'Failed to call Twilio template API');
+    return { success: false, error: errMsg };
+  }
+}
+
+/**
+ * Send an SMS via Twilio (no whatsapp: prefix — regular SMS).
+ */
+export async function sendSms(
+  to: string,
+  body: string,
+  smsFrom: string,
+  log: Logger,
+): Promise<WaSendResult> {
+  const toPhone = to.startsWith('+') ? to : `+${to}`;
+
+  const formData = new URLSearchParams({
+    From: smsFrom,
+    To: toPhone,
+    Body: body,
+  });
+
+  try {
+    const res = await fetch(TWILIO_API_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        Authorization: AUTH_HEADER,
+      },
+      body: formData.toString(),
+    });
+
+    const data = (await res.json()) as Record<string, unknown>;
+
+    if (res.ok || res.status === 201) {
+      const messageId = data.sid as string;
+      log.info({ messageId, to: toPhone }, 'SMS sent via Twilio');
+      return { success: true, messageId };
+    }
+
+    const errorCode = data.code as number | undefined;
+    const errorMsg = (data.message as string) ?? 'Unknown error';
+
+    if (res.status === 429 || errorCode === 20429) {
+      return { success: false, rateLimited: true, retryAfter: 60, error: errorMsg };
+    }
+
+    log.error({ status: res.status, errorMsg, errorCode }, 'Twilio SMS API error');
+    return { success: false, error: errorMsg };
+  } catch (err) {
+    const errMsg = err instanceof Error ? err.message : 'Network error';
+    log.error({ err: errMsg }, 'Failed to call Twilio SMS API');
+    return { success: false, error: errMsg };
+  }
+}
+
+/**
  * Core send function — Twilio REST API with form-urlencoded body.
  */
 async function sendMessage(

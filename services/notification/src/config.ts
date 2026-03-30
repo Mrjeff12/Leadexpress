@@ -57,8 +57,20 @@ export const config = {
     duration: Number(process.env.RATE_LIMIT_DURATION ?? 1000),
   },
 
+  twilio: {
+    accountSid: optional('TWILIO_ACCOUNT_SID') ?? '',
+    authToken: optional('TWILIO_AUTH_TOKEN') ?? '',
+    smsFrom: optional('TWILIO_SMS_FROM') ?? '',
+  },
+
+  supabase: {
+    url: optional('SUPABASE_URL') ?? '',
+    serviceKey: optional('SUPABASE_SERVICE_KEY') ?? optional('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+  },
+
   queues: {
     notifications: 'notifications',
     pushNotifications: 'push-notifications',
+    smsNotifications: 'sms-notifications',
   },
 } as const;

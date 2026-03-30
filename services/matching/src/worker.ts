@@ -52,6 +52,24 @@ export function createMatchingWorker(log: Logger): { worker: Worker; cleanup: ()
     },
   });
 
+  // WhatsApp template queue (for closed-window contractors — ContentSid bypass)
+  const waTemplateQueue = new Queue('wa-template-notifications', {
+    connection,
+    defaultJobOptions: {
+      removeOnComplete: { count: 1000 },
+      removeOnFail: { count: 5000 },
+    },
+  });
+
+  // SMS queue (last-resort fallback for US numbers)
+  const smsQueue = new Queue('sms-notifications', {
+    connection,
+    defaultJobOptions: {
+      removeOnComplete: { count: 1000 },
+      removeOnFail: { count: 5000 },
+    },
+  });
+
   const worker = new Worker(
     config.queues.parsedLeads,
     async (job) => {
@@ -128,7 +146,7 @@ export function createMatchingWorker(log: Logger): { worker: Worker; cleanup: ()
       // ---- Log pipeline event: matching ----
       await logPipelineEvent('matched', row.group_id, leadId);
 
-      const matched = await matchLead(lead, notificationQueue, jobLog, waNotificationQueue, pushNotificationQueue);
+      const matched = await matchLead(lead, notificationQueue, jobLog, waNotificationQueue, pushNotificationQueue, waTemplateQueue, smsQueue);
 
       // ---- Log pipeline event: sent ----
       if (matched > 0) {
@@ -164,6 +182,8 @@ export function createMatchingWorker(log: Logger): { worker: Worker; cleanup: ()
     await notificationQueue.close();
     await waNotificationQueue.close();
     await pushNotificationQueue.close();
+    await waTemplateQueue.close();
+    await smsQueue.close();
   };
 
   return { worker, cleanup };
