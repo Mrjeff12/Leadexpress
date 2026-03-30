@@ -19,6 +19,7 @@ import { Globe } from 'lucide-react'
 import PushBanner from './components/PushBanner'
 import { PWAInstallBanner } from './components/PWAInstallBanner'
 import { OnboardingOverlayContext } from './components/OnboardingOverlayContext'
+import PushPermissionPopup from './components/PushPermissionPopup'
 
 /* ─── Lazy-loaded pages ─── */
 const AdminLayout = lazy(() => import('./components/AdminLayout'))
@@ -163,6 +164,7 @@ function AppShell() {
       <ImpersonationBanner />
       {!onboardingActive && <Sidebar />}
       {!onboardingActive && <MobileTabBar />}
+      {!onboardingActive && <PushPermissionPopup />}
       <main className="relative contractor-main-content">
         {isFullBleed ? (
           <div className="h-screen">
