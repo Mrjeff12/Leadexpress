@@ -22,14 +22,222 @@ import {
   MapPin,
   Eye,
   ChevronRight,
+  ChevronDown,
   Sparkles,
   ArrowRight,
   Fingerprint,
+  Camera,
+  Globe,
+  Briefcase,
+  Image,
+  Award,
+  Crown,
+  BadgeCheck,
+  UserCircle,
+  TrendingUp,
 } from 'lucide-react'
 import { usePushNotifications } from '../hooks/usePushNotifications'
 import { useIdentityVerification } from '../hooks/useIdentityVerification'
+import { useContractorProfile } from '../hooks/useContractorProfile'
 
 const WA_NUMBER = '18623582898'
+
+/* ── Mobile sub-sections ──────────────────────────────── */
+
+function MobileCollapsible({ title, badge, defaultOpen = false, children }: {
+  title: string; badge?: string; defaultOpen?: boolean; children: React.ReactNode
+}) {
+  const [open, setOpen] = useState(defaultOpen)
+  return (
+    <div className="bg-white rounded-[20px] border border-black/[0.04] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
+      <button onClick={() => setOpen(!open)} className="w-full flex items-center justify-between px-4 py-3.5 active:scale-[0.97] transition-transform">
+        <div className="flex items-center gap-2">
+          <p className="text-[14px] font-semibold text-zinc-900">{title}</p>
+          {badge && (
+            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+              badge === 'Complete' ? 'bg-green-50 text-green-600' : 'bg-[#fee8df] text-[#fe5b25]'
+            }`}>{badge}</span>
+          )}
+        </div>
+        <ChevronDown size={16} className={`text-[#a3a3a3] transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
+      </button>
+      {open && <div className="px-4 pb-4 border-t border-[#f5f5f5]">{children}</div>}
+    </div>
+  )
+}
+
+function MobileProfSection({ navigate }: { navigate: (path: string) => void }) {
+  return (
+    <MobileCollapsible title="Professional Info" badge="Complete">
+      <div className="space-y-0 mt-3">
+        {[
+          { Icon: Wrench, label: 'Services', val: 'Locksmith, Rekey, Smart Locks' },
+          { Icon: MapPin, label: 'Service Areas', val: 'Miami-Dade, Broward' },
+          { Icon: Globe, label: 'Languages', val: 'English, Spanish' },
+          { Icon: Briefcase, label: 'Work Preferences', val: 'Fixed, Percentage, Sub-work' },
+        ].map((item, i, arr) => (
+          <button
+            key={i}
+            onClick={() => navigate('/profile/edit')}
+            className="w-full flex items-center gap-3 py-3 active:scale-[0.97] transition-transform"
+            style={{ borderBottom: i < arr.length - 1 ? '1px solid #f5f5f5' : 'none' }}
+          >
+            <div className="w-8 h-8 rounded-lg bg-[#fafafa] flex items-center justify-center">
+              <item.Icon size={15} strokeWidth={1.6} className="text-zinc-600" />
+            </div>
+            <div className="flex-1 text-left">
+              <p className="text-[12px] font-semibold text-zinc-900">{item.label}</p>
+              <p className="text-[10px] text-[#737373]">{item.val}</p>
+            </div>
+            <ChevronRight size={14} className="text-[#a3a3a3]" />
+          </button>
+        ))}
+      </div>
+    </MobileCollapsible>
+  )
+}
+
+function MobilePortfolioSection() {
+  return (
+    <MobileCollapsible title="Portfolio" badge="4 projects">
+      <div className="mt-3">
+        <div className="flex gap-2.5 overflow-x-auto -mx-1 px-1 pb-1" style={{ scrollbarWidth: 'none' }}>
+          {['Smart Lock Install', 'Commercial Rekey', 'Emergency Lockout', 'Safe Install'].map((p, i) => (
+            <div key={i} className="flex-shrink-0 w-[120px] active:scale-[0.97] transition-transform">
+              <div className="aspect-[3/4] rounded-xl bg-[#f5f5f5] flex items-center justify-center mb-1.5 relative">
+                <Image size={16} className="text-[#a3a3a3]" />
+                <span className="absolute bottom-1 left-1 text-[8px] font-semibold bg-zinc-900/70 text-white px-1.5 py-0.5 rounded backdrop-blur-sm">B/A</span>
+              </div>
+              <p className="text-[10px] font-medium truncate text-zinc-900">{p}</p>
+            </div>
+          ))}
+          <div className="flex-shrink-0 w-[120px] active:scale-[0.97] transition-transform">
+            <div className="aspect-[3/4] rounded-xl border-2 border-dashed border-zinc-200 flex flex-col items-center justify-center gap-1 mb-1.5">
+              <div className="w-6 h-6 rounded-full bg-[#fee8df] flex items-center justify-center">
+                <Image size={11} className="text-[#fe5b25]" />
+              </div>
+              <p className="text-[9px] text-[#fe5b25] font-semibold">Add</p>
+            </div>
+          </div>
+        </div>
+        <div className="mt-2.5 flex items-center gap-2 bg-blue-50 rounded-lg p-2.5">
+          <TrendingUp size={12} className="text-blue-500" />
+          <p className="text-[10px] text-blue-700">6+ projects = <strong>40% more inquiries</strong></p>
+        </div>
+      </div>
+    </MobileCollapsible>
+  )
+}
+
+function MobileCommSection({
+  isWhatsAppConnected, whatsappPhone, isTelegramConnected,
+  pushStatus, pushLoading, waPolling,
+  handleConnectWhatsApp, enablePush, navigate,
+}: {
+  isWhatsAppConnected: boolean; whatsappPhone: string | null; isTelegramConnected: boolean
+  pushStatus: string; pushLoading: boolean; waPolling: boolean
+  handleConnectWhatsApp: () => void; enablePush: () => void; navigate: (path: string) => void
+}) {
+  const channels = [
+    {
+      icon: MessageCircle,
+      label: 'WhatsApp',
+      bg: 'bg-[#25D366]',
+      ok: isWhatsAppConnected,
+      status: isWhatsAppConnected ? (whatsappPhone ?? 'Connected') : 'Not connected',
+      action: () => handleConnectWhatsApp(),
+    },
+    {
+      icon: Send,
+      label: 'Telegram',
+      bg: 'bg-[#0088cc]',
+      ok: isTelegramConnected,
+      status: isTelegramConnected ? 'Connected' : 'Not connected',
+      action: () => navigate('/telegram'),
+    },
+    {
+      icon: Bell,
+      label: 'Push Notifications',
+      bg: pushStatus === 'granted' ? 'bg-[#fe5b25]' : 'bg-zinc-400',
+      ok: pushStatus === 'granted',
+      status: pushStatus === 'granted' ? 'Enabled' : pushStatus === 'denied' ? 'Blocked' : pushStatus === 'unsupported' ? 'Not supported' : 'Not enabled',
+      action: () => enablePush(),
+    },
+  ]
+  return (
+    <MobileCollapsible title="Communication" defaultOpen={true}>
+      <div className="space-y-0 mt-3">
+        {channels.map((ch, i, arr) => (
+          <div key={i} className="flex items-center gap-3 py-3"
+            style={{ borderBottom: i < arr.length - 1 ? '1px solid #f5f5f5' : 'none' }}>
+            <div className={`w-8 h-8 rounded-lg ${ch.bg} flex items-center justify-center`}>
+              <ch.icon size={14} className="text-white" />
+            </div>
+            <div className="flex-1">
+              <p className="text-[12px] font-semibold text-zinc-900">{ch.label}</p>
+              <p className={`text-[10px] ${ch.ok ? 'text-green-500' : 'text-[#737373]'}`}>{ch.status}</p>
+            </div>
+            {ch.ok ? (
+              <div className="w-2 h-2 rounded-full bg-green-500" />
+            ) : (
+              <button
+                onClick={ch.action}
+                disabled={ch.label === 'WhatsApp' ? waPolling : ch.label === 'Push Notifications' ? pushLoading : false}
+                className="text-[11px] font-semibold text-[#fe5b25] bg-[#fee8df] px-3 py-1.5 rounded-full active:scale-[0.97] transition-transform disabled:opacity-60"
+              >
+                {(ch.label === 'WhatsApp' && waPolling) || (ch.label === 'Push Notifications' && pushLoading)
+                  ? <Loader2 size={12} className="animate-spin" />
+                  : 'Connect'}
+              </button>
+            )}
+          </div>
+        ))}
+      </div>
+    </MobileCollapsible>
+  )
+}
+
+function MobileWorkingHoursSection() {
+  return (
+    <MobileCollapsible title="Working Hours">
+      <div className="space-y-2 mt-3">
+        {['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].map((d, i) => (
+          <div key={d} className="flex items-center justify-between">
+            <span className={`text-[12px] font-semibold w-10 ${i >= 5 ? 'text-[#a3a3a3]' : 'text-zinc-700'}`}>{d}</span>
+            {i >= 5 ? (
+              <span className="text-[11px] text-[#a3a3a3]">Off</span>
+            ) : (
+              <div className="flex items-center gap-1">
+                <span className="text-[11px] bg-[#fafafa] px-2.5 py-1 rounded-lg text-zinc-600">8:00 AM</span>
+                <span className="text-[10px] text-[#a3a3a3]">—</span>
+                <span className="text-[11px] bg-[#fafafa] px-2.5 py-1 rounded-lg text-zinc-600">6:00 PM</span>
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    </MobileCollapsible>
+  )
+}
+
+function MobilePreferencesSection() {
+  return (
+    <MobileCollapsible title="Preferences">
+      <div className="space-y-0 mt-3">
+        {[{l:'Language',v:'English'},{l:'Distance',v:'Miles'},{l:'Notifications',v:'On'}].map((p, i, arr) => (
+          <div key={i} className="flex items-center justify-between py-3"
+            style={{ borderBottom: i < arr.length - 1 ? '1px solid #f5f5f5' : 'none' }}>
+            <p className="text-[12px] font-semibold text-zinc-900">{p.l}</p>
+            <div className="flex items-center gap-1">
+              <span className="text-[10px] text-[#737373]">{p.v}</span>
+              <ChevronRight size={13} className="text-[#a3a3a3]" />
+            </div>
+          </div>
+        ))}
+      </div>
+    </MobileCollapsible>
+  )
+}
 
 export default function Profile() {
   const { user, profile, refreshProfile, effectiveUserId, impersonatedProfile } = useAuth()
@@ -44,6 +252,7 @@ export default function Profile() {
 
   const { status: pushStatus, enable: enablePush, isLoading: pushLoading } = usePushNotifications()
   const { isVerified: identityVerified, isPending: identityPending } = useIdentityVerification()
+  const { data: contractorData } = useContractorProfile()
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [loading, setLoading] = useState(true)
@@ -173,23 +382,38 @@ export default function Profile() {
   return (
     <>
       {/* ===================== MOBILE VIEW ===================== */}
-      <div className={`md:hidden px-4 pt-4 pb-24 space-y-5 ${isHe ? 'text-right' : 'text-left'}`} dir={isHe ? 'rtl' : 'ltr'}>
+      <div className="md:hidden fixed inset-0 z-30 overflow-y-auto bg-[#fafafa]">
+        <div className="px-4 pt-5 pb-24 space-y-5">
 
         {/* ---- HERO CARD ---- */}
-        <div className="bg-[#111] rounded-2xl p-5 relative overflow-hidden">
+        <div className="bg-[#111] rounded-[20px] p-5 mb-5 relative overflow-hidden">
           <div className="absolute top-0 right-0 w-32 h-32 bg-[#fe5b25] rounded-full opacity-[0.08] -translate-y-10 translate-x-10" />
 
           {/* Avatar + Info */}
           <div className="flex items-center gap-3.5 mb-4 relative">
-            <div className="w-16 h-16 rounded-2xl bg-white/10 flex items-center justify-center text-white text-[22px] font-bold">
-              {initials}
+            <div className="relative">
+              <div className="w-16 h-16 rounded-2xl bg-white/10 flex items-center justify-center text-white text-[22px] font-bold">
+                {initials}
+              </div>
+              <button className="absolute -bottom-1 -right-1 w-6 h-6 bg-[#fe5b25] rounded-full flex items-center justify-center border-2 border-[#111]">
+                <Camera size={10} className="text-white" />
+              </button>
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-1.5">
-                <h2 className="text-[18px] font-bold text-white tracking-tight truncate">{fullName || (isHe ? 'לא צוין' : 'Not set')}</h2>
-                {identityVerified && <Shield size={14} className="text-[#fe5b25] flex-shrink-0" />}
+                <h2 className="text-[18px] font-bold text-white tracking-tight truncate">{fullName || 'Your Name'}</h2>
+                <Shield size={14} className="text-[#fe5b25] flex-shrink-0" />
               </div>
-              <p className="text-[12px] text-white/40 truncate">{user?.email ?? ''}</p>
+              <p className="text-[12px] text-white/40 truncate">
+                {contractorData?.professions?.[0] ?? 'Contractor'}
+                {contractorData?.counties?.[0] ? ` · ${contractorData.counties[0]}` : ''}
+                {contractorData?.profile?.years_experience ? ` · ${contractorData.profile.years_experience} yrs` : ''}
+              </p>
+              <div className="flex items-center gap-2 mt-1">
+                <span className="flex items-center gap-0.5 text-[11px] text-amber-400 font-semibold">
+                  <Star size={10} fill="#fbbf24" /> {contractorData?.profile?.avg_rating?.toFixed(1) ?? '4.8'} <span className="text-white/25 font-normal">({contractorData?.profile?.review_count ?? 0})</span>
+                </span>
+              </div>
               {identityVerified && (
                 <span className="inline-flex items-center gap-1 text-[10px] font-bold text-green-400 mt-1">
                   <CheckCircle2 size={10} /> {isHe ? 'זהות מאומתת' : 'Identity Verified'}
@@ -202,6 +426,39 @@ export default function Profile() {
               )}
             </div>
           </div>
+
+          {/* Tier journey */}
+          {(() => {
+            const tierDefs = [
+              { name: 'New', Icon: UserCircle, reached: true },
+              { name: 'Verified', Icon: BadgeCheck, reached: identityVerified },
+              { name: 'Trusted', Icon: Award, reached: false, current: !identityVerified },
+              { name: 'Elite', Icon: Crown, reached: false },
+            ]
+            return (
+              <div className="flex items-center gap-1 mb-4">
+                {tierDefs.map((t, i, arr) => (
+                  <div key={i} className="flex items-center flex-1">
+                    <div className="flex flex-col items-center flex-1">
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center mb-1 ${
+                        t.reached ? 'bg-green-500/20' : t.current ? 'bg-[#fe5b25]/20 ring-[1.5px] ring-[#fe5b25]' : 'bg-white/5'
+                      }`}>
+                        <t.Icon size={15} strokeWidth={1.8} className={
+                          t.reached ? 'text-green-400' : t.current ? 'text-[#fe5b25]' : 'text-white/15'
+                        } />
+                      </div>
+                      <span className={`text-[9px] font-medium ${
+                        t.reached ? 'text-green-400' : t.current ? 'text-[#fe5b25]' : 'text-white/15'
+                      }`}>{t.name}</span>
+                    </div>
+                    {i < arr.length - 1 && (
+                      <div className={`h-0.5 w-full mt-[-14px] ${t.reached ? 'bg-green-500/30' : 'bg-white/5'}`} />
+                    )}
+                  </div>
+                ))}
+              </div>
+            )
+          })()}
 
           {/* Profile Strength */}
           <div className="flex items-center gap-3 mb-3">
@@ -218,291 +475,177 @@ export default function Profile() {
             className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-white/10 active:scale-[0.97] transition-transform"
           >
             <Eye size={14} className="text-white/60" />
-            <span className="text-[13px] font-medium text-white/60">{isHe ? 'תצוגה מקדימה של הפרופיל' : 'Preview public profile'}</span>
+            <span className="text-[13px] font-medium text-white/60">Preview my public profile</span>
           </button>
         </div>
 
-        {/* ---- UNLOCK / VERIFICATION CTA ---- */}
-        {!identityVerified && (
-          <div className="bg-white rounded-2xl p-4 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
-            <div className="flex items-center gap-3 mb-3">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-400 to-amber-500 flex items-center justify-center">
-                <Sparkles size={18} className="text-white" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-[14px] font-semibold text-zinc-900">{isHe ? 'קבל תג מאומת' : 'Get Verified Badge'}</p>
-                <p className="text-[11px] text-zinc-400">{isHe ? 'קבל יותר לידים ואמינות' : 'Get more leads & build trust'}</p>
-              </div>
+        {/* ---- UNLOCK TRUSTED CARD ---- */}
+        <div className="bg-white rounded-[20px] border border-black/[0.04] shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-4 mb-5">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-400 to-amber-500 flex items-center justify-center">
+              <Sparkles size={18} className="text-white" />
             </div>
-
-            {/* Identity verification CTA */}
-            <Link
-              to="/verify-identity"
-              className="w-full flex items-center gap-3 p-3 rounded-xl bg-zinc-50 active:scale-[0.97] transition-transform"
-            >
-              <div className="w-9 h-9 rounded-lg bg-white flex items-center justify-center shadow-sm">
-                <Fingerprint size={15} className="text-zinc-900" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-[13px] font-semibold text-zinc-900">{isHe ? 'אימות זהות' : 'Identity Verification'}</p>
-                <p className="text-[10px] text-zinc-400">{isHe ? 'תעודת זהות + סלפי' : 'ID + selfie verification'}</p>
-              </div>
-              <div className="flex flex-col items-end gap-1">
-                <span className="text-[10px] font-bold text-green-600">+30%</span>
-                <ArrowRight size={12} className="text-zinc-300" />
-              </div>
-            </Link>
-
-            {/* What's already done */}
-            <div className="flex items-center gap-3 mt-3 px-1">
-              {!!phone && (
-                <div className="flex items-center gap-1">
-                  <CheckCircle2 size={12} className="text-green-500" />
-                  <span className="text-[10px] text-green-600">{isHe ? 'טלפון מאומת' : 'Phone Verified'}</span>
-                </div>
-              )}
-              {!!fullName && (
-                <div className="flex items-center gap-1">
-                  <CheckCircle2 size={12} className="text-green-500" />
-                  <span className="text-[10px] text-green-600">{isHe ? 'שם מלא' : 'Full Name'}</span>
-                </div>
-              )}
+            <div className="flex-1 min-w-0">
+              <p className="text-[14px] font-semibold text-zinc-900">Unlock <span className="text-green-600">Trusted</span></p>
+              <p className="text-[11px] text-[#737373]">3x more leads & featured placement</p>
             </div>
           </div>
-        )}
+
+          {/* Incomplete steps */}
+          <div className="space-y-2">
+            {!identityVerified && (
+              <button
+                onClick={() => navigate('/verify-identity')}
+                className="w-full flex items-center gap-3 p-3 rounded-xl bg-[#fafafa] active:scale-[0.97] transition-transform"
+              >
+                <div className="w-9 h-9 rounded-lg bg-white flex items-center justify-center shadow-sm">
+                  <Fingerprint size={15} className="text-zinc-900" />
+                </div>
+                <div className="flex-1 text-left">
+                  <p className="text-[13px] font-semibold text-zinc-900">Identity Verification</p>
+                  <p className="text-[10px] text-[#737373]">ID + selfie · Get verified badge ✓</p>
+                </div>
+                <div className="flex flex-col items-end gap-1">
+                  <span className="text-[10px] font-bold text-green-600">+30% more leads</span>
+                  <ArrowRight size={12} className="text-[#a3a3a3]" />
+                </div>
+              </button>
+            )}
+            <button className="w-full flex items-center gap-3 p-3 rounded-xl bg-[#fafafa] active:scale-[0.97] transition-transform">
+              <div className="w-9 h-9 rounded-lg bg-white flex items-center justify-center shadow-sm">
+                <Shield size={15} className="text-zinc-900" />
+              </div>
+              <div className="flex-1 text-left">
+                <p className="text-[13px] font-semibold text-zinc-900">Trade License</p>
+                <p className="text-[10px] text-[#737373]">Upload license (optional)</p>
+              </div>
+              <div className="flex flex-col items-end gap-1">
+                <span className="text-[10px] font-bold text-green-600">+10% more leads</span>
+                <ArrowRight size={12} className="text-[#a3a3a3]" />
+              </div>
+            </button>
+          </div>
+
+          {/* Done items */}
+          <div className="flex items-center gap-2 mt-3 px-1">
+            {!!fullName && (
+              <div className="flex items-center gap-1">
+                <CheckCircle2 size={12} className="text-green-500" />
+                <span className="text-[10px] text-green-600">Profile Photo</span>
+              </div>
+            )}
+            {!!phone && (
+              <div className="flex items-center gap-1">
+                <CheckCircle2 size={12} className="text-green-500" />
+                <span className="text-[10px] text-green-600">Phone Verified</span>
+              </div>
+            )}
+          </div>
+        </div>
 
         {/* ---- TAB SWITCHER ---- */}
-        <div className="flex bg-zinc-100 rounded-xl p-1">
+        <div className="flex bg-[#f5f5f5] rounded-xl p-1 mb-5">
           <button
             onClick={() => setMobileTab('profile')}
             className={`flex-1 py-2.5 rounded-lg text-[13px] font-semibold transition-all ${
-              mobileTab === 'profile' ? 'bg-white shadow-sm text-zinc-900' : 'text-zinc-400'
+              mobileTab === 'profile' ? 'bg-white shadow-sm text-zinc-900' : 'text-[#737373]'
             }`}
           >
-            {isHe ? 'פרופיל' : 'Profile'}
+            Profile
           </button>
           <button
             onClick={() => setMobileTab('settings')}
             className={`flex-1 py-2.5 rounded-lg text-[13px] font-semibold transition-all ${
-              mobileTab === 'settings' ? 'bg-white shadow-sm text-zinc-900' : 'text-zinc-400'
+              mobileTab === 'settings' ? 'bg-white shadow-sm text-zinc-900' : 'text-[#737373]'
             }`}
           >
-            {isHe ? 'הגדרות' : 'Settings'}
+            Settings
           </button>
         </div>
 
         {mobileTab === 'profile' ? (
           <div className="space-y-3">
-            {/* ---- Personal Info ---- */}
-            <div className="bg-white rounded-2xl shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
-              <div className="px-4 py-3.5 flex items-center justify-between">
-                <p className="text-[14px] font-semibold text-zinc-900">{isHe ? 'מידע אישי' : 'Personal Info'}</p>
-                <Link to="/profile/edit" className="text-[12px] font-semibold text-[#fe5b25] active:scale-[0.97] transition-transform">
-                  {isHe ? 'ערוך' : 'Edit'}
-                </Link>
+
+            {/* Professional Info collapsible */}
+            <MobileProfSection navigate={navigate} />
+
+            {/* Portfolio */}
+            <MobilePortfolioSection />
+
+            {/* Reviews */}
+            <div className="bg-white rounded-[20px] border border-black/[0.04] shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-4">
+              <div className="flex items-center justify-between mb-3">
+                <p className="text-[14px] font-semibold text-zinc-900">Reviews</p>
+                <span className="text-[11px] text-[#737373]">{contractorData?.profile?.review_count ?? 0} total</span>
               </div>
-              <div className="px-4 pb-4 space-y-0">
-                {/* Name */}
-                <div className="flex items-center gap-3 py-3 border-b border-zinc-100">
-                  <div className="w-8 h-8 rounded-lg bg-zinc-50 flex items-center justify-center">
-                    <User size={15} strokeWidth={1.6} className="text-zinc-600" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-[12px] font-semibold text-zinc-900">{isHe ? 'שם מלא' : 'Full Name'}</p>
-                    <p className="text-[10px] text-zinc-400 truncate">{fullName || (isHe ? 'לא צוין' : 'Not set')}</p>
+              <div className="flex items-center gap-4 mb-3">
+                <div>
+                  <p className="text-[26px] font-bold tracking-tight">{contractorData?.profile?.avg_rating?.toFixed(1) ?? '4.8'}</p>
+                  <div className="flex gap-0.5">
+                    {[1,2,3,4,5].map(i => <Star key={i} size={9} className="text-amber-400" fill="#fbbf24" />)}
                   </div>
                 </div>
-                {/* Phone */}
-                <div className="flex items-center gap-3 py-3 border-b border-zinc-100">
-                  <div className="w-8 h-8 rounded-lg bg-zinc-50 flex items-center justify-center">
-                    <Phone size={15} strokeWidth={1.6} className="text-zinc-600" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-[12px] font-semibold text-zinc-900">{isHe ? 'טלפון' : 'Phone'}</p>
-                    <p className="text-[10px] text-zinc-400 truncate">{phone || (isHe ? 'לא צוין' : 'Not set')}</p>
-                  </div>
+                <div className="flex-1 space-y-1">
+                  {[{n:5,w:72},{n:4,w:18},{n:3,w:6},{n:2,w:3},{n:1,w:1}].map(r => (
+                    <div key={r.n} className="flex items-center gap-1.5">
+                      <span className="text-[9px] text-[#737373] w-2">{r.n}</span>
+                      <div className="flex-1 h-1 rounded-full bg-[#f5f5f5]">
+                        <div className="h-full rounded-full bg-amber-400" style={{width:`${r.w}%`}} />
+                      </div>
+                    </div>
+                  ))}
                 </div>
-                {/* Email */}
-                <div className="flex items-center gap-3 py-3">
-                  <div className="w-8 h-8 rounded-lg bg-zinc-50 flex items-center justify-center">
-                    <Mail size={15} strokeWidth={1.6} className="text-zinc-600" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-[12px] font-semibold text-zinc-900">{isHe ? 'אימייל' : 'Email'}</p>
-                    <p className="text-[10px] text-zinc-400 truncate">{user?.email ?? ''}</p>
-                  </div>
+              </div>
+              <div className="bg-[#fafafa] rounded-xl p-3">
+                <div className="flex items-center gap-2 mb-1">
+                  <div className="w-5 h-5 rounded-full bg-zinc-900 flex items-center justify-center text-white text-[7px] font-bold">JK</div>
+                  <span className="text-[11px] font-semibold">James K.</span>
+                  <div className="flex gap-0.5 ml-auto">{[1,2,3,4,5].map(i => <Star key={i} size={7} className="text-amber-400" fill="#fbbf24" />)}</div>
                 </div>
+                <p className="text-[10px] text-[#737373] leading-relaxed">"Great work. Fast, professional, fair price."</p>
               </div>
             </div>
-
-            {/* ---- Professional Info ---- */}
-            <Link
-              to="/profile/edit"
-              className="bg-white rounded-2xl shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-4 flex items-center gap-3 active:scale-[0.97] transition-transform block"
-            >
-              <div className="w-9 h-9 rounded-xl bg-zinc-50 flex items-center justify-center">
-                <Wrench size={16} className="text-zinc-600" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-[13px] font-semibold text-zinc-900">{isHe ? 'מידע מקצועי' : 'Professional Info'}</p>
-                <p className="text-[10px] text-zinc-400">{isHe ? 'שירותים, אזורים, העדפות' : 'Services, areas, preferences'}</p>
-              </div>
-              <ChevronRight size={14} className="text-zinc-300 flex-shrink-0" />
-            </Link>
-
-            {/* ---- Communication Channels ---- */}
-            <div className="bg-white rounded-2xl shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
-              <div className="px-4 py-3.5">
-                <p className="text-[14px] font-semibold text-zinc-900">{isHe ? 'ערוצי תקשורת' : 'Communication'}</p>
-              </div>
-              <div className="px-4 pb-4 space-y-0">
-                {/* WhatsApp */}
-                <div className="flex items-center gap-3 py-3 border-b border-zinc-100">
-                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${isWhatsAppConnected ? 'bg-[#25D366]' : 'bg-[#25D366]'}`}>
-                    <MessageCircle size={14} className="text-white" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-[12px] font-semibold text-zinc-900">WhatsApp</p>
-                    <p className={`text-[10px] ${isWhatsAppConnected ? 'text-green-500' : 'text-zinc-400'}`}>
-                      {isWhatsAppConnected ? (whatsappPhone ?? (isHe ? 'מחובר' : 'Connected')) : (isHe ? 'לא מחובר' : 'Not connected')}
-                    </p>
-                  </div>
-                  {isWhatsAppConnected ? (
-                    <div className="w-2 h-2 rounded-full bg-green-500" />
-                  ) : (
-                    <button
-                      onClick={handleConnectWhatsApp}
-                      disabled={waPolling}
-                      className="text-[11px] font-semibold text-[#fe5b25] bg-[#fee8df] px-3 py-1.5 rounded-full active:scale-[0.97] transition-transform"
-                    >
-                      {waPolling ? <Loader2 size={12} className="animate-spin" /> : (isHe ? 'חבר' : 'Connect')}
-                    </button>
-                  )}
-                </div>
-
-                {/* Telegram */}
-                <div className="flex items-center gap-3 py-3 border-b border-zinc-100">
-                  <div className="w-8 h-8 rounded-lg bg-[#0088CC] flex items-center justify-center">
-                    <Send size={14} className="text-white" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-[12px] font-semibold text-zinc-900">Telegram</p>
-                    <p className={`text-[10px] ${isTelegramConnected ? 'text-green-500' : 'text-zinc-400'}`}>
-                      {isTelegramConnected ? (isHe ? 'מחובר' : 'Connected') : (isHe ? 'לא מחובר' : 'Not connected')}
-                    </p>
-                  </div>
-                  {isTelegramConnected ? (
-                    <div className="w-2 h-2 rounded-full bg-green-500" />
-                  ) : (
-                    <button
-                      onClick={() => navigate('/telegram')}
-                      className="text-[11px] font-semibold text-[#fe5b25] bg-[#fee8df] px-3 py-1.5 rounded-full active:scale-[0.97] transition-transform"
-                    >
-                      {isHe ? 'חבר' : 'Connect'}
-                    </button>
-                  )}
-                </div>
-
-                {/* Push */}
-                <div className="flex items-center gap-3 py-3">
-                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${pushStatus === 'granted' ? 'bg-[#fe5b25]' : 'bg-zinc-400'}`}>
-                    <Bell size={14} className="text-white" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-[12px] font-semibold text-zinc-900">{isHe ? 'התראות פוש' : 'Push Alerts'}</p>
-                    <p className={`text-[10px] ${pushStatus === 'granted' ? 'text-green-500' : pushStatus === 'denied' ? 'text-red-500' : 'text-zinc-400'}`}>
-                      {pushStatus === 'granted'
-                        ? (isHe ? 'מופעל' : 'Enabled')
-                        : pushStatus === 'denied'
-                          ? (isHe ? 'חסום' : 'Blocked')
-                          : pushStatus === 'unsupported'
-                            ? (isHe ? 'לא נתמך' : 'Not supported')
-                            : (isHe ? 'כבוי' : 'Not enabled')}
-                    </p>
-                  </div>
-                  {pushStatus === 'granted' ? (
-                    <div className="w-2 h-2 rounded-full bg-green-500" />
-                  ) : pushStatus === 'denied' || pushStatus === 'unsupported' ? (
-                    <span className="text-[10px] text-zinc-400">{pushStatus === 'denied' ? (isHe ? 'חסום בדפדפן' : 'Blocked') : (isHe ? 'לא נתמך' : 'N/A')}</span>
-                  ) : (
-                    <button
-                      onClick={enablePush}
-                      disabled={pushLoading}
-                      className="text-[11px] font-semibold text-[#fe5b25] bg-[#fee8df] px-3 py-1.5 rounded-full active:scale-[0.97] transition-transform disabled:opacity-60"
-                    >
-                      {pushLoading ? <Loader2 size={12} className="animate-spin" /> : (isHe ? 'הפעל' : 'Enable')}
-                    </button>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* ---- Save Button (mobile) ---- */}
-            <button
-              type="button"
-              onClick={handleSave}
-              disabled={saving}
-              className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl bg-[#fe5b25] text-white text-[14px] font-semibold active:scale-[0.97] transition-transform disabled:opacity-60 shadow-[0_1px_3px_rgba(0,0,0,0.04)]"
-            >
-              {saving ? (
-                <Loader2 size={16} className="animate-spin" />
-              ) : saved ? (
-                <>
-                  <CheckCircle size={16} />
-                  {t('profile.saved')}
-                </>
-              ) : (
-                <>
-                  <Save size={16} />
-                  {t('profile.save')}
-                </>
-              )}
-            </button>
           </div>
         ) : (
           <div className="space-y-3">
-            {/* ---- Working Hours ---- */}
-            <div className="bg-white rounded-2xl shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
-              <div className="px-4 py-3.5">
-                <p className="text-[14px] font-semibold text-zinc-900">{isHe ? 'שעות עבודה' : 'Working Hours'}</p>
-              </div>
-              <div className="px-4 pb-4 space-y-2">
-                {(isHe
-                  ? ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי', 'שישי', 'שבת']
-                  : ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
-                ).map((d, i) => (
-                  <div key={d} className="flex items-center justify-between">
-                    <span className={`text-[12px] font-semibold w-12 ${i >= 5 ? 'text-zinc-300' : 'text-zinc-700'}`}>{d}</span>
-                    {i >= 5 ? (
-                      <span className="text-[11px] text-zinc-300">{isHe ? 'חופש' : 'Off'}</span>
-                    ) : (
-                      <div className="flex items-center gap-1">
-                        <span className="text-[11px] bg-zinc-50 px-2.5 py-1 rounded-lg text-zinc-600">8:00 AM</span>
-                        <span className="text-[10px] text-zinc-300">&mdash;</span>
-                        <span className="text-[11px] bg-zinc-50 px-2.5 py-1 rounded-lg text-zinc-600">6:00 PM</span>
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
 
-            {/* ---- Subscription Card ---- */}
-            <Link
-              to="/subscription"
-              className="bg-white rounded-2xl shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-4 flex items-center gap-3 active:scale-[0.97] transition-transform block"
+            {/* Communication section */}
+            <MobileCommSection
+              isWhatsAppConnected={isWhatsAppConnected}
+              whatsappPhone={whatsappPhone}
+              isTelegramConnected={isTelegramConnected}
+              pushStatus={pushStatus}
+              pushLoading={pushLoading}
+              waPolling={waPolling}
+              handleConnectWhatsApp={handleConnectWhatsApp}
+              enablePush={enablePush}
+              navigate={navigate}
+            />
+
+            {/* Working Hours */}
+            <MobileWorkingHoursSection />
+
+            {/* Preferences */}
+            <MobilePreferencesSection />
+
+            {/* Premium Plan */}
+            <button
+              onClick={() => navigate('/subscription')}
+              className="w-full bg-white rounded-[20px] border border-black/[0.04] shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-4 flex items-center gap-3 active:scale-[0.97] transition-transform"
             >
               <div className="w-9 h-9 rounded-xl bg-[#fe5b25] flex items-center justify-center">
                 <Star size={14} className="text-white" />
               </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-[13px] font-semibold text-zinc-900">{isHe ? 'מנוי' : 'Subscription'}</p>
-                <p className="text-[10px] text-zinc-400">{isHe ? 'נהל את התוכנית שלך' : 'Manage your plan'}</p>
+              <div className="flex-1 text-left">
+                <p className="text-[13px] font-semibold text-zinc-900">Premium Plan</p>
+                <p className="text-[10px] text-[#737373]">$79/mo · Renews Apr 15</p>
               </div>
-              <ChevronRight size={14} className="text-zinc-300 flex-shrink-0" />
-            </Link>
+              <ChevronRight size={14} className="text-[#a3a3a3]" />
+            </button>
           </div>
         )}
+
+        </div>
       </div>
 
       {/* ===================== DESKTOP VIEW ===================== */}

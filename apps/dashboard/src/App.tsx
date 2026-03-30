@@ -1,6 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate, NavLink, useLocation } from 'react-router-dom'
 import { lazy, Suspense, useState, useEffect, useCallback, type ReactNode } from 'react'
-import { Home, Zap, Users, Briefcase, User } from 'lucide-react'
+import { Home, Zap, MessageCircle, Briefcase, User } from 'lucide-react'
 import { AuthProvider, useAuth } from './lib/auth'
 import { I18nContext, createTranslator, type Locale } from './lib/i18n'
 import { Toaster } from './components/shadcn/ui/toaster'
@@ -125,11 +125,11 @@ function LoadingScreen() {
 function MobileTabBar() {
   const location = useLocation()
   const tabs = [
-    { to: '/',           Icon: Home,     label: 'Home',   match: (p: string) => p === '/' },
-    { to: '/leads',      Icon: Zap,      label: 'Leads',  match: (p: string) => p === '/leads' || p.startsWith('/leads/') },
-    { to: '/group-scan', Icon: Users,    label: 'Groups', match: (p: string) => p === '/group-scan' },
-    { to: '/jobs',       Icon: Briefcase,label: 'Jobs',   match: (p: string) => p === '/jobs' || p.startsWith('/jobs/') },
-    { to: '/profile',    Icon: User,     label: 'Profile',match: (p: string) => p.startsWith('/profile') || p === '/subscription' },
+    { to: '/',            Icon: Home,         label: 'Home',   match: (p: string) => p === '/' },
+    { to: '/leads',       Icon: Zap,          label: 'Leads',  match: (p: string) => p === '/leads' || p.startsWith('/leads/') },
+    { to: '/chat/rebeca', Icon: MessageCircle, label: 'Rebeca', match: (p: string) => p.startsWith('/chat') || p.startsWith('/messages') },
+    { to: '/jobs',        Icon: Briefcase,    label: 'Jobs',   match: (p: string) => p === '/jobs' || p.startsWith('/jobs/') },
+    { to: '/profile',     Icon: User,         label: 'Profile',match: (p: string) => p.startsWith('/profile') || p === '/subscription' },
   ]
   return (
     <nav className="md:hidden fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-1.5 bg-[#111] rounded-[28px] px-1.5 py-[5px] shadow-[0_8px_32px_rgba(0,0,0,0.20)]">

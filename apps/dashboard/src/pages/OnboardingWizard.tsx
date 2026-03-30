@@ -255,9 +255,9 @@ export default function OnboardingWizard() {
       </div>
 
       {/* ── Content area with slide transition ── */}
-      <div className="flex-1 overflow-y-auto px-6 pb-32">
+      <div className="flex-1 overflow-y-auto px-4 md:px-6 pb-32">
         <div
-          className={`w-full px-4 md:px-0 mx-auto ${step === 2 ? 'md:max-w-5xl' : 'md:max-w-2xl'}`}
+          className={`w-full px-0 md:px-0 mx-auto ${step === 2 ? 'md:max-w-5xl' : 'md:max-w-2xl'}`}
           style={slideStyle}
         >
           {/* ─── Step 0: WhatsApp Phone ─── */}
@@ -276,11 +276,11 @@ export default function OnboardingWizard() {
                 <label className="block text-sm font-semibold text-zinc-700 text-center">
                   {he ? 'מספר WhatsApp' : 'WhatsApp Number'}
                 </label>
-                <div className="flex gap-2">
+                <div className="flex flex-col sm:flex-row gap-2">
                   <select
                     value={waCountry}
                     onChange={(e) => setWaCountry(e.target.value as '+1' | '+972')}
-                    className="rounded-xl border-2 border-zinc-200 bg-white px-3 py-3 text-sm font-semibold text-zinc-700 outline-none focus:border-[#fe5b25] transition-colors"
+                    className="w-full sm:w-auto rounded-xl border-2 border-zinc-200 bg-white px-3 py-3 text-sm font-semibold text-zinc-700 outline-none focus:border-[#fe5b25] transition-colors"
                   >
                     <option value="+1">🇺🇸 +1</option>
                     <option value="+972">🇮🇱 +972</option>
@@ -578,13 +578,13 @@ export default function OnboardingWizard() {
       </div>
 
       {/* ── Bottom nav ── */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-sm border-t border-zinc-100 px-6 py-4 safe-bottom">
+      <div className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-sm border-t border-zinc-100 px-4 md:px-6 py-3 md:py-4 pb-[calc(0.75rem+env(safe-area-inset-bottom))] md:pb-[calc(1rem+env(safe-area-inset-bottom))]">
         <div className="max-w-2xl mx-auto flex items-center justify-between">
           {step > 0 ? (
             <button
               type="button"
               onClick={() => goToStep(step - 1)}
-              className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold text-zinc-600 hover:bg-zinc-50 transition-all"
+              className="flex items-center gap-2 px-4 md:px-5 py-3 md:py-2.5 rounded-xl text-sm font-semibold text-zinc-600 hover:bg-zinc-50 transition-all"
             >
               <ArrowLeft className="w-4 h-4" />
               {he ? 'חזרה' : 'Back'}
@@ -598,7 +598,7 @@ export default function OnboardingWizard() {
               type="button"
               disabled={!canNext() || animating}
               onClick={() => goToStep(step + 1)}
-              className="flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-semibold text-white disabled:opacity-40 transition-all shadow-md shadow-[#fe5b25]/20"
+              className="flex items-center gap-2 px-6 py-3 md:py-2.5 rounded-xl text-sm font-semibold text-white disabled:opacity-40 transition-all shadow-md shadow-[#fe5b25]/20"
               style={{ background: 'linear-gradient(135deg, #fe5b25, #e04d1c)' }}
             >
               {he ? 'הבא' : 'Next'}
@@ -609,7 +609,7 @@ export default function OnboardingWizard() {
               type="button"
               disabled={saving}
               onClick={handleFinish}
-              className="flex items-center gap-2 px-8 py-3 rounded-xl text-sm font-bold text-white transition-all shadow-lg shadow-[#fe5b25]/30"
+              className="flex items-center gap-2 px-8 py-3 md:py-3 rounded-xl text-sm font-bold text-white transition-all shadow-lg shadow-[#fe5b25]/30"
               style={{ background: 'linear-gradient(135deg, #fe5b25, #e04d1c)' }}
             >
               {saving ? (
