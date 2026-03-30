@@ -53,16 +53,19 @@ interface Contractor {
   zip_codes: string[]
   is_active: boolean
   created_at: string
+  wa_notify: boolean
   profiles: {
     full_name: string | null
     telegram_chat_id: number | null
     phone: string | null
+    whatsapp_phone: string | null
     status?: string
     subscriptions: {
       status: string
       plans: { name: string; slug: string; price_cents: number }
     }[]
   }
+  push_count?: number
 }
 
 const USER_STATUS_CONFIG: Record<string, { color: string; bg: string; label: string; icon: typeof Ban }> = {
@@ -148,8 +151,8 @@ export default function AdminContractors() {
     const { data, error } = await supabase
       .from('contractors')
       .select(`
-        user_id, professions, zip_codes, is_active, created_at,
-        profiles!inner(full_name, telegram_chat_id, phone, status, subscriptions(status, plans(name, slug, price_cents)))
+        user_id, professions, zip_codes, is_active, created_at, wa_notify,
+        profiles!inner(full_name, telegram_chat_id, phone, whatsapp_phone, status, subscriptions(status, plans(name, slug, price_cents)))
       `)
       .order('created_at', { ascending: false })
 
@@ -185,6 +188,19 @@ export default function AdminContractors() {
           const counts: Record<string, number> = {}
           events.forEach((e: any) => { counts[e.user_id] = (counts[e.user_id] || 0) + 1 })
           setLeadCounts(counts)
+        }
+
+        // Fetch push subscription counts
+        const { data: pushSubs } = await supabase
+          .from('push_subscriptions')
+          .select('user_id')
+          .in('user_id', userIds)
+        if (pushSubs) {
+          const pushMap: Record<string, number> = {}
+          pushSubs.forEach((p: any) => { pushMap[p.user_id] = (pushMap[p.user_id] || 0) + 1 })
+          // Attach push_count to contractors
+          typed.forEach((c: any) => { c.push_count = pushMap[c.user_id] ?? 0 })
+          setContractors([...typed])
         }
       }
     }
@@ -250,7 +266,9 @@ export default function AdminContractors() {
     { header: 'Subcontractors', accessor: (c) => subCounts[c.user_id] ?? 0 },
     { header: 'Leads', accessor: (c) => leadCounts[c.user_id] ?? 0 },
     { header: 'Monthly Revenue ($)', accessor: (c) => getMonthlyFee(c) },
-    { header: 'Telegram Connected', accessor: (c) => c.profiles?.telegram_chat_id ? 'Yes' : 'No' },
+    { header: 'WhatsApp', accessor: (c) => c.wa_notify && c.profiles?.whatsapp_phone ? 'Yes' : 'No' },
+    { header: 'Telegram', accessor: (c) => c.profiles?.telegram_chat_id ? 'Yes' : 'No' },
+    { header: 'Push', accessor: (c) => (c.push_count ?? 0) > 0 ? 'Yes' : 'No' },
     { header: 'Joined', accessor: (c) => csvDate(c.created_at) },
   ]
 
@@ -478,7 +496,7 @@ export default function AdminContractors() {
                   he ? 'מקצועות' : 'Professions',
                   he ? 'תת-קבלנים' : 'Subs',
                   he ? 'לידים' : 'Leads',
-                  'Telegram',
+                  he ? 'התראות' : 'Channels',
                   he ? 'הכנסה' : 'Revenue',
                   he ? 'הצטרף' : 'Joined',
                   '',
@@ -682,25 +700,43 @@ export default function AdminContractors() {
                         )}
                       </td>
 
-                      {/* Telegram */}
+                      {/* Notification Channels */}
                       <td className="px-5 py-4">
-                        {c.profiles?.telegram_chat_id ? (
+                        <div className="flex items-center gap-1">
+                          {/* WhatsApp */}
                           <span
-                            className="inline-flex items-center gap-1 text-[11px] font-medium px-2 py-1 rounded-lg"
-                            style={{ background: '#ECFDF5', color: '#059669' }}
+                            title={c.wa_notify && c.profiles?.whatsapp_phone ? 'WhatsApp: Connected' : 'WhatsApp: Off'}
+                            className="inline-flex items-center justify-center w-6 h-6 rounded-md text-[10px] font-bold"
+                            style={{
+                              background: c.wa_notify && c.profiles?.whatsapp_phone ? '#ECFDF5' : '#F3F4F6',
+                              color: c.wa_notify && c.profiles?.whatsapp_phone ? '#25D366' : '#D1D5DB',
+                            }}
                           >
-                            <CheckCircle2 className="w-3 h-3" />
-                            {he ? 'מחובר' : 'On'}
+                            W
                           </span>
-                        ) : (
+                          {/* Telegram */}
                           <span
-                            className="inline-flex items-center gap-1 text-[11px] font-medium px-2 py-1 rounded-lg"
-                            style={{ background: '#FEF2F2', color: '#DC2626' }}
+                            title={c.profiles?.telegram_chat_id ? 'Telegram: Connected' : 'Telegram: Off'}
+                            className="inline-flex items-center justify-center w-6 h-6 rounded-md text-[10px] font-bold"
+                            style={{
+                              background: c.profiles?.telegram_chat_id ? '#EFF6FF' : '#F3F4F6',
+                              color: c.profiles?.telegram_chat_id ? '#2563EB' : '#D1D5DB',
+                            }}
                           >
-                            <XCircle className="w-3 h-3" />
-                            {he ? 'לא' : 'Off'}
+                            T
                           </span>
-                        )}
+                          {/* Push */}
+                          <span
+                            title={(c.push_count ?? 0) > 0 ? `Push: ${c.push_count} device(s)` : 'Push: Off'}
+                            className="inline-flex items-center justify-center w-6 h-6 rounded-md text-[10px] font-bold"
+                            style={{
+                              background: (c.push_count ?? 0) > 0 ? '#F5F3FF' : '#F3F4F6',
+                              color: (c.push_count ?? 0) > 0 ? '#7C3AED' : '#D1D5DB',
+                            }}
+                          >
+                            P
+                          </span>
+                        </div>
                       </td>
 
                       {/* Revenue */}

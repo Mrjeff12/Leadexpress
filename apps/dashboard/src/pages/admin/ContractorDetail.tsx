@@ -38,6 +38,11 @@ import {
   Ban,
   ShieldAlert,
   AlertTriangle,
+  Bell,
+  BellOff,
+  Smartphone,
+  MessageCircle,
+  Wifi,
 } from 'lucide-react'
 import { useToast } from '../../components/hooks/use-toast'
 
@@ -60,10 +65,13 @@ interface ContractorData {
   zip_codes: string[]
   is_active: boolean
   created_at: string
+  wa_notify: boolean
+  sms_opt_out: boolean
   profiles: {
     id: string
     full_name: string | null
     phone: string | null
+    whatsapp_phone: string | null
     telegram_chat_id: number | null
     status?: string
     suspension_reason?: string | null
@@ -78,6 +86,12 @@ interface ContractorData {
     created_at: string
     plan: { name: string; slug: string; price_cents: number }
   } | null
+}
+
+interface PushSubscription {
+  id: string
+  user_agent: string | null
+  created_at: string
 }
 
 interface SubcontractorRow {
@@ -324,6 +338,7 @@ export default function ContractorDetail() {
   const [availablePlans, setAvailablePlans] = useState<{ id: string; slug: string; name: string; price_cents: number; max_counties: number }[]>([])
   const [changingPlan, setChangingPlan] = useState(false)
   const [cpProfile, setCpProfile] = useState<{ background_check: string; tier: string; profile_completeness: number } | null>(null)
+  const [pushSubs, setPushSubs] = useState<PushSubscription[]>([])
   const [savingVerification, setSavingVerification] = useState(false)
   const [statusAction, setStatusAction] = useState<'suspend' | 'ban' | 'activate' | null>(null)
   const [statusReason, setStatusReason] = useState('')
@@ -336,6 +351,7 @@ export default function ContractorDetail() {
     loadSubcontractors()
     loadLeads()
     loadContractorProfile()
+    loadPushSubscriptions()
   }, [id])
 
   async function loadContractor() {
@@ -343,8 +359,8 @@ export default function ContractorDetail() {
     const { data, error } = await supabase
       .from('contractors')
       .select(`
-        user_id, professions, zip_codes, is_active, created_at,
-        profiles!inner(id, full_name, phone, telegram_chat_id, status, suspension_reason, suspended_at, banned_at)
+        user_id, professions, zip_codes, is_active, created_at, wa_notify, sms_opt_out,
+        profiles!inner(id, full_name, phone, whatsapp_phone, telegram_chat_id, status, suspension_reason, suspended_at, banned_at)
       `)
       .eq('user_id', id)
       .single()
@@ -370,6 +386,8 @@ export default function ContractorDetail() {
       zip_codes: raw.zip_codes ?? [],
       is_active: raw.is_active,
       created_at: raw.created_at,
+      wa_notify: raw.wa_notify ?? false,
+      sms_opt_out: raw.sms_opt_out ?? false,
       profiles: raw.profiles,
       subscription: sub ? {
         id: sub.id,
@@ -622,6 +640,15 @@ export default function ContractorDetail() {
     if (data) setCpProfile(data)
   }
 
+  async function loadPushSubscriptions() {
+    if (!id) return
+    const { data } = await supabase
+      .from('push_subscriptions')
+      .select('id, user_agent, created_at')
+      .eq('user_id', id)
+    if (data) setPushSubs(data)
+  }
+
   async function handleToggleBgCheck() {
     if (!id || !cpProfile) return
     setSavingVerification(true)
@@ -784,15 +811,15 @@ export default function ContractorDetail() {
 
       {/* ═══ Hero Header ═══ */}
       <SectionCard>
-        <div className="px-6 py-6">
+        <div className="px-6 py-6" style={{ background: 'linear-gradient(135deg, #FAFBFC 0%, #F3F4F6 100%)' }}>
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div className="flex items-center gap-4">
               {/* Avatar */}
               <div
-                className="w-14 h-14 rounded-2xl flex items-center justify-center text-lg font-bold shrink-0"
+                className="w-16 h-16 rounded-2xl flex items-center justify-center text-xl font-bold shrink-0 shadow-sm"
                 style={{
-                  background: `hsl(${(contractor.user_id.charCodeAt(0) * 47) % 360}, 45%, 92%)`,
-                  color: `hsl(${(contractor.user_id.charCodeAt(0) * 47) % 360}, 45%, 35%)`,
+                  background: `linear-gradient(135deg, hsl(${(contractor.user_id.charCodeAt(0) * 47) % 360}, 45%, 88%), hsl(${(contractor.user_id.charCodeAt(0) * 47) % 360}, 45%, 80%))`,
+                  color: `hsl(${(contractor.user_id.charCodeAt(0) * 47) % 360}, 45%, 30%)`,
                 }}
               >
                 {initials}
@@ -839,6 +866,29 @@ export default function ContractorDetail() {
                   <span className="text-[12px] flex items-center gap-1" style={{ color: C.muted }}>
                     <Timer className="w-3 h-3" /> {daysAsCustomer} {he ? 'ימים' : 'days'}
                   </span>
+                </div>
+
+                {/* Quick notification channel indicators */}
+                <div className="flex items-center gap-1.5 mt-2">
+                  {[
+                    { key: 'wa', label: 'WhatsApp', active: contractor.wa_notify && !!contractor.profiles?.whatsapp_phone, color: '#25D366' },
+                    { key: 'tg', label: 'Telegram', active: !!contractor.profiles?.telegram_chat_id, color: '#2563EB' },
+                    { key: 'push', label: 'Push', active: pushSubs.length > 0, color: '#7C3AED' },
+                    { key: 'sms', label: 'SMS', active: !contractor.sms_opt_out, color: C.primary },
+                  ].map((ch) => (
+                    <span
+                      key={ch.key}
+                      title={`${ch.label}: ${ch.active ? 'Active' : 'Off'}`}
+                      className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-md"
+                      style={{
+                        background: ch.active ? `${ch.color}15` : '#F3F4F6',
+                        color: ch.active ? ch.color : '#D1D5DB',
+                      }}
+                    >
+                      {ch.active ? <CheckCircle2 className="w-2.5 h-2.5" /> : <XCircle className="w-2.5 h-2.5" />}
+                      {ch.label}
+                    </span>
+                  ))}
                 </div>
               </div>
             </div>
@@ -1445,16 +1495,70 @@ export default function ContractorDetail() {
                 </div>
               </div>
 
+              {/* User ID (for debugging) */}
               <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: contractor.profiles?.telegram_chat_id ? '#ECFDF5' : '#FEF2F2' }}>
-                  <Send className="w-4 h-4" style={{ color: contractor.profiles?.telegram_chat_id ? C.success : C.danger }} />
+                <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: '#F3F4F6' }}>
+                  <Users className="w-4 h-4" style={{ color: C.muted }} />
                 </div>
                 <div>
-                  <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: C.muted }}>Telegram</p>
+                  <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: C.muted }}>User ID</p>
+                  <p className="text-[10px] font-mono" style={{ color: C.muted }}>{contractor.user_id}</p>
+                </div>
+              </div>
+            </div>
+          </SectionCard>
+
+          {/* Notification Channels */}
+          <SectionCard>
+            <div className="p-6 space-y-4">
+              <h3 className="text-[13px] font-bold uppercase tracking-wider flex items-center gap-2" style={{ color: C.muted }}>
+                <Bell className="w-3.5 h-3.5" />
+                {he ? 'ערוצי התראות' : 'Notification Channels'}
+              </h3>
+
+              {/* WhatsApp */}
+              <div className="flex items-center gap-3">
+                <div
+                  className="w-9 h-9 rounded-xl flex items-center justify-center"
+                  style={{ background: contractor.wa_notify && contractor.profiles?.whatsapp_phone ? '#ECFDF5' : '#FEF2F2' }}
+                >
+                  <MessageCircle className="w-4 h-4" style={{ color: contractor.wa_notify && contractor.profiles?.whatsapp_phone ? '#25D366' : C.danger }} />
+                </div>
+                <div className="flex-1">
+                  <p className="text-[11px] font-medium" style={{ color: C.muted }}>WhatsApp</p>
+                  {contractor.wa_notify && contractor.profiles?.whatsapp_phone ? (
+                    <div className="flex items-center gap-1.5">
+                      <CheckCircle2 className="w-3 h-3" style={{ color: '#25D366' }} />
+                      <span className="text-[12px] font-semibold" style={{ color: '#25D366' }}>{he ? 'מחובר' : 'Connected'}</span>
+                      <span className="text-[10px] font-mono" style={{ color: C.muted }}>{contractor.profiles.whatsapp_phone}</span>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-1.5">
+                      <XCircle className="w-3 h-3" style={{ color: C.danger }} />
+                      <span className="text-[12px] font-semibold" style={{ color: C.danger }}>
+                        {!contractor.profiles?.whatsapp_phone
+                          ? (he ? 'אין מספר' : 'No number')
+                          : (he ? 'התראות כבויות' : 'Notifications off')}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Telegram */}
+              <div className="flex items-center gap-3">
+                <div
+                  className="w-9 h-9 rounded-xl flex items-center justify-center"
+                  style={{ background: contractor.profiles?.telegram_chat_id ? '#EFF6FF' : '#FEF2F2' }}
+                >
+                  <Send className="w-4 h-4" style={{ color: contractor.profiles?.telegram_chat_id ? '#2563EB' : C.danger }} />
+                </div>
+                <div className="flex-1">
+                  <p className="text-[11px] font-medium" style={{ color: C.muted }}>Telegram</p>
                   {contractor.profiles?.telegram_chat_id ? (
                     <div className="flex items-center gap-1.5">
-                      <CheckCircle2 className="w-3 h-3" style={{ color: C.success }} />
-                      <span className="text-[12px] font-semibold" style={{ color: C.success }}>{he ? 'מחובר' : 'Connected'}</span>
+                      <CheckCircle2 className="w-3 h-3" style={{ color: '#2563EB' }} />
+                      <span className="text-[12px] font-semibold" style={{ color: '#2563EB' }}>{he ? 'מחובר' : 'Connected'}</span>
                       <span className="text-[10px] font-mono" style={{ color: C.muted }}>#{contractor.profiles.telegram_chat_id}</span>
                     </div>
                   ) : (
@@ -1463,6 +1567,97 @@ export default function ContractorDetail() {
                       <span className="text-[12px] font-semibold" style={{ color: C.danger }}>{he ? 'לא מחובר' : 'Not connected'}</span>
                     </div>
                   )}
+                </div>
+              </div>
+
+              {/* Push Notifications */}
+              <div className="flex items-center gap-3">
+                <div
+                  className="w-9 h-9 rounded-xl flex items-center justify-center"
+                  style={{ background: pushSubs.length > 0 ? '#F5F3FF' : '#FEF2F2' }}
+                >
+                  <Smartphone className="w-4 h-4" style={{ color: pushSubs.length > 0 ? '#7C3AED' : C.danger }} />
+                </div>
+                <div className="flex-1">
+                  <p className="text-[11px] font-medium" style={{ color: C.muted }}>{he ? 'התראות דפדפן' : 'Push Notifications'}</p>
+                  {pushSubs.length > 0 ? (
+                    <div className="flex items-center gap-1.5">
+                      <CheckCircle2 className="w-3 h-3" style={{ color: '#7C3AED' }} />
+                      <span className="text-[12px] font-semibold" style={{ color: '#7C3AED' }}>
+                        {pushSubs.length} {he ? 'מכשירים' : pushSubs.length === 1 ? 'device' : 'devices'}
+                      </span>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-1.5">
+                      <BellOff className="w-3 h-3" style={{ color: C.danger }} />
+                      <span className="text-[12px] font-semibold" style={{ color: C.danger }}>{he ? 'לא רשום' : 'Not registered'}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* SMS */}
+              <div className="flex items-center gap-3">
+                <div
+                  className="w-9 h-9 rounded-xl flex items-center justify-center"
+                  style={{ background: !contractor.sms_opt_out ? '#FFF7ED' : '#FEF2F2' }}
+                >
+                  <Wifi className="w-4 h-4" style={{ color: !contractor.sms_opt_out ? C.primary : C.danger }} />
+                </div>
+                <div className="flex-1">
+                  <p className="text-[11px] font-medium" style={{ color: C.muted }}>SMS</p>
+                  <div className="flex items-center gap-1.5">
+                    {!contractor.sms_opt_out ? (
+                      <>
+                        <CheckCircle2 className="w-3 h-3" style={{ color: C.primary }} />
+                        <span className="text-[12px] font-semibold" style={{ color: C.primary }}>{he ? 'פעיל' : 'Active'}</span>
+                      </>
+                    ) : (
+                      <>
+                        <XCircle className="w-3 h-3" style={{ color: C.danger }} />
+                        <span className="text-[12px] font-semibold" style={{ color: C.danger }}>{he ? 'ביטל הרשמה' : 'Opted out'}</span>
+                      </>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Channel summary badge */}
+              <div className="pt-3 mt-1" style={{ borderTop: `1px solid ${C.border}` }}>
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: C.muted }}>
+                    {he ? 'ערוצים פעילים' : 'Active channels'}
+                  </span>
+                  <span
+                    className="text-[11px] font-bold px-2 py-0.5 rounded-full"
+                    style={{
+                      background: (() => {
+                        const count = [
+                          contractor.wa_notify && contractor.profiles?.whatsapp_phone,
+                          contractor.profiles?.telegram_chat_id,
+                          pushSubs.length > 0,
+                          !contractor.sms_opt_out,
+                        ].filter(Boolean).length
+                        return count >= 3 ? '#ECFDF5' : count >= 1 ? '#FFFBEB' : '#FEF2F2'
+                      })(),
+                      color: (() => {
+                        const count = [
+                          contractor.wa_notify && contractor.profiles?.whatsapp_phone,
+                          contractor.profiles?.telegram_chat_id,
+                          pushSubs.length > 0,
+                          !contractor.sms_opt_out,
+                        ].filter(Boolean).length
+                        return count >= 3 ? C.success : count >= 1 ? C.warning : C.danger
+                      })(),
+                    }}
+                  >
+                    {[
+                      contractor.wa_notify && contractor.profiles?.whatsapp_phone,
+                      contractor.profiles?.telegram_chat_id,
+                      pushSubs.length > 0,
+                      !contractor.sms_opt_out,
+                    ].filter(Boolean).length} / 4
+                  </span>
                 </div>
               </div>
             </div>
