@@ -31,6 +31,7 @@ self.addEventListener('notificationclick', (event) => {
   event.notification.close();
 
   const targetUrl = (event.notification.data && event.notification.data.url) || '/';
+  const leadId = event.notification.data && event.notification.data.leadId;
 
   // For external URLs (like wa.me links), always open in a new window
   const isExternal = targetUrl.startsWith('http') && !targetUrl.includes(self.location.origin);
@@ -41,10 +42,17 @@ self.addEventListener('notificationclick', (event) => {
       : clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {
           for (const client of windowClients) {
             if (client.url.includes(self.location.origin) && 'focus' in client) {
+              // Tell the app to navigate and refresh data
+              client.postMessage({
+                type: 'NOTIFICATION_CLICK',
+                url: targetUrl,
+                leadId: leadId,
+              });
               client.focus();
               return;
             }
           }
+          // No existing window — open a new one
           if (clients.openWindow) {
             return clients.openWindow(targetUrl);
           }

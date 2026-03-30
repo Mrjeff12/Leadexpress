@@ -1,12 +1,29 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { getCorsHeaders } from "../_shared/cors.ts";
+import webpush from "https://esm.sh/web-push@3.6.7";
 
 const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY")!;
 const supabaseAdmin = createClient(
   Deno.env.get("SUPABASE_URL")!,
   Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
 );
+
+// ── VAPID for push notifications ──
+const VAPID_PUBLIC_KEY = Deno.env.get("VAPID_PUBLIC_KEY") || "";
+const VAPID_PRIVATE_KEY = Deno.env.get("VAPID_PRIVATE_KEY") || "";
+const VAPID_SUBJECT = Deno.env.get("VAPID_SUBJECT") || "mailto:support@masterleadflow.com";
+if (VAPID_PUBLIC_KEY && VAPID_PRIVATE_KEY) {
+  webpush.setVapidDetails(VAPID_SUBJECT, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);
+}
+
+const PROFESSION_EMOJI: Record<string, string> = {
+  hvac: "❄️", air_duct: "💨", chimney: "🧹", locksmith: "🔑",
+  roofing: "🏠", plumbing: "🔧", electrical: "⚡", painting: "🎨",
+  cleaning: "✨", renovation: "🔨", fencing: "🧱", landscaping: "🌳",
+  garage_door: "🚪", tiling: "🪵", kitchen: "🍳", bathroom: "🚿",
+  pool: "🏊", moving: "🚛", carpet_cleaning: "🧹", dryer_vent: "💨",
+};
 
 const VALID_PROFESSIONS = [
   "hvac", "air_duct", "chimney", "dryer_vent", "garage_door", "locksmith",
@@ -220,7 +237,7 @@ Deno.serve(async (req: Request) => {
       // Match contractors by profession + zip_code
       let matchQuery = supabaseAdmin
         .from("contractors")
-        .select("profile_id")
+        .select("user_id")
         .contains("professions", [lead_data.profession]);
 
       if (lead_data.zip_code) {
@@ -229,7 +246,7 @@ Deno.serve(async (req: Request) => {
 
       const { data: matchedContractors } = await matchQuery;
       const matchedIds = (matchedContractors || []).map(
-        (c: { profile_id: string }) => c.profile_id,
+        (c: { user_id: string }) => c.user_id,
       );
 
       // Update lead with matched contractors
@@ -250,6 +267,47 @@ Deno.serve(async (req: Request) => {
           source: publisherOverride ? "whatsapp" : "dashboard",
         },
       });
+
+      // ── Send push notifications to matched contractors ──
+      if (matchedIds.length > 0 && VAPID_PUBLIC_KEY && VAPID_PRIVATE_KEY) {
+        const { data: subs } = await supabaseAdmin
+          .from("push_subscriptions")
+          .select("user_id, endpoint, p256dh, auth")
+          .in("user_id", matchedIds);
+
+        if (subs && subs.length > 0) {
+          const emoji = PROFESSION_EMOJI[lead_data.profession] || "📋";
+          const payload = JSON.stringify({
+            title: `${emoji} New ${lead_data.profession} lead`,
+            body: `${lead_data.city || "Your area"}${lead_data.zip_code ? ` (${lead_data.zip_code})` : ""} — ${lead_data.urgency === "high" ? "🔥 URGENT" : "Tap to view"}`,
+            url: `/leads`,
+            leadId: lead.id,
+          });
+
+          let pushSent = 0;
+          for (const sub of subs) {
+            try {
+              await webpush.sendNotification(
+                { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
+                payload,
+              );
+              pushSent++;
+              // Record notification
+              await supabaseAdmin.from("lead_notifications").insert({
+                lead_id: lead.id,
+                contractor_id: sub.user_id,
+                channel: "push",
+              });
+            } catch (err: any) {
+              console.error(`Push failed for ${sub.user_id}:`, err?.statusCode);
+              if (err?.statusCode === 410 || err?.statusCode === 404) {
+                await supabaseAdmin.from("push_subscriptions").delete().eq("endpoint", sub.endpoint);
+              }
+            }
+          }
+          console.log(`[ai-publish-lead] Push sent to ${pushSent}/${subs.length} subscribers`);
+        }
+      }
 
       return new Response(
         JSON.stringify({

@@ -24,11 +24,19 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
-    // Get optional user_id from body, or send to all subscriptions
+    // Get optional user_id and custom payload from body
     let targetUserId: string | null = null;
+    let customTitle: string | null = null;
+    let customBody: string | null = null;
+    let customUrl: string | null = null;
+    let customLeadId: string | null = null;
     try {
       const body = await req.json();
       targetUserId = body.user_id || null;
+      customTitle = body.title || null;
+      customBody = body.body || null;
+      customUrl = body.url || null;
+      customLeadId = body.leadId || null;
     } catch {
       // no body is fine
     }
@@ -49,9 +57,10 @@ Deno.serve(async (req: Request) => {
     }
 
     const payload = JSON.stringify({
-      title: "🔔 MasterLeadFlow",
-      body: "Test notification — push is working! 🎉",
-      url: "/",
+      title: customTitle || "🔔 MasterLeadFlow",
+      body: customBody || "Test notification — push is working! 🎉",
+      url: customUrl || "/",
+      leadId: customLeadId || undefined,
     });
 
     let sent = 0;

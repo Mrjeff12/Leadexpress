@@ -15,7 +15,9 @@ import {
   Radio,
   ExternalLink,
   Loader2,
+  Bell,
 } from 'lucide-react'
+import { usePushNotifications } from '../hooks/usePushNotifications'
 
 const WA_NUMBER = '18623582898'
 
@@ -29,6 +31,7 @@ export default function Profile() {
   const [telegramChatId, setTelegramChatId] = useState<number | null>(null)
   const [whatsappPhone, setWhatsappPhone] = useState<string | null>(null)
 
+  const { status: pushStatus, enable: enablePush, isLoading: pushLoading } = usePushNotifications()
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [loading, setLoading] = useState(true)
@@ -316,6 +319,56 @@ export default function Profile() {
                     <ExternalLink className="h-3 w-3 opacity-60" />
                   </button>
                 </div>
+              )}
+            </div>
+
+            {/* Push Notifications Channel */}
+            <div className={`rounded-xl border p-5 transition-all ${
+              pushStatus === 'granted'
+                ? 'border-orange-200 bg-orange-50/50'
+                : 'border-zinc-200 bg-white hover:border-[#fe5b25]/30 hover:shadow-sm'
+            }`}>
+              <div className="flex items-center gap-3 mb-3">
+                <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
+                  pushStatus === 'granted' ? 'bg-[#fe5b25]' : 'bg-zinc-400'
+                }`}>
+                  <Bell className="h-5 w-5 text-white" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm font-bold text-zinc-900">Push Alerts</p>
+                  {pushStatus === 'granted' ? (
+                    <span className="inline-flex items-center gap-1 text-[10px] font-bold text-[#e04d1c] bg-orange-100 px-2 py-0.5 rounded-full">
+                      <CheckCircle2 className="h-2.5 w-2.5" /> Enabled
+                    </span>
+                  ) : pushStatus === 'denied' ? (
+                    <p className="text-[10px] text-red-500">Blocked by browser</p>
+                  ) : pushStatus === 'unsupported' ? (
+                    <p className="text-[10px] text-zinc-400">Not supported on this browser</p>
+                  ) : (
+                    <p className="text-[10px] text-zinc-400">Get instant alerts on this device</p>
+                  )}
+                </div>
+              </div>
+
+              {pushStatus === 'granted' ? (
+                <p className="text-xs text-zinc-500">You'll receive instant alerts when new leads match your preferences.</p>
+              ) : pushStatus === 'denied' ? (
+                <p className="text-xs text-zinc-500">Notifications are blocked. Open your browser settings to allow notifications for this site.</p>
+              ) : pushStatus === 'unsupported' ? (
+                <p className="text-xs text-zinc-500">Try using Chrome or Safari for push notification support.</p>
+              ) : (
+                <button
+                  type="button"
+                  onClick={enablePush}
+                  disabled={pushLoading}
+                  className="w-full py-2.5 rounded-xl text-sm font-semibold flex items-center justify-center gap-2 transition-all bg-[#fe5b25] text-white hover:brightness-110 shadow-sm disabled:opacity-70"
+                >
+                  {pushLoading ? (
+                    <><Loader2 className="h-4 w-4 animate-spin" /> Enabling...</>
+                  ) : (
+                    <><Bell className="h-4 w-4" /> Enable Push Alerts</>
+                  )}
+                </button>
               )}
             </div>
           </div>

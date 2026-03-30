@@ -75,13 +75,15 @@ export default function AutoLogin() {
         // in WhatsApp's in-app browser and other embedded WebViews.
         // Supabase client picks these up automatically on next page load.
         const storageKey = `sb-${new URL(SUPA_URL).hostname.split('.')[0]}-auth-token`
-        const sessionPayload = {
+        const sessionPayload: Record<string, unknown> = {
           access_token: data.access_token,
           refresh_token: data.refresh_token,
-          token_type: 'bearer',
-          expires_in: 3600,
-          expires_at: Math.floor(Date.now() / 1000) + 3600,
+          token_type: data.token_type || 'bearer',
+          expires_in: data.expires_in || 3600,
+          expires_at: data.expires_at || Math.floor(Date.now() / 1000) + 3600,
         }
+        // Include user object so Supabase doesn't need an extra API call on init
+        if (data.user) sessionPayload.user = data.user
         try {
           localStorage.setItem(storageKey, JSON.stringify(sessionPayload))
         } catch {

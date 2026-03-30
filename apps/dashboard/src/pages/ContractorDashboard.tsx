@@ -394,14 +394,14 @@ export default function ContractorDashboard() {
 
     // Only show overlay on mobile + not standalone (desktop/standalone auto-advances via useEffect)
     if (platform && !standalone) {
-      async function handleInstallDone() {
-        await supabase.from('contractors').update({ onboarding_step: 'installed' }).eq('user_id', effectiveUserId!)
-        setOnboardingStep('installed')
-      }
-
-      async function handleInstallSkip() {
-        // Write to DB so it doesn't re-appear on next visit
-        await supabase.from('contractors').update({ onboarding_step: 'installed' }).eq('user_id', effectiveUserId!)
+      const advanceInstallStep = async () => {
+        try {
+          if (!effectiveUserId) { console.error('No effectiveUserId'); return }
+          const { error } = await supabase.from('contractors').update({ onboarding_step: 'installed' }).eq('user_id', effectiveUserId)
+          if (error) console.error('Update onboarding_step failed:', error)
+        } catch (err) {
+          console.error('Install step error:', err)
+        }
         setOnboardingStep('installed')
       }
 
@@ -423,7 +423,7 @@ export default function ContractorDashboard() {
             </div>
             <div className="space-y-3 mt-4">
               <button
-                onClick={handleInstallDone}
+                onClick={advanceInstallStep}
                 className="w-full py-4 rounded-2xl text-base font-semibold text-white flex items-center justify-center gap-2.5 transition-all hover:brightness-110 active:scale-[0.97]"
                 style={{ background: '#fe5b25', boxShadow: '0 4px 24px #fe5b2535' }}
               >
@@ -431,7 +431,7 @@ export default function ContractorDashboard() {
                 Done — I've added it!
               </button>
               <button
-                onClick={handleInstallSkip}
+                onClick={advanceInstallStep}
                 className="w-full py-3 text-sm text-gray-400 hover:text-gray-600 transition-colors text-center"
               >
                 Skip for now

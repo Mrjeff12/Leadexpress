@@ -1,4 +1,5 @@
 import { useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useToast } from './hooks/use-toast'
 import { useI18n } from '../lib/i18n'
@@ -9,7 +10,29 @@ export function GlobalNotificationListener() {
   const { toast } = useToast()
   const { locale } = useI18n()
   const { user } = useAuth()
+  const navigate = useNavigate()
   const isHe = locale === 'he'
+
+  // Listen for service worker messages (notification clicks)
+  useEffect(() => {
+    function handleSWMessage(event: MessageEvent) {
+      if (event.data?.type === 'NOTIFICATION_CLICK' && event.data.url) {
+        // Navigate to the target URL and force a page reload to refresh data
+        const url = event.data.url
+        if (window.location.pathname === url) {
+          // Already on the page — reload to get fresh data
+          window.location.reload()
+        } else {
+          navigate(url)
+        }
+      }
+    }
+
+    navigator.serviceWorker?.addEventListener('message', handleSWMessage)
+    return () => {
+      navigator.serviceWorker?.removeEventListener('message', handleSWMessage)
+    }
+  }, [navigate])
 
   useEffect(() => {
     // Show notification for any logged in user
@@ -19,7 +42,7 @@ export function GlobalNotificationListener() {
       .channel('global-leads-rt')
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'leads' }, (payload) => {
         const newLead = payload.new
-        
+
         toast({
           title: (
             <div className="flex items-center gap-3">
