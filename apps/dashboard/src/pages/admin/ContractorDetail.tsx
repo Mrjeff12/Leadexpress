@@ -850,14 +850,14 @@ export default function ContractorDetail() {
         <div className="px-8 py-7">
           <div className="flex flex-wrap items-start justify-between gap-5">
             <div className="flex items-center gap-5">
-              {/* Avatar with glow */}
+              {/* Avatar with brand gradient */}
               <div className="relative">
                 <div
-                  className="w-[72px] h-[72px] rounded-2xl flex items-center justify-center text-2xl font-extrabold shrink-0"
+                  className="w-[68px] h-[68px] rounded-2xl flex items-center justify-center text-2xl font-extrabold shrink-0"
                   style={{
-                    background: `linear-gradient(135deg, hsl(${(contractor.user_id.charCodeAt(0) * 47) % 360}, 50%, 85%), hsl(${(contractor.user_id.charCodeAt(0) * 47) % 360}, 50%, 72%))`,
-                    color: `hsl(${(contractor.user_id.charCodeAt(0) * 47) % 360}, 50%, 25%)`,
-                    boxShadow: `0 4px 16px hsl(${(contractor.user_id.charCodeAt(0) * 47) % 360}, 50%, 85%, 0.5)`,
+                    background: `linear-gradient(135deg, ${C.primary}, ${C.primaryDark})`,
+                    color: 'white',
+                    boxShadow: `0 4px 20px ${C.primary}35`,
                     letterSpacing: '-0.02em',
                   }}
                 >
@@ -952,101 +952,76 @@ export default function ContractorDetail() {
               </div>
             </div>
 
-            {/* Actions */}
-            <div className="flex items-center gap-2.5">
-              <button
-                onClick={async () => { await impersonate(contractor.user_id); navigate('/') }}
-                className="flex items-center gap-2 px-5 py-3 rounded-2xl text-[13px] font-bold transition-all hover:shadow-lg hover:-translate-y-0.5 active:scale-95"
-                style={{
-                  background: C.dark,
-                  color: 'white',
-                  boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
-                }}
-              >
-                <Eye className="w-4 h-4" /> {he ? 'צפה' : 'View As'}
-              </button>
-              <button
-                onClick={toggleActive}
-                disabled={toggling}
-                className="flex items-center gap-2 px-5 py-3 rounded-2xl text-[13px] font-bold transition-all hover:shadow-lg hover:-translate-y-0.5 active:scale-95"
-                style={{
-                  background: contractor.is_active ? '#FEF2F2' : '#ECFDF5',
-                  color: contractor.is_active ? C.danger : C.success,
-                  opacity: toggling ? 0.6 : 1,
-                  boxShadow: `0 2px 8px ${contractor.is_active ? 'rgba(220,38,38,0.1)' : 'rgba(5,150,105,0.1)'}`,
-                }}
-              >
-                {contractor.is_active
-                  ? <><UserX className="w-4 h-4" /> {he ? 'השבת' : 'Deactivate'}</>
-                  : <><UserCheck className="w-4 h-4" /> {he ? 'הפעל' : 'Activate'}</>
-                }
-              </button>
+            {/* Actions + Account Status merged */}
+            <div className="flex flex-col items-end gap-2.5">
+              <div className="flex items-center gap-2.5">
+                <button
+                  onClick={async () => { await impersonate(contractor.user_id); navigate('/') }}
+                  className="flex items-center gap-2 px-5 py-2.5 rounded-2xl text-[13px] font-bold transition-all hover:shadow-lg hover:-translate-y-0.5 active:scale-95"
+                  style={{ background: C.dark, color: 'white', boxShadow: '0 2px 8px rgba(0,0,0,0.15)' }}
+                >
+                  <Eye className="w-4 h-4" /> {he ? 'צפה' : 'View As'}
+                </button>
+                <button
+                  onClick={toggleActive}
+                  disabled={toggling}
+                  className="flex items-center gap-2 px-4 py-2.5 rounded-2xl text-[13px] font-bold transition-all hover:shadow-lg hover:-translate-y-0.5 active:scale-95"
+                  style={{
+                    background: contractor.is_active ? '#FEF2F2' : '#ECFDF5',
+                    color: contractor.is_active ? C.danger : C.success,
+                    opacity: toggling ? 0.6 : 1,
+                  }}
+                >
+                  {contractor.is_active
+                    ? <><UserX className="w-4 h-4" /> {he ? 'השבת' : 'Deactivate'}</>
+                    : <><UserCheck className="w-4 h-4" /> {he ? 'הפעל' : 'Activate'}</>
+                  }
+                </button>
+              </div>
+              {/* Inline account moderation */}
+              {(() => {
+                const userStatus = contractor.profiles?.status ?? 'active'
+                return (
+                  <div className="flex items-center gap-2">
+                    {(userStatus === 'suspended' || userStatus === 'banned') && (
+                      <span className="text-[10px] font-medium" style={{ color: C.muted }}>
+                        {contractor.profiles?.suspension_reason}
+                      </span>
+                    )}
+                    {userStatus !== 'suspended' && userStatus !== 'banned' && (
+                      <button
+                        onClick={() => { setStatusAction('suspend'); setStatusReason('') }}
+                        className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-[11px] font-semibold transition-all hover:shadow-sm active:scale-95"
+                        style={{ background: '#FFFBEB', color: '#D97706' }}
+                      >
+                        <AlertTriangle className="w-3 h-3" /> {he ? 'השעה' : 'Suspend'}
+                      </button>
+                    )}
+                    {userStatus !== 'banned' && (
+                      <button
+                        onClick={() => { setStatusAction('ban'); setStatusReason('') }}
+                        className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-[11px] font-semibold transition-all hover:shadow-sm active:scale-95"
+                        style={{ background: '#FEF2F2', color: '#DC2626' }}
+                      >
+                        <Ban className="w-3 h-3" /> {he ? 'חסום' : 'Ban'}
+                      </button>
+                    )}
+                    {userStatus !== 'active' && (
+                      <button
+                        onClick={() => { setStatusAction('activate'); setStatusReason('') }}
+                        className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-[11px] font-semibold transition-all hover:shadow-sm active:scale-95"
+                        style={{ background: '#ECFDF5', color: '#059669' }}
+                      >
+                        <UserCheck className="w-3 h-3" /> {he ? 'הפעל' : 'Activate'}
+                      </button>
+                    )}
+                  </div>
+                )
+              })()}
             </div>
           </div>
         </div>
       </div>
-
-      {/* ═══ User Status (Ban/Suspend) ═══ */}
-      {(() => {
-        const userStatus = contractor.profiles?.status ?? 'active'
-        const statusConf = USER_STATUS_CONFIG[userStatus] ?? USER_STATUS_CONFIG.active
-        return (
-          <GlassCard>
-            <SectionHeader icon={ShieldAlert} iconColor={statusConf.color} title={he ? 'סטטוס חשבון' : 'Account Status'} />
-            <div className="px-6 py-5">
-              <div className="flex flex-wrap items-center justify-between gap-4">
-                <div className="flex items-center gap-3">
-                  <StatusBadge label={he ? statusConf.labelHe : statusConf.label} color={statusConf.color} bg={statusConf.bg} />
-                  {(userStatus === 'suspended' || userStatus === 'banned') && contractor.profiles?.suspension_reason && (
-                    <span className="text-[12px] font-medium" style={{ color: C.darkSub }}>
-                      {he ? 'סיבה:' : 'Reason:'} {contractor.profiles.suspension_reason}
-                    </span>
-                  )}
-                  {userStatus === 'suspended' && contractor.profiles?.suspended_at && (
-                    <span className="text-[11px] font-medium" style={{ color: C.muted }}>
-                      {he ? 'מאז' : 'Since'} {fmtShort(contractor.profiles.suspended_at)}
-                    </span>
-                  )}
-                  {userStatus === 'banned' && contractor.profiles?.banned_at && (
-                    <span className="text-[11px] font-medium" style={{ color: C.muted }}>
-                      {he ? 'מאז' : 'Since'} {fmtShort(contractor.profiles.banned_at)}
-                    </span>
-                  )}
-                </div>
-                <div className="flex items-center gap-2.5">
-                  {userStatus !== 'suspended' && userStatus !== 'banned' && (
-                    <button
-                      onClick={() => { setStatusAction('suspend'); setStatusReason('') }}
-                      className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-[12px] font-bold transition-all hover:shadow-md hover:-translate-y-0.5 active:scale-95"
-                      style={{ background: '#FFFBEB', color: '#D97706' }}
-                    >
-                      <AlertTriangle className="w-3.5 h-3.5" /> {he ? 'השעה' : 'Suspend'}
-                    </button>
-                  )}
-                  {userStatus !== 'banned' && (
-                    <button
-                      onClick={() => { setStatusAction('ban'); setStatusReason('') }}
-                      className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-[12px] font-bold transition-all hover:shadow-md hover:-translate-y-0.5 active:scale-95"
-                      style={{ background: '#FEF2F2', color: '#DC2626' }}
-                    >
-                      <Ban className="w-3.5 h-3.5" /> {he ? 'חסום' : 'Ban'}
-                    </button>
-                  )}
-                  {userStatus !== 'active' && (
-                    <button
-                      onClick={() => { setStatusAction('activate'); setStatusReason('') }}
-                      className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-[12px] font-bold transition-all hover:shadow-md hover:-translate-y-0.5 active:scale-95"
-                      style={{ background: '#ECFDF5', color: '#059669' }}
-                    >
-                      <UserCheck className="w-3.5 h-3.5" /> {he ? 'הפעל' : 'Activate'}
-                    </button>
-                  )}
-                </div>
-              </div>
-            </div>
-          </GlassCard>
-        )
-      })()}
 
       {/* ═══ Status Change Confirmation Modal ═══ */}
       {statusAction && (
@@ -1118,11 +1093,54 @@ export default function ContractorDetail() {
         </div>
       )}
 
-      {/* ═══ Customer Lifecycle Pipeline ═══ */}
-      <SectionCard>
-        <SectionHeader icon={TrendingUp} iconColor={C.primary} title={he ? 'מסלול לקוח' : 'Customer Lifecycle'} />
-        <LifecyclePipeline stages={pipelineStages} he={he} />
-      </SectionCard>
+      {/* ═══ Customer Lifecycle Pipeline (compact) ═══ */}
+      <GlassCard>
+        <div className="px-6 py-4">
+          <div className="flex items-center gap-6">
+            <h2 className="text-[13px] font-bold tracking-tight flex items-center gap-2 shrink-0" style={{ color: C.dark, letterSpacing: '-0.015em' }}>
+              <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: `${C.primary}12` }}>
+                <TrendingUp className="w-3.5 h-3.5" style={{ color: C.primary }} />
+              </div>
+              {he ? 'מסלול' : 'Lifecycle'}
+            </h2>
+            {/* Inline pipeline */}
+            <div className="flex items-center gap-1 flex-1">
+              {pipelineStages.map((stage, i) => (
+                <div key={stage.key} className="flex items-center gap-1" style={{ flex: 1 }}>
+                  <div
+                    className="flex items-center gap-1.5 px-3 py-2 rounded-xl flex-1 transition-all"
+                    style={{
+                      background: stage.isCurrent
+                        ? `linear-gradient(135deg, ${C.primary}, ${C.primaryDark})`
+                        : stage.reached ? `${C.primary}10` : '#F9FAFB',
+                      border: `1px solid ${stage.reached ? `${C.primary}20` : '#F3F4F6'}`,
+                    }}
+                  >
+                    {stage.reached ? (
+                      <CheckCircle2 className="w-3.5 h-3.5 shrink-0" style={{ color: stage.isCurrent ? 'white' : C.primary }} />
+                    ) : (
+                      <CircleDot className="w-3.5 h-3.5 shrink-0" style={{ color: '#D1D5DB' }} />
+                    )}
+                    <div className="min-w-0">
+                      <p className="text-[10px] font-bold truncate" style={{ color: stage.isCurrent ? 'white' : stage.reached ? C.dark : C.muted }}>
+                        {he ? stage.labelHe : stage.label}
+                      </p>
+                      {stage.date && (
+                        <p className="text-[8px] font-medium" style={{ color: stage.isCurrent ? 'rgba(255,255,255,0.7)' : C.muted }}>
+                          {fmtShort(stage.date)}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                  {i < pipelineStages.length - 1 && (
+                    <div className="w-2 h-0.5 rounded-full shrink-0" style={{ background: stage.reached ? C.primary : '#E5E7EB' }} />
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </GlassCard>
 
       {/* ═══ Revenue KPI Strip (full width) ═══ */}
       <GlassCard delay={70}>
@@ -1358,9 +1376,8 @@ export default function ContractorDetail() {
           <SectionCard>
             <SectionHeader icon={MessageSquare} iconColor="#059669" title={he ? 'קבוצות ווטסאפ' : 'WhatsApp Groups'} count={groups.length} />
             {groups.length === 0 ? (
-              <div className="px-6 py-10 text-center">
-                <MessageSquare className="w-10 h-10 mx-auto mb-3" style={{ color: '#E5E7EB' }} />
-                <p className="text-sm font-medium" style={{ color: C.muted }}>
+              <div className="px-6 py-4 text-center">
+                <p className="text-[12px] font-medium" style={{ color: '#D1D5DB' }}>
                   {he ? 'אין קבוצות מקושרות' : 'No groups linked via leads'}
                 </p>
               </div>
@@ -1392,9 +1409,8 @@ export default function ContractorDetail() {
           <SectionCard>
             <SectionHeader icon={UsersRound} iconColor={C.accent} title={he ? 'תת-קבלנים' : 'Subcontractors'} count={subcontractors.length} />
             {subcontractors.length === 0 ? (
-              <div className="px-6 py-12 text-center">
-                <UsersRound className="w-10 h-10 mx-auto mb-3" style={{ color: '#E5E7EB' }} />
-                <p className="text-sm font-medium" style={{ color: C.muted }}>{he ? 'אין תת-קבלנים' : 'No subcontractors yet'}</p>
+              <div className="px-6 py-4 text-center">
+                <p className="text-[12px] font-medium" style={{ color: '#D1D5DB' }}>{he ? 'אין תת-קבלנים' : 'No subcontractors yet'}</p>
               </div>
             ) : (
               <div className="overflow-x-auto">
@@ -1448,9 +1464,8 @@ export default function ContractorDetail() {
           <SectionCard>
             <SectionHeader icon={Zap} iconColor={C.primary} title={he ? 'לידים אחרונים' : 'Recent Leads'} count={leads.length} />
             {leads.length === 0 ? (
-              <div className="px-6 py-12 text-center">
-                <Zap className="w-10 h-10 mx-auto mb-3" style={{ color: '#E5E7EB' }} />
-                <p className="text-sm font-medium" style={{ color: C.muted }}>{he ? 'אין לידים' : 'No leads yet'}</p>
+              <div className="px-6 py-4 text-center">
+                <p className="text-[12px] font-medium" style={{ color: '#D1D5DB' }}>{he ? 'אין לידים' : 'No leads yet'}</p>
               </div>
             ) : (
               <div className="overflow-x-auto">
