@@ -1,7 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate, NavLink, useLocation } from 'react-router-dom'
-import { lazy, Suspense, useState, useEffect, useCallback, type ReactNode } from 'react'
+import { lazy, Suspense, useEffect, useCallback, type ReactNode } from 'react'
 import { AuthProvider, useAuth } from './lib/auth'
-import { I18nContext, createTranslator, isRtl, type Locale } from './lib/i18n'
+import { I18nContext, createTranslator, type Locale } from './lib/i18n'
 import { Toaster } from './components/shadcn/ui/toaster'
 import { GlobalNotificationListener } from './components/GlobalNotificationListener'
 import ErrorBoundary from './components/ErrorBoundary'
@@ -14,7 +14,6 @@ import RequireSubscription from './components/Paywall'
 import SubscriptionBanner from './components/SubscriptionBanner'
 import CompleteAccountBanner from './components/CompleteAccountBanner'
 import { supabase } from './lib/supabase'
-import { Globe } from 'lucide-react'
 import PushBanner from './components/PushBanner'
 import { PWAInstallBanner } from './components/PWAInstallBanner'
 import { OnboardingOverlayContext } from './components/OnboardingOverlayContext'
@@ -221,46 +220,19 @@ function AppShell() {
   )
 }
 
-/* ─── Global language toggle (hidden on login page which has its own) ─── */
-function GlobalLangToggle({ locale, rtl, onToggle }: { locale: string; rtl: boolean; onToggle: () => void }) {
-  const location = useLocation()
-  if (location.pathname === '/login') return null
-  return (
-    <button
-      onClick={onToggle}
-      className="fixed top-4 z-50 flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-xs font-medium bg-white/80 backdrop-blur shadow-sm hover:bg-white transition-all"
-      style={{
-        borderColor: 'hsl(35 15% 88%)',
-        color: 'hsl(40 4% 42%)',
-        right: rtl ? 'auto' : '16px',
-        left: rtl ? '16px' : 'auto',
-      }}
-    >
-      <Globe className="w-3.5 h-3.5" />
-      {locale === 'en' ? 'עב' : 'EN'}
-    </button>
-  )
-}
 
 /* ─── Root with i18n + Auth ─── */
 function App() {
-  const [locale, setLocale] = useState<Locale>(() => {
-    const saved = localStorage.getItem('le-locale') as Locale | null
-    return saved === 'he' ? 'he' : 'en'
-  })
-
-  const handleSetLocale = useCallback((l: Locale) => {
-    setLocale(l)
-    localStorage.setItem('le-locale', l)
-  }, [])
+  const locale: Locale = 'en'
+  // Hebrew/RTL disabled — English only
+  const handleSetLocale = useCallback((_l: Locale) => {}, [])
 
   const t = createTranslator(locale)
-  const rtl = isRtl(locale)
 
   return (
     <ErrorBoundary>
       <I18nContext.Provider value={{ locale, setLocale: handleSetLocale, t }}>
-        <div dir={rtl ? 'rtl' : 'ltr'}>
+        <div dir="ltr">
           <AuthProvider>
             <BrowserRouter>
               {/* Language toggle removed — English only */}

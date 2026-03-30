@@ -176,29 +176,6 @@ export default function Login() {
         backgroundSize: '256px',
       }} />
 
-      {/* Language toggle */}
-      <div className="fixed top-5 right-5 flex gap-1 z-50">
-        <button
-          onClick={() => setLocale('en')}
-          className={`px-3 py-1.5 text-xs rounded-full transition-all ${
-            locale === 'en'
-              ? 'bg-gray-900 text-white font-medium'
-              : 'text-gray-400 hover:text-gray-600'
-          }`}
-        >
-          EN
-        </button>
-        <button
-          onClick={() => setLocale('he')}
-          className={`px-3 py-1.5 text-xs rounded-full transition-all ${
-            locale === 'he'
-              ? 'bg-gray-900 text-white font-medium'
-              : 'text-gray-400 hover:text-gray-600'
-          }`}
-        >
-          HE
-        </button>
-      </div>
 
       {/* ─── Glass Card (full-screen on mobile, card on sm+) ─── */}
       <div className="relative z-10 w-full sm:max-w-6xl h-screen sm:h-auto">
