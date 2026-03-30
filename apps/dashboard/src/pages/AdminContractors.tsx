@@ -4,6 +4,8 @@ import { useI18n } from '../lib/i18n'
 import { useAuth } from '../lib/auth'
 import { supabase } from '../lib/supabase'
 import { formatDate } from '../lib/shared'
+import { exportToCsv, csvDate, type CsvColumn } from '../lib/csv-export'
+import BulkActionBar, { type BulkAction } from '../components/admin/BulkActionBar'
 import {
   Users,
   CheckCircle2,
@@ -23,6 +25,11 @@ import {
   Zap,
   TrendingUp,
   Loader2,
+  Ban,
+  Bell,
+  RefreshCw,
+  AlertTriangle,
+  ShieldAlert,
 } from 'lucide-react'
 
 /* ── Design tokens ──────────────────────────────────────────────── */
@@ -50,11 +57,18 @@ interface Contractor {
     full_name: string | null
     telegram_chat_id: number | null
     phone: string | null
+    status?: string
     subscriptions: {
       status: string
       plans: { name: string; slug: string; price_cents: number }
     }[]
   }
+}
+
+const USER_STATUS_CONFIG: Record<string, { color: string; bg: string; label: string; icon: typeof Ban }> = {
+  active: { color: '#059669', bg: '#ECFDF5', label: 'Active', icon: CheckCircle2 },
+  suspended: { color: '#D97706', bg: '#FFFBEB', label: 'Suspended', icon: AlertTriangle },
+  banned: { color: '#DC2626', bg: '#FEF2F2', label: 'Banned', icon: Ban },
 }
 
 const PROF_EMOJI: Record<string, string> = {
@@ -103,6 +117,15 @@ export default function AdminContractors() {
   const [invitePhone, setInvitePhone] = useState('')
   const [inviteSending, setInviteSending] = useState(false)
 
+  // Bulk selection state
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [showBulkPlanModal, setShowBulkPlanModal] = useState(false)
+  const [showBulkSuspendModal, setShowBulkSuspendModal] = useState(false)
+  const [showBulkNotifyModal, setShowBulkNotifyModal] = useState(false)
+  const [bulkSuspendReason, setBulkSuspendReason] = useState('')
+  const [bulkNotifyMessage, setBulkNotifyMessage] = useState('')
+  const [bulkProcessing, setBulkProcessing] = useState(false)
+
   useEffect(() => {
     supabase.from('plans').select('id, slug, name, price_cents').eq('is_active', true).order('price_cents')
       .then(({ data }) => { if (data) setAvailablePlans(data) })
@@ -126,7 +149,7 @@ export default function AdminContractors() {
       .from('contractors')
       .select(`
         user_id, professions, zip_codes, is_active, created_at,
-        profiles!inner(full_name, telegram_chat_id, phone, subscriptions(status, plans(name, slug, price_cents)))
+        profiles!inner(full_name, telegram_chat_id, phone, status, subscriptions(status, plans(name, slug, price_cents)))
       `)
       .order('created_at', { ascending: false })
 
@@ -186,12 +209,122 @@ export default function AdminContractors() {
     if (planFilter !== 'all' && getPlanSlug(c) !== planFilter) return false
     if (statusFilter === 'active' && !c.is_active) return false
     if (statusFilter === 'inactive' && c.is_active) return false
+    if (statusFilter === 'suspended' && (c.profiles?.status ?? 'active') !== 'suspended') return false
+    if (statusFilter === 'banned' && (c.profiles?.status ?? 'active') !== 'banned') return false
     return true
   })
 
   const activeCount = contractors.filter((c) => c.is_active).length
   const withSubsCount = contractors.filter((c) => (subCounts[c.user_id] ?? 0) > 0).length
   const totalRevenue = contractors.reduce((sum, c) => sum + getMonthlyFee(c), 0)
+
+  // ── Selection helpers ──
+  function toggleSelect(userId: string) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(userId)) next.delete(userId)
+      else next.add(userId)
+      return next
+    })
+  }
+
+  function toggleSelectAll() {
+    if (selectedIds.size === filtered.length) {
+      setSelectedIds(new Set())
+    } else {
+      setSelectedIds(new Set(filtered.map((c) => c.user_id)))
+    }
+  }
+
+  const selectedContractors = filtered.filter((c) => selectedIds.has(c.user_id))
+
+  // ── CSV Export ──
+  const csvColumns: CsvColumn<Contractor>[] = [
+    { header: 'Name', accessor: (c) => c.profiles?.full_name ?? '' },
+    { header: 'Phone', accessor: (c) => c.profiles?.phone ?? '' },
+    { header: 'Plan', accessor: (c) => getSub(c)?.plans?.name ?? 'None' },
+    { header: 'Subscription Status', accessor: (c) => getSubStatus(c) },
+    { header: 'Active', accessor: (c) => c.is_active ? 'Yes' : 'No' },
+    { header: 'Professions', accessor: (c) => c.professions.join(', ') },
+    { header: 'ZIP Codes', accessor: (c) => c.zip_codes.join(', ') },
+    { header: 'Subcontractors', accessor: (c) => subCounts[c.user_id] ?? 0 },
+    { header: 'Leads', accessor: (c) => leadCounts[c.user_id] ?? 0 },
+    { header: 'Monthly Revenue ($)', accessor: (c) => getMonthlyFee(c) },
+    { header: 'Telegram Connected', accessor: (c) => c.profiles?.telegram_chat_id ? 'Yes' : 'No' },
+    { header: 'Joined', accessor: (c) => csvDate(c.created_at) },
+  ]
+
+  function exportAllCsv() {
+    exportToCsv(filtered, csvColumns, `contractors-${new Date().toISOString().slice(0, 10)}`)
+  }
+
+  function exportSelectedCsv() {
+    exportToCsv(selectedContractors, csvColumns, `contractors-selected-${new Date().toISOString().slice(0, 10)}`)
+  }
+
+  // ── Bulk Actions ──
+  async function bulkChangePlan(planId: string) {
+    setBulkProcessing(true)
+    try {
+      for (const uid of selectedIds) {
+        await supabase.from('subscriptions').update({ plan_id: planId }).eq('user_id', uid).in('status', ['active', 'trialing'])
+        await supabase.from('audit_logs').insert({
+          admin_user_id: profile?.id,
+          target_user_id: uid,
+          action: 'plan_change',
+          details: { new_plan_id: planId, source: 'bulk_action' },
+        })
+      }
+      setShowBulkPlanModal(false)
+      setSelectedIds(new Set())
+      fetchContractors()
+    } finally {
+      setBulkProcessing(false)
+    }
+  }
+
+  async function bulkSuspend() {
+    setBulkProcessing(true)
+    try {
+      for (const uid of selectedIds) {
+        await supabase.from('contractors').update({ is_active: false }).eq('user_id', uid)
+        await supabase.from('audit_logs').insert({
+          admin_user_id: profile?.id,
+          target_user_id: uid,
+          action: 'suspend',
+          details: { reason: bulkSuspendReason, source: 'bulk_action' },
+        })
+      }
+      setShowBulkSuspendModal(false)
+      setBulkSuspendReason('')
+      setSelectedIds(new Set())
+      fetchContractors()
+    } finally {
+      setBulkProcessing(false)
+    }
+  }
+
+  async function bulkNotify() {
+    setBulkProcessing(true)
+    try {
+      await supabase.functions.invoke('bulk-notify', {
+        body: { user_ids: Array.from(selectedIds), message: bulkNotifyMessage },
+      })
+      setShowBulkNotifyModal(false)
+      setBulkNotifyMessage('')
+      setSelectedIds(new Set())
+    } catch (err) {
+      console.error('[AdminContractors] bulk notify error:', err)
+    } finally {
+      setBulkProcessing(false)
+    }
+  }
+
+  const bulkActions: BulkAction[] = [
+    { key: 'plan', label: he ? 'שנה חבילה' : 'Change Plan', icon: RefreshCw, onClick: () => setShowBulkPlanModal(true) },
+    { key: 'suspend', label: he ? 'השהה' : 'Suspend', icon: Ban, variant: 'danger', onClick: () => setShowBulkSuspendModal(true) },
+    { key: 'notify', label: he ? 'שלח הודעה' : 'Send Notification', icon: Bell, onClick: () => setShowBulkNotifyModal(true) },
+  ]
 
   async function generateQr(contractor: Contractor) {
     const token = crypto.randomUUID().replace(/-/g, '').slice(0, 16)
@@ -232,14 +365,24 @@ export default function AdminContractors() {
             {he ? 'ניהול קבלנים, חבילות ותת-קבלנים' : 'Manage contractors, plans & subcontractors'}
           </p>
         </div>
-        <button
-          onClick={() => setShowInvite(true)}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all hover:scale-[1.02] active:scale-[0.98] shadow-sm"
-          style={{ background: C.primary, color: 'white' }}
-        >
-          <UserPlus className="w-4 h-4" />
-          {he ? 'הוסף קבלן' : 'Add Contractor'}
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={exportAllCsv}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all hover:scale-[1.02] active:scale-[0.98] shadow-sm border"
+            style={{ background: 'white', color: C.dark, borderColor: '#E5E7EB' }}
+          >
+            <Download className="w-4 h-4" />
+            {he ? 'יצוא CSV' : 'Export CSV'}
+          </button>
+          <button
+            onClick={() => setShowInvite(true)}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all hover:scale-[1.02] active:scale-[0.98] shadow-sm"
+            style={{ background: C.primary, color: 'white' }}
+          >
+            <UserPlus className="w-4 h-4" />
+            {he ? 'הוסף קבלן' : 'Add Contractor'}
+          </button>
+        </div>
       </div>
 
       {/* ═══ KPI Cards ═══ */}
@@ -307,6 +450,8 @@ export default function AdminContractors() {
           <option value="all">{he ? 'כל הסטטוסים' : 'All Status'}</option>
           <option value="active">{he ? 'פעיל' : 'Active'}</option>
           <option value="inactive">{he ? 'לא פעיל' : 'Inactive'}</option>
+          <option value="suspended">{he ? 'מושעה' : 'Suspended'}</option>
+          <option value="banned">{he ? 'חסום' : 'Banned'}</option>
         </select>
       </div>
 
@@ -319,6 +464,14 @@ export default function AdminContractors() {
           <table className="w-full text-sm">
             <thead>
               <tr style={{ borderBottom: `1px solid ${C.border}`, background: '#FAFBFC' }}>
+                <th className="px-3 py-3.5 w-10">
+                  <input
+                    type="checkbox"
+                    checked={filtered.length > 0 && selectedIds.size === filtered.length}
+                    onChange={toggleSelectAll}
+                    className="w-4 h-4 rounded border-gray-300 text-[#fe5b25] focus:ring-[#fe5b25] cursor-pointer"
+                  />
+                </th>
                 {[
                   he ? 'קבלן' : 'Contractor',
                   he ? 'חבילה' : 'Plan',
@@ -343,7 +496,7 @@ export default function AdminContractors() {
             <tbody>
               {fetchError ? (
                 <tr>
-                  <td colSpan={9} className="px-5 py-16 text-center">
+                  <td colSpan={10} className="px-5 py-16 text-center">
                     <XCircle className="w-8 h-8 mx-auto mb-3" style={{ color: C.danger }} />
                     <p className="text-sm font-medium mb-3" style={{ color: C.danger }}>{fetchError}</p>
                     <button
@@ -357,14 +510,14 @@ export default function AdminContractors() {
                 </tr>
               ) : loading ? (
                 <tr>
-                  <td colSpan={9} className="px-5 py-16 text-center">
+                  <td colSpan={10} className="px-5 py-16 text-center">
                     <Loader2 className="w-5 h-5 animate-spin mx-auto mb-2" style={{ color: C.muted }} />
                     <p className="text-sm" style={{ color: C.muted }}>Loading...</p>
                   </td>
                 </tr>
               ) : filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="px-5 py-16 text-center">
+                  <td colSpan={10} className="px-5 py-16 text-center">
                     <Users className="w-8 h-8 mx-auto mb-3" style={{ color: '#D1D5DB' }} />
                     <p className="text-sm font-medium" style={{ color: C.muted }}>
                       {he ? 'אין קבלנים' : 'No contractors found'}
@@ -394,6 +547,15 @@ export default function AdminContractors() {
                       onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
                       onClick={() => navigate(`/admin/clients/contractors/${c.user_id}`)}
                     >
+                      {/* Checkbox */}
+                      <td className="px-3 py-4" onClick={(e) => e.stopPropagation()}>
+                        <input
+                          type="checkbox"
+                          checked={selectedIds.has(c.user_id)}
+                          onChange={() => toggleSelect(c.user_id)}
+                          className="w-4 h-4 rounded border-gray-300 text-[#fe5b25] focus:ring-[#fe5b25] cursor-pointer"
+                        />
+                      </td>
                       {/* Contractor */}
                       <td className="px-5 py-4">
                         <div className="flex items-center gap-3">
@@ -420,14 +582,32 @@ export default function AdminContractors() {
                               </div>
                             )}
                           </div>
-                          {!c.is_active && (
-                            <span
-                              className="text-[10px] font-semibold px-1.5 py-0.5 rounded"
-                              style={{ background: '#FEF2F2', color: '#DC2626' }}
-                            >
-                              {he ? 'מושבת' : 'OFF'}
-                            </span>
-                          )}
+                          {(() => {
+                            const uStatus = c.profiles?.status ?? 'active'
+                            const uConf = USER_STATUS_CONFIG[uStatus]
+                            if (uStatus !== 'active' && uConf) {
+                              return (
+                                <span
+                                  className="inline-flex items-center gap-0.5 text-[10px] font-semibold px-1.5 py-0.5 rounded"
+                                  style={{ background: uConf.bg, color: uConf.color }}
+                                >
+                                  <uConf.icon className="w-2.5 h-2.5" />
+                                  {uConf.label}
+                                </span>
+                              )
+                            }
+                            if (!c.is_active) {
+                              return (
+                                <span
+                                  className="text-[10px] font-semibold px-1.5 py-0.5 rounded"
+                                  style={{ background: '#FEF2F2', color: '#DC2626' }}
+                                >
+                                  {he ? 'מושבת' : 'OFF'}
+                                </span>
+                              )
+                            }
+                            return null
+                          })()}
                         </div>
                       </td>
 
@@ -695,6 +875,134 @@ export default function AdminContractors() {
           </div>
         </div>
       )}
+
+      {/* ═══ Bulk Plan Change Modal ═══ */}
+      {showBulkPlanModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={() => setShowBulkPlanModal(false)}>
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-md" />
+          <div
+            className="relative rounded-2xl p-7 w-full max-w-sm animate-fade-in"
+            style={{ background: 'white', boxShadow: '0 25px 50px rgba(0,0,0,0.15)' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button onClick={() => setShowBulkPlanModal(false)} className="absolute top-4 right-4 p-1.5 rounded-lg hover:bg-gray-100 transition" style={{ color: C.muted }}>
+              <X className="w-4 h-4" />
+            </button>
+            <h2 className="text-lg font-bold mb-1" style={{ color: C.dark }}>
+              {he ? 'שינוי חבילה' : 'Change Plan'}
+            </h2>
+            <p className="text-sm mb-5" style={{ color: C.muted }}>
+              {he ? `שנה חבילה ל-${selectedIds.size} קבלנים` : `Change plan for ${selectedIds.size} contractor${selectedIds.size !== 1 ? 's' : ''}`}
+            </p>
+            <div className="space-y-2">
+              {availablePlans.map((plan) => (
+                <button
+                  key={plan.id}
+                  disabled={bulkProcessing}
+                  onClick={() => bulkChangePlan(plan.id)}
+                  className="w-full flex items-center justify-between px-4 py-3 rounded-xl border text-sm font-medium transition-all hover:border-indigo-300 hover:bg-indigo-50 disabled:opacity-40"
+                  style={{ borderColor: '#E5E7EB', color: C.dark }}
+                >
+                  <span>{plan.name}</span>
+                  <span className="text-xs" style={{ color: C.muted }}>${plan.price_cents / 100}/mo</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ═══ Bulk Suspend Modal ═══ */}
+      {showBulkSuspendModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={() => setShowBulkSuspendModal(false)}>
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-md" />
+          <div
+            className="relative rounded-2xl p-7 w-full max-w-sm animate-fade-in"
+            style={{ background: 'white', boxShadow: '0 25px 50px rgba(0,0,0,0.15)' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button onClick={() => setShowBulkSuspendModal(false)} className="absolute top-4 right-4 p-1.5 rounded-lg hover:bg-gray-100 transition" style={{ color: C.muted }}>
+              <X className="w-4 h-4" />
+            </button>
+            <h2 className="text-lg font-bold mb-1" style={{ color: C.danger }}>
+              {he ? 'השעיית קבלנים' : 'Suspend Contractors'}
+            </h2>
+            <p className="text-sm mb-4" style={{ color: C.muted }}>
+              {he ? `השהה ${selectedIds.size} קבלנים` : `Suspend ${selectedIds.size} contractor${selectedIds.size !== 1 ? 's' : ''}`}
+            </p>
+            <label className="block text-sm font-medium mb-1.5" style={{ color: C.dark }}>
+              {he ? 'סיבה (אופציונלי)' : 'Reason (optional)'}
+            </label>
+            <textarea
+              value={bulkSuspendReason}
+              onChange={(e) => setBulkSuspendReason(e.target.value)}
+              placeholder={he ? 'ציין סיבת השעיה...' : 'Enter reason for suspension...'}
+              rows={3}
+              className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm mb-4 focus:outline-none focus:ring-2 focus:ring-red-500/30 resize-none"
+            />
+            <button
+              disabled={bulkProcessing}
+              onClick={bulkSuspend}
+              className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold text-white transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-40"
+              style={{ background: C.danger }}
+            >
+              {bulkProcessing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Ban className="w-4 h-4" />}
+              {he ? 'השהה נבחרים' : 'Suspend Selected'}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ═══ Bulk Notify Modal ═══ */}
+      {showBulkNotifyModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={() => setShowBulkNotifyModal(false)}>
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-md" />
+          <div
+            className="relative rounded-2xl p-7 w-full max-w-sm animate-fade-in"
+            style={{ background: 'white', boxShadow: '0 25px 50px rgba(0,0,0,0.15)' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button onClick={() => setShowBulkNotifyModal(false)} className="absolute top-4 right-4 p-1.5 rounded-lg hover:bg-gray-100 transition" style={{ color: C.muted }}>
+              <X className="w-4 h-4" />
+            </button>
+            <h2 className="text-lg font-bold mb-1" style={{ color: C.dark }}>
+              {he ? 'שליחת הודעה' : 'Send Notification'}
+            </h2>
+            <p className="text-sm mb-4" style={{ color: C.muted }}>
+              {he ? `שלח ל-${selectedIds.size} קבלנים` : `Send to ${selectedIds.size} contractor${selectedIds.size !== 1 ? 's' : ''}`}
+            </p>
+            <label className="block text-sm font-medium mb-1.5" style={{ color: C.dark }}>
+              {he ? 'הודעה' : 'Message'}
+            </label>
+            <textarea
+              value={bulkNotifyMessage}
+              onChange={(e) => setBulkNotifyMessage(e.target.value)}
+              placeholder={he ? 'כתוב הודעה...' : 'Write your message...'}
+              rows={4}
+              autoFocus
+              className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm mb-4 focus:outline-none focus:ring-2 focus:ring-[#fe5b25]/30 resize-none"
+            />
+            <button
+              disabled={!bulkNotifyMessage.trim() || bulkProcessing}
+              onClick={bulkNotify}
+              className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold text-white transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-40"
+              style={{ background: C.primary }}
+            >
+              {bulkProcessing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Bell className="w-4 h-4" />}
+              {he ? 'שלח הודעה' : 'Send Notification'}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ═══ Bulk Action Bar ═══ */}
+      <BulkActionBar
+        selectedCount={selectedIds.size}
+        onClearSelection={() => setSelectedIds(new Set())}
+        onExport={exportSelectedCsv}
+        exportLabel={he ? 'יצוא נבחרים' : 'Export Selected'}
+        actions={bulkActions}
+      />
     </div>
   )
 }

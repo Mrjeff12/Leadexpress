@@ -13,6 +13,8 @@ interface Profile {
   publisher_bio?: string | null
   publisher_company_name?: string | null
   publisher_verified?: boolean
+  status?: 'active' | 'suspended' | 'banned'
+  suspension_reason?: string | null
 }
 
 interface AuthState {
@@ -62,7 +64,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   async function fetchProfile(userId: string): Promise<Profile | null> {
     const { data, error } = await supabase
       .from('profiles')
-      .select('id, full_name, role, roles, telegram_chat_id, publisher_bio, publisher_company_name, publisher_verified')
+      .select('id, full_name, role, roles, telegram_chat_id, publisher_bio, publisher_company_name, publisher_verified, status, suspension_reason')
       .eq('id', userId)
       .maybeSingle()
 
@@ -95,6 +97,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       let profile: Profile | null = null
       if (user) profile = await fetchProfile(user.id)
 
+      // Block suspended/banned users (admins are exempt)
+      if (profile && profile.role !== 'admin' && profile.status && profile.status !== 'active') {
+        const msg = profile.status === 'banned'
+          ? 'Your account has been permanently banned. Contact support if you believe this is an error.'
+          : `Your account has been suspended.${profile.suspension_reason ? ` Reason: ${profile.suspension_reason}` : ''} Contact support for assistance.`
+        await supabase.auth.signOut()
+        alert(msg)
+        setState({ user: null, session: null, profile: null, loading: false, isAdmin: false, impersonatedUserId: null, impersonatedProfile: null })
+        return
+      }
+
       setState({
         user,
         session,
@@ -125,6 +138,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const user = session?.user ?? null
         let profile: Profile | null = null
         if (user) profile = await fetchProfile(user.id)
+
+        // Block suspended/banned users (admins are exempt)
+        if (profile && profile.role !== 'admin' && profile.status && profile.status !== 'active') {
+          const msg = profile.status === 'banned'
+            ? 'Your account has been permanently banned. Contact support if you believe this is an error.'
+            : `Your account has been suspended.${profile.suspension_reason ? ` Reason: ${profile.suspension_reason}` : ''} Contact support for assistance.`
+          await supabase.auth.signOut()
+          alert(msg)
+          return
+        }
 
         setState({
           user,

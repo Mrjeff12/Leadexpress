@@ -11,6 +11,7 @@ const AdminGroups = lazy(() => import('../../pages/AdminGroups'))
 const AdminGroupDetail = lazy(() => import('../../pages/AdminGroupDetail'))
 const AdminGroupScanQueue = lazy(() => import('../../pages/AdminGroupScanQueue'))
 const MessageTemplates = lazy(() => import('../../pages/admin/MessageTemplates'))
+const LeadReview = lazy(() => import('../../pages/admin/LeadReview'))
 
 // Clients
 const AdminContractors = lazy(() => import('../../pages/AdminContractors'))
@@ -20,6 +21,7 @@ const ProspectDetail = lazy(() => import('../../pages/ProspectDetail'))
 const AdminLeads = lazy(() => import('../../pages/AdminLeads'))
 const Subscriptions = lazy(() => import('../../pages/admin/Subscriptions'))
 const ServiceAreas = lazy(() => import('../../pages/admin/ServiceAreas'))
+const ContractorPerformance = lazy(() => import('../../pages/admin/ContractorPerformance'))
 
 // Partners
 const PartnerOverview = lazy(() => import('../../pages/admin/PartnerOverview'))
@@ -41,6 +43,8 @@ const GrowthDashboard = lazy(() => import('../../pages/admin/GrowthDashboard'))
 // Settings
 const Professions = lazy(() => import('../../pages/admin/Professions'))
 const SystemSettings = lazy(() => import('../../pages/admin/SystemSettings'))
+const AuditLogs = lazy(() => import('../../pages/admin/AuditLogs'))
+const SystemHealth = lazy(() => import('../../pages/admin/SystemHealth'))
 
 /* ─── Tab key → Component mapping ─── */
 const TAB_COMPONENTS: Record<string, React.LazyExoticComponent<() => React.JSX.Element>> = {
@@ -50,11 +54,13 @@ const TAB_COMPONENTS: Record<string, React.LazyExoticComponent<() => React.JSX.E
   'channels/leads': AdminLeads,
   'channels/scan': AdminGroupScanQueue,
   'channels/templates': MessageTemplates,
+  'channels/lead-review': LeadReview,
   // Clients
   'clients/contractors': AdminContractors,
   'clients/prospects': AdminProspects,
   'clients/subscriptions': Subscriptions,
   'clients/service-areas': ServiceAreas,
+  'clients/performance': ContractorPerformance,
   // Partners
   'partners/overview': PartnerOverview,
   'partners/commissions': CommissionLog,
@@ -71,6 +77,8 @@ const TAB_COMPONENTS: Record<string, React.LazyExoticComponent<() => React.JSX.E
   // Settings
   'settings/professions': Professions,
   'settings/system': SystemSettings,
+  'settings/audit-logs': AuditLogs,
+  'settings/health': SystemHealth,
 }
 
 export default function DepartmentLayout() {

@@ -1,8 +1,9 @@
 import { Fragment, useState, useMemo } from 'react'
+import { exportToCsv, csvDate, csvDollars, type CsvColumn } from '../../lib/csv-export'
 import { useI18n } from '../../lib/i18n'
 import { formatDate } from '../../lib/shared'
 import { useAdminPayments, useAdminBillingKPIs, issueRefund, type PaymentRow } from '../../hooks/useAdminBilling'
-import { DollarSign, Search, Loader2, ChevronDown, ChevronUp, ExternalLink, RotateCcw } from 'lucide-react'
+import { DollarSign, Search, Loader2, ChevronDown, ChevronUp, ExternalLink, RotateCcw, Download } from 'lucide-react'
 
 type StatusFilter = 'all' | 'succeeded' | 'refunded' | 'failed'
 
@@ -107,13 +108,30 @@ export default function Payments() {
   return (
     <div className="animate-fade-in space-y-8" style={{ fontFamily: 'Outfit, sans-serif' }}>
       {/* Header */}
-      <header>
-        <h1 className="text-3xl font-bold tracking-tight" style={{ color: '#2d3a2e' }}>
-          {he ? '\u05ea\u05e9\u05dc\u05d5\u05de\u05d9\u05dd' : 'Payments'}
-        </h1>
-        <p className="mt-1 text-sm" style={{ color: '#6b7c6e' }}>
-          {he ? '\u05e0\u05ea\u05d5\u05e0\u05d9\u05dd \u05d1\u05d6\u05de\u05df \u05d0\u05de\u05ea \u05de-Stripe' : 'Real-time data from Stripe'}
-        </p>
+      <header className="flex items-start justify-between">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight" style={{ color: '#2d3a2e' }}>
+            {he ? '\u05ea\u05e9\u05dc\u05d5\u05de\u05d9\u05dd' : 'Payments'}
+          </h1>
+          <p className="mt-1 text-sm" style={{ color: '#6b7c6e' }}>
+            {he ? '\u05e0\u05ea\u05d5\u05e0\u05d9\u05dd \u05d1\u05d6\u05de\u05df \u05d0\u05de\u05ea \u05de-Stripe' : 'Real-time data from Stripe'}
+          </p>
+        </div>
+        <button
+          onClick={() => exportToCsv(filtered, [
+            { key: 'created', header: 'Date', format: (v) => csvDate(v as string) },
+            { key: 'customer_email', header: 'Email' },
+            { key: 'amount', header: 'Amount', format: (v) => csvDollars(v as number) },
+            { key: 'status', header: 'Status' },
+            { key: 'payment_method', header: 'Method' },
+            { key: 'charge_id', header: 'Charge ID' },
+          ] as CsvColumn<(typeof filtered)[0]>[], 'payments-export')}
+          className="flex items-center gap-2 rounded-xl border px-4 py-2 text-sm font-medium transition-colors hover:bg-stone-50"
+          style={{ borderColor: '#e0e0d8', color: '#6b7c6e' }}
+        >
+          <Download className="h-4 w-4" />
+          Export CSV
+        </button>
       </header>
 
       {/* KPI Card */}

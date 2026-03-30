@@ -35,6 +35,9 @@ import {
   ArrowUpCircle,
   Sparkles,
   ShieldCheck,
+  Ban,
+  ShieldAlert,
+  AlertTriangle,
 } from 'lucide-react'
 import { useToast } from '../../components/hooks/use-toast'
 
@@ -62,6 +65,10 @@ interface ContractorData {
     full_name: string | null
     phone: string | null
     telegram_chat_id: number | null
+    status?: string
+    suspension_reason?: string | null
+    suspended_at?: string | null
+    banned_at?: string | null
   }
   subscription: {
     id: string
@@ -133,6 +140,12 @@ const LEAD_STATUS_CONFIG: Record<string, { color: string; bg: string }> = {
   claimed: { color: '#7C3AED', bg: '#F5F3FF' },
   expired: { color: '#DC2626', bg: '#FEF2F2' },
   parsed: { color: '#D97706', bg: '#FFFBEB' },
+}
+
+const USER_STATUS_CONFIG: Record<string, { color: string; bg: string; label: string; labelHe: string }> = {
+  active: { color: '#059669', bg: '#ECFDF5', label: 'Active', labelHe: 'פעיל' },
+  suspended: { color: '#D97706', bg: '#FFFBEB', label: 'Suspended', labelHe: 'מושעה' },
+  banned: { color: '#DC2626', bg: '#FEF2F2', label: 'Banned', labelHe: 'חסום' },
 }
 
 const SUB_STATUS_MAP: Record<string, { color: string; bg: string; label: string }> = {
@@ -312,6 +325,9 @@ export default function ContractorDetail() {
   const [changingPlan, setChangingPlan] = useState(false)
   const [cpProfile, setCpProfile] = useState<{ background_check: string; tier: string; profile_completeness: number } | null>(null)
   const [savingVerification, setSavingVerification] = useState(false)
+  const [statusAction, setStatusAction] = useState<'suspend' | 'ban' | 'activate' | null>(null)
+  const [statusReason, setStatusReason] = useState('')
+  const [savingStatus, setSavingStatus] = useState(false)
   const { toast } = useToast()
 
   useEffect(() => {
@@ -328,7 +344,7 @@ export default function ContractorDetail() {
       .from('contractors')
       .select(`
         user_id, professions, zip_codes, is_active, created_at,
-        profiles!inner(id, full_name, phone, telegram_chat_id)
+        profiles!inner(id, full_name, phone, telegram_chat_id, status, suspension_reason, suspended_at, banned_at)
       `)
       .eq('user_id', id)
       .single()
@@ -541,6 +557,59 @@ export default function ContractorDetail() {
       })
     }
     setToggling(false)
+  }
+
+  async function handleStatusChange() {
+    if (!contractor || !id || !statusAction) return
+    if ((statusAction === 'suspend' || statusAction === 'ban') && !statusReason.trim()) return
+    setSavingStatus(true)
+
+    const now = new Date().toISOString()
+    const updates: Record<string, any> = { status: statusAction === 'activate' ? 'active' : statusAction === 'suspend' ? 'suspended' : 'banned' }
+
+    if (statusAction === 'suspend') {
+      updates.suspension_reason = statusReason.trim()
+      updates.suspended_at = now
+    } else if (statusAction === 'ban') {
+      updates.suspension_reason = statusReason.trim()
+      updates.banned_at = now
+    } else {
+      updates.suspension_reason = null
+      updates.suspended_at = null
+      updates.banned_at = null
+    }
+
+    const { error } = await supabase.from('profiles').update(updates).eq('id', id)
+
+    if (error) {
+      toast({ title: 'Failed to update status', description: error.message, variant: 'destructive' })
+      setSavingStatus(false)
+      return
+    }
+
+    // Also deactivate contractor record when suspending/banning
+    if (statusAction !== 'activate') {
+      await supabase.from('contractors').update({ is_active: false }).eq('user_id', id)
+    }
+
+    await supabase.from('audit_logs').insert({
+      admin_user_id: profile?.id,
+      target_user_id: id,
+      action: statusAction === 'activate' ? 'user_activated' : statusAction === 'suspend' ? 'user_suspended' : 'user_banned',
+      details: { reason: statusReason.trim() || null, previous_status: contractor.profiles?.status ?? 'active' },
+    })
+
+    toast({
+      title: statusAction === 'activate' ? 'User activated' : statusAction === 'suspend' ? 'User suspended' : 'User banned',
+      description: statusAction === 'activate'
+        ? 'Account has been re-enabled.'
+        : `Account has been ${statusAction === 'suspend' ? 'suspended' : 'banned'}. User will be signed out on next visit.`,
+    })
+
+    setSavingStatus(false)
+    setStatusAction(null)
+    setStatusReason('')
+    loadContractor()
   }
 
   async function loadContractorProfile() {
@@ -802,6 +871,143 @@ export default function ContractorDetail() {
           </div>
         </div>
       </SectionCard>
+
+      {/* ═══ User Status (Ban/Suspend) ═══ */}
+      {(() => {
+        const userStatus = contractor.profiles?.status ?? 'active'
+        const statusConf = USER_STATUS_CONFIG[userStatus] ?? USER_STATUS_CONFIG.active
+        return (
+          <SectionCard>
+            <SectionHeader icon={ShieldAlert} iconColor={statusConf.color} title={he ? 'סטטוס חשבון' : 'Account Status'} />
+            <div className="px-6 py-5">
+              <div className="flex flex-wrap items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <StatusBadge label={he ? statusConf.labelHe : statusConf.label} color={statusConf.color} bg={statusConf.bg} />
+                  {userStatus === 'suspended' && contractor.profiles?.suspension_reason && (
+                    <span className="text-[12px]" style={{ color: C.muted }}>
+                      {he ? 'סיבה:' : 'Reason:'} {contractor.profiles.suspension_reason}
+                    </span>
+                  )}
+                  {userStatus === 'banned' && contractor.profiles?.suspension_reason && (
+                    <span className="text-[12px]" style={{ color: C.muted }}>
+                      {he ? 'סיבה:' : 'Reason:'} {contractor.profiles.suspension_reason}
+                    </span>
+                  )}
+                  {userStatus === 'suspended' && contractor.profiles?.suspended_at && (
+                    <span className="text-[11px]" style={{ color: C.muted }}>
+                      {he ? 'מאז' : 'Since'} {fmtShort(contractor.profiles.suspended_at)}
+                    </span>
+                  )}
+                  {userStatus === 'banned' && contractor.profiles?.banned_at && (
+                    <span className="text-[11px]" style={{ color: C.muted }}>
+                      {he ? 'מאז' : 'Since'} {fmtShort(contractor.profiles.banned_at)}
+                    </span>
+                  )}
+                </div>
+                <div className="flex items-center gap-2">
+                  {userStatus !== 'suspended' && userStatus !== 'banned' && (
+                    <button
+                      onClick={() => { setStatusAction('suspend'); setStatusReason('') }}
+                      className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-[12px] font-semibold transition-all hover:shadow-md active:scale-95"
+                      style={{ background: '#FFFBEB', color: '#D97706' }}
+                    >
+                      <AlertTriangle className="w-3.5 h-3.5" /> {he ? 'השעה' : 'Suspend'}
+                    </button>
+                  )}
+                  {userStatus !== 'banned' && (
+                    <button
+                      onClick={() => { setStatusAction('ban'); setStatusReason('') }}
+                      className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-[12px] font-semibold transition-all hover:shadow-md active:scale-95"
+                      style={{ background: '#FEF2F2', color: '#DC2626' }}
+                    >
+                      <Ban className="w-3.5 h-3.5" /> {he ? 'חסום' : 'Ban'}
+                    </button>
+                  )}
+                  {userStatus !== 'active' && (
+                    <button
+                      onClick={() => { setStatusAction('activate'); setStatusReason('') }}
+                      className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-[12px] font-semibold transition-all hover:shadow-md active:scale-95"
+                      style={{ background: '#ECFDF5', color: '#059669' }}
+                    >
+                      <UserCheck className="w-3.5 h-3.5" /> {he ? 'הפעל' : 'Activate'}
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          </SectionCard>
+        )
+      })()}
+
+      {/* ═══ Status Change Confirmation Modal ═══ */}
+      {statusAction && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={() => setStatusAction(null)}>
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-md" />
+          <div
+            className="relative rounded-2xl p-7 w-full max-w-sm animate-fade-in"
+            style={{ background: 'white', boxShadow: '0 25px 50px rgba(0,0,0,0.15)' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 className="text-lg font-bold mb-1" style={{ color: C.dark }}>
+              {statusAction === 'activate'
+                ? (he ? 'הפעל חשבון' : 'Activate Account')
+                : statusAction === 'suspend'
+                  ? (he ? 'השעה חשבון' : 'Suspend Account')
+                  : (he ? 'חסום חשבון' : 'Ban Account')
+              }
+            </h2>
+            <p className="text-[13px] mb-5" style={{ color: C.muted }}>
+              {statusAction === 'activate'
+                ? (he ? 'החשבון יופעל מחדש והמשתמש יוכל להתחבר.' : 'The account will be re-enabled and the user will be able to sign in.')
+                : statusAction === 'suspend'
+                  ? (he ? 'החשבון יושעה זמנית. המשתמש לא יוכל להתחבר.' : 'The account will be temporarily suspended. The user will not be able to sign in.')
+                  : (he ? 'החשבון ייחסם לצמיתות. המשתמש לא יוכל להתחבר.' : 'The account will be permanently banned. The user will not be able to sign in.')
+              }
+            </p>
+            {statusAction !== 'activate' && (
+              <div className="mb-5">
+                <label className="text-[12px] font-semibold block mb-1.5" style={{ color: C.dark }}>
+                  {he ? 'סיבה (חובה)' : 'Reason (required)'}
+                </label>
+                <textarea
+                  value={statusReason}
+                  onChange={(e) => setStatusReason(e.target.value)}
+                  rows={3}
+                  placeholder={he ? 'הזן סיבה...' : 'Enter reason...'}
+                  className="w-full rounded-xl px-4 py-3 text-sm outline-none resize-none transition-all focus:ring-2 focus:ring-orange-200"
+                  style={{ border: `1.5px solid ${C.border}`, color: C.dark }}
+                />
+              </div>
+            )}
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => setStatusAction(null)}
+                className="flex-1 py-2.5 rounded-xl text-[13px] font-semibold transition-all hover:bg-gray-50"
+                style={{ border: `1.5px solid ${C.border}`, color: C.muted }}
+              >
+                {he ? 'ביטול' : 'Cancel'}
+              </button>
+              <button
+                onClick={handleStatusChange}
+                disabled={savingStatus || ((statusAction === 'suspend' || statusAction === 'ban') && !statusReason.trim())}
+                className="flex-1 py-2.5 rounded-xl text-[13px] font-semibold text-white transition-all hover:shadow-md active:scale-95 disabled:opacity-50"
+                style={{
+                  background: statusAction === 'activate' ? C.success : statusAction === 'suspend' ? '#D97706' : C.danger,
+                }}
+              >
+                {savingStatus ? (
+                  <Loader2 className="w-4 h-4 animate-spin mx-auto" />
+                ) : statusAction === 'activate'
+                  ? (he ? 'הפעל' : 'Activate')
+                  : statusAction === 'suspend'
+                    ? (he ? 'השעה' : 'Suspend')
+                    : (he ? 'חסום' : 'Ban')
+                }
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ═══ Customer Lifecycle Pipeline ═══ */}
       <SectionCard>

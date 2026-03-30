@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from 'react'
+import { exportToCsv, csvDate, type CsvColumn } from '../lib/csv-export'
 import { useI18n } from '../lib/i18n'
 import { supabase } from '../lib/supabase'
 import { timeAgo } from '../lib/shared'
@@ -9,6 +10,7 @@ import {
 } from 'recharts'
 import {
   MapPin,
+  Download,
   Flame,
   Zap,
   Snowflake,
@@ -304,12 +306,37 @@ export default function AdminLeads() {
             {he ? 'לידים שחולצו מקבוצות WhatsApp ע"י AI' : 'AI-extracted leads from WhatsApp'}
           </p>
         </div>
-        <div className="flex items-center gap-3 px-4 py-2 rounded-full bg-white/50 backdrop-blur-md border border-black/5 shadow-sm">
-          <div className="relative flex h-2 w-2">
-            <div className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></div>
-            <div className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></div>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => {
+              const csvCols: CsvColumn<Lead>[] = [
+                { header: 'Profession', accessor: (l) => l.profession },
+                { header: 'Summary', accessor: (l) => l.parsed_summary },
+                { header: 'City', accessor: (l) => l.city ?? '' },
+                { header: 'State', accessor: (l) => l.state ?? '' },
+                { header: 'ZIP', accessor: (l) => l.zip_code ?? '' },
+                { header: 'Urgency', accessor: (l) => l.urgency },
+                { header: 'Status', accessor: (l) => l.status },
+                { header: 'Budget', accessor: (l) => l.budget_range ?? '' },
+                { header: 'Sent To', accessor: (l) => l.sent_to_count },
+                { header: 'Group', accessor: (l) => l.group?.name ?? '' },
+                { header: 'Created', accessor: (l) => csvDate(l.created_at) },
+              ]
+              exportToCsv(filtered, csvCols, `leads-${new Date().toISOString().slice(0, 10)}`)
+            }}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all hover:scale-[1.02] active:scale-[0.98] shadow-sm border"
+            style={{ background: 'white', color: '#1C1C1E', borderColor: '#E5E7EB' }}
+          >
+            <Download className="w-4 h-4" />
+            {he ? 'יצוא CSV' : 'Export CSV'}
+          </button>
+          <div className="flex items-center gap-3 px-4 py-2 rounded-full bg-white/50 backdrop-blur-md border border-black/5 shadow-sm">
+            <div className="relative flex h-2 w-2">
+              <div className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></div>
+              <div className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></div>
+            </div>
+            <span className="text-xs font-bold tracking-tight text-black uppercase">{he ? 'זמן אמת' : 'Live Feed'}</span>
           </div>
-          <span className="text-xs font-bold tracking-tight text-black uppercase">{he ? 'זמן אמת' : 'Live Feed'}</span>
         </div>
       </header>
 

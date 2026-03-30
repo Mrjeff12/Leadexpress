@@ -60,6 +60,7 @@ export const departments: DepartmentDef[] = [
       { key: 'leads', labelEn: 'Leads', labelHe: 'לידים', path: 'leads' },
       { key: 'scan', labelEn: 'Group Scan', labelHe: 'סריקה', path: 'scan' },
       { key: 'templates', labelEn: 'Templates', labelHe: 'תבניות', path: 'templates' },
+      { key: 'lead-review', labelEn: 'Lead Review', labelHe: 'בדיקת לידים', path: 'lead-review' },
     ],
     kpis: [
       { key: 'waConnected', labelEn: 'WA Connected', labelHe: 'חיבורי WA' },
@@ -79,6 +80,7 @@ export const departments: DepartmentDef[] = [
       { key: 'prospects', labelEn: 'Prospects', labelHe: 'פרוספקטים', path: 'prospects' },
       { key: 'subscriptions', labelEn: 'Subscriptions', labelHe: 'מנויים', path: 'subscriptions' },
       { key: 'service-areas', labelEn: 'Service Areas', labelHe: 'אזורי שירות', path: 'service-areas' },
+      { key: 'performance', labelEn: 'Performance', labelHe: 'ביצועים', path: 'performance', fullBleed: true },
     ],
     kpis: [
       { key: 'activeContractors', labelEn: 'Active Contractors', labelHe: 'קבלנים פעילים' },
@@ -169,6 +171,8 @@ export const departments: DepartmentDef[] = [
     tabs: [
       { key: 'professions', labelEn: 'Professions', labelHe: 'מקצועות', path: '' },
       { key: 'system', labelEn: 'System', labelHe: 'מערכת', path: 'system' },
+      { key: 'audit-logs', labelEn: 'Audit Logs', labelHe: 'יומן ביקורת', path: 'audit-logs' },
+      { key: 'health', labelEn: 'System Health', labelHe: 'בריאות מערכת', path: 'health', fullBleed: true },
     ],
     kpis: [
       { key: 'professionsCount', labelEn: 'Professions', labelHe: 'מקצועות' },

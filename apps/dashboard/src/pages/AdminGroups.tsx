@@ -1,10 +1,12 @@
 import { useState, useMemo } from 'react'
+import { exportToCsv, csvDate, type CsvColumn } from '../lib/csv-export'
 import { useNavigate } from 'react-router-dom'
 import { useI18n } from '../lib/i18n'
 import { useGroupScoreboard, type GroupRow } from '../hooks/useGroupScoreboard'
 import { getScoreColorClass } from '../lib/group-score'
 import {
   Radio,
+  Download,
   Eye,
   Search,
   TrendingUp,
@@ -152,18 +154,42 @@ export default function AdminGroups() {
   return (
     <div className="animate-fade-in space-y-6">
       {/* Header */}
-      <div>
-        <h1
-          className="text-xl font-semibold"
-          style={{ color: 'hsl(40 8% 10%)' }}
+      <div className="flex items-start justify-between">
+        <div>
+          <h1
+            className="text-xl font-semibold"
+            style={{ color: 'hsl(40 8% 10%)' }}
+          >
+            {he ? 'לוח קבוצות' : 'Group Intelligence Scoreboard'}
+          </h1>
+          <p className="text-sm mt-1" style={{ color: 'hsl(40 4% 42%)' }}>
+            {he
+              ? 'דירוג ביצועי הקבוצות בזמן אמת'
+              : 'Real-time group performance ranking'}
+          </p>
+        </div>
+        <button
+          onClick={() => {
+            const csvColumns: CsvColumn<GroupRow>[] = [
+              { header: 'Name', accessor: (g) => g.name },
+              { header: 'Status', accessor: (g) => g.status },
+              { header: 'Score', accessor: (g) => g.score.score },
+              { header: 'Category', accessor: (g) => g.category ?? '' },
+              { header: 'Lead Yield (%)', accessor: (g) => (g.leadYield * 100).toFixed(1) },
+              { header: 'Known Sellers', accessor: (g) => g.known_sellers },
+              { header: 'Total Members', accessor: (g) => g.total_members },
+              { header: 'Messages (7d)', accessor: (g) => g.messages7d },
+              { header: 'Leads Created', accessor: (g) => g.leadsCreated },
+              { header: 'Last Lead At', accessor: (g) => csvDate(g.lastLeadAt) },
+            ]
+            exportToCsv(rows, csvColumns, `groups-${new Date().toISOString().slice(0, 10)}`)
+          }}
+          className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all hover:scale-[1.02] active:scale-[0.98] shadow-sm border"
+          style={{ background: 'white', color: 'hsl(40 8% 10%)', borderColor: '#E5E7EB' }}
         >
-          {he ? 'לוח קבוצות' : 'Group Intelligence Scoreboard'}
-        </h1>
-        <p className="text-sm mt-1" style={{ color: 'hsl(40 4% 42%)' }}>
-          {he
-            ? 'דירוג ביצועי הקבוצות בזמן אמת'
-            : 'Real-time group performance ranking'}
-        </p>
+          <Download className="w-4 h-4" />
+          {he ? 'יצוא CSV' : 'Export CSV'}
+        </button>
       </div>
 
       {/* KPI cards */}
