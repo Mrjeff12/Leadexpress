@@ -32,6 +32,16 @@ interface MatchedContractor {
   };
 }
 
+/** Fisher-Yates shuffle -- ensures fair rotation across matching contractors */
+function shuffle<T>(arr: T[]): T[] {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
 const PROFESSION_EMOJI: Record<string, string> = {
   hvac: '❄️',
   air_duct: '🌬️',
@@ -94,6 +104,7 @@ export async function matchLead(
       )
     `)
     .eq('is_active', true)
+    .eq('profiles.status', 'active')
     .in('profiles.subscriptions.status', ['active', 'trialing'])
     .contains('professions', [lead.profession]);
 
@@ -129,8 +140,8 @@ export async function matchLead(
     return 0;
   }
 
-  // Cap the number of contractors
-  const capped = contractors.slice(0, config.matching.maxContractorsPerLead);
+  // Shuffle for fair rotation, then cap the number of contractors
+  const capped = shuffle(contractors).slice(0, config.matching.maxContractorsPerLead);
 
   // Fetch contractors that have push subscriptions
   const contractorIds = capped.map((c) => c.user_id);
@@ -227,8 +238,53 @@ export async function matchLead(
     await pushNotificationQueue.addBulk(pushJobs);
   }
 
-  const totalSent = telegramJobs.length + waJobs.length + pushJobs.length;
-  
+  // Count unique contractors notified (push is additive, don't double-count)
+  const notifiedContractorIds = new Set<string>();
+  for (const j of telegramJobs) notifiedContractorIds.add(j.data.contractorId as string);
+  for (const j of waJobs) notifiedContractorIds.add(j.data.contractorId as string);
+  for (const j of pushJobs) notifiedContractorIds.add(j.data.contractorId as string);
+  const totalSent = notifiedContractorIds.size;
+
+  // Track notification delivery in lead_notifications table
+  const notificationRows: Array<{
+    lead_id: string;
+    contractor_id: string;
+    channel: string;
+    delivery_status: string;
+  }> = [];
+  for (const j of telegramJobs) {
+    notificationRows.push({
+      lead_id: lead.id,
+      contractor_id: j.data.contractorId as string,
+      channel: 'telegram',
+      delivery_status: 'queued',
+    });
+  }
+  for (const j of waJobs) {
+    notificationRows.push({
+      lead_id: lead.id,
+      contractor_id: j.data.contractorId as string,
+      channel: 'whatsapp',
+      delivery_status: 'queued',
+    });
+  }
+  for (const j of pushJobs) {
+    notificationRows.push({
+      lead_id: lead.id,
+      contractor_id: j.data.contractorId as string,
+      channel: 'push',
+      delivery_status: 'queued',
+    });
+  }
+  if (notificationRows.length > 0) {
+    const { error: notifErr } = await supabase
+      .from('lead_notifications')
+      .upsert(notificationRows, { onConflict: 'lead_id,contractor_id', ignoreDuplicates: true });
+    if (notifErr) {
+      log.warn({ error: notifErr }, 'Failed to insert lead_notifications rows');
+    }
+  }
+
   // Update lead status and save the matched contractors to lock in access
   const matchedContractorIds = capped.map(c => c.user_id);
   await updateLeadStatus(lead.id, 'sent', totalSent, matchedContractorIds);

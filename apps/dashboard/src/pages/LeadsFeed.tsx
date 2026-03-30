@@ -30,6 +30,7 @@ import {
   Fence,
   Sparkles,
   ChevronDown,
+  ChevronRight,
   Check,
   Eye,
   Radio,
@@ -564,6 +565,47 @@ export default function LeadsFeed() {
       {/* ── Lead List (Pro View) ── */}
       {!loading && filtered.length > 0 && (
         <div className="space-y-4">
+          {/* Mobile compact cards — prototype style */}
+          <div className="md:hidden space-y-1.5">
+            {filtered.map((lead) => {
+              const p = getProf(lead.profession)
+              const u = URG[lead.urgency]
+              const isUrgent = lead.urgency === 'hot'
+              const initials = p.label.slice(0, 2).toUpperCase()
+              return (
+                <div
+                  key={lead.id}
+                  onClick={() => nav(`/leads/${lead.id}`)}
+                  className={`bg-white rounded-[20px] border border-black/[0.04] shadow-sm px-4 py-3 flex items-center gap-3 active:scale-[0.97] transition-transform cursor-pointer ${isUrgent ? 'border-l-[3px] border-l-[#fe5b25]' : ''}`}
+                >
+                  <div className={`w-9 h-9 rounded-xl flex items-center justify-center text-white text-[10px] font-bold flex-shrink-0 ${isUrgent ? 'bg-[#fe5b25]' : 'bg-[#111]'}`}>
+                    {initials}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-1.5">
+                      <p className="text-[13px] font-semibold truncate">{he ? p.he : p.label}</p>
+                      {isUrgent && <Flame className="w-2.5 h-2.5 text-[#fe5b25] flex-shrink-0" />}
+                    </div>
+                    <div className="flex items-center gap-2 mt-0.5">
+                      {lead.city && <span className="text-[10px] text-[#737373]">{lead.city}</span>}
+                      <span className="text-[10px] text-[#a3a3a3]">{timeAgo(lead.created_at, he)}</span>
+                      {lead.source_type === 'publisher'
+                        ? <span className="text-[8px] font-semibold text-[#fe5b25] bg-[#fff4f0] px-1.5 py-0.5 rounded-full">APP</span>
+                        : <span className="text-[8px] font-semibold text-[#25D366] bg-[#25D366]/10 px-1.5 py-0.5 rounded-full">WA</span>
+                      }
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    {lead.budget_range && <span className="text-[12px] font-bold text-green-600">{lead.budget_range}</span>}
+                    <ChevronRight className="w-3.5 h-3.5 text-[#a3a3a3]" />
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+
+          {/* Desktop cards */}
+          <div className="hidden md:block space-y-4">
           {filtered.map((lead) => {
             const p = getProf(lead.profession)
             const u = URG[lead.urgency]
@@ -817,6 +859,7 @@ export default function LeadsFeed() {
               </div>
             )
           })}
+          </div>
         </div>
       )}
 

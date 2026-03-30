@@ -22,7 +22,7 @@ Deno.serve(async (req: Request) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  // ── Auth: require admin JWT ──
+  // ── Auth: accept service_role key (cron) OR admin JWT ──
   const authHeader = req.headers.get('Authorization');
   if (!authHeader?.startsWith('Bearer ')) {
     return new Response(JSON.stringify({ error: 'Missing or invalid Authorization header' }), {
@@ -30,24 +30,32 @@ Deno.serve(async (req: Request) => {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }
-  const jwt = authHeader.replace('Bearer ', '');
-  const { data: { user: caller }, error: authErr } = await supabase.auth.getUser(jwt);
-  if (authErr || !caller) {
-    return new Response(JSON.stringify({ error: 'Invalid token' }), {
-      status: 401,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
-  }
-  const { data: callerProfile } = await supabase
-    .from('profiles')
-    .select('role')
-    .eq('id', caller.id)
-    .single();
-  if (!callerProfile || callerProfile.role !== 'admin') {
-    return new Response(JSON.stringify({ error: 'Admin access required' }), {
-      status: 403,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+  const token = authHeader.replace('Bearer ', '');
+  const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+
+  // Allow service_role key (used by pg_cron)
+  const isServiceRole = token === serviceRoleKey;
+
+  if (!isServiceRole) {
+    // Fall back to admin JWT auth
+    const { data: { user: caller }, error: authErr } = await supabase.auth.getUser(token);
+    if (authErr || !caller) {
+      return new Response(JSON.stringify({ error: 'Invalid token' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+    const { data: callerProfile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', caller.id)
+      .single();
+    if (!callerProfile || callerProfile.role !== 'admin') {
+      return new Response(JSON.stringify({ error: 'Admin access required' }), {
+        status: 403,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
   }
 
   if (!GREEN_API_ID || !GREEN_API_TOKEN) {

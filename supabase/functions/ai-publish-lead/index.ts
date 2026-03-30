@@ -234,17 +234,20 @@ Deno.serve(async (req: Request) => {
         });
       }
 
-      // Match contractors by profession + zip_code
+      // Match contractors by profession + zip_code (active only)
       let matchQuery = supabaseAdmin
         .from("contractors")
-        .select("user_id")
+        .select("user_id, profiles!inner(status, subscriptions!inner(status))")
+        .eq("is_active", true)
+        .eq("profiles.status", "active")
+        .in("profiles.subscriptions.status", ["active", "trialing"])
         .contains("professions", [lead_data.profession]);
 
       if (lead_data.zip_code) {
         matchQuery = matchQuery.contains("zip_codes", [lead_data.zip_code]);
       }
 
-      const { data: matchedContractors } = await matchQuery;
+      const { data: matchedContractors } = await matchQuery.limit(50);
       const matchedIds = (matchedContractors || []).map(
         (c: { user_id: string }) => c.user_id,
       );

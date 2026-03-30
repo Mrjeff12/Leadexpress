@@ -1,4 +1,4 @@
-import { Worker, UnrecoverableError } from 'bullmq';
+import { Worker, Queue, UnrecoverableError } from 'bullmq';
 import type { Logger } from 'pino';
 import { config } from './config.js';
 import { sendTextMessage } from './whatsapp-client.js';
@@ -16,6 +16,10 @@ export interface WaNotificationJob {
  * Only processes contractors who have an open 24h window (free messages).
  */
 export function createWaNotificationWorker(log: Logger): { worker: Worker; cleanup: () => Promise<void> } {
+  // Fallback queues for when WA delivery fails permanently
+  const telegramQueue = new Queue('notifications', { connection: config.redis });
+  const pushQueue = new Queue('push-notifications', { connection: config.redis });
+
   const worker = new Worker<WaNotificationJob>(
     config.queues.waNotifications,
     async (job) => {
@@ -65,8 +69,20 @@ export function createWaNotificationWorker(log: Logger): { worker: Worker; clean
     log.info({ jobId: job?.id, result }, 'WA notification job completed');
   });
 
-  worker.on('failed', (job, err) => {
+  worker.on('failed', async (job, err) => {
     log.error({ jobId: job?.id, err: err.message, attempts: job?.attemptsMade }, 'WA notification job failed');
+
+    // If all retries exhausted, enqueue fallback (Telegram then Push)
+    if (job && job.attemptsMade >= (job.opts.attempts ?? 3)) {
+      const { leadId, contractorId } = job.data;
+      log.info({ contractorId, leadId }, 'WA delivery failed permanently, attempting fallback');
+      try {
+        await enqueueFallback(telegramQueue, pushQueue, contractorId, leadId, log);
+      } catch (fallbackErr: unknown) {
+        const msg = fallbackErr instanceof Error ? fallbackErr.message : 'unknown';
+        log.error({ contractorId, leadId, err: msg }, 'Failed to enqueue fallback notification');
+      }
+    }
   });
 
   worker.on('error', (err) => {
@@ -74,8 +90,72 @@ export function createWaNotificationWorker(log: Logger): { worker: Worker; clean
   });
 
   const cleanup = async () => {
+    await telegramQueue.close();
+    await pushQueue.close();
     await worker.close();
   };
 
   return { worker, cleanup };
+}
+
+/**
+ * When WA delivery fails permanently, fall back to Telegram, then push.
+ * Uses Supabase to check which channels the contractor has configured.
+ */
+async function enqueueFallback(
+  telegramQueue: Queue,
+  pushQueue: Queue,
+  contractorId: string,
+  leadId: string,
+  log: Logger,
+): Promise<void> {
+  const { createClient } = await import('@supabase/supabase-js');
+  const supabase = createClient(config.supabase.url, config.supabase.serviceKey);
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('telegram_chat_id, full_name')
+    .eq('id', contractorId)
+    .maybeSingle();
+
+  if (profile?.telegram_chat_id) {
+    await telegramQueue.add('send-notification', {
+      leadId,
+      contractorId,
+      telegramChatId: profile.telegram_chat_id,
+      contractorName: profile.full_name,
+      message: `You have a new lead! Check your dashboard for details.`,
+    }, {
+      jobId: `fallback-tg-${leadId}-${contractorId}`,
+      attempts: 3,
+      backoff: { type: 'exponential', delay: 2000 },
+    });
+    log.info({ contractorId, leadId }, 'Fallback: enqueued Telegram notification');
+    return;
+  }
+
+  const { data: pushSub } = await supabase
+    .from('push_subscriptions')
+    .select('user_id')
+    .eq('user_id', contractorId)
+    .limit(1)
+    .maybeSingle();
+
+  if (pushSub) {
+    await pushQueue.add('send-push-notification', {
+      leadId,
+      contractorId,
+      title: 'New Lead Available',
+      body: 'Tap to view details',
+      url: '/leads',
+    }, {
+      jobId: `fallback-push-${leadId}-${contractorId}`,
+      attempts: 2,
+      backoff: { type: 'exponential', delay: 1000 },
+    });
+    log.info({ contractorId, leadId }, 'Fallback: enqueued push notification');
+    return;
+  }
+
+  log.warn({ contractorId, leadId }, 'No fallback channel available (no Telegram or push subscription)');
 }

@@ -19,6 +19,10 @@ import {
   Users,
   Clock,
   ExternalLink,
+  Phone,
+  Navigation,
+  Plus,
+  Send,
 } from 'lucide-react'
 import JobDetailPanel from '../components/JobDetailPanel'
 import BroadcastResponsesPanel from '../components/BroadcastResponsesPanel'
@@ -348,8 +352,203 @@ export default function JobsDashboard() {
     { id: 'overdue',   label: 'Overdue',   labelHe: 'באיחור' },
   ]
 
+  const mobileEarned = jobs.filter(j => j.status === 'completed').reduce((s, j) => s + (j.job_amount || 0), 0)
+  const jobSteps = ['Claimed', 'Driving', 'Working', 'Done']
+
   return (
-    <div className="animate-fade-in space-y-6">
+    <div className="animate-fade-in">
+
+      {/* ─── MOBILE (prototype-style) ─── */}
+      <div className="md:hidden bg-white min-h-screen pb-28">
+        <div className="px-5 pt-5 pb-6">
+
+          {/* Header */}
+          <div className="flex items-center justify-between mb-4">
+            <h1 className="text-[22px] font-bold tracking-tight">{he ? 'עבודות' : 'Jobs'}</h1>
+            <Link to="/leads"
+              className="w-9 h-9 rounded-full bg-[#fe5b25] flex items-center justify-center active:scale-[0.97] transition-transform">
+              <Plus className="w-[17px] h-[17px] text-white" />
+            </Link>
+          </div>
+
+          {/* Toggle: My Jobs / Published */}
+          <div className="flex bg-[#f5f5f5] rounded-xl p-1 mb-4">
+            <button onClick={() => setMainView('jobs')}
+              className={`flex-1 py-2 rounded-lg text-[13px] font-semibold transition-all ${mainView === 'jobs' ? 'bg-white shadow-sm text-[#111]' : 'text-[#737373]'}`}>
+              {he ? 'עבודות שלי' : 'My Jobs'} <span className="opacity-50 ml-0.5">{jobs.length}</span>
+            </button>
+            <button onClick={() => { setMainView('broadcasts'); fetchBroadcasts() }}
+              className={`flex-1 py-2 rounded-lg text-[13px] font-semibold transition-all ${mainView === 'broadcasts' ? 'bg-white shadow-sm text-[#111]' : 'text-[#737373]'}`}>
+              {he ? 'פרסומים' : 'Published'} <span className="opacity-50 ml-0.5">{broadcasts.length}</span>
+            </button>
+          </div>
+
+          {loading ? (
+            <div className="flex items-center justify-center py-16">
+              <Loader2 className="w-6 h-6 animate-spin text-[#fe5b25]" />
+            </div>
+          ) : mainView === 'jobs' ? (
+            <>
+              {/* Stats row */}
+              <div className="flex items-center justify-between mb-3 px-0.5">
+                <span className="text-[11px] text-[#737373]">{completedJobs} {he ? 'הושלמו' : 'completed'}</span>
+                <span className="text-[13px] font-bold text-green-600">{formatCurrency(mobileEarned)} {he ? 'הכנסות' : 'earned'}</span>
+              </div>
+
+              {filteredJobs.length === 0 ? (
+                <div className="text-center py-12">
+                  <Briefcase className="w-10 h-10 mx-auto mb-3 text-[#d4d4d4]" />
+                  <p className="text-sm font-medium text-[#111] mb-1">{he ? 'אין עבודות עדיין' : 'No jobs yet'}</p>
+                  <p className="text-xs text-[#737373]">{he ? 'העבר ליד ראשון כדי להתחיל' : 'Forward your first lead to get started'}</p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {filteredJobs.map((job) => {
+                    const prof = job.lead_profession ? profLookup[job.lead_profession] : null
+                    const isActive = job.status === 'accepted'
+                    const isPending = job.status === 'pending'
+                    const initials = job.sub_name.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase()
+                    const currentStep = 1
+                    return (
+                      <div key={job.id} onClick={() => nav(`/jobs/${job.id}`)}
+                        className={`bg-white rounded-[20px] border border-black/[0.04] shadow-sm overflow-hidden active:scale-[0.97] transition-transform cursor-pointer ${isActive || isPending ? 'ring-1 ring-[#fe5b25]/10' : ''}`}>
+                        <div className="px-3.5 py-3 flex items-center gap-3">
+                          <div className="w-9 h-9 rounded-xl bg-[#111] flex items-center justify-center text-white text-[10px] font-bold flex-shrink-0">
+                            {initials}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-1.5">
+                              <p className="text-[13px] font-semibold truncate">
+                                {prof ? (he ? prof.he : prof.en) : (job.lead_profession || (he ? 'עבודה' : 'Job'))}
+                              </p>
+                              <span className={`text-[9px] font-semibold ${isActive ? 'text-[#fe5b25]' : isPending ? 'text-amber-500' : job.status === 'completed' ? 'text-green-600' : 'text-[#737373]'}`}>
+                                {isActive ? (he ? 'פעיל' : 'Active') : isPending ? (he ? 'ממתין' : 'Pending') : job.status === 'completed' ? (he ? 'הושלם' : 'Done') : job.status}
+                              </span>
+                            </div>
+                            <p className="text-[10px] text-[#737373]">
+                              {job.sub_name} · {job.lead_city || '—'} · {job.scheduled_date ? formatDate(job.scheduled_date) : formatDate(job.created_at)}
+                            </p>
+                          </div>
+                          <span className="text-[13px] font-bold text-green-600 flex-shrink-0">
+                            {job.job_amount ? formatCurrency(job.job_amount) : dealLabel(job.deal_type, job.deal_value)}
+                          </span>
+                        </div>
+
+                        {isActive && (
+                          <div className="px-3.5 pb-3 pt-0">
+                            <div className="flex gap-0.5 mb-1.5">
+                              {jobSteps.map((_, si) => (
+                                <div key={si} className={`h-[2px] flex-1 rounded-full ${si <= currentStep ? 'bg-[#fe5b25]' : 'bg-[#f5f5f5]'}`} />
+                              ))}
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <span className="text-[9px] text-[#fe5b25] font-semibold">{jobSteps[currentStep]}</span>
+                              <div className="flex gap-1.5">
+                                <a href={`tel:${job.sub_phone}`} onClick={e => e.stopPropagation()}
+                                  className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-green-50 active:scale-[0.97] transition-transform">
+                                  <Phone className="w-[9px] h-[9px] text-green-600" />
+                                  <span className="text-[9px] font-semibold text-green-600">{he ? 'שיחה' : 'Call'}</span>
+                                </a>
+                                {job.customer_address && (
+                                  <a href={`https://maps.google.com/?q=${encodeURIComponent(job.customer_address)}`}
+                                    target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()}
+                                    className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-blue-50 active:scale-[0.97] transition-transform">
+                                    <Navigation className="w-[9px] h-[9px] text-blue-500" />
+                                    <span className="text-[9px] font-semibold text-blue-500">{he ? 'נווט' : 'Go'}</span>
+                                  </a>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {isPending && (
+                          <div className="px-3.5 pb-3 pt-0 flex gap-1.5">
+                            <button onClick={e => { e.stopPropagation(); nav(`/jobs/${job.id}`) }}
+                              className="flex-1 py-2 rounded-lg bg-green-50 text-green-600 text-[11px] font-semibold active:scale-[0.97] transition-transform text-center">
+                              {he ? 'צפה' : 'View'}
+                            </button>
+                            <button onClick={e => { e.stopPropagation(); setSelectedJobId(job.id) }}
+                              className="flex-1 py-2 rounded-lg bg-[#fff4f0] text-[#fe5b25] text-[11px] font-semibold active:scale-[0.97] transition-transform text-center">
+                              {he ? 'פרטים' : 'Details'}
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+            </>
+          ) : (
+            /* Published / Broadcasts */
+            <>
+              {broadcastsLoading ? (
+                <div className="flex items-center justify-center py-16">
+                  <Loader2 className="w-5 h-5 animate-spin text-[#fe5b25]" />
+                </div>
+              ) : broadcasts.length === 0 ? (
+                <div className="text-center py-12">
+                  <Radio className="w-10 h-10 mx-auto mb-3 text-[#d4d4d4]" />
+                  <p className="text-sm font-medium text-[#111] mb-1">{he ? 'אין פרסומים עדיין' : 'No broadcasts yet'}</p>
+                  <p className="text-xs text-[#737373]">{he ? 'פרסם עבודה מעמוד הלידים' : 'Broadcast a job from Leads'}</p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {broadcasts.map((b) => {
+                    const bLead = b.leads as any
+                    const bProf = bLead?.profession ? profLookup[bLead.profession] : null
+                    const isOpenB = b.status === 'open' && new Date(b.expires_at) > new Date()
+                    return (
+                      <div key={b.id} onClick={() => setSelectedBroadcast(b)}
+                        className={`bg-white rounded-[20px] border border-black/[0.04] shadow-sm overflow-hidden active:scale-[0.97] transition-transform cursor-pointer ${isOpenB ? 'ring-1 ring-blue-500/10' : ''}`}>
+                        <div className="px-3.5 py-3 flex items-center gap-3">
+                          <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${isOpenB ? 'bg-blue-50' : b.status === 'assigned' ? 'bg-green-50' : 'bg-[#f5f5f5]'}`}>
+                            {isOpenB ? <Send className="w-3.5 h-3.5 text-blue-500" /> : <CheckCircle2 className="w-3.5 h-3.5 text-green-600" />}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-1.5">
+                              <p className="text-[13px] font-semibold truncate">
+                                {bProf ? (he ? bProf.he : bProf.en) : (bLead?.profession || (he ? 'עבודה' : 'Job'))}
+                              </p>
+                              <span className={`text-[9px] font-semibold ${isOpenB ? 'text-blue-500' : 'text-green-600'}`}>
+                                {isOpenB ? (he ? 'פתוח' : 'Open') : (he ? 'הוקצה' : 'Assigned')}
+                              </span>
+                            </div>
+                            <p className="text-[10px] text-[#737373]">{bLead?.city || '—'} · {formatDate(b.created_at)}</p>
+                          </div>
+                          <span className="text-[13px] font-bold text-green-600 flex-shrink-0">{dealLabel(b.deal_type, b.deal_value)}</span>
+                        </div>
+                        {(b.response_count || 0) > 0 && (
+                          <div className="px-3.5 pb-3 pt-0 flex items-center justify-between">
+                            <span className="flex items-center gap-1 text-[9px] text-[#737373]">
+                              <Users className="w-[9px] h-[9px]" /> {b.response_count} {he ? 'מעוניינים' : 'interested'}
+                            </span>
+                            <span className="text-[9px] font-semibold text-blue-500 bg-blue-50 px-2 py-0.5 rounded-full">
+                              {he ? `צפה ב-${b.response_count}` : `View ${b.response_count}`}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+              {selectedBroadcast && (
+                <BroadcastResponsesPanel
+                  broadcast={{ ...selectedBroadcast, lead: selectedBroadcast.leads as any }}
+                  isOpen={!!selectedBroadcast}
+                  onClose={() => setSelectedBroadcast(null)}
+                  onChoose={handleChooseContractor}
+                />
+              )}
+            </>
+          )}
+        </div>
+      </div>
+
+      {/* ─── DESKTOP ─── */}
+      <div className="hidden md:block space-y-6">
       {/* Header */}
       <div>
         <h1 className="text-xl font-semibold" style={{ color: 'hsl(40 8% 10%)' }}>
@@ -595,51 +794,6 @@ export default function JobsDashboard() {
         </div>
       ) : (
         <>
-        {/* Mobile card list */}
-        <div className="md:hidden space-y-2">
-          {filteredJobs.map((job) => {
-            const prof = job.lead_profession ? profLookup[job.lead_profession] : null
-            const location = [job.lead_city, job.lead_zip].filter(Boolean).join(', ') || '—'
-            const overdueFlag = isOverdue(job)
-            const statusColors: Record<string, string> = {
-              pending: 'bg-amber-50 border-l-amber-400',
-              accepted: 'bg-blue-50 border-l-blue-400',
-              completed: 'bg-green-50 border-l-green-400',
-              rejected: 'bg-red-50 border-l-red-400',
-              cancelled: 'bg-stone-50 border-l-stone-300',
-            }
-            const colorClass = statusColors[job.status] || statusColors.pending
-            return (
-              <div
-                key={job.id}
-                onClick={() => nav(`/jobs/${job.id}`)}
-                className={`rounded-2xl border-l-4 p-4 shadow-sm active:scale-[0.98] transition-transform cursor-pointer ${colorClass}`}
-              >
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-2">
-                    <span className="text-lg">{prof?.emoji ?? '📋'}</span>
-                    <div>
-                      <p className="text-sm font-bold text-stone-800">
-                        {prof ? (he ? prof.he : prof.en) : (job.lead_profession || (he ? 'עבודה' : 'Job'))}
-                      </p>
-                      <p className="text-[10px] text-stone-400">{location}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <StatusBadge status={job.status} he={he} />
-                    {overdueFlag && <PaymentBadge status={job.payment_status} overdue={true} he={he} />}
-                  </div>
-                </div>
-                <div className="flex items-center justify-between text-xs text-stone-500">
-                  <span className="font-medium">{job.sub_name}</span>
-                  <span className="font-bold text-stone-700">
-                    {job.job_amount ? formatCurrency(job.job_amount) : dealLabel(job.deal_type, job.deal_value)}
-                  </span>
-                </div>
-              </div>
-            )
-          })}
-        </div>
         {/* Desktop table */}
         <div className="hidden md:block glass-panel overflow-hidden">
           <table className="w-full text-sm">
@@ -735,6 +889,7 @@ export default function JobsDashboard() {
       )}
       </>
       )}
+      </div>{/* end hidden md:block */}
     </div>
   )
 }

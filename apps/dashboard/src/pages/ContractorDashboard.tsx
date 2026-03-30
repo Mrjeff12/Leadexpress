@@ -27,6 +27,8 @@ import {
   Eye,
   Bell,
   Download,
+  Flame,
+  Plus,
 } from 'lucide-react'
 const CoverageMap = lazy(() => import('../components/settings/CoverageMap'))
 import ForwardLeadModal from '../components/ForwardLeadModal'
@@ -496,148 +498,260 @@ export default function ContractorDashboard() {
   return (
     <div className="relative md:h-screen" style={{ minHeight: 600 }}>
 
-      {/* ════════ MOBILE HOME ════════ */}
-      <div className="md:hidden min-h-screen bg-gradient-to-b from-gray-50 via-white to-gray-50 pb-28 overflow-y-auto no-scrollbar">
-        <div className="px-4 pt-5 space-y-4">
+      {/* ════════ MOBILE HOME — matches prototype design ════════ */}
+      <div className="md:hidden bg-white min-h-screen pb-28 overflow-y-auto no-scrollbar">
+        <div className="px-5 pt-3 pb-6">
 
-          {/* Greeting + plan */}
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs text-stone-400 font-medium">{greeting}</p>
-              <h1 className="text-xl font-extrabold text-stone-900 tracking-tight">Hi, {firstName} 👋</h1>
+          {/* Header */}
+          <div className="flex items-center justify-between mb-5">
+            <p className="text-[14px] font-bold tracking-tight text-[#111]">
+              Master<span className="text-[#fe5b25]">leadflow</span>
+            </p>
+            <div className="flex items-center gap-2">
+              <Link to="/notifications" className="w-10 h-10 rounded-full bg-[#fafafa] flex items-center justify-center active:scale-[0.97] transition-transform">
+                <Bell className="w-[17px] h-[17px] text-[#111]" strokeWidth={1.8} />
+              </Link>
+              <Link to="/profile" className="w-10 h-10 rounded-full bg-[#111] flex items-center justify-center text-white text-[12px] font-bold active:scale-[0.97] transition-transform">
+                {firstName.slice(0, 2).toUpperCase()}
+              </Link>
             </div>
-            <span className="text-xs font-bold px-3 py-1.5 rounded-full bg-orange-50 text-[#e04d1c] border border-orange-100 flex items-center gap-1">
-              <Sparkles className="w-3 h-3" />{planName}
-            </span>
           </div>
 
-          {/* Hot lead card */}
+          {/* Greeting */}
+          <div className="mb-4">
+            <p className="text-[12px] text-[#737373]">{greeting}, {firstName}</p>
+            <h1 className="text-[22px] font-bold tracking-tight mt-0.5">
+              <span className="text-[#fe5b25]">{leadsToday > 0 ? `${leadsToday} new leads` : 'Welcome back'}</span>{leadsToday > 0 ? ' today' : ''}
+            </h1>
+          </div>
+
+          {/* Urgent lead card — dark card style */}
           {leads.length > 0 && (() => {
             const lead = leads[0]
             const prof = profLookup[lead.profession]
             return (
               <Link
                 to={`/leads/${lead.id}`}
-                className="block rounded-3xl p-4 shadow-lg shadow-orange-200/40 active:scale-[0.98] transition-transform"
-                style={{ background: 'linear-gradient(135deg, #fe5b25, #e04d1c)' }}
+                className="block bg-[#111] rounded-[20px] p-4 mb-4 relative overflow-hidden active:scale-[0.97] transition-transform"
               >
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-white/80 text-xs font-semibold">Latest Lead</span>
-                  <span className="text-white text-xs bg-white/20 px-2 py-0.5 rounded-full font-semibold">
-                    {lead.urgency === 'hot' ? '🔥 Hot' : lead.urgency === 'warm' ? '⏰ Warm' : '❄️ Cold'}
-                  </span>
+                <div className="absolute top-0 right-0 w-20 h-20 bg-[#fe5b25] rounded-full opacity-10 -translate-y-6 translate-x-6" />
+                <div className="flex items-center justify-between mb-2 relative">
+                  <div className="flex items-center gap-1.5 bg-[#fe5b25]/15 px-2 py-0.5 rounded-full">
+                    <Flame className="w-2.5 h-2.5 text-[#fe5b25]" />
+                    <span className="text-[9px] text-[#fe5b25] font-bold uppercase">
+                      {lead.urgency === 'hot' ? 'URGENT' : lead.urgency === 'warm' ? 'WARM' : 'COLD'}
+                    </span>
+                  </div>
+                  <span className="text-[10px] text-white/25">{timeAgo(lead.created_at)}</span>
                 </div>
-                <p className="text-white font-bold text-sm leading-snug mb-3 line-clamp-2">
-                  {lead.parsed_summary ?? lead.raw_message?.slice(0, 100) ?? '—'}
-                </p>
-                <div className="flex items-center gap-3 text-white/70 text-xs">
-                  <span>{prof?.emoji ?? '📋'} {prof ? prof.en : lead.profession}</span>
-                  {lead.city && <span>📍 {lead.city}</span>}
-                  <span className="ml-auto">{timeAgo(lead.created_at)}</span>
+                <div className="flex items-center justify-between relative mb-3">
+                  <div>
+                    <h2 className="text-[16px] font-bold text-white">{prof ? prof.en : lead.profession}</h2>
+                    <p className="text-[11px] text-white/35">{lead.city || '—'}{lead.zip_code ? `, ${lead.zip_code}` : ''}</p>
+                  </div>
+                  {lead.budget_range && (
+                    <span className="text-[18px] font-bold text-green-400">{lead.budget_range}</span>
+                  )}
+                </div>
+                <div className="w-full bg-[#fe5b25] text-white py-2.5 rounded-xl text-[13px] font-semibold flex items-center justify-center gap-1.5">
+                  <Zap className="w-3.5 h-3.5" /> View Lead
                 </div>
               </Link>
             )
           })()}
 
-          {/* KPI grid */}
-          <div className="grid grid-cols-4 gap-2">
-            {[
-              { value: leadsToday, label: 'Today', color: 'text-amber-600', bg: 'bg-amber-50', border: 'border-amber-100' },
-              { value: leadsWeek, label: 'Week', color: 'text-blue-600', bg: 'bg-blue-50', border: 'border-blue-100' },
-              { value: leadsTotal, label: 'Total', color: 'text-violet-600', bg: 'bg-violet-50', border: 'border-violet-100' },
-              { value: contactedCount, label: 'Contacts', color: 'text-[#e04d1c]', bg: 'bg-orange-50', border: 'border-orange-100' },
-            ].map(kpi => (
-              <div key={kpi.label} className={`rounded-2xl ${kpi.bg} border ${kpi.border} p-3 text-center`}>
-                <p className={`text-lg font-extrabold ${kpi.color} leading-none`}>
-                  <AnimatedNumber value={kpi.value} duration={600} />
+          {/* KPIs + Schedule row */}
+          <div className="flex gap-2 mb-4">
+            <div className="flex-1 flex gap-2">
+              <div className="bg-white rounded-[20px] border border-black/[0.04] shadow-sm flex-1 p-3 text-center">
+                <p className="text-[18px] font-bold tracking-tight">
+                  <AnimatedNumber value={leadsToday} duration={600} />
                 </p>
-                <p className="text-[9px] font-semibold text-stone-400 uppercase tracking-wide mt-1">{kpi.label}</p>
+                <p className="text-[8px] text-[#a3a3a3] mt-0.5">Today</p>
               </div>
-            ))}
+              <div className="bg-white rounded-[20px] border border-black/[0.04] shadow-sm flex-1 p-3 text-center">
+                <p className="text-[18px] font-bold tracking-tight">
+                  <AnimatedNumber value={leadsWeek} duration={600} />
+                </p>
+                <p className="text-[8px] text-[#a3a3a3] mt-0.5">Week</p>
+              </div>
+            </div>
+            <div className="flex-1 bg-white rounded-[20px] border border-black/[0.04] shadow-sm p-3">
+              <p className="text-[8px] text-[#a3a3a3] font-medium mb-1.5 uppercase tracking-wide">Schedule</p>
+              <div className="flex items-center gap-1.5">
+                <div className="w-0.5 h-5 rounded-full bg-[#fe5b25]" />
+                <div>
+                  <p className="text-[10px] font-semibold leading-tight line-clamp-1">
+                    {compactSchedule(workingHours, 'en').split('·')[0].trim() || 'Set hours'}
+                  </p>
+                  <p className="text-[8px] text-[#a3a3a3]">Working hours</p>
+                </div>
+              </div>
+            </div>
           </div>
 
-          {/* Profile completion */}
+          {/* Publish Job + Profile row */}
+          <div className="flex gap-2 mb-4">
+            <Link
+              to="/publish"
+              className="flex-1 bg-[#fe5b25] text-white py-3 rounded-xl text-[13px] font-semibold flex items-center justify-center gap-1.5 active:scale-[0.97] transition-transform"
+            >
+              <Plus className="w-[15px] h-[15px]" strokeWidth={2.5} /> Publish Job
+            </Link>
+            <Link
+              to="/profile"
+              className="bg-white border border-black/[0.04] shadow-sm flex items-center justify-center gap-1.5 px-4 py-3 rounded-[20px] active:scale-[0.97] transition-transform"
+            >
+              {(() => {
+                const pct = contractorData?.profile?.profile_completeness ?? 72
+                const r = 9
+                const circ = 2 * Math.PI * r
+                return (
+                  <div className="relative w-6 h-6">
+                    <svg width="24" height="24" viewBox="0 0 24 24" className="-rotate-90">
+                      <circle cx="12" cy="12" r={r} fill="none" strokeWidth="2" stroke="#f5f5f5" />
+                      <circle cx="12" cy="12" r={r} fill="none" strokeWidth="2" stroke="#fe5b25" strokeLinecap="round"
+                        strokeDasharray={`${circ}`} strokeDashoffset={`${circ * (1 - pct / 100)}`} />
+                    </svg>
+                    <span className="absolute inset-0 flex items-center justify-center text-[7px] font-bold text-[#fe5b25]">{pct}%</span>
+                  </div>
+                )
+              })()}
+              <span className="text-[12px] font-semibold">Profile</span>
+            </Link>
+          </div>
+
+          {/* Profile completion card */}
           {contractorData && (contractorData.profile?.profile_completeness ?? 100) < 100 && (
-            <ProfileCompletionBar
-              completeness={contractorData.profile?.profile_completeness ?? 0}
-              profile={contractorData}
-            />
+            <Link to="/profile" className="block bg-white rounded-[20px] border border-black/[0.04] shadow-sm p-4 mb-4 active:scale-[0.97] transition-transform">
+              <div className="flex items-center gap-3.5 mb-3">
+                {(() => {
+                  const pct = contractorData.profile?.profile_completeness ?? 72
+                  const r = 20
+                  const circ = 2 * Math.PI * r
+                  return (
+                    <div className="relative w-12 h-12 flex-shrink-0">
+                      <svg width="48" height="48" viewBox="0 0 48 48" className="-rotate-90">
+                        <circle cx="24" cy="24" r={r} fill="none" strokeWidth="3" stroke="#f5f5f5" />
+                        <circle cx="24" cy="24" r={r} fill="none" strokeWidth="3" stroke="#fe5b25" strokeLinecap="round"
+                          strokeDasharray={`${circ}`} strokeDashoffset={`${circ * (1 - pct / 100)}`} />
+                      </svg>
+                      <span className="absolute inset-0 flex items-center justify-center text-[12px] font-bold text-[#fe5b25]">{pct}%</span>
+                    </div>
+                  )
+                })()}
+                <div className="flex-1">
+                  <p className="text-[13px] font-semibold">Complete your profile</p>
+                  <p className="text-[10px] text-[#737373]">Verified contractors get <strong className="text-[#fe5b25]">+30% more leads</strong></p>
+                </div>
+                <ChevronRight className="w-3.5 h-3.5 text-[#a3a3a3]" />
+              </div>
+              <div className="flex gap-1.5">
+                <span className="text-[9px] bg-[#fff4f0] text-[#fe5b25] px-2 py-0.5 rounded-full font-medium">+ Verify ID</span>
+                <span className="text-[9px] bg-[#f5f5f5] text-[#737373] px-2 py-0.5 rounded-full font-medium">+ License</span>
+              </div>
+            </Link>
           )}
 
-          {/* Recent leads */}
-          <div>
-            <div className="flex items-center justify-between mb-3">
-              <h2 className="text-sm font-bold text-stone-800">Recent Leads</h2>
-              <Link to="/leads" className="text-xs font-bold text-[#fe5b25]">View all →</Link>
+          {/* Recent leads list */}
+          <div className="mb-4">
+            <div className="flex items-center justify-between mb-2.5">
+              <h3 className="text-[16px] font-bold tracking-tight">Recent Leads</h3>
+              <Link to="/leads" className="text-[11px] text-[#fe5b25] font-semibold flex items-center">
+                View all <ChevronRight className="w-3 h-3" />
+              </Link>
             </div>
-            <div className="space-y-2">
-              {leads.slice(0, 5).map(lead => {
+            <div className="space-y-1.5">
+              {leads.slice(0, 5).map((lead) => {
                 const prof = profLookup[lead.profession]
-                const borderColor = lead.urgency === 'hot' ? '#fe5b25' : lead.urgency === 'warm' ? '#f59e0b' : '#3b82f6'
+                const initials = (prof?.en ?? lead.profession).slice(0, 2).toUpperCase()
                 return (
                   <Link
                     key={lead.id}
                     to={`/leads/${lead.id}`}
-                    className="block rounded-2xl bg-white border border-stone-100 p-3.5 shadow-sm active:scale-[0.98] transition-transform"
-                    style={{ borderLeft: `3px solid ${borderColor}` }}
+                    className={`block bg-white rounded-[20px] border border-black/[0.04] shadow-sm px-4 py-3 flex items-center gap-3 active:scale-[0.97] transition-transform ${lead.urgency === 'hot' ? 'border-l-[3px] border-l-[#fe5b25]' : ''}`}
                   >
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="text-sm">{prof?.emoji ?? '📋'}</span>
-                      <span className="text-xs font-bold text-stone-700">{prof?.en ?? lead.profession}</span>
-                      <span className="ml-auto text-[10px] text-stone-400">{timeAgo(lead.created_at)}</span>
+                    <div className={`w-9 h-9 rounded-xl flex items-center justify-center text-white text-[10px] font-bold flex-shrink-0 ${lead.urgency === 'hot' ? 'bg-[#fe5b25]' : 'bg-[#111]'}`}>
+                      {initials}
                     </div>
-                    <p className="text-xs text-stone-500 line-clamp-2 leading-relaxed">
-                      {lead.parsed_summary ?? lead.raw_message?.slice(0, 80) ?? '—'}
-                    </p>
-                    {lead.city && <p className="text-[10px] text-stone-400 mt-1">📍 {lead.city}</p>}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5">
+                        <p className="text-[13px] font-semibold truncate">{prof ? prof.en : lead.profession}</p>
+                        {lead.urgency === 'hot' && <Flame className="w-2.5 h-2.5 text-[#fe5b25] flex-shrink-0" />}
+                      </div>
+                      <div className="flex items-center gap-2 mt-0.5">
+                        {lead.city && <span className="text-[10px] text-[#a3a3a3]">{lead.city}</span>}
+                        <span className="text-[10px] text-[#a3a3a3]">{timeAgo(lead.created_at)}</span>
+                      </div>
+                    </div>
+                    {lead.budget_range && (
+                      <span className="text-[12px] font-bold text-green-600 flex-shrink-0">{lead.budget_range}</span>
+                    )}
+                    <ChevronRight className="w-3.5 h-3.5 text-[#a3a3a3] flex-shrink-0" />
                   </Link>
                 )
               })}
               {leads.length === 0 && (
-                <div className="rounded-2xl bg-stone-50 border border-stone-100 p-6 text-center">
-                  <p className="text-stone-400 text-sm">No leads yet</p>
-                  <p className="text-stone-300 text-xs mt-1">Add services and areas to start receiving leads</p>
+                <div className="bg-[#fafafa] rounded-[20px] p-6 text-center">
+                  <p className="text-[13px] text-[#737373]">No leads yet</p>
+                  <p className="text-[11px] text-[#a3a3a3] mt-1">Add services and areas to start receiving leads</p>
                 </div>
               )}
             </div>
           </div>
 
-          {/* Services */}
-          <div className="rounded-2xl bg-white border border-stone-100 p-4 shadow-sm">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="text-xs font-bold text-stone-500 uppercase tracking-wider">My Services</h3>
-              <Link to="/profile" className="text-xs text-[#fe5b25] font-bold">Edit →</Link>
+          {/* My Services */}
+          <div className="mb-4">
+            <div className="flex items-center justify-between mb-2.5">
+              <h3 className="text-[16px] font-bold tracking-tight">My Services</h3>
+              <Link to="/profile" className="text-[11px] text-[#fe5b25] font-semibold flex items-center">
+                Edit <ChevronRight className="w-3 h-3" />
+              </Link>
             </div>
-            <div className="flex flex-wrap gap-1.5">
-              {selectedProfs.length > 0 ? selectedProfs.map(id => {
+            <div className="space-y-1.5">
+              {selectedProfs.length > 0 ? selectedProfs.slice(0, 4).map((id) => {
                 const p = profLookup[id]
                 return p ? (
-                  <span key={id} className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-orange-50 border border-orange-100 rounded-xl text-xs font-semibold text-orange-700">
-                    {p.emoji} {p.en}
-                  </span>
+                  <div key={id} className="bg-white rounded-[20px] border border-black/[0.04] shadow-sm px-3.5 py-3 flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-[#fff4f0] flex items-center justify-center">
+                      <span className="text-sm">{p.emoji}</span>
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-[12px] font-semibold">{p.en}</p>
+                      <p className="text-[9px] text-[#737373]">{leadsWeek} leads this week</p>
+                    </div>
+                  </div>
                 ) : null
-              }) : <span className="text-xs text-stone-400">No services selected</span>}
+              }) : (
+                <div className="bg-[#fafafa] rounded-[20px] px-3.5 py-3 text-center text-[12px] text-[#a3a3a3]">
+                  No services selected
+                </div>
+              )}
             </div>
           </div>
 
-          {/* Service Areas */}
-          <div className="rounded-2xl bg-white border border-stone-100 p-4 shadow-sm">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="text-xs font-bold text-stone-500 uppercase tracking-wider">Service Areas</h3>
-              <span className="text-xs text-stone-400">
-                {counties.length > 0 ? `${counties.length} counties` : `${zipCodes.length} zones`}
-              </span>
+          {/* My Areas */}
+          <div>
+            <div className="flex items-center justify-between mb-2.5">
+              <h3 className="text-[16px] font-bold tracking-tight">My Areas</h3>
+              <Link to="/profile" className="text-[11px] text-[#fe5b25] font-semibold flex items-center">
+                Edit <ChevronRight className="w-3 h-3" />
+              </Link>
             </div>
-            <div className="flex flex-wrap gap-1.5">
-              {counties.length > 0 ? counties.map(c => (
-                <span key={c} className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-blue-50 border border-blue-100 rounded-xl text-xs font-semibold text-blue-700">
-                  <MapPin className="w-3 h-3" />{c}
-                </span>
-              )) : zipCodes.slice(0, 8).map(z => (
-                <span key={z} className="px-2.5 py-1.5 bg-stone-50 border border-stone-100 rounded-xl text-xs font-mono text-stone-600">{z}</span>
+            <div className="flex gap-1.5 flex-wrap">
+              {counties.length > 0 ? counties.map((c) => (
+                <div key={c} className="bg-white rounded-[20px] border border-black/[0.04] shadow-sm px-3 py-2 flex items-center gap-2">
+                  <MapPin className="w-2.5 h-2.5 text-[#fe5b25]" />
+                  <span className="text-[11px] font-medium">{c}</span>
+                </div>
+              )) : zipCodes.slice(0, 8).map((z) => (
+                <div key={z} className="bg-white rounded-[20px] border border-black/[0.04] shadow-sm px-3 py-2 flex items-center gap-2">
+                  <MapPin className="w-2.5 h-2.5 text-[#fe5b25]" />
+                  <span className="text-[11px] font-medium">{z}</span>
+                </div>
               ))}
               {counties.length === 0 && zipCodes.length === 0 && (
-                <span className="text-xs text-stone-400">No areas added yet</span>
+                <span className="text-[12px] text-[#a3a3a3]">No areas added yet</span>
               )}
             </div>
           </div>

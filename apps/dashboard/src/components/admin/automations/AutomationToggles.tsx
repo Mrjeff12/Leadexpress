@@ -14,12 +14,15 @@ const CRON_LABELS: Record<string, { label: string; description: string }> = {
   'process-trial-nudges': { label: 'Trial Nudges', description: 'Engages trial users with usage tips and conversion prompts' },
   'process-winback-nudges': { label: 'Win-back', description: 'Re-engages churned or expired trial users' },
   'process-paying-check': { label: 'Paying Check', description: 'Verifies paying users have active Stripe subscriptions' },
+  'window-reminder': { label: 'Window Reminder', description: 'Pushes notification when WhatsApp 24h window is about to close (every 30 min)' },
+  'daily-group-sync': { label: 'Daily Group Sync', description: 'Syncs WhatsApp group membership from Green API (daily at 03:00 UTC)' },
 }
 
 function formatSchedule(schedule: string): string {
   if (schedule.includes('*/15')) return 'Every 15 min'
   if (schedule.match(/^0 \*\/1/)) return 'Every hour'
   if (schedule.match(/^0 \*\/6/)) return 'Every 6 hours'
+  if (schedule.match(/^0 3 /)) return 'Daily at 3:00 AM UTC'
   if (schedule.includes('0 9')) return 'Daily at 9:00 AM'
   if (schedule.match(/^\*\/\d+/)) {
     const m = schedule.match(/^\*\/(\d+)/)

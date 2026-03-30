@@ -5,6 +5,7 @@ import pino from 'pino';
 import { config } from './config.js';
 import { parseMessage } from './parser.js';
 import { isDuplicate } from './dedup.js';
+import { getStateFromZip, getStateCenterCoords } from './us-geo.js';
 
 const log = pino({ name: 'parser-worker' });
 
@@ -197,6 +198,10 @@ async function processJob(job: Job<RawMessagePayload>): Promise<void> {
     budgetRange = `up to $${parsed.budget_max}`;
   }
 
+  // ---- derive state + coordinates from zip_code ----
+  const derivedState = getStateFromZip(parsed.zip_code ?? null);
+  const coords = derivedState ? getStateCenterCoords(derivedState) : null;
+
   // ---- persist to Supabase ----
   const { data, error } = await supabase
     .from('leads')
@@ -206,14 +211,19 @@ async function processJob(job: Job<RawMessagePayload>): Promise<void> {
       content_hash: hash,
       raw_message: text,
       sender_id: senderId ?? null,
+      sender_name: sender ?? null,
       profession: parsed.profession === 'not_a_lead' ? 'other' : parsed.profession,
       zip_code: parsed.zip_code,
       city: parsed.city,
+      state: derivedState,
+      latitude: coords?.lat ?? null,
+      longitude: coords?.lng ?? null,
       budget_range: budgetRange,
       urgency: parsed.urgency,
       parsed_summary: parsed.summary,
       filter_stage: 'ai_parsed',
       status: 'parsed',
+      review_status: 'pending',
     })
     .select('id')
     .single();

@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate, NavLink, useLocation } from 'react-router-dom'
 import { lazy, Suspense, useState, useEffect, useCallback, type ReactNode } from 'react'
+import { Home, Zap, Users, Briefcase, User } from 'lucide-react'
 import { AuthProvider, useAuth } from './lib/auth'
 import { I18nContext, createTranslator, type Locale } from './lib/i18n'
 import { Toaster } from './components/shadcn/ui/toaster'
@@ -120,23 +121,28 @@ function LoadingScreen() {
   )
 }
 
-/* ─── Mobile Tab Bar ─── */
+/* ─── Mobile Tab Bar — floating dark pill (matches prototype) ─── */
 function MobileTabBar() {
   const location = useLocation()
   const tabs = [
-    { to: '/', icon: '🏠', label: 'Home', match: (p: string) => p === '/' },
-    { to: '/leads', icon: '⚡', label: 'Leads', match: (p: string) => p === '/leads' },
-    { to: '/group-scan', icon: '👥', label: 'Groups', match: (p: string) => p === '/group-scan' },
-    { to: '/profile', icon: '⚙️', label: 'Profile', match: (p: string) => p === '/profile' || p === '/subscription' },
+    { to: '/',           Icon: Home,     label: 'Home',   match: (p: string) => p === '/' },
+    { to: '/leads',      Icon: Zap,      label: 'Leads',  match: (p: string) => p === '/leads' || p.startsWith('/leads/') },
+    { to: '/group-scan', Icon: Users,    label: 'Groups', match: (p: string) => p === '/group-scan' },
+    { to: '/jobs',       Icon: Briefcase,label: 'Jobs',   match: (p: string) => p === '/jobs' || p.startsWith('/jobs/') },
+    { to: '/profile',    Icon: User,     label: 'Profile',match: (p: string) => p.startsWith('/profile') || p === '/subscription' },
   ]
   return (
-    <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-lg border-t border-stone-200 flex items-center justify-around px-2 pb-[env(safe-area-inset-bottom,8px)] pt-1.5">
-      {tabs.map(tab => {
-        const active = tab.match(location.pathname)
+    <nav className="md:hidden fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-1.5 bg-[#111] rounded-[28px] px-1.5 py-[5px] shadow-[0_8px_32px_rgba(0,0,0,0.20)]">
+      {tabs.map(({ to, Icon, label, match }) => {
+        const active = match(location.pathname)
         return (
-          <NavLink key={tab.to} to={tab.to} className="flex flex-col items-center gap-0.5 py-1 px-3 rounded-xl transition-colors">
-            <span className={`text-lg ${active ? '' : 'grayscale opacity-40'}`}>{tab.icon}</span>
-            <span className={`text-[9px] font-semibold ${active ? 'text-[#fe5b25]' : 'text-stone-400'}`}>{tab.label}</span>
+          <NavLink
+            key={to}
+            to={to}
+            className={`w-[46px] h-[46px] rounded-full flex flex-col items-center justify-center gap-0.5 transition-all duration-[250ms] [transition-timing-function:cubic-bezier(0.34,1.56,0.64,1)] active:scale-[0.88] ${active ? 'bg-white' : 'bg-transparent'}`}
+          >
+            <Icon size={18} strokeWidth={active ? 2.2 : 1.5} className={active ? 'text-[#111]' : 'text-white/50'} />
+            <span className={`text-[9px] font-medium ${active ? 'text-[#111]' : 'text-white/35'}`}>{label}</span>
           </NavLink>
         )
       })}

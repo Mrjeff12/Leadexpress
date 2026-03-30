@@ -129,8 +129,151 @@ export default function Subscription() {
   const premiumPrice = getPremiumPrice()
   const displayPrice = billingInterval === 'yearly' ? premiumPrice.yearly : premiumPrice.monthly
 
+  const planName = subscription?.plan?.name || (isFree ? 'Free' : 'Free')
+  const renewalDate = subscription?.current_period_end ? new Date(subscription.current_period_end).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—'
+  const monthlyPrice = subscription?.plan?.price_cents ? subscription.plan.price_cents / 100 : 0
+
   return (
-    <div className="animate-fade-in max-w-5xl mx-auto space-y-8 pb-16">
+    <div className="animate-fade-in">
+
+    {/* ─── MOBILE (prototype-style) ─── */}
+    <div className="md:hidden bg-white min-h-screen pb-28">
+      <div className="flex items-center gap-3 px-5 pt-5 pb-3">
+        <button onClick={() => navigate(-1)} className="w-9 h-9 rounded-full bg-[#fafafa] flex items-center justify-center active:scale-[0.97] transition-transform">
+          <ArrowRight className="w-[17px] h-[17px] rotate-180" />
+        </button>
+        <h1 className="text-[18px] font-bold tracking-tight">Subscription</h1>
+      </div>
+
+      <div className="px-5 pb-6">
+        {/* Current plan hero */}
+        <div className="bg-[#111] rounded-[20px] p-5 mb-5 relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-24 h-24 bg-[#fe5b25] rounded-full opacity-[0.08] -translate-y-8 translate-x-8" />
+          <div className="flex items-center gap-3 mb-2 relative">
+            <div className="w-10 h-10 rounded-xl bg-[#fe5b25] flex items-center justify-center">
+              <Crown className="w-[18px] h-[18px] text-white" />
+            </div>
+            <div>
+              <p className="text-[16px] font-bold text-white">{planName} Plan</p>
+              <p className="text-[11px] text-white/40">
+                {isTrialing ? `Trial ends ${renewalDate}` : isActive ? `Renews ${renewalDate}` : 'Not active'}
+              </p>
+            </div>
+          </div>
+          <div className="flex items-baseline gap-1 mt-3 relative">
+            <span className="text-[32px] font-bold text-white tracking-tight">${monthlyPrice}</span>
+            <span className="text-[13px] text-white/40">/month</span>
+          </div>
+        </div>
+
+        {/* Plans */}
+        <p className="text-[10px] font-semibold text-[#a3a3a3] uppercase tracking-widest mb-3">Plans</p>
+        <div className="space-y-3 mb-6">
+          {/* Premium */}
+          <div className={`bg-white rounded-[20px] border border-black/[0.04] shadow-sm p-4 relative overflow-hidden ${isPremium || isTrialing ? 'ring-2 ring-[#fe5b25]' : ''}`}>
+            {(isPremium || isTrialing) && (
+              <div className="absolute top-3 right-3">
+                <span className="text-[9px] font-bold text-white bg-[#fe5b25] px-2 py-0.5 rounded-full">ACTIVE</span>
+              </div>
+            )}
+            <div className="flex items-center gap-2 mb-3">
+              <Sparkles className="w-4 h-4 text-[#fe5b25]" />
+              <p className="text-[15px] font-semibold">Premium</p>
+            </div>
+            <div className="flex items-baseline gap-0.5 mb-3">
+              <span className="text-[24px] font-bold tracking-tight">${premiumPrice.monthly}</span>
+              <span className="text-[12px] text-[#737373]">/month</span>
+            </div>
+            <div className="space-y-2 mb-4">
+              {['Unlimited professions', 'Unlimited zip codes', 'Priority leads', 'All channels (WhatsApp, Telegram, Push)', 'Rebeca AI assistant', 'Verified badge'].map((f) => (
+                <div key={f} className="flex items-center gap-2">
+                  <Check className="w-3 h-3 text-[#fe5b25]" />
+                  <span className="text-[12px]">{f}</span>
+                </div>
+              ))}
+            </div>
+            {isPremium || isTrialing ? (
+              <button type="button" disabled className="w-full py-3 rounded-xl text-[13px] font-semibold bg-[#fafafa] text-[#737373] active:scale-[0.97] transition-transform">
+                Your Plan
+              </button>
+            ) : (
+              <button type="button" onClick={() => handleSubscribe('premium')} disabled={actionLoading}
+                className="w-full py-3 rounded-xl text-[13px] font-semibold bg-[#fe5b25] text-white active:scale-[0.97] transition-transform flex items-center justify-center gap-2">
+                {actionLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Crown className="w-4 h-4" /> Upgrade to Premium</>}
+              </button>
+            )}
+          </div>
+
+          {/* Free */}
+          <div className={`bg-white rounded-[20px] border border-black/[0.04] shadow-sm p-4 ${isFree && !isTrialing ? 'ring-2 ring-[#737373]' : ''}`}>
+            {isFree && !isTrialing && (
+              <div className="absolute top-3 right-3">
+                <span className="text-[9px] font-bold text-white bg-[#737373] px-2 py-0.5 rounded-full">ACTIVE</span>
+              </div>
+            )}
+            <div className="flex items-center gap-2 mb-3">
+              <Zap className="w-4 h-4 text-[#737373]" />
+              <p className="text-[15px] font-semibold">Free</p>
+            </div>
+            <div className="flex items-baseline gap-0.5 mb-3">
+              <span className="text-[24px] font-bold tracking-tight">$0</span>
+              <span className="text-[12px] text-[#737373]">forever</span>
+            </div>
+            <div className="space-y-2 mb-4">
+              {['3 professions', '5 zip codes', 'Basic leads', 'WhatsApp alerts only'].map((f) => (
+                <div key={f} className="flex items-center gap-2">
+                  <Check className="w-3 h-3 text-[#737373]" />
+                  <span className="text-[12px] text-[#737373]">{f}</span>
+                </div>
+              ))}
+            </div>
+            {isFree && !isTrialing ? (
+              <button type="button" disabled className="w-full py-3 rounded-xl text-[13px] font-semibold bg-[#111] text-white active:scale-[0.97] transition-transform">
+                Your Plan
+              </button>
+            ) : (
+              hasStripeSubscription ? (
+                <button type="button" onClick={openPortal} className="w-full py-3 rounded-xl text-[13px] font-semibold bg-[#111] text-white active:scale-[0.97] transition-transform">
+                  Downgrade
+                </button>
+              ) : null
+            )}
+          </div>
+        </div>
+
+        {/* Billing */}
+        {hasStripeSubscription && (
+          <>
+            <p className="text-[10px] font-semibold text-[#a3a3a3] uppercase tracking-widest mb-3">Billing</p>
+            <div className="bg-white rounded-[20px] border border-black/[0.04] shadow-sm overflow-hidden mb-4">
+              {[
+                { label: 'Next billing', val: renewalDate },
+                { label: 'Amount', val: `$${monthlyPrice}/mo` },
+              ].map((item, i, arr) => (
+                <div key={item.label} className="flex items-center justify-between px-4 py-3.5"
+                  style={{ borderBottom: i < arr.length - 1 ? '1px solid #f5f5f5' : 'none' }}>
+                  <p className="text-[12px] font-semibold text-[#111]">{item.label}</p>
+                  <span className="text-[12px] text-[#737373]">{item.val}</span>
+                </div>
+              ))}
+              <button type="button" onClick={openPortal}
+                className="w-full flex items-center justify-between px-4 py-3.5"
+                style={{ borderTop: '1px solid #f5f5f5' }}>
+                <p className="text-[12px] font-semibold text-[#111]">Manage billing</p>
+                <ChevronRight className="w-3.5 h-3.5 text-[#a3a3a3]" />
+              </button>
+            </div>
+            <button type="button" onClick={openPortal}
+              className="w-full text-center py-3 text-[12px] text-red-400 active:scale-[0.97] transition-transform">
+              Cancel Subscription
+            </button>
+          </>
+        )}
+      </div>
+    </div>
+
+    {/* ─── DESKTOP ─── */}
+    <div className="hidden md:block max-w-5xl mx-auto space-y-8 pb-16">
       {/* ─── Hero Header ─── */}
       <div className="text-center pt-2 pb-4">
         <h1 className="text-3xl font-bold tracking-tight text-zinc-900 mb-2">
@@ -538,6 +681,7 @@ export default function Subscription() {
           )}
         </div>
       </div>
+      </div>{/* end hidden md:block */}
     </div>
   )
 }

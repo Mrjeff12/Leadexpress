@@ -1,6 +1,154 @@
 const { Client, LocalAuth } = require('whatsapp-web.js')
 const qrcode = require('qrcode-terminal')
-const { supabase, enqueueMessage, log, sleep, randomDelay, ACCOUNT_ID } = require('./utils')
+const Redis = require('ioredis')
+const { supabase, enqueueMessage, log, sleep, randomDelay, ACCOUNT_ID, redisConnection } = require('./utils')
+
+// ─── Redis for deduplication ────────────────────────────
+let dedupRedis = null
+
+function getDedupRedis() {
+  if (!dedupRedis) {
+    const redisUrl = process.env.REDIS_URL
+    if (redisUrl) {
+      dedupRedis = new Redis(redisUrl, { maxRetriesPerRequest: null })
+    } else {
+      dedupRedis = new Redis({
+        host: redisConnection.host,
+        port: redisConnection.port,
+        password: redisConnection.password,
+        maxRetriesPerRequest: null,
+      })
+    }
+    dedupRedis.on('error', (err) => {
+      log('error', `Dedup Redis error: ${err.message}`)
+    })
+  }
+  return dedupRedis
+}
+
+async function isDuplicate(messageId) {
+  try {
+    const redis = getDedupRedis()
+    const key = `dedup:scanner:${messageId}`
+    const result = await redis.set(key, '1', 'EX', 3600, 'NX') // 1h TTL
+    return result === null // null = key already existed
+  } catch (err) {
+    log('error', `Dedup check failed: ${err.message}`)
+    return false // on error, allow processing
+  }
+}
+
+// ─── Smart Pre-Filter (simplified version of listener's 3-stage filter) ─────
+const MIN_TEXT_LENGTH = 8
+const BOT_PATTERNS = /^(ברוכים הבאים|Welcome|הקבוצה נוצרה|Group created|Admin changed)/i
+const MEDIA_ONLY_PATTERN = /^(📷|🎵|🎥|📎|📄|🎤)?\s*$/
+const EMOJI_ONLY = /^[\p{Emoji}\s]+$/u
+
+// US ZIP codes
+const ZIP_PATTERN = /\b\d{5}\b/
+
+// Job/trade keywords (EN + HE)
+const JOB_KEYWORDS = [
+  'hvac', 'ac', 'air duct', 'airduct', 'dryer vent', 'chimney', 'garage door', 'garage',
+  'locksmith', 'roofing', 'roof', 'shingles', 'carpet', 'cleaning', 'renovation', 'remodel',
+  'fence', 'fencing', 'plumber', 'plumbing', 'electrician', 'painting', 'tiling',
+  'landscaping', 'lawn', 'kitchen', 'bathroom', 'pool', 'moving', 'repair', 'fix',
+  'install', 'installation', 'service call', 'google lead', 'off track', 'thermostat',
+  // Hebrew
+  'מזגן', 'מזגנים', 'מיזוג', 'צ׳ימני', 'צימני', 'ארובה', 'גראג׳', 'גראג',
+  'מנעולן', 'גגות', 'גג', 'שטיחים', 'ניקוי', 'שיפוץ', 'שיפוצים', 'גדר', 'גדרות',
+  'שרברב', 'אינסטלטור', 'חשמלאי', 'צביעה', 'ריצוף', 'גינון', 'מטבח', 'אמבטיה',
+  'בריכה', 'הובלה', 'תיקון', 'התקנה',
+]
+
+// Buyer intent keywords
+const BUYER_INTENT = [
+  'מחפש', 'מחפשת', 'צריך', 'צריכה', 'looking for', 'need',
+  'מכיר', 'ממליץ', 'recommend', 'quote', 'estimate', 'הצעת מחיר',
+  'מישהו', 'someone', 'anybody', 'anyone', 'עזרה', 'help',
+  'tomorrow', 'today', 'מחר', 'היום', 'customer want', 'homeowner',
+]
+
+// Location keywords (major US cities)
+const LOCATION_KEYWORDS = [
+  'miami', 'fort lauderdale', 'hollywood', 'boca raton', 'tampa', 'orlando',
+  'new york', 'brooklyn', 'queens', 'long island', 'philadelphia', 'boston',
+  'atlanta', 'charlotte', 'houston', 'dallas', 'austin', 'phoenix', 'las vegas',
+  'denver', 'los angeles', 'san diego', 'san francisco', 'seattle', 'chicago',
+  'detroit', 'cleveland', 'columbus',
+  // Hebrew
+  'מיאמי', 'ניו יורק', 'לוס אנג׳לס', 'שיקגו', 'פילדלפיה', 'יוסטון',
+  'פלורידה', 'טקסס', 'קליפורניה',
+]
+
+function shouldProcess(msg) {
+  const text = msg.body
+
+  // Skip media-only (no text body)
+  if (!text || text.trim() === '') return false
+
+  // Skip too short
+  if (text.length < MIN_TEXT_LENGTH) return false
+
+  // Skip bot/system messages
+  if (BOT_PATTERNS.test(text)) return false
+
+  // Skip media-only placeholders
+  if (MEDIA_ONLY_PATTERN.test(text)) return false
+
+  // Skip emoji-only
+  if (EMOJI_ONLY.test(text)) return false
+
+  const lower = text.toLowerCase()
+  let signals = 0
+
+  // Check for ZIP code
+  if (ZIP_PATTERN.test(text)) signals++
+
+  // Check for job/trade keywords
+  for (const kw of JOB_KEYWORDS) {
+    if (lower.includes(kw)) { signals++; break }
+  }
+
+  // Check for buyer intent
+  for (const kw of BUYER_INTENT) {
+    if (lower.includes(kw)) { signals++; break }
+  }
+
+  // Check for location
+  for (const loc of LOCATION_KEYWORDS) {
+    if (lower.includes(loc)) { signals++; break }
+  }
+
+  // Pass if 2+ signals, or 1 signal + long message (>50 chars)
+  if (signals >= 2) return true
+  if (signals >= 1 && text.length > 50) return true
+
+  return false
+}
+
+// ─── Pipeline event logging to Supabase ─────────────────
+async function logPipelineEvent(groupWaId, messageId, senderId, stage, detail = {}) {
+  try {
+    // Resolve group UUID
+    const { data: group } = await supabase
+      .from('groups')
+      .select('id')
+      .eq('wa_group_id', groupWaId)
+      .single()
+
+    await supabase.from('pipeline_events').insert({
+      group_id: group?.id || null,
+      wa_message_id: messageId,
+      sender_id: senderId,
+      stage,
+      detail,
+      lead_id: null,
+    })
+  } catch (err) {
+    log('error', `Pipeline event log failed: ${err.message}`)
+  }
+}
 
 // ─── Config ──────────────────────────────────────────────
 const PROXY = process.env.PROXY || null
@@ -115,10 +263,30 @@ client.on('message', async (msg) => {
     // Only primary writes to queue
     if (!assignment || assignment.role !== 'primary') return
 
-    // Skip empty/short messages
-    if (!msg.body || msg.body.length < 10) return
-
     const waMessageId = msg.id._serialized
+    const senderId = msg.author || null
+
+    // ── FIX 1: Smart pre-filter — skip junk before enqueue ──
+    if (!shouldProcess(msg)) {
+      await logPipelineEvent(groupWaId, waMessageId, senderId, 'scanner_filtered', {
+        reason: !msg.body ? 'no_text' : msg.body.length < MIN_TEXT_LENGTH ? 'too_short' : 'no_signals',
+        textLength: msg.body?.length || 0,
+      })
+      return
+    }
+
+    // ── FIX 2: Redis dedup — skip already-seen messages ──
+    if (await isDuplicate(waMessageId)) {
+      log('debug', `Duplicate message skipped: ${waMessageId}`)
+      return
+    }
+
+    // ── FIX 4: Log pipeline event — message received ──
+    await logPipelineEvent(groupWaId, waMessageId, senderId, 'received', {
+      groupName: chat.name,
+      textLength: msg.body.length,
+      source: 'scanner',
+    })
 
     // Get or create group in groups table
     let { data: group } = await supabase
@@ -143,19 +311,33 @@ client.on('message', async (msg) => {
     if (!group) return
 
     // Enqueue to BullMQ (same format as Green API listener)
-    await enqueueMessage({
-      messageId: waMessageId,
-      groupId: groupWaId,
-      body: msg.body,
-      sender: msg.author || null,
-      senderId: msg.author || null,
-      timestamp: msg.timestamp || Math.floor(Date.now() / 1000),
-      accountId: ACCOUNT_ID,
-    })
+    try {
+      await enqueueMessage({
+        messageId: waMessageId,
+        groupId: groupWaId,
+        body: msg.body,
+        sender: senderId,
+        senderId: senderId,
+        timestamp: msg.timestamp || Math.floor(Date.now() / 1000),
+        accountId: ACCOUNT_ID,
+      })
 
-    log('info', `Message queued from ${chat.name}`, {
-      preview: msg.body.substring(0, 50),
-    })
+      // ── FIX 4: Log pipeline event — enqueued ──
+      await logPipelineEvent(groupWaId, waMessageId, senderId, 'enqueued', {
+        source: 'scanner',
+      })
+
+      log('info', `Message queued from ${chat.name}`, {
+        preview: msg.body.substring(0, 50),
+      })
+    } catch (enqueueErr) {
+      // ── FIX 4: Log pipeline event — enqueue failed ──
+      await logPipelineEvent(groupWaId, waMessageId, senderId, 'enqueue_failed', {
+        error: String(enqueueErr),
+        source: 'scanner',
+      })
+      throw enqueueErr
+    }
   } catch (err) {
     log('error', `Message handler error: ${err.message}`)
   }
@@ -348,6 +530,10 @@ async function getGroupCount() {
 async function shutdown() {
   log('info', 'Shutting down...')
   await updateAccountStatus('disconnected')
+  if (dedupRedis) {
+    await dedupRedis.quit().catch(() => {})
+    dedupRedis = null
+  }
   await client.destroy().catch(() => {})
   process.exit(0)
 }

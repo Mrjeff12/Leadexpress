@@ -58,6 +58,7 @@ interface Lead {
   status: string
   sent_to_count: number
   sender_id: string | null
+  review_status: 'pending' | 'approved' | 'rejected' | null
   created_at: string
   group?: { name: string }
 }
@@ -219,9 +220,9 @@ export default function AdminLeads() {
         supabase
           .from('leads')
           .select(`
-            id, group_id, profession, parsed_summary, raw_message, 
-            city, zip_code, state, budget_range, urgency, status, 
-            sent_to_count, sender_id, created_at,
+            id, group_id, profession, parsed_summary, raw_message,
+            city, zip_code, state, budget_range, urgency, status,
+            sent_to_count, sender_id, review_status, created_at,
             group:groups(name)
           `)
           .order('created_at', { ascending: false })
@@ -618,17 +619,30 @@ export default function AdminLeads() {
                   {/* Right Column: Status & Matching */}
                   <div className="w-64 flex flex-col justify-center p-6 border-l border-black/[0.03] shrink-0 gap-3">
                     <div className="flex items-center justify-between">
-                      <div 
+                      <div
                         className="flex items-center gap-2 px-3 py-1.5 rounded-full text-[9px] font-bold uppercase tracking-widest border border-black/5"
                         style={{ background: `${u.color}10`, color: u.color }}
                       >
                         <UIcon className="w-3 h-3" strokeWidth={2.5} />
                         {he ? u.he : u.label}
                       </div>
-                      <div className={`px-3 py-1.5 rounded-full text-[9px] font-bold uppercase tracking-widest ${
-                        lead.status === 'sent' ? 'bg-emerald-500 text-white' : 'bg-black text-white'
-                      }`}>
-                        {lead.status === 'sent' ? (he ? 'נשלח' : 'Sent') : (he ? 'מוכן' : 'Ready')}
+                      <div className="flex items-center gap-1.5">
+                        {lead.review_status && (
+                          <div className={`px-2.5 py-1 rounded-full text-[9px] font-bold uppercase tracking-widest ${
+                            lead.review_status === 'approved' ? 'bg-emerald-50 text-emerald-600 border border-emerald-200' :
+                            lead.review_status === 'rejected' ? 'bg-red-50 text-red-500 border border-red-200' :
+                            'bg-amber-50 text-amber-600 border border-amber-200'
+                          }`}>
+                            {lead.review_status === 'approved' ? (he ? 'אושר' : 'OK') :
+                             lead.review_status === 'rejected' ? (he ? 'נדחה' : 'Rej') :
+                             (he ? 'ממתין' : 'Pend')}
+                          </div>
+                        )}
+                        <div className={`px-3 py-1.5 rounded-full text-[9px] font-bold uppercase tracking-widest ${
+                          lead.status === 'sent' ? 'bg-emerald-500 text-white' : 'bg-black text-white'
+                        }`}>
+                          {lead.status === 'sent' ? (he ? 'נשלח' : 'Sent') : (he ? 'מוכן' : 'Ready')}
+                        </div>
                       </div>
                     </div>
 
