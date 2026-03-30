@@ -580,10 +580,11 @@ export default function LeadsFeed() {
                 className={`glass-panel group cursor-pointer transition-all duration-500 overflow-hidden border-none shadow-lg hover:shadow-2xl ${
                   isOpen ? 'ring-2 ring-black/5 bg-white/95' : 'hover:-translate-y-1'
                 }`}
+                style={{ borderLeft: `3px solid ${u.color}` }}
               >
-                <div className="flex items-stretch min-h-[100px]">
-                  {/* Left Column: Time & Source */}
-                  <div className="w-32 flex flex-col items-center justify-center border-r border-black/[0.03] bg-black/[0.01] p-4 shrink-0">
+                <div className="flex flex-col md:flex-row md:items-stretch md:min-h-[100px]">
+                  {/* Left Column: Time & Source — desktop only */}
+                  <div className="hidden md:flex w-32 flex-col items-center justify-center border-r border-black/[0.03] bg-black/[0.01] p-4 shrink-0">
                     <span className="text-lg font-bold text-black tracking-tight text-center leading-tight">{timeAgo(lead.created_at, he)}</span>
                     <span className="text-[10px] font-bold text-stone-400 uppercase tracking-widest mt-1 text-center">{arrivalTime} • {arrivalDate}</span>
                     <div className="mt-3 flex flex-col items-center gap-1 w-full">
@@ -610,9 +611,26 @@ export default function LeadsFeed() {
                   </div>
 
                   {/* Center Column: Content */}
-                  <div className="flex-1 flex flex-col justify-center p-6 min-w-0">
-                    <div className="flex items-center gap-3 mb-2">
-                      <div 
+                  <div className="flex-1 flex flex-col justify-center p-4 md:p-6 min-w-0">
+                    {/* Mobile header: profession + urgency + time */}
+                    <div className="flex items-center gap-2 mb-2 md:hidden">
+                      <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0"
+                        style={{ background: `${p.color}10`, color: p.color }}>
+                        <PIcon className="h-3.5 w-3.5" strokeWidth={2} />
+                      </div>
+                      <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: p.color }}>
+                        {he ? p.he : p.label}
+                      </span>
+                      <span className="ml-auto text-[9px] font-bold text-stone-400">{timeAgo(lead.created_at, he)}</span>
+                      <div className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold"
+                        style={{ background: `${u.color}10`, color: u.color }}>
+                        <UIcon className="w-3 h-3" />
+                        {he ? u.he : u.label}
+                      </div>
+                    </div>
+                    {/* Desktop header: profession icon */}
+                    <div className="hidden md:flex items-center gap-3 mb-2">
+                      <div
                         className="w-8 h-8 rounded-[10px] flex items-center justify-center shadow-sm"
                         style={{ background: `${p.color}10`, color: p.color }}
                       >
@@ -652,14 +670,31 @@ export default function LeadsFeed() {
                       </div>
                     </div>
 
+                    {/* Mobile action bar */}
+                    <div className="flex gap-2 mt-3 md:hidden">
+                      <button
+                        onClick={(e) => { e.stopPropagation(); contactAdvertiser(lead) }}
+                        className={`flex-1 flex items-center justify-center gap-1.5 text-white h-9 rounded-xl font-bold text-xs transition-all ${canSeeLeadDetails ? 'bg-[#25D366]' : 'bg-stone-400'}`}
+                      >
+                        {canSeeLeadDetails ? <MessageCircle className="w-3.5 h-3.5" /> : <Lock className="w-3.5 h-3.5" />}
+                        {canSeeLeadDetails ? (he ? 'פנה' : 'Contact') : (he ? 'שדרג' : 'Upgrade')}
+                      </button>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); nav(`/leads/${lead.id}`) }}
+                        className="px-4 h-9 rounded-xl font-bold text-xs bg-gray-100 text-gray-700"
+                      >
+                        {he ? 'פרטים' : 'Details'} →
+                      </button>
+                    </div>
+
                     {/* Lead Feedback */}
                     <div className="mt-3">
                       <LeadFeedbackButtons leadId={lead.id} />
                     </div>
                   </div>
 
-                  {/* Right Column: Status & Matching */}
-                  <div className="w-48 flex flex-col justify-center p-6 border-l border-black/[0.03] shrink-0 gap-3">
+                  {/* Right Column: Status & Matching — desktop only */}
+                  <div className="hidden md:flex w-48 flex-col justify-center p-6 border-l border-black/[0.03] shrink-0 gap-3">
                     <div className="flex items-center justify-end">
                       <div 
                         className="flex items-center gap-2 px-3 py-1.5 rounded-full text-[9px] font-bold uppercase tracking-widest border border-black/5"

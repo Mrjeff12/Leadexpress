@@ -594,7 +594,54 @@ export default function JobsDashboard() {
           </p>
         </div>
       ) : (
-        <div className="glass-panel overflow-hidden">
+        <>
+        {/* Mobile card list */}
+        <div className="md:hidden space-y-2">
+          {filteredJobs.map((job) => {
+            const prof = job.lead_profession ? profLookup[job.lead_profession] : null
+            const location = [job.lead_city, job.lead_zip].filter(Boolean).join(', ') || '—'
+            const overdueFlag = isOverdue(job)
+            const statusColors: Record<string, string> = {
+              pending: 'bg-amber-50 border-l-amber-400',
+              accepted: 'bg-blue-50 border-l-blue-400',
+              completed: 'bg-green-50 border-l-green-400',
+              rejected: 'bg-red-50 border-l-red-400',
+              cancelled: 'bg-stone-50 border-l-stone-300',
+            }
+            const colorClass = statusColors[job.status] || statusColors.pending
+            return (
+              <div
+                key={job.id}
+                onClick={() => nav(`/jobs/${job.id}`)}
+                className={`rounded-2xl border-l-4 p-4 shadow-sm active:scale-[0.98] transition-transform cursor-pointer ${colorClass}`}
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <span className="text-lg">{prof?.emoji ?? '📋'}</span>
+                    <div>
+                      <p className="text-sm font-bold text-stone-800">
+                        {prof ? (he ? prof.he : prof.en) : (job.lead_profession || (he ? 'עבודה' : 'Job'))}
+                      </p>
+                      <p className="text-[10px] text-stone-400">{location}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <StatusBadge status={job.status} he={he} />
+                    {overdueFlag && <PaymentBadge status={job.payment_status} overdue={true} he={he} />}
+                  </div>
+                </div>
+                <div className="flex items-center justify-between text-xs text-stone-500">
+                  <span className="font-medium">{job.sub_name}</span>
+                  <span className="font-bold text-stone-700">
+                    {job.job_amount ? formatCurrency(job.job_amount) : dealLabel(job.deal_type, job.deal_value)}
+                  </span>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+        {/* Desktop table */}
+        <div className="hidden md:block glass-panel overflow-hidden">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-stone-100 text-xs text-stone-400 uppercase tracking-wider">
@@ -675,6 +722,7 @@ export default function JobsDashboard() {
             </tbody>
           </table>
         </div>
+        </>
       )}
 
       {/* ── Detail Panel ── */}

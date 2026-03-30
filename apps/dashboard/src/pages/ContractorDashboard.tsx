@@ -156,7 +156,7 @@ export default function ContractorDashboard() {
   const [counties, setCounties] = useState<string[]>([])
   const [forwardLead, setForwardLead] = useState<Lead | null>(null)
   const [showUpsell, setShowUpsell] = useState(false)
-  const [sheetExpanded, setSheetExpanded] = useState(false)
+
   const [upsellContext, setUpsellContext] = useState<'zones' | 'professions' | 'subs'>('subs')
   const [newZip, setNewZip] = useState('')
   const [showProfPicker, setShowProfPicker] = useState(false)
@@ -496,8 +496,157 @@ export default function ContractorDashboard() {
   return (
     <div className="relative md:h-screen" style={{ minHeight: 600 }}>
 
+      {/* ════════ MOBILE HOME ════════ */}
+      <div className="md:hidden min-h-screen bg-gradient-to-b from-gray-50 via-white to-gray-50 pb-28 overflow-y-auto no-scrollbar">
+        <div className="px-4 pt-5 space-y-4">
+
+          {/* Greeting + plan */}
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs text-stone-400 font-medium">{greeting}</p>
+              <h1 className="text-xl font-extrabold text-stone-900 tracking-tight">Hi, {firstName} 👋</h1>
+            </div>
+            <span className="text-xs font-bold px-3 py-1.5 rounded-full bg-orange-50 text-[#e04d1c] border border-orange-100 flex items-center gap-1">
+              <Sparkles className="w-3 h-3" />{planName}
+            </span>
+          </div>
+
+          {/* Hot lead card */}
+          {leads.length > 0 && (() => {
+            const lead = leads[0]
+            const prof = profLookup[lead.profession]
+            return (
+              <Link
+                to={`/leads/${lead.id}`}
+                className="block rounded-3xl p-4 shadow-lg shadow-orange-200/40 active:scale-[0.98] transition-transform"
+                style={{ background: 'linear-gradient(135deg, #fe5b25, #e04d1c)' }}
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-white/80 text-xs font-semibold">Latest Lead</span>
+                  <span className="text-white text-xs bg-white/20 px-2 py-0.5 rounded-full font-semibold">
+                    {lead.urgency === 'hot' ? '🔥 Hot' : lead.urgency === 'warm' ? '⏰ Warm' : '❄️ Cold'}
+                  </span>
+                </div>
+                <p className="text-white font-bold text-sm leading-snug mb-3 line-clamp-2">
+                  {lead.parsed_summary ?? lead.raw_message?.slice(0, 100) ?? '—'}
+                </p>
+                <div className="flex items-center gap-3 text-white/70 text-xs">
+                  <span>{prof?.emoji ?? '📋'} {prof ? prof.en : lead.profession}</span>
+                  {lead.city && <span>📍 {lead.city}</span>}
+                  <span className="ml-auto">{timeAgo(lead.created_at)}</span>
+                </div>
+              </Link>
+            )
+          })()}
+
+          {/* KPI grid */}
+          <div className="grid grid-cols-4 gap-2">
+            {[
+              { value: leadsToday, label: 'Today', color: 'text-amber-600', bg: 'bg-amber-50', border: 'border-amber-100' },
+              { value: leadsWeek, label: 'Week', color: 'text-blue-600', bg: 'bg-blue-50', border: 'border-blue-100' },
+              { value: leadsTotal, label: 'Total', color: 'text-violet-600', bg: 'bg-violet-50', border: 'border-violet-100' },
+              { value: contactedCount, label: 'Contacts', color: 'text-[#e04d1c]', bg: 'bg-orange-50', border: 'border-orange-100' },
+            ].map(kpi => (
+              <div key={kpi.label} className={`rounded-2xl ${kpi.bg} border ${kpi.border} p-3 text-center`}>
+                <p className={`text-lg font-extrabold ${kpi.color} leading-none`}>
+                  <AnimatedNumber value={kpi.value} duration={600} />
+                </p>
+                <p className="text-[9px] font-semibold text-stone-400 uppercase tracking-wide mt-1">{kpi.label}</p>
+              </div>
+            ))}
+          </div>
+
+          {/* Profile completion */}
+          {contractorData && (contractorData.profile?.profile_completeness ?? 100) < 100 && (
+            <ProfileCompletionBar
+              completeness={contractorData.profile?.profile_completeness ?? 0}
+              profile={contractorData}
+            />
+          )}
+
+          {/* Recent leads */}
+          <div>
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-sm font-bold text-stone-800">Recent Leads</h2>
+              <Link to="/leads" className="text-xs font-bold text-[#fe5b25]">View all →</Link>
+            </div>
+            <div className="space-y-2">
+              {leads.slice(0, 5).map(lead => {
+                const prof = profLookup[lead.profession]
+                const borderColor = lead.urgency === 'hot' ? '#fe5b25' : lead.urgency === 'warm' ? '#f59e0b' : '#3b82f6'
+                return (
+                  <Link
+                    key={lead.id}
+                    to={`/leads/${lead.id}`}
+                    className="block rounded-2xl bg-white border border-stone-100 p-3.5 shadow-sm active:scale-[0.98] transition-transform"
+                    style={{ borderLeft: `3px solid ${borderColor}` }}
+                  >
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-sm">{prof?.emoji ?? '📋'}</span>
+                      <span className="text-xs font-bold text-stone-700">{prof?.en ?? lead.profession}</span>
+                      <span className="ml-auto text-[10px] text-stone-400">{timeAgo(lead.created_at)}</span>
+                    </div>
+                    <p className="text-xs text-stone-500 line-clamp-2 leading-relaxed">
+                      {lead.parsed_summary ?? lead.raw_message?.slice(0, 80) ?? '—'}
+                    </p>
+                    {lead.city && <p className="text-[10px] text-stone-400 mt-1">📍 {lead.city}</p>}
+                  </Link>
+                )
+              })}
+              {leads.length === 0 && (
+                <div className="rounded-2xl bg-stone-50 border border-stone-100 p-6 text-center">
+                  <p className="text-stone-400 text-sm">No leads yet</p>
+                  <p className="text-stone-300 text-xs mt-1">Add services and areas to start receiving leads</p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Services */}
+          <div className="rounded-2xl bg-white border border-stone-100 p-4 shadow-sm">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-xs font-bold text-stone-500 uppercase tracking-wider">My Services</h3>
+              <Link to="/profile" className="text-xs text-[#fe5b25] font-bold">Edit →</Link>
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              {selectedProfs.length > 0 ? selectedProfs.map(id => {
+                const p = profLookup[id]
+                return p ? (
+                  <span key={id} className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-orange-50 border border-orange-100 rounded-xl text-xs font-semibold text-orange-700">
+                    {p.emoji} {p.en}
+                  </span>
+                ) : null
+              }) : <span className="text-xs text-stone-400">No services selected</span>}
+            </div>
+          </div>
+
+          {/* Service Areas */}
+          <div className="rounded-2xl bg-white border border-stone-100 p-4 shadow-sm">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-xs font-bold text-stone-500 uppercase tracking-wider">Service Areas</h3>
+              <span className="text-xs text-stone-400">
+                {counties.length > 0 ? `${counties.length} counties` : `${zipCodes.length} zones`}
+              </span>
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              {counties.length > 0 ? counties.map(c => (
+                <span key={c} className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-blue-50 border border-blue-100 rounded-xl text-xs font-semibold text-blue-700">
+                  <MapPin className="w-3 h-3" />{c}
+                </span>
+              )) : zipCodes.slice(0, 8).map(z => (
+                <span key={z} className="px-2.5 py-1.5 bg-stone-50 border border-stone-100 rounded-xl text-xs font-mono text-stone-600">{z}</span>
+              ))}
+              {counties.length === 0 && zipCodes.length === 0 && (
+                <span className="text-xs text-stone-400">No areas added yet</span>
+              )}
+            </div>
+          </div>
+
+        </div>
+      </div>
+
       {/* ════════ MAP ════════ */}
-      {/* Desktop: full-screen fixed | Mobile: compact strip at top */}
+      {/* Desktop only */}
       <div className="hidden md:block fixed inset-0 z-0">
         <Suspense fallback={<div className="w-full h-full bg-gray-100 animate-pulse" />}>
         <CoverageMap
@@ -508,24 +657,6 @@ export default function ContractorDashboard() {
           onRemoveZip={(zip) => { removeZipCode(zip); debouncedSave() }}
           onBatchAddZips={(zips) => {
             // Enforce county limit — each batch = 1 county/city selection
-            if (planLimits.maxCounties > 0 && counties.length >= planLimits.maxCounties) {
-              setUpsellContext('zones'); setShowUpsell(true); return
-            }
-            addZipCodes(zips); debouncedSave()
-          }}
-        />
-        </Suspense>
-      </div>
-      {/* Mobile: full-screen map + bottom sheet */}
-      <div className="md:hidden fixed inset-0 z-0">
-        <Suspense fallback={<div className="w-full h-full bg-gray-100 animate-pulse" />}>
-        <CoverageMap
-          zipCodes={zipCodes}
-          onAddZip={(zip) => {
-            addZipCode(zip); debouncedSave()
-          }}
-          onRemoveZip={(zip) => { removeZipCode(zip); debouncedSave() }}
-          onBatchAddZips={(zips) => {
             if (planLimits.maxCounties > 0 && counties.length >= planLimits.maxCounties) {
               setUpsellContext('zones'); setShowUpsell(true); return
             }
@@ -545,21 +676,11 @@ export default function ContractorDashboard() {
         }}
       />
 
-      {/* ════════ MAIN PANEL ════════ */}
-      {/* Mobile: bottom sheet | Desktop: floating panel */}
+      {/* ════════ MAIN PANEL — Desktop only ════════ */}
       <div
-        className="mobile-bottom-sheet md:floating-panel animate-fade-in no-scrollbar"
-        data-expanded={sheetExpanded}
-        style={{ top: sheetExpanded ? 0 : 'calc(100vh - 260px)' }}
+        className="hidden md:block floating-panel p-5 animate-fade-in no-scrollbar overflow-y-auto"
+        style={{ top: 24, left: 24, width: 340, maxHeight: 'calc(100vh - 80px)' }}
       >
-        {/* Mobile drag handle */}
-        <button
-          onClick={() => setSheetExpanded(!sheetExpanded)}
-          className="md:hidden w-full flex flex-col items-center py-3 sticky top-0 bg-white z-10"
-        >
-          <div className="w-10 h-1 rounded-full bg-stone-300" />
-          <span className="text-[9px] text-stone-400 mt-1">{sheetExpanded ? 'Tap to close' : 'Tap to expand'}</span>
-        </button>
         {/* Greeting — compact on mobile */}
         <div className="mb-3 md:mb-5">
           <h1 className="text-lg md:text-2xl font-extrabold text-stone-900 tracking-tight leading-tight">
