@@ -5,9 +5,9 @@ export default function ContractorGroupScan() {
   const { locale } = useI18n()
 
   return (
-    <div className="max-w-3xl mx-auto animate-fade-in">
+    <div className="w-full px-4 md:px-0 md:max-w-3xl md:mx-auto animate-fade-in">
       <div className="mb-6">
-        <h1 className="text-2xl font-extrabold text-stone-900 tracking-tight">
+        <h1 className="text-xl md:text-2xl font-extrabold text-stone-900 tracking-tight">
           {locale === 'he' ? 'קבוצות לסריקה' : 'Group Scan'}
         </h1>
         <p className="text-sm text-stone-500 mt-1">

@@ -49,7 +49,7 @@ function Section({
   children: React.ReactNode
 }) {
   return (
-    <div className="glass-panel p-6">
+    <div className="glass-panel p-4 md:p-6">
       <div className="flex items-center gap-2.5 mb-5">
         <div className="w-8 h-8 rounded-xl bg-[#fe5b25]/10 flex items-center justify-center">
           <Icon className="w-4 h-4 text-[#fe5b25]" />
@@ -103,7 +103,7 @@ function InputField({
       maxLength={maxLength}
       minLength={minLength}
       pattern={pattern}
-      className="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-white/60
+      className="w-full px-4 py-3 md:py-2.5 rounded-xl border border-gray-200 bg-white/60
                  text-sm text-gray-800 placeholder:text-gray-400
                  focus:outline-none focus:ring-2 focus:ring-[#fe5b25]/30 focus:border-[#fe5b25]/50
                  transition-all disabled:opacity-50 disabled:cursor-not-allowed"
@@ -268,14 +268,14 @@ export default function ProfileEdit() {
     : null
 
   return (
-    <div className="max-w-2xl mx-auto space-y-6 pb-24" dir={isHe ? 'rtl' : 'ltr'}>
+    <div className="w-full px-4 md:px-0 md:max-w-2xl md:mx-auto space-y-6 pb-24" dir={isHe ? 'rtl' : 'ltr'}>
       {/* Page header */}
       <div className="flex items-center gap-3">
         <div className="w-10 h-10 rounded-2xl bg-[#fe5b25]/10 flex items-center justify-center">
           <User className="w-5 h-5 text-[#fe5b25]" />
         </div>
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">
+          <h1 className="text-xl md:text-2xl font-bold text-gray-900">
             {isHe ? 'עריכת פרופיל' : 'Edit Profile'}
           </h1>
           <p className="text-sm text-gray-500">
@@ -287,10 +287,10 @@ export default function ProfileEdit() {
       </div>
 
       {/* ── Avatar Upload ── */}
-      <div className="glass-panel p-6 flex flex-col items-center gap-3">
+      <div className="glass-panel p-4 md:p-6 flex flex-col items-center gap-3">
         <div className="relative">
           <div
-            className="w-32 h-32 rounded-full border-[3px] border-white shadow-lg flex items-center justify-center
+            className="w-24 h-24 md:w-32 md:h-32 rounded-full border-[3px] border-white shadow-lg flex items-center justify-center
                         text-3xl font-bold text-white ring-2 ring-gray-100 overflow-hidden"
             style={{ background: 'linear-gradient(135deg, #fe5b25, #ff7a4d)' }}
           >
@@ -383,7 +383,7 @@ export default function ProfileEdit() {
           </div>
 
           {/* Years + Business name row */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
             <div>
               <FieldLabel htmlFor="years">{isHe ? 'שנות ניסיון' : 'Years Experience'}</FieldLabel>
               <InputField
@@ -596,7 +596,7 @@ export default function ProfileEdit() {
               <ToggleRow label={isHe ? 'עבודה כקבלן משנה' : 'Sub-contractor work'} checked={acceptsSubwork} onChange={setAcceptsSubwork} />
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
             <div>
               <FieldLabel htmlFor="minJob">{isHe ? 'מינימום ($)' : 'Min job value ($)'}</FieldLabel>
               <InputField
@@ -667,7 +667,7 @@ export default function ProfileEdit() {
             </div>
 
             {/* QR Code */}
-            <div className="flex flex-col items-center gap-3 pt-3 border-t border-gray-100">
+            <div className="flex flex-col md:flex-row items-center gap-3 pt-3 border-t border-gray-100">
               <p className="text-xs text-gray-500 font-medium">
                 {isHe ? 'קוד QR לפרופיל שלך' : 'Your profile QR code'}
               </p>
@@ -732,7 +732,7 @@ export default function ProfileEdit() {
       </Section>
 
       {/* ── Sticky save bar ── */}
-      <div className="fixed bottom-0 left-0 right-0 z-40 p-4 bg-white/80 backdrop-blur-lg border-t border-gray-200/50">
+      <div className="fixed bottom-0 left-0 right-0 z-40 p-4 bg-white/80 backdrop-blur-lg border-t border-gray-200/50 safe-bottom">
         <div className="max-w-2xl mx-auto">
           <button
             type="button"

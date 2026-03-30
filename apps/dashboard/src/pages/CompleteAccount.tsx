@@ -129,7 +129,7 @@ export default function CompleteAccount() {
         backgroundSize: '256px',
       }} />
 
-      <div className="relative z-10 w-full max-w-lg">
+      <div className="relative z-10 w-full max-w-lg px-4 md:px-0">
         {/* Logo */}
         <div className="flex items-center justify-center gap-2.5 mb-6">
           <img src="/icon.png" alt="MasterLeadFlow" className="w-9 h-9 rounded-xl shadow-md shadow-orange-200/50" />
@@ -144,7 +144,7 @@ export default function CompleteAccount() {
               {sub?.status === 'trialing' ? `Free Trial — ${trialDaysLeft} days left!` : 'Account Active'}
             </span>
           </div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight mb-2">
+          <h1 className="text-xl md:text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight mb-2">
             {step === 'form' && `Set up your login`}
             {step === 'done' && `You're all set! 🚀`}
           </h1>
@@ -161,7 +161,7 @@ export default function CompleteAccount() {
         {step === 'form' && (
           <>
             {/* Glass Card — Collected Info */}
-            <div className="rounded-2xl border border-white/60 bg-white/70 backdrop-blur-2xl shadow-[0_8px_60px_-12px_rgba(0,0,0,0.08)] p-5 sm:p-6 mb-5">
+            <div className="rounded-2xl border border-white/60 bg-white/70 backdrop-blur-2xl shadow-[0_8px_60px_-12px_rgba(0,0,0,0.08)] p-4 md:p-5 sm:p-6 mb-5">
               <h3 className="text-gray-400 text-xs font-semibold uppercase tracking-wider mb-4">Your Profile</h3>
               <div className="space-y-3">
                 <div className="flex items-center gap-3">
@@ -249,7 +249,7 @@ export default function CompleteAccount() {
             </div>
 
             {/* Form */}
-            <form onSubmit={handleSubmit} className="rounded-2xl border border-white/60 bg-white/70 backdrop-blur-2xl shadow-[0_4px_30px_-8px_rgba(0,0,0,0.06)] p-5 sm:p-6 space-y-4">
+            <form onSubmit={handleSubmit} className="rounded-2xl border border-white/60 bg-white/70 backdrop-blur-2xl shadow-[0_4px_30px_-8px_rgba(0,0,0,0.06)] p-4 md:p-5 sm:p-6 space-y-4">
               <div>
                 <label className="text-gray-600 text-xs font-medium block mb-1.5">Email</label>
                 <div className="relative">
@@ -287,7 +287,7 @@ export default function CompleteAccount() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full py-3 rounded-xl text-sm font-semibold text-white flex items-center justify-center gap-2 transition-all hover:brightness-110 active:scale-[0.98] disabled:opacity-50 shadow-md shadow-orange-200/50"
+                className="w-full py-3 rounded-2xl text-sm font-semibold text-white flex items-center justify-center gap-2 transition-all transition-transform hover:brightness-110 active:scale-[0.97] disabled:opacity-50 shadow-md shadow-orange-200/50"
                 style={{ background: 'linear-gradient(135deg, #fe5b25, #e04d1f)' }}
               >
                 {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <><span>Continue</span><ArrowRight className="w-4 h-4" /></>}

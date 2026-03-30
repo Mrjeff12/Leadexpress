@@ -524,6 +524,28 @@
   }
 }
 
+/* ─── Mobile Touch Utilities ─── */
+.press { transition: transform 0.15s ease; }
+.press:active { transform: scale(0.97); }
+
+/* Mobile card (prototype style) */
+.m-card {
+  background: #fff;
+  border-radius: 20px;
+  border: 1px solid rgba(0,0,0,0.04);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+}
+.m-card-dark {
+  background: #111;
+  border-radius: 20px;
+  color: #fff;
+}
+
+/* Safe area for iOS PWA */
+@supports (padding: env(safe-area-inset-bottom)) {
+  .safe-bottom { padding-bottom: env(safe-area-inset-bottom, 0px); }
+}
+
 /* ─── Fade-in-up animations ─── */
 @keyframes fadeInUp {
   from { opacity: 0; transform: translateY(12px); }

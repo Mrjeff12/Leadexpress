@@ -192,7 +192,7 @@ export default function OnboardingWizard() {
 
       {/* ── Welcome header ── */}
       <div className="text-center pt-5 pb-2 px-4">
-        <h2 className="text-lg font-bold text-zinc-800">
+        <h2 className="text-base md:text-lg font-bold text-zinc-800">
           {he ? 'בוא נגדיר את החשבון שלך' : "Let's set up your account"}
         </h2>
         <p className="text-xs text-zinc-400 mt-0.5">
@@ -211,9 +211,8 @@ export default function OnboardingWizard() {
               {/* Connecting line before (skip first) */}
               {i > 0 && (
                 <div
-                  className="h-[2px] transition-all duration-500"
+                  className="h-[2px] w-4 md:w-12 transition-all duration-500"
                   style={{
-                    width: 48,
                     background: i <= step
                       ? 'linear-gradient(90deg, #fe5b25, #ff8a5c)'
                       : '#e4e4e7',
@@ -223,7 +222,7 @@ export default function OnboardingWizard() {
               {/* Step circle + label */}
               <div className="flex flex-col items-center gap-1.5 relative">
                 <div
-                  className={`w-9 h-9 rounded-full flex items-center justify-center transition-all duration-300 ${
+                  className={`w-7 h-7 md:w-9 md:h-9 rounded-full flex items-center justify-center transition-all duration-300 ${
                     done
                       ? 'bg-[#fe5b25] text-white scale-100'
                       : active
@@ -243,7 +242,7 @@ export default function OnboardingWizard() {
                   )}
                 </div>
                 <span
-                  className={`text-[11px] font-semibold whitespace-nowrap transition-colors duration-300 ${
+                  className={`text-[9px] md:text-[11px] font-semibold whitespace-nowrap transition-colors duration-300 ${
                     active ? 'text-zinc-800' : done ? 'text-[#fe5b25]' : 'text-zinc-400'
                   }`}
                 >
@@ -258,14 +257,14 @@ export default function OnboardingWizard() {
       {/* ── Content area with slide transition ── */}
       <div className="flex-1 overflow-y-auto px-6 pb-32">
         <div
-          className={`mx-auto ${step === 2 ? 'max-w-5xl' : 'max-w-2xl'}`}
+          className={`w-full px-4 md:px-0 mx-auto ${step === 2 ? 'md:max-w-5xl' : 'md:max-w-2xl'}`}
           style={slideStyle}
         >
           {/* ─── Step 0: WhatsApp Phone ─── */}
           {visibleStep === 0 && (
             <div className="space-y-5">
               <div className="text-center">
-                <h1 className="text-2xl font-bold text-zinc-900">
+                <h1 className="text-base md:text-lg font-bold text-zinc-900">
                   {he ? 'מספר הWhatsApp שלך' : 'Your WhatsApp Number'}
                 </h1>
                 <p className="text-sm text-zinc-500 mt-1">
@@ -330,7 +329,7 @@ export default function OnboardingWizard() {
           {visibleStep === 1 && (
             <div className="space-y-5">
               <div className="text-center">
-                <h1 className="text-2xl font-bold text-zinc-900">
+                <h1 className="text-base md:text-lg font-bold text-zinc-900">
                   {he ? 'מה סוג העבודה שלך?' : 'What type of work do you do?'}
                 </h1>
                 <p className="text-sm text-zinc-500 mt-1">
@@ -343,7 +342,7 @@ export default function OnboardingWizard() {
                 </p>
               </div>
 
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                 {PROFESSIONS.map((prof) => {
                   const selected = professions.includes(prof.id)
                   const atLimit = maxProf > 0 && professions.length >= maxProf && !selected
@@ -381,7 +380,7 @@ export default function OnboardingWizard() {
           {visibleStep === 2 && (
             <div className="space-y-4">
               <div className="text-center">
-                <h1 className="text-2xl font-bold text-zinc-900">
+                <h1 className="text-base md:text-lg font-bold text-zinc-900">
                   {he ? 'אזורי השירות שלך' : 'Your service areas'}
                 </h1>
                 <p className="text-sm text-zinc-500 mt-1">
@@ -447,7 +446,7 @@ export default function OnboardingWizard() {
           {visibleStep === 3 && (
             <div className="space-y-5">
               <div className="text-center">
-                <h1 className="text-2xl font-bold text-zinc-900">
+                <h1 className="text-base md:text-lg font-bold text-zinc-900">
                   {he ? 'קבוצות WhatsApp שלך' : 'Your WhatsApp Groups'}
                 </h1>
                 <p className="text-sm text-zinc-500 mt-1">
@@ -477,7 +476,7 @@ export default function OnboardingWizard() {
           {visibleStep === 4 && (
             <div className="space-y-5">
               <div className="text-center">
-                <h1 className="text-2xl font-bold text-zinc-900">
+                <h1 className="text-base md:text-lg font-bold text-zinc-900">
                   {he ? 'שעות העבודה שלך' : 'Your working hours'}
                 </h1>
                 <p className="text-sm text-zinc-500 mt-1">
@@ -553,7 +552,7 @@ export default function OnboardingWizard() {
                                 [day]: { ...prev[day], start: e.target.value },
                               }))
                             }}
-                            className="rounded-lg border border-zinc-200 px-2 py-1 text-xs font-mono text-zinc-700 outline-none focus:border-[#fe5b25] w-[90px]"
+                            className="rounded-lg border border-zinc-200 px-2 py-1 text-xs font-mono text-zinc-700 outline-none focus:border-[#fe5b25] w-[75px] md:w-[90px]"
                           />
                           <span className="text-zinc-400 text-xs">{'\u2013'}</span>
                           <input
@@ -565,7 +564,7 @@ export default function OnboardingWizard() {
                                 [day]: { ...prev[day], end: e.target.value },
                               }))
                             }}
-                            className="rounded-lg border border-zinc-200 px-2 py-1 text-xs font-mono text-zinc-700 outline-none focus:border-[#fe5b25] w-[90px]"
+                            className="rounded-lg border border-zinc-200 px-2 py-1 text-xs font-mono text-zinc-700 outline-none focus:border-[#fe5b25] w-[75px] md:w-[90px]"
                           />
                         </div>
                       )}
@@ -579,7 +578,7 @@ export default function OnboardingWizard() {
       </div>
 
       {/* ── Bottom nav ── */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-sm border-t border-zinc-100 px-6 py-4">
+      <div className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-sm border-t border-zinc-100 px-6 py-4 safe-bottom">
         <div className="max-w-2xl mx-auto flex items-center justify-between">
           {step > 0 ? (
             <button
