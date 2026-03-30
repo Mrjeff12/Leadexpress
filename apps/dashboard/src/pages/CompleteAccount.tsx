@@ -138,20 +138,29 @@ export default function CompleteAccount() {
 
         {/* Header */}
         <div className="text-center mb-6">
-          <div className="inline-flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 mb-4 shadow-sm">
-            <span className="text-2xl">🎁</span>
-            <span className="text-green-700 text-base font-bold">
-              {sub?.status === 'trialing' ? `Free Trial — ${trialDaysLeft} days left!` : 'Account Active'}
-            </span>
-          </div>
-          <h1 className="text-xl md:text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight mb-2">
-            {step === 'form' && `Set up your login`}
-            {step === 'done' && `You're all set! 🚀`}
-          </h1>
-          <p className="text-gray-500 text-sm">
-            {step === 'form' && 'Create your email and password to sign in anytime'}
-            {step === 'done' && 'Redirecting to install...'}
-          </p>
+          {step === 'form' ? (
+            <>
+              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-2xl bg-red-50 border border-red-200 mb-4 shadow-sm">
+                <span className="text-lg">⚠️</span>
+                <span className="text-red-600 text-sm font-bold">Action Required</span>
+              </div>
+              <h1 className="text-xl md:text-2xl font-bold text-gray-900 tracking-tight mb-2">
+                Complete your account to get leads
+              </h1>
+              <p className="text-gray-500 text-sm leading-relaxed">
+                You <strong className="text-gray-700">must set your email and password</strong> to receive leads and access your account next time.
+              </p>
+            </>
+          ) : (
+            <>
+              <div className="inline-flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 mb-4 shadow-sm">
+                <span className="text-2xl">🎉</span>
+                <span className="text-green-700 text-base font-bold">You're all set!</span>
+              </div>
+              <h1 className="text-xl font-bold text-gray-900 tracking-tight mb-2">Account Complete 🚀</h1>
+              <p className="text-gray-500 text-sm">Redirecting to your dashboard...</p>
+            </>
+          )}
         </div>
 
         {/* Step indicator */}
@@ -287,19 +296,15 @@ export default function CompleteAccount() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full py-3 rounded-2xl text-sm font-semibold text-white flex items-center justify-center gap-2 transition-all transition-transform hover:brightness-110 active:scale-[0.97] disabled:opacity-50 shadow-md shadow-orange-200/50"
+                className="w-full py-3.5 rounded-2xl text-[15px] font-bold text-white flex items-center justify-center gap-2 active:scale-[0.97] transition-transform disabled:opacity-50 shadow-lg shadow-orange-300/40"
                 style={{ background: 'linear-gradient(135deg, #fe5b25, #e04d1f)' }}
               >
-                {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <><span>Continue</span><ArrowRight className="w-4 h-4" /></>}
+                {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <><span>Complete My Account</span><ArrowRight className="w-4 h-4" /></>}
               </button>
 
-              <button
-                type="button"
-                onClick={() => navigate('/', { replace: true })}
-                className="w-full py-2.5 text-sm text-gray-400 hover:text-gray-600 transition-colors"
-              >
-                Skip for now
-              </button>
+              <p className="text-center text-[11px] text-gray-400 pt-1">
+                🔒 Required to receive leads and log back in
+              </p>
             </form>
           </>
         )}
