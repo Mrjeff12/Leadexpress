@@ -340,7 +340,7 @@ export default function ServiceAreaSelector({ selectedAreas, onAddArea, onRemove
       <div className="flex items-center gap-3">
         <button
           type="button"
-          onClick={() => { setView('state'); setCountySearch('') }}
+          onClick={() => { setView('state'); setCountySearch(''); setStateSearch('') }}
           className="w-9 h-9 rounded-xl bg-zinc-100 flex items-center justify-center hover:bg-zinc-200 transition-colors flex-shrink-0"
         >
           <ChevronLeft className="w-5 h-5 text-zinc-600" />

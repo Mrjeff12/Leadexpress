@@ -250,7 +250,7 @@ export default function OnboardingWizard() {
         supabase.from('profiles').update({ counties: countyNames }).eq('id', user.id).then(() => {})
       }
       // Go to completion phases
-      if (pushStatus === 'granted') {
+      if (pushStatus === 'granted' || pushStatus === 'unsupported') {
         setPhase('install')
       } else {
         setPhase('push')
