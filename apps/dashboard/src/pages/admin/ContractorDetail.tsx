@@ -46,16 +46,21 @@ import {
 } from 'lucide-react'
 import { useToast } from '../../components/hooks/use-toast'
 
-/* ── Design tokens ──────────────────────────────────────────────── */
+/* ── Design tokens (aligned with app-wide system) ─────────────── */
 const C = {
   primary: '#fe5b25',
+  primaryDark: '#e04d1c',
   dark: '#1C1C1E',
+  darkSub: '#3A3A3C',
   muted: '#8E8E93',
   accent: '#5856D6',
   success: '#059669',
   warning: '#D97706',
   danger: '#DC2626',
-  border: 'rgba(0,0,0,0.06)',
+  border: 'rgba(0,0,0,0.04)',
+  bg: '#FBFBFD',
+  glass: 'rgba(255,255,255,0.82)',
+  glassBorder: 'rgba(255,255,255,0.5)',
 }
 
 /* ── Types ──────────────────────────────────────────────────────── */
@@ -185,12 +190,19 @@ function monthsBetween(a: string, b: Date): number {
   return Math.max(0, (b.getFullYear() - start.getFullYear()) * 12 + b.getMonth() - start.getMonth())
 }
 
-/* ── Section Card wrapper ──────────────────────────────────────── */
-function SectionCard({ children, className = '' }: { children: React.ReactNode; className?: string }) {
+/* ── Glass Card wrapper (matches app design system) ───────────── */
+function GlassCard({ children, className = '', delay = 0 }: { children: React.ReactNode; className?: string; delay?: number }) {
   return (
     <div
-      className={`rounded-2xl overflow-hidden ${className}`}
-      style={{ background: 'white', border: `1px solid ${C.border}`, boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}
+      className={`rounded-3xl overflow-hidden transition-all duration-500 hover:-translate-y-0.5 ${className}`}
+      style={{
+        background: C.glass,
+        backdropFilter: 'blur(32px) saturate(180%)',
+        WebkitBackdropFilter: 'blur(32px) saturate(180%)',
+        border: `1px solid ${C.border}`,
+        boxShadow: '0 1px 3px rgba(0,0,0,0.04), 0 4px 12px rgba(0,0,0,0.03)',
+        animationDelay: `${delay}ms`,
+      }}
     >
       {children}
     </div>
@@ -200,14 +212,17 @@ function SectionCard({ children, className = '' }: { children: React.ReactNode; 
 function SectionHeader({ icon: Icon, iconColor, title, count, action }: { icon: any; iconColor: string; title: string; count?: number; action?: React.ReactNode }) {
   return (
     <div className="px-6 py-4 flex items-center justify-between" style={{ borderBottom: `1px solid ${C.border}` }}>
-      <h2 className="text-[15px] font-bold flex items-center gap-2.5" style={{ color: C.dark }}>
-        <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: `${iconColor}12` }}>
-          <Icon className="w-3.5 h-3.5" style={{ color: iconColor }} />
+      <h2 className="text-[14px] font-bold tracking-tight flex items-center gap-2.5" style={{ color: C.dark, letterSpacing: '-0.015em' }}>
+        <div
+          className="w-8 h-8 rounded-xl flex items-center justify-center"
+          style={{ background: `${iconColor}12`, boxShadow: `0 2px 8px ${iconColor}15` }}
+        >
+          <Icon className="w-4 h-4" style={{ color: iconColor }} />
         </div>
         {title}
         {count !== undefined && (
           <span
-            className="text-[11px] font-semibold px-2 py-0.5 rounded-full"
+            className="text-[10px] font-bold px-2.5 py-1 rounded-full"
             style={{ background: `${iconColor}12`, color: iconColor }}
           >
             {count}
@@ -219,12 +234,15 @@ function SectionHeader({ icon: Icon, iconColor, title, count, action }: { icon: 
   )
 }
 
+/* Keep old name as alias for backward compat in modals */
+const SectionCard = GlassCard
+
 /* ── Badge component ───────────────────────────────────────────── */
 function StatusBadge({ label, color, bg }: { label: string; color: string; bg: string }) {
   return (
     <span
-      className="inline-flex items-center text-[10px] font-semibold px-2 py-0.5 rounded-md uppercase tracking-wide"
-      style={{ background: bg, color }}
+      className="inline-flex items-center text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider"
+      style={{ background: bg, color, letterSpacing: '0.04em' }}
     >
       {label}
     </span>
@@ -243,61 +261,63 @@ interface PipelineStage {
 
 function LifecyclePipeline({ stages, he }: { stages: PipelineStage[]; he: boolean }) {
   return (
-    <div className="px-6 py-5">
+    <div className="px-6 py-6">
       <div className="flex items-center justify-between relative">
         {/* Connecting line behind nodes */}
         <div
-          className="absolute top-5 left-0 right-0 h-0.5"
-          style={{ background: C.border }}
+          className="absolute top-6 left-0 right-0 h-[2px] rounded-full"
+          style={{ background: 'linear-gradient(90deg, #E5E7EB 0%, #E5E7EB 100%)' }}
         />
-        {stages.map((stage, i) => {
+        {/* Filled progress line */}
+        <div
+          className="absolute top-6 left-0 h-[2px] rounded-full transition-all duration-700"
+          style={{
+            background: `linear-gradient(90deg, ${C.primary}, ${C.primary}CC)`,
+            width: `${(stages.filter(s => s.reached).length - 1) / (stages.length - 1) * 100}%`,
+            boxShadow: `0 0 8px ${C.primary}40`,
+          }}
+        />
+        {stages.map((stage) => {
           const completedColor = C.primary
           const futureColor = '#D1D5DB'
-          const nodeColor = stage.reached
-            ? stage.isCurrent ? completedColor : completedColor
-            : futureColor
 
           return (
             <div key={stage.key} className="relative flex flex-col items-center z-10" style={{ flex: 1 }}>
-              {/* Filled line segment to the left */}
-              {i > 0 && stage.reached && (
-                <div
-                  className="absolute top-5 right-1/2 h-0.5"
-                  style={{
-                    background: `linear-gradient(90deg, ${completedColor}, ${completedColor})`,
-                    width: '100%',
-                  }}
-                />
-              )}
-
               {/* Node */}
               <div
-                className="w-10 h-10 rounded-full flex items-center justify-center border-2 transition-all"
+                className="w-12 h-12 rounded-2xl flex items-center justify-center transition-all duration-500"
                 style={{
-                  borderColor: nodeColor,
-                  background: stage.reached ? nodeColor : 'white',
-                  boxShadow: stage.isCurrent ? `0 0 0 4px ${completedColor}25` : undefined,
-                  animation: stage.isCurrent ? 'pulse 2s ease-in-out infinite' : undefined,
+                  background: stage.reached
+                    ? stage.isCurrent
+                      ? `linear-gradient(135deg, ${completedColor}, ${C.primaryDark})`
+                      : `${completedColor}15`
+                    : 'white',
+                  border: stage.reached ? 'none' : `2px solid ${futureColor}`,
+                  boxShadow: stage.isCurrent
+                    ? `0 4px 16px ${completedColor}35, 0 0 0 4px ${completedColor}15`
+                    : stage.reached
+                      ? `0 2px 8px ${completedColor}15`
+                      : '0 1px 3px rgba(0,0,0,0.04)',
                 }}
               >
                 {stage.reached ? (
-                  <CheckCircle2 className="w-4 h-4 text-white" />
+                  <CheckCircle2 className="w-5 h-5" style={{ color: stage.isCurrent ? 'white' : completedColor }} />
                 ) : (
-                  <CircleDot className="w-4 h-4" style={{ color: futureColor }} />
+                  <CircleDot className="w-5 h-5" style={{ color: futureColor }} />
                 )}
               </div>
 
               {/* Label */}
               <p
-                className="text-[10px] font-semibold mt-2 text-center leading-tight"
-                style={{ color: stage.reached ? C.dark : C.muted }}
+                className="text-[10px] font-bold mt-2.5 text-center leading-tight uppercase tracking-wider"
+                style={{ color: stage.reached ? C.dark : C.muted, letterSpacing: '0.04em' }}
               >
                 {he ? stage.labelHe : stage.label}
               </p>
 
               {/* Date */}
               {stage.date && (
-                <p className="text-[9px] mt-0.5" style={{ color: C.muted }}>
+                <p className="text-[9px] font-medium mt-1" style={{ color: C.muted }}>
                   {fmtShort(stage.date)}
                 </p>
               )}
@@ -312,9 +332,9 @@ function LifecyclePipeline({ stages, he }: { stages: PipelineStage[]; he: boolea
 /* ── Info Row (for sidebar) ────────────────────────────────────── */
 function InfoRow({ label, value, mono }: { label: string; value: React.ReactNode; mono?: boolean }) {
   return (
-    <div className="flex items-center justify-between py-2" style={{ borderBottom: `1px solid ${C.border}` }}>
-      <span className="text-[11px] font-medium" style={{ color: C.muted }}>{label}</span>
-      <span className={`text-[12px] font-semibold ${mono ? 'font-mono' : ''}`} style={{ color: C.dark }}>{value}</span>
+    <div className="flex items-center justify-between py-3 group" style={{ borderBottom: `1px solid ${C.border}` }}>
+      <span className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: C.muted, letterSpacing: '0.04em' }}>{label}</span>
+      <span className={`text-[13px] font-semibold ${mono ? 'font-mono text-[12px]' : ''}`} style={{ color: C.dark }}>{value}</span>
     </div>
   )
 }
@@ -802,48 +822,81 @@ export default function ContractorDetail() {
       {/* ═══ Back link ═══ */}
       <Link
         to="/admin/clients"
-        className="inline-flex items-center gap-1.5 text-sm font-medium transition-colors hover:opacity-70"
+        className="inline-flex items-center gap-2 text-[13px] font-semibold transition-all hover:gap-3 group"
         style={{ color: C.muted }}
       >
-        <ArrowLeft className="h-4 w-4" />
+        <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-0.5" />
         {he ? 'קבלנים' : 'Contractors'}
       </Link>
 
       {/* ═══ Hero Header ═══ */}
-      <SectionCard>
-        <div className="px-6 py-6" style={{ background: 'linear-gradient(135deg, #FAFBFC 0%, #F3F4F6 100%)' }}>
-          <div className="flex flex-wrap items-start justify-between gap-4">
-            <div className="flex items-center gap-4">
-              {/* Avatar */}
-              <div
-                className="w-16 h-16 rounded-2xl flex items-center justify-center text-xl font-bold shrink-0 shadow-sm"
-                style={{
-                  background: `linear-gradient(135deg, hsl(${(contractor.user_id.charCodeAt(0) * 47) % 360}, 45%, 88%), hsl(${(contractor.user_id.charCodeAt(0) * 47) % 360}, 45%, 80%))`,
-                  color: `hsl(${(contractor.user_id.charCodeAt(0) * 47) % 360}, 45%, 30%)`,
-                }}
-              >
-                {initials}
+      <div
+        className="rounded-3xl overflow-hidden relative"
+        style={{
+          background: `linear-gradient(135deg, rgba(255,255,255,0.92) 0%, rgba(248,250,252,0.85) 100%)`,
+          backdropFilter: 'blur(40px) saturate(180%)',
+          WebkitBackdropFilter: 'blur(40px) saturate(180%)',
+          border: `1px solid ${C.border}`,
+          boxShadow: '0 2px 4px rgba(0,0,0,0.04), 0 8px 24px rgba(0,0,0,0.06)',
+        }}
+      >
+        {/* Decorative gradient accent */}
+        <div
+          className="absolute top-0 left-0 right-0 h-1 rounded-t-3xl"
+          style={{ background: `linear-gradient(90deg, ${C.primary}, ${C.accent}, ${C.primary})` }}
+        />
+
+        <div className="px-8 py-7">
+          <div className="flex flex-wrap items-start justify-between gap-5">
+            <div className="flex items-center gap-5">
+              {/* Avatar with glow */}
+              <div className="relative">
+                <div
+                  className="w-[72px] h-[72px] rounded-2xl flex items-center justify-center text-2xl font-extrabold shrink-0"
+                  style={{
+                    background: `linear-gradient(135deg, hsl(${(contractor.user_id.charCodeAt(0) * 47) % 360}, 50%, 85%), hsl(${(contractor.user_id.charCodeAt(0) * 47) % 360}, 50%, 72%))`,
+                    color: `hsl(${(contractor.user_id.charCodeAt(0) * 47) % 360}, 50%, 25%)`,
+                    boxShadow: `0 4px 16px hsl(${(contractor.user_id.charCodeAt(0) * 47) % 360}, 50%, 85%, 0.5)`,
+                    letterSpacing: '-0.02em',
+                  }}
+                >
+                  {initials}
+                </div>
+                {/* Online indicator */}
+                <div
+                  className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center"
+                  style={{
+                    background: contractor.is_active ? C.success : C.danger,
+                    border: '3px solid white',
+                    boxShadow: `0 2px 6px ${contractor.is_active ? C.success : C.danger}40`,
+                  }}
+                />
               </div>
 
-              <div>
-                <div className="flex items-center gap-2.5 flex-wrap">
-                  <h1 className="text-xl font-bold tracking-tight" style={{ color: C.dark, letterSpacing: '-0.02em' }}>
+              <div className="space-y-2">
+                {/* Name + badges row */}
+                <div className="flex items-center gap-3 flex-wrap">
+                  <h1 className="text-2xl font-extrabold tracking-tight" style={{ color: C.dark, letterSpacing: '-0.025em' }}>
                     {contractor.profiles?.full_name ?? 'Unknown'}
                   </h1>
 
                   {planConf && (
                     <span
-                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-semibold"
-                      style={{ background: planConf.bg, color: planConf.color, border: `1px solid ${planConf.border}` }}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[11px] font-bold"
+                      style={{
+                        background: `linear-gradient(135deg, ${planConf.bg}, ${planConf.border}40)`,
+                        color: planConf.color,
+                        boxShadow: `0 2px 8px ${planConf.color}15`,
+                      }}
                     >
-                      <Crown className="w-3 h-3" />
+                      <Crown className="w-3.5 h-3.5" />
                       {plan?.name}
                     </span>
                   )}
 
                   {contractor.subscription && (
                     <StatusBadge
-                      label={contractor.subscription.status}
+                      label={SUB_STATUS_MAP[contractor.subscription.status]?.label ?? contractor.subscription.status}
                       color={SUB_STATUS_MAP[contractor.subscription.status]?.color ?? C.muted}
                       bg={SUB_STATUS_MAP[contractor.subscription.status]?.bg ?? '#F3F4F6'}
                     />
@@ -854,38 +907,43 @@ export default function ContractorDetail() {
                   )}
                 </div>
 
-                <div className="flex items-center gap-3 mt-1.5 flex-wrap">
+                {/* Meta info row */}
+                <div className="flex items-center gap-4 flex-wrap">
                   {contractor.profiles?.phone && (
-                    <span className="text-[12px] flex items-center gap-1" style={{ color: C.muted }}>
-                      <Phone className="w-3 h-3" /> {contractor.profiles.phone}
+                    <span className="text-[13px] font-medium flex items-center gap-1.5" style={{ color: C.darkSub }}>
+                      <Phone className="w-3.5 h-3.5" style={{ color: C.muted }} /> {contractor.profiles.phone}
                     </span>
                   )}
-                  <span className="text-[12px] flex items-center gap-1" style={{ color: C.muted }}>
-                    <Calendar className="w-3 h-3" /> {he ? 'הצטרף' : 'Joined'} {fmtDate(contractor.created_at)}
+                  <span className="text-[13px] font-medium flex items-center gap-1.5" style={{ color: C.darkSub }}>
+                    <Calendar className="w-3.5 h-3.5" style={{ color: C.muted }} /> {fmtDate(contractor.created_at)}
                   </span>
-                  <span className="text-[12px] flex items-center gap-1" style={{ color: C.muted }}>
-                    <Timer className="w-3 h-3" /> {daysAsCustomer} {he ? 'ימים' : 'days'}
+                  <span
+                    className="text-[12px] font-bold px-2.5 py-1 rounded-lg"
+                    style={{ background: '#F3F4F6', color: C.darkSub }}
+                  >
+                    {daysAsCustomer} {he ? 'ימים' : 'days'}
                   </span>
                 </div>
 
-                {/* Quick notification channel indicators */}
-                <div className="flex items-center gap-1.5 mt-2">
+                {/* Channel indicators */}
+                <div className="flex items-center gap-2 mt-1">
                   {[
-                    { key: 'wa', label: 'WhatsApp', active: contractor.wa_notify && !!contractor.profiles?.whatsapp_phone, color: '#25D366' },
-                    { key: 'tg', label: 'Telegram', active: !!contractor.profiles?.telegram_chat_id, color: '#2563EB' },
-                    { key: 'push', label: 'Push', active: pushSubs.length > 0, color: '#7C3AED' },
-                    { key: 'sms', label: 'SMS', active: !contractor.sms_opt_out, color: C.primary },
+                    { key: 'wa', label: 'WhatsApp', active: contractor.wa_notify && !!contractor.profiles?.whatsapp_phone, color: '#25D366', icon: MessageCircle },
+                    { key: 'tg', label: 'Telegram', active: !!contractor.profiles?.telegram_chat_id, color: '#2563EB', icon: Send },
+                    { key: 'push', label: 'Push', active: pushSubs.length > 0, color: '#7C3AED', icon: Bell },
+                    { key: 'sms', label: 'SMS', active: !contractor.sms_opt_out, color: C.primary, icon: Smartphone },
                   ].map((ch) => (
                     <span
                       key={ch.key}
                       title={`${ch.label}: ${ch.active ? 'Active' : 'Off'}`}
-                      className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-md"
+                      className="inline-flex items-center gap-1.5 text-[10px] font-bold px-2.5 py-1 rounded-lg transition-all"
                       style={{
-                        background: ch.active ? `${ch.color}15` : '#F3F4F6',
+                        background: ch.active ? `${ch.color}10` : '#F9FAFB',
                         color: ch.active ? ch.color : '#D1D5DB',
+                        border: `1px solid ${ch.active ? `${ch.color}25` : '#F3F4F6'}`,
                       }}
                     >
-                      {ch.active ? <CheckCircle2 className="w-2.5 h-2.5" /> : <XCircle className="w-2.5 h-2.5" />}
+                      <ch.icon className="w-3 h-3" />
                       {ch.label}
                     </span>
                   ))}
@@ -894,71 +952,71 @@ export default function ContractorDetail() {
             </div>
 
             {/* Actions */}
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2.5">
               <button
                 onClick={async () => { await impersonate(contractor.user_id); navigate('/') }}
-                className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-[12px] font-semibold transition-all hover:shadow-md active:scale-95"
-                style={{ background: C.dark, color: 'white' }}
+                className="flex items-center gap-2 px-5 py-3 rounded-2xl text-[13px] font-bold transition-all hover:shadow-lg hover:-translate-y-0.5 active:scale-95"
+                style={{
+                  background: C.dark,
+                  color: 'white',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+                }}
               >
-                <Eye className="w-3.5 h-3.5" /> View As
+                <Eye className="w-4 h-4" /> {he ? 'צפה' : 'View As'}
               </button>
               <button
                 onClick={toggleActive}
                 disabled={toggling}
-                className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-[12px] font-semibold transition-all hover:shadow-md active:scale-95"
+                className="flex items-center gap-2 px-5 py-3 rounded-2xl text-[13px] font-bold transition-all hover:shadow-lg hover:-translate-y-0.5 active:scale-95"
                 style={{
                   background: contractor.is_active ? '#FEF2F2' : '#ECFDF5',
                   color: contractor.is_active ? C.danger : C.success,
                   opacity: toggling ? 0.6 : 1,
+                  boxShadow: `0 2px 8px ${contractor.is_active ? 'rgba(220,38,38,0.1)' : 'rgba(5,150,105,0.1)'}`,
                 }}
               >
                 {contractor.is_active
-                  ? <><UserX className="w-3.5 h-3.5" /> {he ? 'השבת' : 'Deactivate'}</>
-                  : <><UserCheck className="w-3.5 h-3.5" /> {he ? 'הפעל' : 'Activate'}</>
+                  ? <><UserX className="w-4 h-4" /> {he ? 'השבת' : 'Deactivate'}</>
+                  : <><UserCheck className="w-4 h-4" /> {he ? 'הפעל' : 'Activate'}</>
                 }
               </button>
             </div>
           </div>
         </div>
-      </SectionCard>
+      </div>
 
       {/* ═══ User Status (Ban/Suspend) ═══ */}
       {(() => {
         const userStatus = contractor.profiles?.status ?? 'active'
         const statusConf = USER_STATUS_CONFIG[userStatus] ?? USER_STATUS_CONFIG.active
         return (
-          <SectionCard>
+          <GlassCard>
             <SectionHeader icon={ShieldAlert} iconColor={statusConf.color} title={he ? 'סטטוס חשבון' : 'Account Status'} />
             <div className="px-6 py-5">
               <div className="flex flex-wrap items-center justify-between gap-4">
                 <div className="flex items-center gap-3">
                   <StatusBadge label={he ? statusConf.labelHe : statusConf.label} color={statusConf.color} bg={statusConf.bg} />
-                  {userStatus === 'suspended' && contractor.profiles?.suspension_reason && (
-                    <span className="text-[12px]" style={{ color: C.muted }}>
-                      {he ? 'סיבה:' : 'Reason:'} {contractor.profiles.suspension_reason}
-                    </span>
-                  )}
-                  {userStatus === 'banned' && contractor.profiles?.suspension_reason && (
-                    <span className="text-[12px]" style={{ color: C.muted }}>
+                  {(userStatus === 'suspended' || userStatus === 'banned') && contractor.profiles?.suspension_reason && (
+                    <span className="text-[12px] font-medium" style={{ color: C.darkSub }}>
                       {he ? 'סיבה:' : 'Reason:'} {contractor.profiles.suspension_reason}
                     </span>
                   )}
                   {userStatus === 'suspended' && contractor.profiles?.suspended_at && (
-                    <span className="text-[11px]" style={{ color: C.muted }}>
+                    <span className="text-[11px] font-medium" style={{ color: C.muted }}>
                       {he ? 'מאז' : 'Since'} {fmtShort(contractor.profiles.suspended_at)}
                     </span>
                   )}
                   {userStatus === 'banned' && contractor.profiles?.banned_at && (
-                    <span className="text-[11px]" style={{ color: C.muted }}>
+                    <span className="text-[11px] font-medium" style={{ color: C.muted }}>
                       {he ? 'מאז' : 'Since'} {fmtShort(contractor.profiles.banned_at)}
                     </span>
                   )}
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2.5">
                   {userStatus !== 'suspended' && userStatus !== 'banned' && (
                     <button
                       onClick={() => { setStatusAction('suspend'); setStatusReason('') }}
-                      className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-[12px] font-semibold transition-all hover:shadow-md active:scale-95"
+                      className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-[12px] font-bold transition-all hover:shadow-md hover:-translate-y-0.5 active:scale-95"
                       style={{ background: '#FFFBEB', color: '#D97706' }}
                     >
                       <AlertTriangle className="w-3.5 h-3.5" /> {he ? 'השעה' : 'Suspend'}
@@ -967,7 +1025,7 @@ export default function ContractorDetail() {
                   {userStatus !== 'banned' && (
                     <button
                       onClick={() => { setStatusAction('ban'); setStatusReason('') }}
-                      className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-[12px] font-semibold transition-all hover:shadow-md active:scale-95"
+                      className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-[12px] font-bold transition-all hover:shadow-md hover:-translate-y-0.5 active:scale-95"
                       style={{ background: '#FEF2F2', color: '#DC2626' }}
                     >
                       <Ban className="w-3.5 h-3.5" /> {he ? 'חסום' : 'Ban'}
@@ -976,7 +1034,7 @@ export default function ContractorDetail() {
                   {userStatus !== 'active' && (
                     <button
                       onClick={() => { setStatusAction('activate'); setStatusReason('') }}
-                      className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-[12px] font-semibold transition-all hover:shadow-md active:scale-95"
+                      className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-[12px] font-bold transition-all hover:shadow-md hover:-translate-y-0.5 active:scale-95"
                       style={{ background: '#ECFDF5', color: '#059669' }}
                     >
                       <UserCheck className="w-3.5 h-3.5" /> {he ? 'הפעל' : 'Activate'}
@@ -985,7 +1043,7 @@ export default function ContractorDetail() {
                 </div>
               </div>
             </div>
-          </SectionCard>
+          </GlassCard>
         )
       })()}
 
@@ -1071,78 +1129,73 @@ export default function ContractorDetail() {
         <div className="lg:col-span-2 space-y-6">
 
           {/* Revenue & Billing Card */}
-          <SectionCard>
+          <GlassCard delay={70}>
             <SectionHeader icon={BarChart3} iconColor={C.success} title={he ? 'הכנסות וחיוב' : 'Revenue & Billing'} />
             <div className="p-6">
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                {/* MRR */}
-                <div className="rounded-xl p-4" style={{ background: 'linear-gradient(135deg, #ECFDF5 0%, #D1FAE5 100%)', border: `1px solid ${C.border}` }}>
-                  <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: C.muted }}>MRR</p>
-                  <p className="text-2xl font-bold mt-1" style={{ color: C.dark }}>
-                    {monthlyFee > 0 ? `$${monthlyFee}` : '\u2014'}
-                  </p>
-                </div>
-
-                {/* LTV */}
-                <div className="rounded-xl p-4" style={{ background: 'linear-gradient(135deg, #F5F3FF 0%, #EDE9FE 100%)', border: `1px solid ${C.border}` }}>
-                  <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: C.muted }}>LTV</p>
-                  <p className="text-2xl font-bold mt-1" style={{ color: C.dark }}>
-                    {ltv > 0 ? `$${ltv.toLocaleString()}` : '\u2014'}
-                  </p>
-                </div>
-
-                {/* Months Active */}
-                <div className="rounded-xl p-4" style={{ background: 'linear-gradient(135deg, #FFF7ED 0%, #FFEDD5 100%)', border: `1px solid ${C.border}` }}>
-                  <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: C.muted }}>
-                    {he ? 'חודשים פעיל' : 'Months Active'}
-                  </p>
-                  <p className="text-2xl font-bold mt-1" style={{ color: C.dark }}>
-                    {monthsActive > 0 ? monthsActive : '\u2014'}
-                  </p>
-                </div>
+              <div className="grid grid-cols-3 gap-4">
+                {[
+                  { label: 'MRR', value: monthlyFee > 0 ? `$${monthlyFee}` : '\u2014', gradient: 'linear-gradient(135deg, #ECFDF5, #D1FAE5)', color: C.success, shadow: 'rgba(5,150,105,0.1)' },
+                  { label: 'LTV', value: ltv > 0 ? `$${ltv.toLocaleString()}` : '\u2014', gradient: 'linear-gradient(135deg, #F5F3FF, #EDE9FE)', color: C.accent, shadow: 'rgba(88,86,214,0.1)' },
+                  { label: he ? 'חודשים' : 'Months', value: monthsActive > 0 ? String(monthsActive) : '\u2014', gradient: 'linear-gradient(135deg, #FFF7ED, #FFEDD5)', color: C.primary, shadow: `rgba(254,91,37,0.1)` },
+                ].map((kpi) => (
+                  <div
+                    key={kpi.label}
+                    className="rounded-2xl p-5 relative overflow-hidden transition-all hover:-translate-y-0.5 hover:shadow-md"
+                    style={{ background: kpi.gradient, boxShadow: `0 2px 8px ${kpi.shadow}` }}
+                  >
+                    {/* Glossy overlay */}
+                    <div className="absolute inset-0 rounded-2xl" style={{ background: 'linear-gradient(135deg, rgba(255,255,255,0.5) 0%, transparent 60%)', pointerEvents: 'none' }} />
+                    <p className="text-[10px] font-bold uppercase tracking-wider relative" style={{ color: kpi.color, letterSpacing: '0.06em' }}>{kpi.label}</p>
+                    <p className="text-3xl font-extrabold mt-1.5 relative tracking-tight" style={{ color: C.dark, letterSpacing: '-0.03em' }}>
+                      {kpi.value}
+                    </p>
+                  </div>
+                ))}
               </div>
 
               {/* Billing details */}
-              <div className="mt-5 space-y-0">
-                <InfoRow
-                  label={he ? 'ימים כלקוח' : 'Days as Customer'}
-                  value={daysAsCustomer}
-                />
+              <div className="mt-6 space-y-0">
+                <InfoRow label={he ? 'ימים כלקוח' : 'Days as Customer'} value={daysAsCustomer} />
                 <InfoRow
                   label={he ? 'חיוב הבא' : 'Next Billing'}
-                  value={
-                    contractor.subscription?.current_period_end
-                      ? fmtDate(contractor.subscription.current_period_end)
-                      : '\u2014'
-                  }
+                  value={contractor.subscription?.current_period_end ? fmtDate(contractor.subscription.current_period_end) : '\u2014'}
                 />
-                <InfoRow
-                  label={he ? 'מחזור חיוב' : 'Billing Interval'}
-                  value={monthlyFee > 0 ? (he ? 'חודשי' : 'Monthly') : '\u2014'}
-                />
+                <InfoRow label={he ? 'מחזור חיוב' : 'Billing Interval'} value={monthlyFee > 0 ? (he ? 'חודשי' : 'Monthly') : '\u2014'} />
               </div>
             </div>
-          </SectionCard>
+          </GlassCard>
 
           {/* Subscription Card */}
-          <SectionCard>
+          <GlassCard delay={140}>
             <SectionHeader icon={CreditCard} iconColor={C.accent} title={he ? 'מנוי' : 'Subscription'} />
             <div className="p-6">
               {contractor.subscription ? (
                 <div className="space-y-4">
                   {/* Plan visual */}
                   <div
-                    className="rounded-xl p-4"
-                    style={{ background: planConf?.gradient ?? '#F3F4F6', border: `1px solid ${planConf?.border ?? '#E5E7EB'}` }}
+                    className="rounded-2xl p-5 relative overflow-hidden"
+                    style={{
+                      background: planConf?.gradient ?? '#F3F4F6',
+                      boxShadow: `0 2px 12px ${planConf?.color ?? C.muted}15`,
+                    }}
                   >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <Crown className="w-4 h-4" style={{ color: planConf?.color ?? C.muted }} />
-                        <span className="text-[15px] font-bold" style={{ color: planConf?.color ?? C.dark }}>{plan?.name}</span>
+                    <div className="absolute inset-0" style={{ background: 'linear-gradient(135deg, rgba(255,255,255,0.4) 0%, transparent 50%)', pointerEvents: 'none' }} />
+                    <div className="flex items-center justify-between relative">
+                      <div className="flex items-center gap-2.5">
+                        <div
+                          className="w-10 h-10 rounded-xl flex items-center justify-center"
+                          style={{ background: `${planConf?.color ?? C.muted}18` }}
+                        >
+                          <Crown className="w-5 h-5" style={{ color: planConf?.color ?? C.muted }} />
+                        </div>
+                        <span className="text-[16px] font-extrabold tracking-tight" style={{ color: planConf?.color ?? C.dark, letterSpacing: '-0.02em' }}>{plan?.name}</span>
                       </div>
-                      <span className="text-xl font-bold" style={{ color: C.dark }}>
-                        ${monthlyFee}<span className="text-[11px] font-normal" style={{ color: C.muted }}>/mo</span>
-                      </span>
+                      <div className="text-right">
+                        <span className="text-2xl font-extrabold tracking-tight" style={{ color: C.dark, letterSpacing: '-0.03em' }}>
+                          ${monthlyFee}
+                        </span>
+                        <span className="text-[11px] font-medium ml-0.5" style={{ color: C.muted }}>/mo</span>
+                      </div>
                     </div>
                   </div>
 
@@ -1187,11 +1240,11 @@ export default function ContractorDetail() {
                   </div>
 
                   {/* Admin upgrade/change plan button */}
-                  <div className="flex gap-2 mt-4 pt-4" style={{ borderTop: `1px solid ${C.border}` }}>
+                  <div className="flex gap-3 mt-5 pt-5" style={{ borderTop: `1px solid ${C.border}` }}>
                     <button
                       onClick={openPlanModal}
-                      className="flex-1 flex items-center justify-center gap-1.5 rounded-xl py-2.5 text-sm font-semibold text-white transition-all hover:brightness-110 active:scale-[0.97]"
-                      style={{ background: C.accent }}
+                      className="flex-1 flex items-center justify-center gap-2 rounded-2xl py-3 text-[13px] font-bold text-white transition-all hover:shadow-lg hover:-translate-y-0.5 active:scale-[0.97]"
+                      style={{ background: `linear-gradient(135deg, ${C.accent}, ${C.accent}DD)`, boxShadow: `0 2px 12px ${C.accent}30` }}
                     >
                       <ArrowUpCircle className="w-4 h-4" />
                       {he ? 'שנה חבילה' : 'Change Plan'}
@@ -1199,8 +1252,8 @@ export default function ContractorDetail() {
                     {contractor.subscription.stripe_customer_id && (
                       <button
                         onClick={() => window.open(`https://dashboard.stripe.com/customers/${contractor.subscription.stripe_customer_id}`, '_blank')}
-                        className="rounded-xl px-4 py-2.5 text-sm font-medium transition-all hover:bg-gray-100 active:scale-[0.97]"
-                        style={{ border: `1px solid ${C.border}`, color: C.muted }}
+                        className="rounded-2xl px-5 py-3 text-[13px] font-semibold transition-all hover:bg-gray-50 hover:-translate-y-0.5 active:scale-[0.97]"
+                        style={{ border: `1.5px solid #E5E7EB`, color: C.darkSub }}
                       >
                         Stripe
                       </button>
@@ -1208,13 +1261,16 @@ export default function ContractorDetail() {
                   </div>
                 </div>
               ) : (
-                <div className="text-center py-8">
-                  <Package className="w-10 h-10 mx-auto mb-3" style={{ color: '#E5E7EB' }} />
-                  <p className="text-sm font-medium mb-4" style={{ color: C.muted }}>{he ? 'ללא מנוי' : 'No subscription'}</p>
+                <div className="text-center py-10">
+                  <div className="w-16 h-16 mx-auto mb-4 rounded-2xl flex items-center justify-center" style={{ background: '#F3F4F6' }}>
+                    <Package className="w-8 h-8" style={{ color: '#D1D5DB' }} />
+                  </div>
+                  <p className="text-[14px] font-semibold mb-1" style={{ color: C.dark }}>{he ? 'ללא מנוי' : 'No subscription'}</p>
+                  <p className="text-[12px] mb-5" style={{ color: C.muted }}>{he ? 'הפעל תקופת ניסיון' : 'Start a trial to begin billing'}</p>
                   <button
                     onClick={openPlanModal}
-                    className="inline-flex items-center gap-1.5 rounded-xl px-5 py-2.5 text-sm font-semibold text-white transition-all hover:brightness-110 active:scale-[0.97]"
-                    style={{ background: C.success }}
+                    className="inline-flex items-center gap-2 rounded-2xl px-6 py-3 text-[13px] font-bold text-white transition-all hover:shadow-lg hover:-translate-y-0.5 active:scale-[0.97]"
+                    style={{ background: `linear-gradient(135deg, ${C.success}, ${C.success}DD)`, boxShadow: `0 2px 12px ${C.success}30` }}
                   >
                     <Sparkles className="w-4 h-4" />
                     {he ? 'הפעל Trial' : 'Start Trial'}
@@ -1222,7 +1278,7 @@ export default function ContractorDetail() {
                 </div>
               )}
             </div>
-          </SectionCard>
+          </GlassCard>
 
           {/* Plan Change Modal */}
           {showPlanModal && (
@@ -1457,61 +1513,39 @@ export default function ContractorDetail() {
         <div className="space-y-6">
 
           {/* Profile Info */}
-          <SectionCard>
+          <GlassCard delay={70}>
             <div className="p-6 space-y-5">
-              <h3 className="text-[13px] font-bold uppercase tracking-wider" style={{ color: C.muted }}>
+              <h3 className="text-[12px] font-bold uppercase tracking-widest flex items-center gap-2" style={{ color: C.muted, letterSpacing: '0.08em' }}>
+                <Phone className="w-3.5 h-3.5" />
                 {he ? 'פרטי קשר' : 'Contact Info'}
               </h3>
 
-              {contractor.profiles?.phone && (
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: '#FFF7ED' }}>
-                    <Phone className="w-4 h-4" style={{ color: C.primary }} />
+              {[
+                contractor.profiles?.phone && { icon: Phone, iconBg: '#FFF7ED', iconColor: C.primary, label: he ? 'טלפון' : 'Phone', value: contractor.profiles.phone },
+                { icon: Mail, iconBg: '#EFF6FF', iconColor: '#2563EB', label: 'Email', value: contractor.profiles?.id ? contractor.profiles.id.slice(0, 16) + '...' : '\u2014', mono: true },
+                { icon: CalendarDays, iconBg: '#FFF7ED', iconColor: C.primary, label: he ? 'הצטרף' : 'Joined', value: fmtDate(contractor.created_at) },
+                { icon: Users, iconBg: '#F3F4F6', iconColor: C.muted, label: 'User ID', value: contractor.user_id.slice(0, 8) + '...', mono: true },
+              ].filter(Boolean).map((item: any) => (
+                <div key={item.label} className="flex items-center gap-3 group">
+                  <div
+                    className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-transform group-hover:scale-105"
+                    style={{ background: item.iconBg }}
+                  >
+                    <item.icon className="w-4 h-4" style={{ color: item.iconColor }} />
                   </div>
-                  <div>
-                    <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: C.muted }}>{he ? 'טלפון' : 'Phone'}</p>
-                    <p className="text-[13px] font-semibold" style={{ color: C.dark }}>{contractor.profiles.phone}</p>
+                  <div className="min-w-0">
+                    <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: C.muted, letterSpacing: '0.06em' }}>{item.label}</p>
+                    <p className={`text-[13px] font-semibold truncate ${item.mono ? 'font-mono text-[11px]' : ''}`} style={{ color: C.dark }}>{item.value}</p>
                   </div>
                 </div>
-              )}
-
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: '#EFF6FF' }}>
-                  <Mail className="w-4 h-4" style={{ color: '#2563EB' }} />
-                </div>
-                <div>
-                  <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: C.muted }}>Email</p>
-                  <p className="text-[12px] font-mono" style={{ color: C.dark }}>{contractor.profiles?.id ? contractor.profiles.id.slice(0, 12) + '...' : '\u2014'}</p>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: '#FFF7ED' }}>
-                  <CalendarDays className="w-4 h-4" style={{ color: C.primary }} />
-                </div>
-                <div>
-                  <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: C.muted }}>{he ? 'הצטרף' : 'Joined'}</p>
-                  <p className="text-[13px] font-semibold" style={{ color: C.dark }}>{fmtDate(contractor.created_at)}</p>
-                </div>
-              </div>
-
-              {/* User ID (for debugging) */}
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: '#F3F4F6' }}>
-                  <Users className="w-4 h-4" style={{ color: C.muted }} />
-                </div>
-                <div>
-                  <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: C.muted }}>User ID</p>
-                  <p className="text-[10px] font-mono" style={{ color: C.muted }}>{contractor.user_id}</p>
-                </div>
-              </div>
+              ))}
             </div>
-          </SectionCard>
+          </GlassCard>
 
           {/* Notification Channels */}
-          <SectionCard>
+          <GlassCard delay={140}>
             <div className="p-6 space-y-4">
-              <h3 className="text-[13px] font-bold uppercase tracking-wider flex items-center gap-2" style={{ color: C.muted }}>
+              <h3 className="text-[12px] font-bold uppercase tracking-widest flex items-center gap-2" style={{ color: C.muted, letterSpacing: '0.08em' }}>
                 <Bell className="w-3.5 h-3.5" />
                 {he ? 'ערוצי התראות' : 'Notification Channels'}
               </h3>
@@ -1661,16 +1695,16 @@ export default function ContractorDetail() {
                 </div>
               </div>
             </div>
-          </SectionCard>
+          </GlassCard>
 
           {/* Trades / Professions */}
-          <SectionCard>
+          <GlassCard delay={210}>
             <div className="p-6 space-y-4">
-              <h3 className="text-[13px] font-bold uppercase tracking-wider flex items-center gap-2" style={{ color: C.muted }}>
+              <h3 className="text-[12px] font-bold uppercase tracking-widest flex items-center gap-2" style={{ color: C.muted, letterSpacing: '0.08em' }}>
                 <Briefcase className="w-3.5 h-3.5" />
                 {he ? 'מקצועות' : 'Trades'}
                 <span
-                  className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full"
+                  className="text-[10px] font-bold px-2 py-0.5 rounded-full"
                   style={{ background: `${C.accent}12`, color: C.accent }}
                 >
                   {contractor.professions.length}
@@ -1682,30 +1716,30 @@ export default function ContractorDetail() {
                   {contractor.professions.map((p) => (
                     <span
                       key={p}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[12px] font-semibold capitalize"
-                      style={{ background: `${C.accent}08`, color: C.accent, border: `1px solid ${C.accent}20` }}
+                      className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-[12px] font-bold capitalize transition-all hover:-translate-y-0.5 hover:shadow-sm"
+                      style={{ background: `${C.accent}08`, color: C.accent, border: `1px solid ${C.accent}18` }}
                     >
-                      <span>{PROF_EMOJI[p] ?? '📋'}</span>
+                      <span className="text-base">{PROF_EMOJI[p] ?? '📋'}</span>
                       {p}
                     </span>
                   ))}
                 </div>
               ) : (
-                <p className="text-[12px] text-center py-3" style={{ color: C.muted }}>
+                <p className="text-[12px] text-center py-4" style={{ color: C.muted }}>
                   {he ? 'לא הוגדרו' : 'None defined'}
                 </p>
               )}
             </div>
-          </SectionCard>
+          </GlassCard>
 
           {/* Service Areas */}
-          <SectionCard>
+          <GlassCard delay={280}>
             <div className="p-6 space-y-4">
-              <h3 className="text-[13px] font-bold uppercase tracking-wider flex items-center gap-2" style={{ color: C.muted }}>
+              <h3 className="text-[12px] font-bold uppercase tracking-widest flex items-center gap-2" style={{ color: C.muted, letterSpacing: '0.08em' }}>
                 <MapPin className="w-3.5 h-3.5" />
                 {he ? 'אזורי שירות' : 'Service Areas'}
                 <span
-                  className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full"
+                  className="text-[10px] font-bold px-2 py-0.5 rounded-full"
                   style={{ background: '#FFF1F2', color: '#E11D48' }}
                 >
                   {contractor.zip_codes.length}
@@ -1713,11 +1747,11 @@ export default function ContractorDetail() {
               </h3>
 
               {contractor.zip_codes.length > 0 ? (
-                <div className="flex flex-wrap gap-1.5">
+                <div className="flex flex-wrap gap-2">
                   {contractor.zip_codes.map((zip) => (
                     <span
                       key={zip}
-                      className="inline-flex items-center px-2.5 py-1 rounded-lg text-[11px] font-semibold"
+                      className="inline-flex items-center px-3 py-1.5 rounded-xl text-[11px] font-bold transition-all hover:-translate-y-0.5"
                       style={{ background: '#FFF7ED', color: C.primary, border: '1px solid #FFEDD5' }}
                     >
                       {zip}
@@ -1725,62 +1759,64 @@ export default function ContractorDetail() {
                   ))}
                 </div>
               ) : (
-                <p className="text-[12px] text-center py-3" style={{ color: C.muted }}>
+                <p className="text-[12px] text-center py-4" style={{ color: C.muted }}>
                   {he ? 'לא הוגדרו' : 'None defined'}
                 </p>
               )}
             </div>
-          </SectionCard>
+          </GlassCard>
 
           {/* Profile Verification */}
           {cpProfile && (
-            <SectionCard>
+            <GlassCard delay={350}>
               <div className="p-6 space-y-5">
-                <h3 className="text-[13px] font-bold uppercase tracking-wider flex items-center gap-2" style={{ color: C.muted }}>
+                <h3 className="text-[12px] font-bold uppercase tracking-widest flex items-center gap-2" style={{ color: C.muted, letterSpacing: '0.08em' }}>
                   <ShieldCheck className="w-3.5 h-3.5" />
                   {he ? 'אימות פרופיל' : 'Profile Verification'}
                 </h3>
 
                 {/* Background Check */}
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2.5">
+                  <div className="flex items-center gap-3">
                     <div
-                      className="w-8 h-8 rounded-lg flex items-center justify-center"
-                      style={{ background: cpProfile.background_check === 'passed' ? '#ECFDF5' : '#F3F4F6' }}
+                      className="w-10 h-10 rounded-xl flex items-center justify-center transition-transform hover:scale-105"
+                      style={{
+                        background: cpProfile.background_check === 'passed' ? '#ECFDF5' : '#F3F4F6',
+                        boxShadow: cpProfile.background_check === 'passed' ? `0 2px 8px ${C.success}15` : 'none',
+                      }}
                     >
-                      <ShieldCheck className="w-4 h-4" style={{ color: cpProfile.background_check === 'passed' ? C.success : C.muted }} />
+                      <ShieldCheck className="w-5 h-5" style={{ color: cpProfile.background_check === 'passed' ? C.success : C.muted }} />
                     </div>
                     <div>
-                      <p className="text-[11px] font-medium" style={{ color: C.muted }}>Background Check</p>
-                      <p className="text-[12px] font-semibold" style={{ color: cpProfile.background_check === 'passed' ? C.success : C.muted }}>
-                        {cpProfile.background_check === 'passed' ? 'Passed' : 'Not verified'}
+                      <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: C.muted, letterSpacing: '0.06em' }}>Background Check</p>
+                      <p className="text-[13px] font-bold" style={{ color: cpProfile.background_check === 'passed' ? C.success : C.muted }}>
+                        {cpProfile.background_check === 'passed' ? (he ? 'מאומת' : 'Passed') : (he ? 'לא מאומת' : 'Not verified')}
                       </p>
                     </div>
                   </div>
                   <button
                     onClick={handleToggleBgCheck}
                     disabled={savingVerification}
-                    className="px-3 py-1.5 rounded-lg text-[11px] font-semibold transition-all hover:shadow-sm active:scale-95"
+                    className="px-4 py-2 rounded-xl text-[11px] font-bold transition-all hover:shadow-md hover:-translate-y-0.5 active:scale-95"
                     style={{
                       background: cpProfile.background_check === 'passed' ? '#FEF2F2' : '#ECFDF5',
                       color: cpProfile.background_check === 'passed' ? C.danger : C.success,
-                      border: `1px solid ${cpProfile.background_check === 'passed' ? '#FECACA' : '#A7F3D0'}`,
                       opacity: savingVerification ? 0.6 : 1,
                     }}
                   >
-                    {cpProfile.background_check === 'passed' ? 'Revoke' : 'Verify'}
+                    {cpProfile.background_check === 'passed' ? (he ? 'בטל' : 'Revoke') : (he ? 'אמת' : 'Verify')}
                   </button>
                 </div>
 
                 {/* Trust Tier */}
                 <div>
-                  <p className="text-[11px] font-medium mb-2" style={{ color: C.muted }}>Trust Tier</p>
-                  <div className="grid grid-cols-4 gap-1.5">
+                  <p className="text-[10px] font-bold uppercase tracking-widest mb-3" style={{ color: C.muted, letterSpacing: '0.06em' }}>Trust Tier</p>
+                  <div className="grid grid-cols-4 gap-2">
                     {([
-                      { key: 'new', label: 'New', color: '#6B7280', bg: '#F3F4F6', border: '#E5E7EB' },
-                      { key: 'verified', label: 'Verified', color: '#2563EB', bg: '#EFF6FF', border: '#BFDBFE' },
-                      { key: 'trusted', label: 'Trusted', color: '#059669', bg: '#ECFDF5', border: '#A7F3D0' },
-                      { key: 'elite', label: 'Elite', color: '#D97706', bg: '#FFFBEB', border: '#FDE68A' },
+                      { key: 'new', label: 'New', color: '#6B7280', bg: '#F3F4F6' },
+                      { key: 'verified', label: 'Verified', color: '#2563EB', bg: '#EFF6FF' },
+                      { key: 'trusted', label: 'Trusted', color: '#059669', bg: '#ECFDF5' },
+                      { key: 'elite', label: 'Elite', color: '#D97706', bg: '#FFFBEB' },
                     ] as const).map((t) => {
                       const isActive = cpProfile.tier === t.key
                       return (
@@ -1788,12 +1824,14 @@ export default function ContractorDetail() {
                           key={t.key}
                           onClick={() => handleChangeTier(t.key)}
                           disabled={savingVerification}
-                          className="px-2 py-2 rounded-lg text-[10px] font-bold uppercase tracking-wide transition-all hover:shadow-sm active:scale-95 text-center"
+                          className="py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-wider transition-all hover:shadow-md hover:-translate-y-0.5 active:scale-95 text-center"
                           style={{
                             background: isActive ? t.bg : 'white',
                             color: isActive ? t.color : C.muted,
-                            border: `2px solid ${isActive ? t.color : C.border}`,
+                            border: `2px solid ${isActive ? t.color : 'transparent'}`,
+                            boxShadow: isActive ? `0 2px 8px ${t.color}20` : '0 1px 3px rgba(0,0,0,0.04)',
                             opacity: savingVerification ? 0.6 : 1,
+                            letterSpacing: '0.04em',
                           }}
                         >
                           {t.label}
@@ -1805,60 +1843,71 @@ export default function ContractorDetail() {
 
                 {/* Profile Completeness */}
                 <div>
-                  <div className="flex items-center justify-between mb-1.5">
-                    <p className="text-[11px] font-medium" style={{ color: C.muted }}>Profile Completeness</p>
-                    <span className="text-[12px] font-bold" style={{ color: cpProfile.profile_completeness >= 70 ? C.success : cpProfile.profile_completeness >= 40 ? C.warning : C.muted }}>
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: C.muted, letterSpacing: '0.06em' }}>
+                      {he ? 'השלמת פרופיל' : 'Profile Completeness'}
+                    </p>
+                    <span className="text-[14px] font-extrabold" style={{ color: cpProfile.profile_completeness >= 70 ? C.success : cpProfile.profile_completeness >= 40 ? C.warning : C.muted }}>
                       {cpProfile.profile_completeness}%
                     </span>
                   </div>
-                  <div className="w-full h-2 rounded-full overflow-hidden" style={{ background: '#F3F4F6' }}>
+                  <div className="w-full h-2.5 rounded-full overflow-hidden" style={{ background: '#F3F4F6' }}>
                     <div
-                      className="h-full rounded-full transition-all"
+                      className="h-full rounded-full transition-all duration-700"
                       style={{
                         width: `${cpProfile.profile_completeness}%`,
-                        background: cpProfile.profile_completeness >= 70 ? C.success : cpProfile.profile_completeness >= 40 ? C.warning : C.muted,
+                        background: cpProfile.profile_completeness >= 70
+                          ? `linear-gradient(90deg, ${C.success}, ${C.success}CC)`
+                          : cpProfile.profile_completeness >= 40
+                            ? `linear-gradient(90deg, ${C.warning}, ${C.warning}CC)`
+                            : C.muted,
+                        boxShadow: `0 1px 4px ${cpProfile.profile_completeness >= 70 ? C.success : cpProfile.profile_completeness >= 40 ? C.warning : C.muted}30`,
                       }}
                     />
                   </div>
                 </div>
               </div>
-            </SectionCard>
+            </GlassCard>
           )}
 
           {/* Admin Notes */}
-          <SectionCard>
+          <GlassCard delay={420}>
             <div className="p-6 space-y-3">
-              <h3 className="text-[13px] font-bold uppercase tracking-wider flex items-center gap-2" style={{ color: C.muted }}>
+              <h3 className="text-[12px] font-bold uppercase tracking-widest flex items-center gap-2" style={{ color: C.muted, letterSpacing: '0.08em' }}>
                 <StickyNote className="w-3.5 h-3.5" />
                 {he ? 'הערות מנהל' : 'Admin Notes'}
               </h3>
               <textarea
-                className="w-full rounded-xl px-4 py-3 text-[13px] resize-none focus:outline-none focus:ring-2 transition-shadow"
+                className="w-full rounded-2xl px-5 py-4 text-[13px] resize-none focus:outline-none focus:ring-2 focus:ring-orange-200/50 transition-all"
                 style={{
                   background: '#FAFBFC',
-                  border: `1px solid ${C.border}`,
+                  border: `1.5px solid ${C.border}`,
                   color: C.dark,
-                  minHeight: '100px',
-                  // focus ring handled via className
+                  minHeight: '120px',
+                  lineHeight: '1.6',
                 }}
                 placeholder={he ? 'הוסף הערות על הלקוח...' : 'Add notes about this customer...'}
                 value={adminNotes}
                 onChange={(e) => setAdminNotes(e.target.value)}
               />
-              <p className="text-[10px]" style={{ color: C.muted }}>
+              <p className="text-[10px] font-medium" style={{ color: C.muted }}>
                 {he ? 'הערות נשמרות באופן מקומי בלבד' : 'Notes are saved locally only'}
               </p>
             </div>
-          </SectionCard>
+          </GlassCard>
 
         </div>
       </div>
 
-      {/* Pulse animation keyframes */}
+      {/* Custom animations */}
       <style>{`
         @keyframes pulse {
           0%, 100% { box-shadow: 0 0 0 0 rgba(254, 91, 37, 0.3); }
           50% { box-shadow: 0 0 0 8px rgba(254, 91, 37, 0); }
+        }
+        @keyframes slideUp {
+          from { opacity: 0; transform: translateY(12px) scale(0.98); }
+          to { opacity: 1; transform: translateY(0) scale(1); }
         }
       `}</style>
     </div>
