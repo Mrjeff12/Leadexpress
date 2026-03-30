@@ -360,6 +360,7 @@ export default function ContractorDetail() {
   const [cpProfile, setCpProfile] = useState<{ background_check: string; tier: string; profile_completeness: number } | null>(null)
   const [pushSubs, setPushSubs] = useState<PushSubscription[]>([])
   const [savingVerification, setSavingVerification] = useState(false)
+  const [showAllZips, setShowAllZips] = useState(false)
   const [statusAction, setStatusAction] = useState<'suspend' | 'ban' | 'activate' | null>(null)
   const [statusReason, setStatusReason] = useState('')
   const [savingStatus, setSavingStatus] = useState(false)
@@ -1123,47 +1124,39 @@ export default function ContractorDetail() {
         <LifecyclePipeline stages={pipelineStages} he={he} />
       </SectionCard>
 
-      {/* ═══ 2-Column Layout: Main + Sidebar ═══ */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* ── Left Column (2/3) ── */}
-        <div className="lg:col-span-2 space-y-6">
-
-          {/* Revenue & Billing Card */}
-          <GlassCard delay={70}>
-            <SectionHeader icon={BarChart3} iconColor={C.success} title={he ? 'הכנסות וחיוב' : 'Revenue & Billing'} />
+      {/* ═══ Revenue KPI Strip (full width) ═══ */}
+      <GlassCard delay={70}>
+        <SectionHeader icon={BarChart3} iconColor={C.success} title={he ? 'הכנסות וחיוב' : 'Revenue & Billing'} />
             <div className="p-6">
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
                 {[
                   { label: 'MRR', value: monthlyFee > 0 ? `$${monthlyFee}` : '\u2014', gradient: 'linear-gradient(135deg, #ECFDF5, #D1FAE5)', color: C.success, shadow: 'rgba(5,150,105,0.1)' },
                   { label: 'LTV', value: ltv > 0 ? `$${ltv.toLocaleString()}` : '\u2014', gradient: 'linear-gradient(135deg, #F5F3FF, #EDE9FE)', color: C.accent, shadow: 'rgba(88,86,214,0.1)' },
-                  { label: he ? 'חודשים' : 'Months', value: monthsActive > 0 ? String(monthsActive) : '\u2014', gradient: 'linear-gradient(135deg, #FFF7ED, #FFEDD5)', color: C.primary, shadow: `rgba(254,91,37,0.1)` },
+                  { label: he ? 'חודשים' : 'Months', value: monthsActive > 0 ? String(monthsActive) : '\u2014', gradient: 'linear-gradient(135deg, #FFF7ED, #FFEDD5)', color: C.primary, shadow: 'rgba(254,91,37,0.1)' },
+                  { label: he ? 'ימים' : 'Days', value: String(daysAsCustomer), gradient: 'linear-gradient(135deg, #F0F9FF, #E0F2FE)', color: '#0284C7', shadow: 'rgba(2,132,199,0.1)' },
+                  { label: he ? 'חיוב הבא' : 'Next Bill', value: contractor.subscription?.current_period_end ? fmtShort(contractor.subscription.current_period_end) : '\u2014', gradient: 'linear-gradient(135deg, #FFFBEB, #FEF3C7)', color: C.warning, shadow: 'rgba(217,119,6,0.1)' },
+                  { label: he ? 'מחזור' : 'Interval', value: monthlyFee > 0 ? (he ? 'חודשי' : 'Monthly') : '\u2014', gradient: 'linear-gradient(135deg, #FDF2F8, #FCE7F3)', color: '#DB2777', shadow: 'rgba(219,39,119,0.1)' },
                 ].map((kpi) => (
                   <div
                     key={kpi.label}
-                    className="rounded-2xl p-5 relative overflow-hidden transition-all hover:-translate-y-0.5 hover:shadow-md"
+                    className="rounded-2xl p-4 relative overflow-hidden transition-all hover:-translate-y-0.5 hover:shadow-md"
                     style={{ background: kpi.gradient, boxShadow: `0 2px 8px ${kpi.shadow}` }}
                   >
-                    {/* Glossy overlay */}
                     <div className="absolute inset-0 rounded-2xl" style={{ background: 'linear-gradient(135deg, rgba(255,255,255,0.5) 0%, transparent 60%)', pointerEvents: 'none' }} />
                     <p className="text-[10px] font-bold uppercase tracking-wider relative" style={{ color: kpi.color, letterSpacing: '0.06em' }}>{kpi.label}</p>
-                    <p className="text-3xl font-extrabold mt-1.5 relative tracking-tight" style={{ color: C.dark, letterSpacing: '-0.03em' }}>
+                    <p className="text-2xl font-extrabold mt-1 relative tracking-tight" style={{ color: C.dark, letterSpacing: '-0.03em' }}>
                       {kpi.value}
                     </p>
                   </div>
                 ))}
               </div>
-
-              {/* Billing details */}
-              <div className="mt-6 space-y-0">
-                <InfoRow label={he ? 'ימים כלקוח' : 'Days as Customer'} value={daysAsCustomer} />
-                <InfoRow
-                  label={he ? 'חיוב הבא' : 'Next Billing'}
-                  value={contractor.subscription?.current_period_end ? fmtDate(contractor.subscription.current_period_end) : '\u2014'}
-                />
-                <InfoRow label={he ? 'מחזור חיוב' : 'Billing Interval'} value={monthlyFee > 0 ? (he ? 'חודשי' : 'Monthly') : '\u2014'} />
-              </div>
             </div>
           </GlassCard>
+
+      {/* ═══ 2-Column Layout: Main + Sidebar ═══ */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* ── Left Column (2/3) ── */}
+        <div className="lg:col-span-2 space-y-6">
 
           {/* Subscription Card */}
           <GlassCard delay={140}>
@@ -1512,158 +1505,30 @@ export default function ContractorDetail() {
         {/* ── Right Sidebar (1/3) ── */}
         <div className="space-y-6">
 
-          {/* Profile Info */}
+          {/* Contact + Channels combined */}
           <GlassCard delay={70}>
-            <div className="p-6 space-y-5">
+            <div className="p-5 space-y-4">
               <h3 className="text-[12px] font-bold uppercase tracking-widest flex items-center gap-2" style={{ color: C.muted, letterSpacing: '0.08em' }}>
                 <Phone className="w-3.5 h-3.5" />
                 {he ? 'פרטי קשר' : 'Contact Info'}
               </h3>
 
-              {[
-                contractor.profiles?.phone && { icon: Phone, iconBg: '#FFF7ED', iconColor: C.primary, label: he ? 'טלפון' : 'Phone', value: contractor.profiles.phone },
-                { icon: Mail, iconBg: '#EFF6FF', iconColor: '#2563EB', label: 'Email', value: contractor.profiles?.id ? contractor.profiles.id.slice(0, 16) + '...' : '\u2014', mono: true },
-                { icon: CalendarDays, iconBg: '#FFF7ED', iconColor: C.primary, label: he ? 'הצטרף' : 'Joined', value: fmtDate(contractor.created_at) },
-                { icon: Users, iconBg: '#F3F4F6', iconColor: C.muted, label: 'User ID', value: contractor.user_id.slice(0, 8) + '...', mono: true },
-              ].filter(Boolean).map((item: any) => (
-                <div key={item.label} className="flex items-center gap-3 group">
-                  <div
-                    className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-transform group-hover:scale-105"
-                    style={{ background: item.iconBg }}
-                  >
-                    <item.icon className="w-4 h-4" style={{ color: item.iconColor }} />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: C.muted, letterSpacing: '0.06em' }}>{item.label}</p>
-                    <p className={`text-[13px] font-semibold truncate ${item.mono ? 'font-mono text-[11px]' : ''}`} style={{ color: C.dark }}>{item.value}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </GlassCard>
-
-          {/* Notification Channels */}
-          <GlassCard delay={140}>
-            <div className="p-6 space-y-4">
-              <h3 className="text-[12px] font-bold uppercase tracking-widest flex items-center gap-2" style={{ color: C.muted, letterSpacing: '0.08em' }}>
-                <Bell className="w-3.5 h-3.5" />
-                {he ? 'ערוצי התראות' : 'Notification Channels'}
-              </h3>
-
-              {/* WhatsApp */}
-              <div className="flex items-center gap-3">
-                <div
-                  className="w-9 h-9 rounded-xl flex items-center justify-center"
-                  style={{ background: contractor.wa_notify && contractor.profiles?.whatsapp_phone ? '#ECFDF5' : '#FEF2F2' }}
-                >
-                  <MessageCircle className="w-4 h-4" style={{ color: contractor.wa_notify && contractor.profiles?.whatsapp_phone ? '#25D366' : C.danger }} />
-                </div>
-                <div className="flex-1">
-                  <p className="text-[11px] font-medium" style={{ color: C.muted }}>WhatsApp</p>
-                  {contractor.wa_notify && contractor.profiles?.whatsapp_phone ? (
-                    <div className="flex items-center gap-1.5">
-                      <CheckCircle2 className="w-3 h-3" style={{ color: '#25D366' }} />
-                      <span className="text-[12px] font-semibold" style={{ color: '#25D366' }}>{he ? 'מחובר' : 'Connected'}</span>
-                      <span className="text-[10px] font-mono" style={{ color: C.muted }}>{contractor.profiles.whatsapp_phone}</span>
-                    </div>
-                  ) : (
-                    <div className="flex items-center gap-1.5">
-                      <XCircle className="w-3 h-3" style={{ color: C.danger }} />
-                      <span className="text-[12px] font-semibold" style={{ color: C.danger }}>
-                        {!contractor.profiles?.whatsapp_phone
-                          ? (he ? 'אין מספר' : 'No number')
-                          : (he ? 'התראות כבויות' : 'Notifications off')}
-                      </span>
-                    </div>
-                  )}
-                </div>
+              {/* Compact contact rows */}
+              <div className="space-y-0">
+                {contractor.profiles?.phone && (
+                  <InfoRow label={he ? 'טלפון' : 'Phone'} value={contractor.profiles.phone} />
+                )}
+                <InfoRow label={he ? 'הצטרף' : 'Joined'} value={fmtDate(contractor.created_at)} />
+                <InfoRow label="User ID" value={<span className="font-mono text-[10px]">{contractor.user_id.slice(0, 12)}...</span>} mono />
               </div>
 
-              {/* Telegram */}
-              <div className="flex items-center gap-3">
-                <div
-                  className="w-9 h-9 rounded-xl flex items-center justify-center"
-                  style={{ background: contractor.profiles?.telegram_chat_id ? '#EFF6FF' : '#FEF2F2' }}
-                >
-                  <Send className="w-4 h-4" style={{ color: contractor.profiles?.telegram_chat_id ? '#2563EB' : C.danger }} />
-                </div>
-                <div className="flex-1">
-                  <p className="text-[11px] font-medium" style={{ color: C.muted }}>Telegram</p>
-                  {contractor.profiles?.telegram_chat_id ? (
-                    <div className="flex items-center gap-1.5">
-                      <CheckCircle2 className="w-3 h-3" style={{ color: '#2563EB' }} />
-                      <span className="text-[12px] font-semibold" style={{ color: '#2563EB' }}>{he ? 'מחובר' : 'Connected'}</span>
-                      <span className="text-[10px] font-mono" style={{ color: C.muted }}>#{contractor.profiles.telegram_chat_id}</span>
-                    </div>
-                  ) : (
-                    <div className="flex items-center gap-1.5">
-                      <XCircle className="w-3 h-3" style={{ color: C.danger }} />
-                      <span className="text-[12px] font-semibold" style={{ color: C.danger }}>{he ? 'לא מחובר' : 'Not connected'}</span>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Push Notifications */}
-              <div className="flex items-center gap-3">
-                <div
-                  className="w-9 h-9 rounded-xl flex items-center justify-center"
-                  style={{ background: pushSubs.length > 0 ? '#F5F3FF' : '#FEF2F2' }}
-                >
-                  <Smartphone className="w-4 h-4" style={{ color: pushSubs.length > 0 ? '#7C3AED' : C.danger }} />
-                </div>
-                <div className="flex-1">
-                  <p className="text-[11px] font-medium" style={{ color: C.muted }}>{he ? 'התראות דפדפן' : 'Push Notifications'}</p>
-                  {pushSubs.length > 0 ? (
-                    <div className="flex items-center gap-1.5">
-                      <CheckCircle2 className="w-3 h-3" style={{ color: '#7C3AED' }} />
-                      <span className="text-[12px] font-semibold" style={{ color: '#7C3AED' }}>
-                        {pushSubs.length} {he ? 'מכשירים' : pushSubs.length === 1 ? 'device' : 'devices'}
-                      </span>
-                    </div>
-                  ) : (
-                    <div className="flex items-center gap-1.5">
-                      <BellOff className="w-3 h-3" style={{ color: C.danger }} />
-                      <span className="text-[12px] font-semibold" style={{ color: C.danger }}>{he ? 'לא רשום' : 'Not registered'}</span>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* SMS */}
-              <div className="flex items-center gap-3">
-                <div
-                  className="w-9 h-9 rounded-xl flex items-center justify-center"
-                  style={{ background: !contractor.sms_opt_out ? '#FFF7ED' : '#FEF2F2' }}
-                >
-                  <Wifi className="w-4 h-4" style={{ color: !contractor.sms_opt_out ? C.primary : C.danger }} />
-                </div>
-                <div className="flex-1">
-                  <p className="text-[11px] font-medium" style={{ color: C.muted }}>SMS</p>
-                  <div className="flex items-center gap-1.5">
-                    {!contractor.sms_opt_out ? (
-                      <>
-                        <CheckCircle2 className="w-3 h-3" style={{ color: C.primary }} />
-                        <span className="text-[12px] font-semibold" style={{ color: C.primary }}>{he ? 'פעיל' : 'Active'}</span>
-                      </>
-                    ) : (
-                      <>
-                        <XCircle className="w-3 h-3" style={{ color: C.danger }} />
-                        <span className="text-[12px] font-semibold" style={{ color: C.danger }}>{he ? 'ביטל הרשמה' : 'Opted out'}</span>
-                      </>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {/* Channel summary badge */}
-              <div className="pt-3 mt-1" style={{ borderTop: `1px solid ${C.border}` }}>
-                <div className="flex items-center gap-2">
-                  <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: C.muted }}>
-                    {he ? 'ערוצים פעילים' : 'Active channels'}
-                  </span>
+              {/* Divider */}
+              <div className="pt-2">
+                <h3 className="text-[12px] font-bold uppercase tracking-widest flex items-center gap-2" style={{ color: C.muted, letterSpacing: '0.08em' }}>
+                  <Bell className="w-3.5 h-3.5" />
+                  {he ? 'ערוצי התראות' : 'Channels'}
                   <span
-                    className="text-[11px] font-bold px-2 py-0.5 rounded-full"
+                    className="text-[10px] font-bold px-2 py-0.5 rounded-full"
                     style={{
                       background: (() => {
                         const count = [
@@ -1690,12 +1555,41 @@ export default function ContractorDetail() {
                       contractor.profiles?.telegram_chat_id,
                       pushSubs.length > 0,
                       !contractor.sms_opt_out,
-                    ].filter(Boolean).length} / 4
+                    ].filter(Boolean).length}/4
                   </span>
-                </div>
+                </h3>
+              </div>
+
+              {/* Channel grid — compact 2x2 */}
+              <div className="grid grid-cols-2 gap-2">
+                {[
+                  { label: 'WhatsApp', active: contractor.wa_notify && !!contractor.profiles?.whatsapp_phone, color: '#25D366', icon: MessageCircle },
+                  { label: 'Telegram', active: !!contractor.profiles?.telegram_chat_id, color: '#2563EB', icon: Send },
+                  { label: 'Push', active: pushSubs.length > 0, color: '#7C3AED', icon: Smartphone },
+                  { label: 'SMS', active: !contractor.sms_opt_out, color: C.primary, icon: Wifi },
+                ].map((ch) => (
+                  <div
+                    key={ch.label}
+                    className="flex items-center gap-2.5 p-3 rounded-xl transition-all"
+                    style={{
+                      background: ch.active ? `${ch.color}08` : '#FAFAFA',
+                      border: `1px solid ${ch.active ? `${ch.color}20` : '#F3F4F6'}`,
+                    }}
+                  >
+                    <ch.icon className="w-4 h-4 shrink-0" style={{ color: ch.active ? ch.color : '#D1D5DB' }} />
+                    <div className="min-w-0">
+                      <p className="text-[10px] font-bold" style={{ color: ch.active ? ch.color : '#D1D5DB' }}>{ch.label}</p>
+                      <p className="text-[9px] font-semibold truncate" style={{ color: ch.active ? C.darkSub : '#D1D5DB' }}>
+                        {ch.active ? (he ? 'מחובר' : 'Active') : (he ? 'כבוי' : 'Off')}
+                      </p>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
           </GlassCard>
+
+
 
           {/* Trades / Professions */}
           <GlassCard delay={210}>
@@ -1747,17 +1641,31 @@ export default function ContractorDetail() {
               </h3>
 
               {contractor.zip_codes.length > 0 ? (
-                <div className="flex flex-wrap gap-2">
-                  {contractor.zip_codes.map((zip) => (
-                    <span
-                      key={zip}
-                      className="inline-flex items-center px-3 py-1.5 rounded-xl text-[11px] font-bold transition-all hover:-translate-y-0.5"
-                      style={{ background: '#FFF7ED', color: C.primary, border: '1px solid #FFEDD5' }}
+                <>
+                  <div className="flex flex-wrap gap-2">
+                    {(showAllZips ? contractor.zip_codes : contractor.zip_codes.slice(0, 12)).map((zip) => (
+                      <span
+                        key={zip}
+                        className="inline-flex items-center px-3 py-1.5 rounded-xl text-[11px] font-bold transition-all hover:-translate-y-0.5"
+                        style={{ background: '#FFF7ED', color: C.primary, border: '1px solid #FFEDD5' }}
+                      >
+                        {zip}
+                      </span>
+                    ))}
+                  </div>
+                  {contractor.zip_codes.length > 12 && (
+                    <button
+                      onClick={() => setShowAllZips(!showAllZips)}
+                      className="w-full text-center text-[11px] font-bold py-2 rounded-xl transition-all hover:bg-gray-50"
+                      style={{ color: C.primary }}
                     >
-                      {zip}
-                    </span>
-                  ))}
-                </div>
+                      {showAllZips
+                        ? (he ? 'הצג פחות' : 'Show less')
+                        : (he ? `הצג עוד ${contractor.zip_codes.length - 12}` : `Show ${contractor.zip_codes.length - 12} more`)
+                      }
+                    </button>
+                  )}
+                </>
               ) : (
                 <p className="text-[12px] text-center py-4" style={{ color: C.muted }}>
                   {he ? 'לא הוגדרו' : 'None defined'}
