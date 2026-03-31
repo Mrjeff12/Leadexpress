@@ -126,6 +126,15 @@ interface GroupInfo {
   lead_count: number
 }
 
+interface LinkedGroup {
+  id: string
+  invite_link: string
+  group_name: string | null
+  status: string
+  created_at: string
+  source: 'link' | 'scan'
+}
+
 /* ── Constants ─────────────────────────────────────────────────── */
 const PROF_EMOJI: Record<string, string> = {
   hvac: '❄️', renovation: '🔨', fencing: '🧱', cleaning: '✨',
@@ -351,6 +360,7 @@ export default function ContractorDetail() {
   const [subcontractors, setSubcontractors] = useState<SubcontractorRow[]>([])
   const [leads, setLeads] = useState<LeadRow[]>([])
   const [groups, setGroups] = useState<GroupInfo[]>([])
+  const [linkedGroups, setLinkedGroups] = useState<LinkedGroup[]>([])
   const [loading, setLoading] = useState(true)
   const [toggling, setToggling] = useState(false)
   const [adminNotes, setAdminNotes] = useState('')
@@ -371,6 +381,7 @@ export default function ContractorDetail() {
     loadContractor()
     loadSubcontractors()
     loadLeads()
+    loadLinkedGroups()
     loadContractorProfile()
     loadPushSubscriptions()
   }, [id])
@@ -503,6 +514,42 @@ export default function ContractorDetail() {
         }))
       )
     }
+  }
+
+  async function loadLinkedGroups() {
+    if (!id) return
+    const [linksRes, scansRes] = await Promise.all([
+      supabase
+        .from('contractor_group_links')
+        .select('id, invite_link, group_name, status, created_at')
+        .eq('contractor_id', id)
+        .order('created_at', { ascending: false }),
+      supabase
+        .from('contractor_group_scan_requests')
+        .select('id, invite_link_raw, group_name, status, created_at')
+        .eq('contractor_id', id)
+        .order('created_at', { ascending: false }),
+    ])
+
+    const linked: LinkedGroup[] = [
+      ...(linksRes.data ?? []).map((l: any) => ({
+        id: l.id,
+        invite_link: l.invite_link,
+        group_name: l.group_name,
+        status: l.status,
+        created_at: l.created_at,
+        source: 'link' as const,
+      })),
+      ...(scansRes.data ?? []).map((s: any) => ({
+        id: s.id,
+        invite_link: s.invite_link_raw,
+        group_name: s.group_name,
+        status: s.status,
+        created_at: s.created_at,
+        source: 'scan' as const,
+      })),
+    ]
+    setLinkedGroups(linked)
   }
 
   async function openPlanModal() {
@@ -1374,33 +1421,75 @@ export default function ContractorDetail() {
 
           {/* Groups Membership */}
           <SectionCard>
-            <SectionHeader icon={MessageSquare} iconColor="#059669" title={he ? 'קבוצות ווטסאפ' : 'WhatsApp Groups'} count={groups.length} />
-            {groups.length === 0 ? (
+            <SectionHeader icon={MessageSquare} iconColor="#059669" title={he ? 'קבוצות ווטסאפ' : 'WhatsApp Groups'} count={groups.length + linkedGroups.length} />
+            {groups.length === 0 && linkedGroups.length === 0 ? (
               <div className="px-6 py-4 text-center">
                 <p className="text-[12px] font-medium" style={{ color: '#D1D5DB' }}>
-                  {he ? 'אין קבוצות מקושרות' : 'No groups linked via leads'}
+                  {he ? 'אין קבוצות מקושרות' : 'No groups linked'}
                 </p>
               </div>
             ) : (
-              <div className="p-6">
-                <div className="flex flex-wrap gap-2">
-                  {groups.map((g) => (
-                    <div
-                      key={g.group_id}
-                      className="inline-flex items-center gap-2 px-3 py-2 rounded-xl text-[12px] font-semibold"
-                      style={{ background: '#ECFDF5', color: '#065F46', border: '1px solid #A7F3D0' }}
-                    >
-                      <Users className="w-3.5 h-3.5" />
-                      {g.group_name}
-                      <span
-                        className="text-[10px] font-bold px-1.5 py-0.5 rounded-full"
-                        style={{ background: '#065F4620', color: '#065F46' }}
-                      >
-                        {g.lead_count}
-                      </span>
+              <div className="p-6 space-y-3">
+                {/* Groups from leads */}
+                {groups.length > 0 && (
+                  <div>
+                    <p className="text-[10px] font-bold uppercase tracking-wider mb-2" style={{ color: C.muted }}>
+                      {he ? 'קבוצות מלידים' : 'From Leads'}
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {groups.map((g) => (
+                        <div
+                          key={g.group_id}
+                          className="inline-flex items-center gap-2 px-3 py-2 rounded-xl text-[12px] font-semibold"
+                          style={{ background: '#ECFDF5', color: '#065F46', border: '1px solid #A7F3D0' }}
+                        >
+                          <Users className="w-3.5 h-3.5" />
+                          {g.group_name}
+                          <span
+                            className="text-[10px] font-bold px-1.5 py-0.5 rounded-full"
+                            style={{ background: '#065F4620', color: '#065F46' }}
+                          >
+                            {g.lead_count}
+                          </span>
+                        </div>
+                      ))}
                     </div>
-                  ))}
-                </div>
+                  </div>
+                )}
+                {/* Linked / Scan groups */}
+                {linkedGroups.length > 0 && (
+                  <div>
+                    <p className="text-[10px] font-bold uppercase tracking-wider mb-2" style={{ color: C.muted }}>
+                      {he ? 'קבוצות מקושרות' : 'Linked Groups'}
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {linkedGroups.map((lg) => {
+                        const statusColors: Record<string, { bg: string; text: string; border: string }> = {
+                          joined: { bg: '#ECFDF5', text: '#065F46', border: '#A7F3D0' },
+                          pending: { bg: '#FFFBEB', text: '#92400E', border: '#FDE68A' },
+                          failed: { bg: '#FEF2F2', text: '#991B1B', border: '#FECACA' },
+                        }
+                        const sc = statusColors[lg.status] ?? statusColors.pending
+                        return (
+                          <div
+                            key={lg.id}
+                            className="inline-flex items-center gap-2 px-3 py-2 rounded-xl text-[12px] font-semibold"
+                            style={{ background: sc.bg, color: sc.text, border: `1px solid ${sc.border}` }}
+                          >
+                            <ExternalLink className="w-3.5 h-3.5" />
+                            {lg.group_name || (he ? 'ממתין לסריקה' : 'Pending scan')}
+                            <span
+                              className="text-[10px] font-bold px-1.5 py-0.5 rounded-full"
+                              style={{ background: `${sc.text}15`, color: sc.text }}
+                            >
+                              {lg.status}
+                            </span>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </SectionCard>

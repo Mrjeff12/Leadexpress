@@ -17,6 +17,154 @@ function greenUrl(method: string): string {
   return `${config.greenApi.apiUrl}/waInstance${config.greenApi.idInstance}/${method}/${config.greenApi.apiToken}`;
 }
 
+// ── Sync scan requests into pending_groups (unified queue) ────────────────────
+export async function syncScanRequestsToPendingGroups(): Promise<number> {
+  try {
+    // Fetch pending contractor requests
+    const { data: contractorReqs } = await supabase
+      .from('contractor_group_scan_requests')
+      .select('invite_code, invite_link_normalized, contractor_id')
+      .eq('status', 'pending')
+      .not('invite_code', 'is', null);
+
+    // Fetch pending admin entries
+    const { data: adminReqs } = await supabase
+      .from('admin_group_scan_entries')
+      .select('invite_code, invite_link_normalized')
+      .eq('status', 'pending')
+      .not('invite_code', 'is', null);
+
+    const allReqs = [
+      ...(contractorReqs ?? []).map((r) => ({
+        invite_code: r.invite_code!,
+        invite_link: r.invite_link_normalized,
+        source_wa_sender_id: null as string | null,
+      })),
+      ...(adminReqs ?? []).map((r) => ({
+        invite_code: r.invite_code!,
+        invite_link: r.invite_link_normalized,
+        source_wa_sender_id: null as string | null,
+      })),
+    ];
+
+    if (allReqs.length === 0) return 0;
+
+    // Check which are already in pending_groups
+    const codes = allReqs.map((r) => r.invite_code);
+    const { data: existing } = await supabase
+      .from('pending_groups')
+      .select('invite_code')
+      .in('invite_code', codes)
+      .in('status', ['pending', 'approved', 'joining', 'joined']);
+
+    const existingCodes = new Set((existing ?? []).map((e) => e.invite_code));
+
+    let synced = 0;
+    for (const req of allReqs) {
+      if (existingCodes.has(req.invite_code)) continue;
+
+      try {
+        await supabase.rpc('upsert_pending_group', {
+          p_invite_link: req.invite_link,
+          p_invite_code: req.invite_code,
+        });
+        synced++;
+      } catch (err) {
+        logger.error({ err, inviteCode: req.invite_code }, 'Failed to sync scan request to pending_groups');
+      }
+    }
+
+    if (synced > 0) {
+      logger.info({ synced, total: allReqs.length }, 'Synced scan requests to pending_groups');
+    }
+    return synced;
+  } catch (err) {
+    logger.error({ err }, 'Error in syncScanRequestsToPendingGroups');
+    return 0;
+  }
+}
+
+// ── Notify contractor of group status change ─────────────────────────────────
+export async function notifyContractorOfGroupStatus(
+  inviteCode: string,
+  status: 'joined' | 'failed' | 'blocked_private',
+  groupName?: string | null,
+): Promise<void> {
+  try {
+    // Find contractor who submitted this link
+    const { data: scanReq } = await supabase
+      .from('contractor_group_scan_requests')
+      .select('contractor_id')
+      .eq('invite_code', inviteCode)
+      .neq('status', 'archived')
+      .limit(1)
+      .maybeSingle();
+
+    if (!scanReq?.contractor_id) return;
+
+    // Get contractor's phone
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('whatsapp_phone, full_name')
+      .eq('id', scanReq.contractor_id)
+      .maybeSingle();
+
+    if (!profile?.whatsapp_phone) return;
+
+    const name = groupName || 'WhatsApp Group';
+    let message: string;
+
+    switch (status) {
+      case 'joined':
+        message = `✅ הצטרפנו לקבוצה *${name}*!\n\nאנחנו מאזינים ללידים — תקבל התראות ברגע שנזהה ליד רלוונטי.`;
+        break;
+      case 'failed':
+        message = `❌ לא הצלחנו להצטרף לקבוצה *${name}*.\n\nיתכן שהלינק פג תוקף. שלח לינק חדש ונמשיך לנסות.`;
+        break;
+      case 'blocked_private':
+        message = `🔒 הקבוצה *${name}* פרטית.\n\nבקש מאדמין הקבוצה להוסיף את המספר שלנו: ${config.scanner.phone}`;
+        break;
+    }
+
+    await sendTwilioWhatsApp(profile.whatsapp_phone, message);
+    logger.info({ inviteCode, status, contractorId: scanReq.contractor_id }, 'Contractor notified of group status');
+  } catch (err) {
+    logger.error({ err, inviteCode, status }, 'Failed to notify contractor');
+  }
+}
+
+// ── Cross-link: update scan request tables when pending_group status changes ─
+async function crossLinkStatusUpdate(inviteCode: string, newStatus: string, groupName?: string | null): Promise<void> {
+  const statusMap: Record<string, string> = {
+    joining: 'pending',   // still processing
+    joined: 'joined',
+    failed: 'failed',
+  };
+  const mappedStatus = statusMap[newStatus];
+  if (!mappedStatus) return;
+
+  const updates: Record<string, unknown> = { status: mappedStatus };
+  if (groupName) updates.group_name = groupName;
+
+  await supabase
+    .from('contractor_group_scan_requests')
+    .update(updates)
+    .eq('invite_code', inviteCode)
+    .neq('status', 'archived');
+
+  await supabase
+    .from('admin_group_scan_entries')
+    .update(updates)
+    .eq('invite_code', inviteCode)
+    .neq('status', 'archived');
+}
+
+// ── Dispatch all pending groups (sync first, then send) ───────────────────────
+export async function dispatchPendingGroups(): Promise<number> {
+  await syncScanRequestsToPendingGroups();
+  return sendAllPendingToScanner();
+}
+
 // ── Send a single pending group link to the scanner phone ───────────────────
 export async function sendGroupLinkToScanner(pendingGroupId: string): Promise<boolean> {
   try {
@@ -165,6 +313,11 @@ export async function handleScannerFeedback(fromPhone: string, body: string): Pr
         await sendTwilioWhatsApp(prospectPhone, notifyMsg);
       }
 
+      // Cross-link to scan request tables
+      if (pg.invite_code) {
+        await crossLinkStatusUpdate(pg.invite_code, 'joining', pg.group_name);
+      }
+
       logger.info({ pendingGroupId: pg.id, groupName: pg.group_name }, 'Scanner confirmed join');
       break;
     }
@@ -181,6 +334,12 @@ export async function handleScannerFeedback(fromPhone: string, body: string): Pr
 
       if (updateErr) {
         logger.error({ err: updateErr }, 'Failed to update pending group to failed');
+      }
+
+      // Cross-link + notify contractor
+      if (pg.invite_code) {
+        await crossLinkStatusUpdate(pg.invite_code, 'failed', pg.group_name);
+        await notifyContractorOfGroupStatus(pg.invite_code, 'failed', pg.group_name);
       }
 
       logger.info({ pendingGroupId: pg.id }, 'Scanner reported broken link');
@@ -298,6 +457,12 @@ export async function checkJoinedGroups(): Promise<number> {
           p_channel: 'whatsapp',
           p_dedupe_minutes: 60,
         });
+
+        // Cross-link + notify contractor
+        if (pg.invite_code) {
+          await crossLinkStatusUpdate(pg.invite_code, 'joined', pg.group_name);
+          await notifyContractorOfGroupStatus(pg.invite_code, 'joined', pg.group_name);
+        }
 
         joinedCount++;
         logger.info({ pendingGroupId: pg.id, groupName: pg.group_name, waGroupId: match.waGroupId }, 'Pending group confirmed as joined');

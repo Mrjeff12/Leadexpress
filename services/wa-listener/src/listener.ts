@@ -271,6 +271,61 @@ async function scanForGroupLinks(text: string, groupId: string, senderId: string
   }
 }
 
+// ── Handle group links from personal DMs (contractor → bot) ─────────────────
+async function handlePersonalGroupLink(text: string, senderId: string): Promise<void> {
+  const matches = [...text.matchAll(GROUP_LINK_REGEX)];
+  if (matches.length === 0) return;
+
+  // Lookup contractor by WhatsApp sender ID (e.g. "972542922277@c.us" → "+972542922277")
+  const phoneDigits = senderId.replace('@c.us', '');
+  const phoneE164 = '+' + phoneDigits;
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('id')
+    .or(`whatsapp_phone.eq.${phoneE164},phone.eq.${phoneE164}`)
+    .maybeSingle();
+
+  for (const match of matches) {
+    const inviteCode = match[1];
+    const inviteLink = `https://chat.whatsapp.com/${inviteCode}`;
+
+    // Save to contractor_group_scan_requests if we know the contractor
+    if (profile?.id) {
+      const { data: existing } = await supabase
+        .from('contractor_group_scan_requests')
+        .select('id')
+        .eq('invite_code', inviteCode)
+        .neq('status', 'archived')
+        .maybeSingle();
+
+      if (!existing) {
+        await supabase.from('contractor_group_scan_requests').insert({
+          contractor_id: profile.id,
+          invite_link_raw: inviteLink,
+          invite_link_normalized: inviteLink,
+          invite_code: inviteCode,
+          status: 'pending',
+          join_method: 'manual',
+        });
+        logger.info({ inviteCode, contractorId: profile.id, senderId }, 'Group link saved from contractor DM');
+      }
+    }
+
+    // Also save to pending_groups for scanner workflow
+    try {
+      await supabase.rpc('upsert_pending_group', {
+        p_invite_link: inviteLink,
+        p_invite_code: inviteCode,
+        p_source_wa_sender_id: senderId,
+      });
+      logger.info({ inviteCode, senderId }, 'Group invite link from DM saved to pending_groups');
+    } catch (err) {
+      logger.error({ err, inviteCode }, 'Failed to save pending group from DM');
+    }
+  }
+}
+
 // ── Process a single notification ────────────────────────────────────────────
 async function processNotification(notif: GreenNotification): Promise<void> {
   const { body } = notif;
@@ -321,8 +376,17 @@ async function processNotification(notif: GreenNotification): Promise<void> {
   const chatId = body.senderData?.chatId;
   if (!chatId) return;
 
-  // ── Route personal messages to prospect CRM ──────────────────────────
+  // ── Route personal messages ──────────────────────────────────────────
   if (chatId.endsWith('@c.us')) {
+    // Check for group invite links from contractors (DMs to the bot)
+    const dmText =
+      body.messageData?.textMessageData?.textMessage ??
+      body.messageData?.extendedTextMessageData?.text ?? '';
+    if (dmText && GROUP_LINK_REGEX.test(dmText)) {
+      GROUP_LINK_REGEX.lastIndex = 0; // reset after .test()
+      const senderId = body.senderData?.sender ?? '';
+      await handlePersonalGroupLink(dmText, senderId);
+    }
     await routeToProspectChat(body);
     return;
   }

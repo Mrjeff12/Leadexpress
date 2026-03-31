@@ -330,6 +330,18 @@ async function trialActivityJob(): Promise<void> {
   }
 }
 
+// ── Job 10: Dispatch Pending Group Scan Requests ────────────────────────────
+async function dispatchPendingGroupsJob(): Promise<void> {
+  logger.info('Watchdog: dispatching pending group scan requests');
+  try {
+    const { dispatchPendingGroups } = await import('./scanner.js');
+    const dispatched = await dispatchPendingGroups();
+    if (dispatched > 0) logger.info({ dispatched }, 'Watchdog: pending groups dispatched to scanner');
+  } catch (err) {
+    logger.error({ err }, 'Watchdog: dispatch pending groups failed');
+  }
+}
+
 // ── Start / Stop ────────────────────────────────────────────────────────────
 export async function startWatchdog(): Promise<void> {
   logger.info('Starting WATCHDOG scheduler');
@@ -382,7 +394,14 @@ export async function startWatchdog(): Promise<void> {
   }, 20 * 60 * 1000);
   timeouts.push(trialTimeout);
 
-  logger.info('WATCHDOG scheduler started — sync every 4h, enrichment every 4h+30m, scoring every 6h, waiting-on-us every 5m, follow-up every 1h, trial activity every 1h');
+  // Job 10: Dispatch pending group scan requests — every 15 min (25-min initial delay)
+  const dispatchTimeout = setTimeout(() => {
+    dispatchPendingGroupsJob();
+    timers.push(setInterval(dispatchPendingGroupsJob, 15 * 60 * 1000));
+  }, 25 * 60 * 1000);
+  timeouts.push(dispatchTimeout);
+
+  logger.info('WATCHDOG scheduler started — sync every 4h, enrichment every 4h+30m, scoring every 6h, waiting-on-us every 5m, follow-up every 1h, trial activity every 1h, group dispatch every 15m');
 }
 
 export async function stopWatchdog(): Promise<void> {

@@ -110,12 +110,29 @@ export function useAdminGroupScanData() {
     }
   }
 
+  const dispatchAll = async () => {
+    if (!session?.access_token) return { success: false, error: 'Not authenticated' }
+    try {
+      const res = await fetch(`${API_URL}/api/group-scan/dispatch-all`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${session.access_token}` },
+      })
+      if (!res.ok) return { success: false, error: 'Failed to dispatch' }
+      const json = await res.json()
+      await fetchBoard()
+      return { success: true, dispatched: json.dispatched }
+    } catch (err: any) {
+      return { success: false, error: err.message }
+    }
+  }
+
   return {
     data,
     loading,
     error,
     addAdminLink,
     updateStatus,
+    dispatchAll,
     refresh: fetchBoard,
   }
 }

@@ -16,7 +16,10 @@ import {
   ChevronDown, Check, CheckCheck, CircleDot, Sparkles, DollarSign,
   XCircle, PhoneCall, Edit3, Calendar, X, Plus,
   AlertTriangle, Zap, Copy, Clock, MapPin, Briefcase,
-  Search, Inbox, Users, Timer, Crown, LogIn, LogOut as LogOutIcon
+  Search, Inbox, Users, Timer, Crown, LogIn, LogOut as LogOutIcon,
+  CheckSquare, Square, Download, UserPlus, ArrowUpDown,
+  Settings, Trash2, GripVertical, ChevronUp, Pencil,
+  HelpCircle, CalendarClock
 } from 'lucide-react'
 
 /* ── Design tokens ─────────────────────────────────────────────────── */
@@ -139,17 +142,52 @@ const SUB_STATUSES: Record<string, { key: string; label: string; he: string; col
   ],
 }
 
-const QUICK_REPLIES = [
-  { key: 'intro', label: 'Intro', he_label: 'היכרות', en: 'Hi! I\'m from MasterLeadFlow. We help contractors get more jobs. Interested?', he: 'שלום! אני מ-MasterLeadFlow. מעוניין בשיחה קצרה?' },
-  { key: 'followup', label: 'Follow-up', he_label: 'מעקב', en: 'Hey! Following up on my last message.', he: 'היי! עוקב אחרי ההודעה האחרונה.' },
-  { key: 'demo', label: 'Demo', he_label: 'הדגמה', en: 'Want to try our platform for free?', he: 'רוצה לנסות בחינם?' },
-  { key: 'price', label: 'Pricing', he_label: 'מחירון', en: 'Plans start at $79/mo. Want details?', he: 'מתחילים ב-$79 לחודש. מעוניין?' },
+type QuickReplyTemplate = {
+  id: string
+  title: string
+  body: string
+  category: string
+  is_active: boolean
+  sort_order: number
+}
+
+const QUICK_REPLIES_FALLBACK: { key: string; label: string; body: string }[] = [
+  { key: 'intro', label: 'Intro', body: "Hi {name}! I'm from MasterLeadFlow. We help {profession} contractors get more jobs. Interested?" },
+  { key: 'followup', label: 'Follow-up', body: 'Hey {name}! Following up on my last message.' },
+  { key: 'demo', label: 'Demo', body: 'Want to try our platform for free?' },
+  { key: 'price', label: 'Pricing', body: 'Plans start at $79/mo. Want details?' },
 ]
 
 /* ── Helpers ────────────────────────────────────────────────────────── */
 const hue = (s: string) => { let h = 0; for (let i = 0; i < s.length; i++) h = s.charCodeAt(i) + ((h << 5) - h); return ((h % 360) + 360) % 360 }
+
+/** Play a subtle notification beep using AudioContext */
+function playNotificationBeep() {
+  try {
+    const ctx = new (window.AudioContext || (window as any).webkitAudioContext)()
+    const osc = ctx.createOscillator()
+    const gain = ctx.createGain()
+    osc.connect(gain)
+    gain.connect(ctx.destination)
+    osc.frequency.value = 880
+    osc.type = 'sine'
+    gain.gain.setValueAtTime(0.15, ctx.currentTime)
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3)
+    osc.start(ctx.currentTime)
+    osc.stop(ctx.currentTime + 0.3)
+    setTimeout(() => ctx.close(), 500)
+  } catch { /* silent — AudioContext not available */ }
+}
+
+/** Last message info for sidebar previews */
+interface LastMessageInfo {
+  content: string
+  direction: 'incoming' | 'outgoing'
+  sent_at: string
+}
 const fmtTime = (d: string) => new Date(d).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
 const fmtDate = (d: string) => new Date(d).toLocaleDateString([], { month: 'short', day: 'numeric' })
+const timeAgo = (d: string) => { const s = Math.floor((Date.now() - new Date(d).getTime()) / 1000); if (s < 60) return 'just now'; const m = Math.floor(s / 60); if (m < 60) return `${m}m ago`; const h = Math.floor(m / 60); if (h < 24) return `${h}h ago`; const dy = Math.floor(h / 24); if (dy < 7) return `${dy}d ago`; return fmtDate(d) }
 const fmtFull = (d: string) => new Date(d).toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' })
 const fuSt = (d: string | null): 'overdue' | 'today' | 'upcoming' | null => { if (!d) return null; const x = (new Date(d).getTime() - Date.now()) / 86400000; return x < 0 ? 'overdue' : x < 1 ? 'today' : 'upcoming' }
 const relD = (d: string, he: boolean) => { const x = Math.ceil((new Date(d).getTime() - Date.now()) / 86400000); if (x < -1) return he ? `לפני ${Math.abs(x)} ימים` : `${Math.abs(x)}d ago`; if (x === -1) return he ? 'אתמול' : 'Yesterday'; if (x === 0) return he ? 'היום' : 'Today'; if (x === 1) return he ? 'מחר' : 'Tomorrow'; return he ? `בעוד ${x} ימים` : `In ${x}d` }
@@ -240,6 +278,161 @@ function OnboardingProgress({ step, startedAt, lastActivity }: { step?: string; 
         {startedAt && <span>Started {new Date(startedAt).toLocaleDateString()}</span>}
         {lastActivity && <span>Last activity {new Date(lastActivity).toLocaleTimeString()}</span>}
       </div>
+
+      {/* ═══ BULK ACTION BAR ═══ */}
+      {selectMode && selectedIds.size > 0 && (
+        <div className="fixed bottom-0 left-0 right-0 z-40 flex items-center justify-between gap-4 px-6 py-3.5 animate-in slide-in-from-bottom duration-300" style={{ background: 'rgba(28, 28, 30, 0.97)', backdropFilter: 'blur(20px)', borderTop: '1px solid rgba(255,255,255,0.08)', boxShadow: '0 -4px 30px rgba(0,0,0,0.2)' }}>
+          {/* Left: count + clear */}
+          <div className="flex items-center gap-3">
+            <span className="text-sm font-semibold text-white">
+              {selectedIds.size} {he ? 'נבחרו' : `item${selectedIds.size !== 1 ? 's' : ''} selected`}
+            </span>
+            <button onClick={() => { setSelectedIds(new Set()); setSelectMode(false) }} className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium text-white/60 hover:text-white hover:bg-white/10 transition-all">
+              <X className="w-3.5 h-3.5" /> {he ? 'נקה' : 'Clear'}
+            </button>
+          </div>
+          {/* Right: actions */}
+          <div className="flex items-center gap-2">
+            {/* Move to Stage */}
+            <div className="relative">
+              <button onClick={() => { setBulkStageMenuOpen(!bulkStageMenuOpen); setBulkAssignMenuOpen(false) }} className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold transition-all hover:scale-[1.02] active:scale-[0.98]" style={{ background: 'rgba(255,255,255,0.12)', color: 'white' }}>
+                <ArrowRight className="w-3.5 h-3.5" /> {he ? 'העבר לשלב' : 'Move to Stage'}
+              </button>
+              {bulkStageMenuOpen && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setBulkStageMenuOpen(false)} />
+                  <div className="absolute bottom-full mb-2 left-0 z-50 w-48 rounded-xl border border-white/10 shadow-xl bg-[#2C2C2E] py-1 max-h-[300px] overflow-y-auto">
+                    {STAGES.map(s => (
+                      <button key={s.key} onClick={() => bulkChangeStage(s.key)} className="flex items-center gap-2 w-full px-3 py-2 text-[12px] font-medium text-white/80 hover:bg-white/10 transition-colors">
+                        <div className="w-2 h-2 rounded-full" style={{ background: s.color }} />
+                        {he ? s.he : s.label}
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+            {/* Assign */}
+            <div className="relative">
+              <button onClick={() => { setBulkAssignMenuOpen(!bulkAssignMenuOpen); setBulkStageMenuOpen(false) }} className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold transition-all hover:scale-[1.02] active:scale-[0.98]" style={{ background: 'rgba(255,255,255,0.12)', color: 'white' }}>
+                <UserPlus className="w-3.5 h-3.5" /> {he ? 'הקצה' : 'Assign'}
+              </button>
+              {bulkAssignMenuOpen && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setBulkAssignMenuOpen(false)} />
+                  <div className="absolute bottom-full mb-2 left-0 z-50 w-48 rounded-xl border border-white/10 shadow-xl bg-[#2C2C2E] py-1">
+                    {waAccounts.length === 0 ? (
+                      <div className="px-3 py-2 text-[12px] text-white/50">{he ? 'אין חשבונות' : 'No accounts'}</div>
+                    ) : waAccounts.map(a => (
+                      <button key={a.id} onClick={() => bulkAssign(a.id)} className="flex items-center gap-2 w-full px-3 py-2 text-[12px] font-medium text-white/80 hover:bg-white/10 transition-colors">
+                        <MessageCircle className="w-3 h-3 text-[#34C759]" /> {a.label}
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+            {/* Export */}
+            <button onClick={bulkExportCsv} className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold transition-all hover:scale-[1.02] active:scale-[0.98]" style={{ background: 'rgba(255,255,255,0.12)', color: 'white' }}>
+              <Download className="w-3.5 h-3.5" /> {he ? 'ייצוא CSV' : 'Export CSV'}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ═══ TEMPLATE MANAGER MODAL ═══ */}
+      {showTemplateManager && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setShowTemplateManager(false)}>
+          <div className="bg-white rounded-3xl shadow-2xl w-[560px] max-h-[80vh] flex flex-col overflow-hidden" onClick={e => e.stopPropagation()}>
+            {/* Modal header */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-black/[0.06]">
+              <h3 className="text-[16px] font-bold text-[#1C1C1E]">{he ? '\u05e0\u05d9\u05d4\u05d5\u05dc \u05ea\u05d1\u05e0\u05d9\u05d5\u05ea' : 'Manage Templates'}</h3>
+              <button onClick={() => setShowTemplateManager(false)} className="p-2 rounded-xl hover:bg-black/[0.05] transition-colors"><X className="w-5 h-5 text-[#8E8E93]" /></button>
+            </div>
+
+            {/* Template list */}
+            <div className="flex-1 overflow-y-auto px-6 py-4 space-y-2">
+              {qrTemplates.length === 0 && !qrTemplatesLoading && (
+                <p className="text-[13px] text-[#8E8E93] text-center py-8">{he ? '\u05d0\u05d9\u05df \u05ea\u05d1\u05e0\u05d9\u05d5\u05ea' : 'No templates yet'}</p>
+              )}
+              {qrTemplatesLoading && (
+                <div className="flex justify-center py-8"><Loader2 className="w-5 h-5 animate-spin text-[#8E8E93]" /></div>
+              )}
+              {qrTemplates.map((tpl, idx) => (
+                <div key={tpl.id} className="flex items-center gap-3 p-3 rounded-xl border border-black/[0.06] hover:border-black/[0.1] transition-all bg-[#FAFAFA]">
+                  {/* Reorder buttons */}
+                  <div className="flex flex-col gap-0.5 shrink-0">
+                    <button onClick={() => moveTemplate(tpl.id, 'up')} disabled={idx === 0} className="p-0.5 rounded hover:bg-black/[0.06] disabled:opacity-20 transition-all">
+                      <ChevronUp className="w-3 h-3 text-[#8E8E93]" />
+                    </button>
+                    <button onClick={() => moveTemplate(tpl.id, 'down')} disabled={idx === qrTemplates.length - 1} className="p-0.5 rounded hover:bg-black/[0.06] disabled:opacity-20 transition-all">
+                      <ChevronDown className="w-3 h-3 text-[#8E8E93]" />
+                    </button>
+                  </div>
+                  {/* Content */}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[13px] font-semibold text-[#1C1C1E] truncate">{tpl.title}</p>
+                    <p className="text-[11px] text-[#8E8E93] truncate">{tpl.body}</p>
+                    {tpl.category !== 'general' && (
+                      <span className="text-[9px] font-medium px-1.5 py-0.5 rounded bg-black/[0.04] text-[#8E8E93] mt-1 inline-block">{tpl.category}</span>
+                    )}
+                  </div>
+                  {/* Actions */}
+                  <div className="flex items-center gap-1 shrink-0">
+                    <button onClick={() => { setEditingTemplate(tpl); setTemplateDraft({ title: tpl.title, body: tpl.body, category: tpl.category }) }} className="p-1.5 rounded-lg hover:bg-black/[0.06] transition-all">
+                      <Pencil className="w-3.5 h-3.5 text-[#8E8E93]" />
+                    </button>
+                    <button onClick={() => deleteTemplate(tpl.id)} className="p-1.5 rounded-lg hover:bg-[#FF3B30]/10 transition-all">
+                      <Trash2 className="w-3.5 h-3.5 text-[#FF3B30]" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Add/Edit form */}
+            <div className="shrink-0 px-6 py-4 border-t border-black/[0.06] bg-[#FAFAFA] space-y-3">
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-[#8E8E93]">
+                {editingTemplate ? (he ? '\u05e2\u05e8\u05d9\u05db\u05ea \u05ea\u05d1\u05e0\u05d9\u05ea' : 'Edit Template') : (he ? '\u05ea\u05d1\u05e0\u05d9\u05ea \u05d7\u05d3\u05e9\u05d4' : 'New Template')}
+              </p>
+              <input
+                value={templateDraft.title}
+                onChange={e => setTemplateDraft(prev => ({ ...prev, title: e.target.value }))}
+                placeholder={he ? '\u05db\u05d5\u05ea\u05e8\u05ea' : 'Title'}
+                className="w-full h-9 px-3 rounded-xl border border-black/[0.08] text-[13px] outline-none bg-white focus:ring-2 focus:ring-[#fe5b25]/10 transition-all"
+              />
+              <textarea
+                value={templateDraft.body}
+                onChange={e => setTemplateDraft(prev => ({ ...prev, body: e.target.value }))}
+                placeholder={he ? '\u05ea\u05d5\u05db\u05df \u05d4\u05d4\u05d5\u05d3\u05e2\u05d4... \u05d4\u05e9\u05ea\u05de\u05e9 \u05d1-{name} \u05d5-{profession}' : 'Message body... Use {name} and {profession} as variables'}
+                className="w-full h-20 px-3 py-2 rounded-xl border border-black/[0.08] text-[13px] outline-none bg-white focus:ring-2 focus:ring-[#fe5b25]/10 transition-all resize-none"
+              />
+              <div className="flex items-center gap-2">
+                <select
+                  value={templateDraft.category}
+                  onChange={e => setTemplateDraft(prev => ({ ...prev, category: e.target.value }))}
+                  className="h-9 px-3 rounded-xl border border-black/[0.08] text-[12px] outline-none bg-white"
+                >
+                  <option value="general">General</option>
+                  <option value="outreach">Outreach</option>
+                  <option value="followup">Follow-up</option>
+                  <option value="closing">Closing</option>
+                </select>
+                <div className="flex-1" />
+                {editingTemplate && (
+                  <button onClick={() => { setEditingTemplate(null); setTemplateDraft({ title: '', body: '', category: 'general' }) }} className="px-4 h-9 rounded-xl text-[12px] font-semibold border border-black/[0.08] hover:bg-black/[0.03] transition-all">
+                    {he ? '\u05d1\u05d9\u05d8\u05d5\u05dc' : 'Cancel'}
+                  </button>
+                )}
+                <button onClick={saveTemplate} disabled={!templateDraft.title.trim() || !templateDraft.body.trim()} className="px-4 h-9 rounded-xl text-[12px] font-semibold text-white transition-all disabled:opacity-40" style={{ background: C.primary }}>
+                  {editingTemplate ? (he ? '\u05e2\u05d3\u05db\u05df' : 'Update') : (he ? '\u05d4\u05d5\u05e1\u05e3' : 'Add')}
+                </button>
+              </div>
+              <p className="text-[10px] text-[#8E8E93]">{he ? '\u05de\u05e9\u05ea\u05e0\u05d9\u05dd: {name} = \u05e9\u05dd \u05d4\u05dc\u05e7\u05d5\u05d7, {profession} = \u05de\u05e7\u05e6\u05d5\u05e2' : 'Variables: {name} = prospect name, {profession} = their trade'}</p>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
@@ -272,6 +465,86 @@ export default function AdminInbox() {
   const [filterSubStatus, setFilterSubStatus] = useState<string | null>(searchParams.get('sub') || null)
   const [filterCountry, setFilterCountry] = useState<string>('all')
   const [displayLimit, setDisplayLimit] = useState(50)
+  const [sortBy, setSortBy] = useState<'last_activity' | 'followup_date' | 'created_date' | 'name_az' | 'needs_reply'>('last_activity')
+  const [sortMenuOpen, setSortMenuOpen] = useState(false)
+  const [filterProfession, setFilterProfession] = useState<string>('all')
+  const [professionMenuOpen, setProfessionMenuOpen] = useState(false)
+  const [selectedIndex, setSelectedIndex] = useState<number>(0)
+  const [showShortcuts, setShowShortcuts] = useState(false)
+  const searchInputRef = useRef<HTMLInputElement>(null)
+
+  // Bulk selection mode
+  const [selectMode, setSelectMode] = useState(false)
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [bulkStageMenuOpen, setBulkStageMenuOpen] = useState(false)
+  const [bulkAssignMenuOpen, setBulkAssignMenuOpen] = useState(false)
+  const [waAccounts, setWaAccounts] = useState<{ id: string; label: string }[]>([])
+
+  // Quick reply templates from DB
+  const [qrTemplates, setQrTemplates] = useState<QuickReplyTemplate[]>([])
+  const [qrTemplatesLoading, setQrTemplatesLoading] = useState(false)
+  const [showTemplateManager, setShowTemplateManager] = useState(false)
+  const [editingTemplate, setEditingTemplate] = useState<QuickReplyTemplate | null>(null)
+  const [templateDraft, setTemplateDraft] = useState({ title: '', body: '', category: 'general' })
+
+  // Last messages per prospect (for sidebar preview + needs-reply)
+  const [lastMessages, setLastMessages] = useState<Record<string, LastMessageInfo>>({})
+  const [needsReply, setNeedsReply] = useState<Set<string>>(new Set())
+  const [flashProspects, setFlashProspects] = useState<Set<string>>(new Set())
+  const selectedIdRef = useRef<string | undefined>(selectedId)
+  useEffect(() => { selectedIdRef.current = selectedId }, [selectedId])
+
+  // Fetch last messages for all prospects in the list
+  const fetchLastMessages = useCallback(async (prospectIds: string[]) => {
+    if (prospectIds.length === 0) return
+    // Fetch last incoming and last outgoing per prospect in batches
+    const batchSize = 200
+    const allMsgs: Record<string, { lastIn?: { content: string; sent_at: string }; lastOut?: { content: string; sent_at: string }; last?: LastMessageInfo }> = {}
+
+    for (let i = 0; i < prospectIds.length; i += batchSize) {
+      const batch = prospectIds.slice(i, i + batchSize)
+
+      // Get the most recent message per prospect (incoming + outgoing)
+      const { data: msgs } = await supabase
+        .from('prospect_messages')
+        .select('prospect_id, direction, content, sent_at')
+        .in('prospect_id', batch)
+        .order('sent_at', { ascending: false })
+        .limit(batch.length * 4) // Get a few per prospect
+
+      if (msgs) {
+        for (const m of msgs) {
+          if (!allMsgs[m.prospect_id]) allMsgs[m.prospect_id] = {}
+          const entry = allMsgs[m.prospect_id]
+          if (m.direction === 'incoming' && !entry.lastIn) {
+            entry.lastIn = { content: m.content, sent_at: m.sent_at }
+          }
+          if (m.direction === 'outgoing' && !entry.lastOut) {
+            entry.lastOut = { content: m.content, sent_at: m.sent_at }
+          }
+          if (!entry.last) {
+            entry.last = { content: m.content, direction: m.direction as 'incoming' | 'outgoing', sent_at: m.sent_at }
+          }
+        }
+      }
+    }
+
+    const newLastMessages: Record<string, LastMessageInfo> = {}
+    const newNeedsReply = new Set<string>()
+
+    for (const [pid, info] of Object.entries(allMsgs)) {
+      if (info.last) newLastMessages[pid] = info.last
+      // Needs reply: last incoming is newer than last outgoing
+      if (info.lastIn) {
+        if (!info.lastOut || new Date(info.lastIn.sent_at) > new Date(info.lastOut.sent_at)) {
+          newNeedsReply.add(pid)
+        }
+      }
+    }
+
+    setLastMessages(newLastMessages)
+    setNeedsReply(newNeedsReply)
+  }, [])
 
   // Marketing message counter
   const [msgStats, setMsgStats] = useState<{ today: number; week: number; tier: string; limit: number }>({ today: 0, week: 0, tier: 'Unverified', limit: 250 })
@@ -307,6 +580,29 @@ export default function AdminInbox() {
   }, [])
   useEffect(() => { fetchAdmins() }, [fetchAdmins])
   useEffect(() => { fetchMsgStats() }, [fetchMsgStats])
+
+  // Fetch WA accounts for bulk assign
+  useEffect(() => {
+    supabase.from('wa_accounts').select('id, label').then(({ data }) => {
+      if (data) setWaAccounts(data.map((a: any) => ({ id: a.id, label: a.label || a.id })))
+    })
+  }, [])
+
+  // Fetch quick reply templates from DB
+  const fetchTemplates = useCallback(async () => {
+    setQrTemplatesLoading(true)
+    try {
+      const { data, error } = await supabase
+        .from('quick_reply_templates')
+        .select('*')
+        .eq('is_active', true)
+        .order('sort_order', { ascending: true })
+      if (!error && data) setQrTemplates(data as QuickReplyTemplate[])
+    } catch { /* silent */ }
+    finally { setQrTemplatesLoading(false) }
+  }, [])
+  useEffect(() => { fetchTemplates() }, [fetchTemplates])
+
   const isGroupAdmin = (phone: string) => {
     const clean = phone.replace(/[\s\-()whatsapp:+]/g, '')
     return adminPhones.has(clean) || adminPhones.has('+' + clean)
@@ -337,6 +633,77 @@ export default function AdminInbox() {
     isDetailLoading: loading,
     refetchDetail,
   } = useProspectDetailData(selectedId)
+
+  // Fetch last messages when prospect list loads
+  const lastFetchedIdsRef = useRef<string>('')
+  useEffect(() => {
+    if (prospectList.length === 0) return
+    const ids = prospectList.map(p => p.id)
+    const key = ids.slice(0, 20).join(',')
+    if (key === lastFetchedIdsRef.current) return
+    lastFetchedIdsRef.current = key
+    fetchLastMessages(ids)
+  }, [prospectList, fetchLastMessages])
+
+  // Ref to hold prospectList for use inside realtime callback
+  const prospectListRef = useRef(prospectList)
+  useEffect(() => { prospectListRef.current = prospectList }, [prospectList])
+
+  // Global realtime subscription for ALL new incoming messages (notifications)
+  useEffect(() => {
+    const channel = supabase
+      .channel('inbox-global-messages')
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'prospect_messages' },
+        (payload: any) => {
+          const msg = payload.new
+          if (!msg) return
+
+          const pid = msg.prospect_id as string
+
+          // Update last message for sidebar preview
+          setLastMessages(prev => ({
+            ...prev,
+            [pid]: { content: msg.content, direction: msg.direction, sent_at: msg.sent_at },
+          }))
+
+          if (msg.direction === 'outgoing') {
+            // Outgoing message clears needs-reply
+            setNeedsReply(prev => { const n = new Set(prev); n.delete(pid); return n })
+            return
+          }
+
+          // Incoming message — mark as needs reply
+          setNeedsReply(prev => new Set(prev).add(pid))
+
+          // If this is for a different prospect than currently selected, notify
+          if (pid !== selectedIdRef.current) {
+            // Flash the prospect in sidebar
+            setFlashProspects(prev => new Set(prev).add(pid))
+            setTimeout(() => setFlashProspects(prev => { const n = new Set(prev); n.delete(pid); return n }), 3000)
+
+            // Play notification beep
+            playNotificationBeep()
+
+            // Browser notification
+            if (Notification.permission === 'granted') {
+              const name = prospectListRef.current.find(p => p.id === pid)?.display_name || 'New message'
+              const preview = (msg.content || '').substring(0, 80)
+              new Notification(name, { body: preview, icon: '/icon.png', tag: `msg-${pid}` })
+            } else if (Notification.permission === 'default') {
+              Notification.requestPermission()
+            }
+          }
+        },
+      )
+      .subscribe()
+
+    return () => { supabase.removeChannel(channel) }
+  }, []) // stable — uses refs for mutable data
+
+  // Count of prospects needing reply (for badge on filter buttons)
+  const needsReplyCount = useMemo(() => needsReply.size, [needsReply])
 
   // Group membership info for selected prospect
   type GroupMembership = {
@@ -377,10 +744,43 @@ export default function AdminInbox() {
   /* ── Merged timeline ────────────────────────────────────────────── */
   const timeline = useMemo(() => buildTimeline(messages, events), [messages, events])
 
+  /* ── Follow-up queue counts ──────────────────────────────────────── */
+  const todayStr = new Date().toISOString().split('T')[0]
+  const dueTodayCount = useMemo(() => {
+    const today = new Date(todayStr)
+    today.setHours(23, 59, 59, 999)
+    return prospectList.filter(p => p.next_followup_at && new Date(p.next_followup_at) <= today).length
+  }, [prospectList, todayStr])
+  const overdueCount = useMemo(() => {
+    const startOfToday = new Date(todayStr)
+    startOfToday.setHours(0, 0, 0, 0)
+    return prospectList.filter(p => p.next_followup_at && new Date(p.next_followup_at) < startOfToday).length
+  }, [prospectList, todayStr])
+
+  /* ── Unique professions for filter ─────────────────────────────── */
+  const uniqueProfessions = useMemo(() => {
+    const set = new Set<string>()
+    for (const p of prospectList) {
+      for (const t of p.profession_tags) set.add(t)
+    }
+    return Array.from(set).sort()
+  }, [prospectList])
+
   /* ── Filtered list ──────────────────────────────────────────────── */
   const filteredList = useMemo(() => {
     let list = prospectList
-    if (filterStage === 'group_admin') {
+
+    // Follow-up queue filters
+    if (filterStage === 'due_today') {
+      const today = new Date(todayStr)
+      today.setHours(23, 59, 59, 999)
+      list = list.filter(p => p.next_followup_at && new Date(p.next_followup_at) <= today)
+    } else if (filterStage === 'overdue') {
+      const startOfToday = new Date(todayStr)
+      startOfToday.setHours(0, 0, 0, 0)
+      list = list.filter(p => p.next_followup_at && new Date(p.next_followup_at) < startOfToday)
+      list = [...list].sort((a, b) => new Date(a.next_followup_at!).getTime() - new Date(b.next_followup_at!).getTime())
+    } else if (filterStage === 'group_admin') {
       list = list.filter(p => isGroupAdmin(p.phone))
     } else if (filterStage !== 'all') {
       list = list.filter(p => p.stage === filterStage)
@@ -397,10 +797,45 @@ export default function AdminInbox() {
     } else if (filterCountry === 'OTHER') {
       list = list.filter(p => !(p.phone.startsWith('+1') && p.phone.length === 12) && !p.phone.startsWith('+972'))
     }
-    if (!listSearch.trim()) return list
-    const q = listSearch.toLowerCase()
-    return list.filter(p => (p.display_name ?? '').toLowerCase().includes(q) || p.phone.includes(q) || p.profession_tags.some(t => t.toLowerCase().includes(q)))
-  }, [prospectList, listSearch, filterStage, filterSubStatus, filterCountry, adminPhones])
+    // Profession filter
+    if (filterProfession !== 'all') {
+      list = list.filter(p => p.profession_tags.includes(filterProfession))
+    }
+    if (listSearch.trim()) {
+      const q = listSearch.toLowerCase()
+      list = list.filter(p => (p.display_name ?? '').toLowerCase().includes(q) || p.phone.includes(q) || p.profession_tags.some(t => t.toLowerCase().includes(q)))
+    }
+    // Sort (skip for overdue which is pre-sorted)
+    if (filterStage !== 'overdue') {
+      list = [...list].sort((a, b) => {
+        switch (sortBy) {
+          case 'followup_date': {
+            if (!a.next_followup_at && !b.next_followup_at) return 0
+            if (!a.next_followup_at) return 1
+            if (!b.next_followup_at) return -1
+            return new Date(a.next_followup_at).getTime() - new Date(b.next_followup_at).getTime()
+          }
+          case 'created_date':
+            return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+          case 'name_az': {
+            const na = (a.display_name ?? a.phone).toLowerCase()
+            const nb = (b.display_name ?? b.phone).toLowerCase()
+            return na.localeCompare(nb)
+          }
+          case 'needs_reply': {
+            const aNr = needsReply.has(a.id) ? 0 : 1
+            const bNr = needsReply.has(b.id) ? 0 : 1
+            if (aNr !== bNr) return aNr - bNr
+            return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
+          }
+          case 'last_activity':
+          default:
+            return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
+        }
+      })
+    }
+    return list
+  }, [prospectList, listSearch, filterStage, filterSubStatus, filterCountry, filterProfession, sortBy, adminPhones, needsReply, todayStr])
 
   // Reset display limit and sub-status filter when filter changes
   useEffect(() => { setDisplayLimit(50); setFilterSubStatus(null) }, [filterStage, listSearch])
@@ -411,6 +846,171 @@ export default function AdminInbox() {
       setSelectedId(filteredList[0].id)
     }
   }, [filteredList, listLoading, selectedId])
+
+  // Sync selectedIndex when selectedId changes externally
+  useEffect(() => {
+    if (!selectedId) return
+    const idx = filteredList.findIndex(p => p.id === selectedId)
+    if (idx >= 0) setSelectedIndex(idx)
+  }, [selectedId, filteredList])
+
+  /* ── Keyboard navigation ───────────────────────────────────────── */
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      const tag = (e.target as HTMLElement)?.tagName
+      const isInput = tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT'
+      const mod = e.metaKey || e.ctrlKey
+
+      if (mod && e.key === 'f') {
+        e.preventDefault()
+        searchInputRef.current?.focus()
+        return
+      }
+      if (mod && e.key === 'n') {
+        e.preventDefault()
+        if (prospect) {
+          setEditingNotes(true)
+          setNoteDraft(prospect.notes)
+        }
+        return
+      }
+      if (e.key === 'Escape') {
+        if (isInput) {
+          ;(e.target as HTMLElement).blur()
+        } else {
+          setSelectedId(undefined)
+        }
+        return
+      }
+      if (e.key === 'Enter' && !isInput) {
+        e.preventDefault()
+        inputRef.current?.focus()
+        return
+      }
+      if (!isInput && (e.key === 'ArrowUp' || e.key === 'ArrowDown')) {
+        e.preventDefault()
+        setSelectedIndex(prev => {
+          const max = filteredList.length - 1
+          if (max < 0) return 0
+          let next = e.key === 'ArrowDown' ? prev + 1 : prev - 1
+          if (next < 0) next = max
+          if (next > max) next = 0
+          const target = filteredList[next]
+          if (target) setSelectedId(target.id)
+          return next
+        })
+        return
+      }
+    }
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [filteredList, prospect])
+
+  /* ── Bulk Actions ────────────────────────────────────────────────── */
+  function toggleSelect(id: string) {
+    setSelectedIds(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id); else next.add(id)
+      return next
+    })
+  }
+  function toggleSelectAll() {
+    const visible = filteredList.slice(0, displayLimit)
+    if (selectedIds.size === visible.length) {
+      setSelectedIds(new Set())
+    } else {
+      setSelectedIds(new Set(visible.map(p => p.id)))
+    }
+  }
+  async function bulkChangeStage(targetStage: string) {
+    if (selectedIds.size === 0) return
+    setBulkStageMenuOpen(false)
+    let ok = 0
+    for (const pid of selectedIds) {
+      const p = prospectList.find(x => x.id === pid)
+      if (!p || p.stage === targetStage) continue
+      const { error } = await supabase.from('prospects').update({ stage: targetStage, sub_status: null, sub_status_changed_at: null }).eq('id', pid)
+      if (!error) {
+        await supabase.from('prospect_events').insert({ prospect_id: pid, event_type: 'stage_change', old_value: p.stage, new_value: targetStage })
+        ok++
+      }
+    }
+    toast({ title: `Moved ${ok} prospect${ok !== 1 ? 's' : ''} to ${getStage(targetStage).label}` })
+    setSelectedIds(new Set())
+    setSelectMode(false)
+  }
+  async function bulkAssign(waAccountId: string) {
+    if (selectedIds.size === 0) return
+    setBulkAssignMenuOpen(false)
+    let ok = 0
+    for (const pid of selectedIds) {
+      const { error } = await supabase.from('prospects').update({ assigned_wa_account_id: waAccountId }).eq('id', pid)
+      if (!error) ok++
+    }
+    const acct = waAccounts.find(a => a.id === waAccountId)
+    toast({ title: `Assigned ${ok} prospect${ok !== 1 ? 's' : ''} to ${acct?.label || waAccountId}` })
+    setSelectedIds(new Set())
+    setSelectMode(false)
+  }
+  function bulkExportCsv() {
+    const selected = prospectList.filter(p => selectedIds.has(p.id))
+    if (selected.length === 0) return
+    const headers = ['Name', 'Phone', 'Stage', 'Sub Status', 'Professions', 'Groups', 'Last Contact']
+    const rows = selected.map(p => [
+      p.display_name || '', p.phone, p.stage, p.sub_status || '',
+      p.profession_tags.join('; '), (p.group_names || []).join('; '),
+      p.last_contact_at || '',
+    ])
+    const csv = [headers.join(','), ...rows.map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(','))].join('\n')
+    const blob = new Blob([csv], { type: 'text/csv' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url; a.download = `prospects-export-${new Date().toISOString().split('T')[0]}.csv`
+    a.click(); URL.revokeObjectURL(url)
+    toast({ title: `Exported ${selected.length} prospect${selected.length !== 1 ? 's' : ''}` })
+  }
+
+  /* ── Template Management ────────────────────────────────────────── */
+  async function saveTemplate() {
+    if (!templateDraft.title.trim() || !templateDraft.body.trim()) return
+    if (editingTemplate) {
+      const { error } = await supabase.from('quick_reply_templates')
+        .update({ title: templateDraft.title, body: templateDraft.body, category: templateDraft.category, updated_at: new Date().toISOString() })
+        .eq('id', editingTemplate.id)
+      if (error) { toast({ title: 'Save failed', variant: 'destructive' }); return }
+    } else {
+      const maxOrder = qrTemplates.reduce((m, t) => Math.max(m, t.sort_order), -1)
+      const { error } = await supabase.from('quick_reply_templates')
+        .insert({ title: templateDraft.title, body: templateDraft.body, category: templateDraft.category, sort_order: maxOrder + 1 })
+      if (error) { toast({ title: 'Save failed', variant: 'destructive' }); return }
+    }
+    setEditingTemplate(null)
+    setTemplateDraft({ title: '', body: '', category: 'general' })
+    await fetchTemplates()
+  }
+  async function deleteTemplate(id: string) {
+    const { error } = await supabase.from('quick_reply_templates').delete().eq('id', id)
+    if (error) { toast({ title: 'Delete failed', variant: 'destructive' }); return }
+    await fetchTemplates()
+  }
+  async function moveTemplate(id: string, direction: 'up' | 'down') {
+    const idx = qrTemplates.findIndex(t => t.id === id)
+    if (idx < 0) return
+    const swapIdx = direction === 'up' ? idx - 1 : idx + 1
+    if (swapIdx < 0 || swapIdx >= qrTemplates.length) return
+    const a = qrTemplates[idx], b = qrTemplates[swapIdx]
+    await supabase.from('quick_reply_templates').update({ sort_order: b.sort_order }).eq('id', a.id)
+    await supabase.from('quick_reply_templates').update({ sort_order: a.sort_order }).eq('id', b.id)
+    await fetchTemplates()
+  }
+  function resolveTemplateVars(body: string): string {
+    let text = body
+    if (prospect) {
+      text = text.replace(/\{name\}/g, prospect.display_name || prospect.phone)
+      text = text.replace(/\{profession\}/g, prospect.profession_tags?.[0] || 'trade')
+    }
+    return text
+  }
 
   /* ── Actions ────────────────────────────────────────────────────── */
   async function handleSend(text?: string) {
@@ -590,6 +1190,7 @@ export default function AdminInbox() {
             <div className="relative group">
               <Search className="w-3.5 h-3.5 absolute top-1/2 -translate-y-1/2 text-[#8E8E93] transition-colors group-focus-within:text-[#fe5b25]" style={{ left: he ? 'auto' : 10, right: he ? 10 : 'auto' }} strokeWidth={2.5} />
               <input
+                ref={searchInputRef}
                 value={listSearch} onChange={e => setListSearch(e.target.value)}
                 placeholder={he ? 'חיפוש...' : 'Search...'}
                 className="w-[180px] h-9 rounded-2xl border border-black/[0.06] text-[12px] outline-none transition-all bg-white/60 focus:bg-white focus:ring-2 focus:ring-[#fe5b25]/10 focus:border-[#fe5b25]/30"
@@ -604,7 +1205,7 @@ export default function AdminInbox() {
           {STAGES.map((s, idx) => {
             const count = stageCounts[s.key] || 0
             const isActive = filterStage === s.key
-            const isDimmed = filterStage !== 'all' && !isActive && filterStage !== 'group_admin'
+            const isDimmed = filterStage !== 'all' && !isActive && filterStage !== 'group_admin' && filterStage !== 'due_today' && filterStage !== 'overdue'
             return (
               <div key={s.key} className="flex items-center flex-1 min-w-0">
                 {idx > 0 && (
@@ -645,7 +1246,7 @@ export default function AdminInbox() {
               style={{
                 background: filterStage === 'group_admin' ? '#FFFFFF' : 'transparent',
                 boxShadow: filterStage === 'group_admin' ? '0 4px 16px rgba(245,158,11,0.15)' : 'none',
-                opacity: filterStage !== 'all' && filterStage !== 'group_admin' ? 0.35 : 1,
+                opacity: filterStage !== 'all' && filterStage !== 'group_admin' && filterStage !== 'due_today' && filterStage !== 'overdue' ? 0.35 : 1,
               }}
             >
               <div
@@ -662,10 +1263,59 @@ export default function AdminInbox() {
               </span>
             </button>
           </div>
+
+          {/* Follow-up queue filters */}
+          <div className="flex items-center shrink-0">
+            <div className="w-3 h-[1.5px] rounded-full shrink-0 mx-1" style={{ background: 'rgba(0,0,0,0.04)' }} />
+            <button
+              onClick={() => setFilterStage(filterStage === 'due_today' ? 'all' : 'due_today')}
+              className="flex flex-col items-center py-1.5 px-2.5 rounded-xl transition-all cursor-pointer"
+              style={{
+                background: filterStage === 'due_today' ? '#FFFFFF' : 'transparent',
+                boxShadow: filterStage === 'due_today' ? '0 4px 16px rgba(255,149,0,0.15)' : 'none',
+                opacity: filterStage !== 'all' && filterStage !== 'due_today' && filterStage !== 'overdue' && filterStage !== 'group_admin' ? 0.35 : 1,
+              }}
+            >
+              <div
+                className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0 mb-1"
+                style={{ background: filterStage === 'due_today' ? '#FF950015' : 'rgba(0,0,0,0.03)', color: '#FF9500' }}
+              >
+                <CalendarClock className="w-3.5 h-3.5" strokeWidth={2.2} />
+              </div>
+              <span className="text-[15px] font-semibold leading-none" style={{ color: filterStage === 'due_today' ? '#FF9500' : '#1C1C1E' }}>
+                {dueTodayCount}
+              </span>
+              <span className="text-[8px] font-semibold uppercase tracking-wide text-[#8E8E93] mt-0.5 whitespace-nowrap leading-tight">
+                {he ? 'היום' : 'Due Today'}
+              </span>
+            </button>
+            <button
+              onClick={() => setFilterStage(filterStage === 'overdue' ? 'all' : 'overdue')}
+              className="flex flex-col items-center py-1.5 px-2.5 rounded-xl transition-all cursor-pointer"
+              style={{
+                background: filterStage === 'overdue' ? '#FFFFFF' : 'transparent',
+                boxShadow: filterStage === 'overdue' ? '0 4px 16px rgba(255,59,48,0.15)' : 'none',
+                opacity: filterStage !== 'all' && filterStage !== 'due_today' && filterStage !== 'overdue' && filterStage !== 'group_admin' ? 0.35 : 1,
+              }}
+            >
+              <div
+                className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0 mb-1"
+                style={{ background: filterStage === 'overdue' ? '#FF3B3015' : 'rgba(0,0,0,0.03)', color: '#FF3B30' }}
+              >
+                <AlertTriangle className="w-3.5 h-3.5" strokeWidth={2.2} />
+              </div>
+              <span className="text-[15px] font-semibold leading-none" style={{ color: filterStage === 'overdue' ? '#FF3B30' : '#1C1C1E' }}>
+                {overdueCount}
+              </span>
+              <span className="text-[8px] font-semibold uppercase tracking-wide text-[#8E8E93] mt-0.5 whitespace-nowrap leading-tight">
+                {he ? 'באיחור' : 'Overdue'}
+              </span>
+            </button>
+          </div>
         </div>
 
         {/* ── Sub-status row (expands below pipeline when a stage is active) ── */}
-        {filterStage !== 'all' && filterStage !== 'group_admin' && SUB_STATUSES[filterStage] && (
+        {filterStage !== 'all' && filterStage !== 'group_admin' && filterStage !== 'due_today' && filterStage !== 'overdue' && SUB_STATUSES[filterStage] && (
           <div className="px-4 pb-2.5 pt-0 flex items-center justify-center gap-0.5 overflow-x-auto scrollbar-hide border-t border-black/[0.03]">
             {SUB_STATUSES[filterStage]?.map((s, idx) => {
               const count = subStatusCounts[s.key] || 0
@@ -711,11 +1361,16 @@ export default function AdminInbox() {
               >
                 <Users className="w-3.5 h-3.5" strokeWidth={2.2} />
                 <span className="text-[11px] font-black uppercase tracking-[0.12em]">
-                  {filterStage === 'all' ? (he ? 'כל הלקוחות' : 'All Clients') : filterStage !== 'group_admin' ? (he ? getStage(filterStage).he : getStage(filterStage).label) : (he ? 'כל הלקוחות' : 'All')}
+                  {filterStage === 'all' ? (he ? 'כל הלקוחות' : 'All Clients') : filterStage === 'group_admin' ? (he ? 'כל הלקוחות' : 'All') : filterStage === 'due_today' ? (he ? 'היום' : 'Due Today') : filterStage === 'overdue' ? (he ? 'באיחור' : 'Overdue') : (he ? getStage(filterStage).he : getStage(filterStage).label)}
                 </span>
                 <span className="text-[10px] font-bold text-[#8E8E93] bg-black/[0.04] px-1.5 py-0.5 rounded-md">
                   {filterStage === 'group_admin' ? prospectList.length : filteredList.length}
                 </span>
+                {needsReplyCount > 0 && (
+                  <span className="text-[9px] font-bold text-white bg-[#007AFF] px-1.5 py-0.5 rounded-full min-w-[18px] text-center">
+                    {needsReplyCount}
+                  </span>
+                )}
                 {filterStage !== 'group_admin' && (
                   <div className="absolute bottom-0 left-2 right-2 h-[2px] rounded-full bg-[#fe5b25]" />
                 )}
@@ -739,6 +1394,148 @@ export default function AdminInbox() {
             </div>
           </div>
 
+          {/* Select mode bar */}
+          <div className="shrink-0 flex items-center justify-between px-3 py-1.5 border-b border-black/[0.04]">
+            <button
+              onClick={() => { setSelectMode(!selectMode); if (selectMode) setSelectedIds(new Set()) }}
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-semibold transition-all"
+              style={{
+                background: selectMode ? C.primary + '15' : 'transparent',
+                color: selectMode ? C.primary : '#8E8E93',
+              }}
+            >
+              <CheckSquare className="w-3 h-3" strokeWidth={2.5} />
+              {he ? 'בחירה' : 'Select'}
+            </button>
+            {selectMode && (
+              <div className="flex items-center gap-2">
+                <button onClick={toggleSelectAll} className="text-[10px] font-semibold text-[#007AFF] hover:underline">
+                  {selectedIds.size === filteredList.slice(0, displayLimit).length ? (he ? 'נקה הכל' : 'Deselect All') : (he ? 'בחר הכל' : 'Select All')}
+                </button>
+                {selectedIds.size > 0 && (
+                  <span className="text-[10px] font-bold text-[#8E8E93] bg-black/[0.04] px-1.5 py-0.5 rounded-md">
+                    {selectedIds.size}
+                  </span>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Sort + Profession Filter + Keyboard Shortcuts */}
+          <div className="shrink-0 px-3 pt-2 pb-1 flex items-center gap-2 border-b border-black/[0.04]">
+            {/* Sort dropdown */}
+            <div className="relative">
+              <button
+                onClick={() => setSortMenuOpen(!sortMenuOpen)}
+                className="flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-semibold transition-all hover:bg-black/[0.04]"
+                style={{ color: sortBy !== 'last_activity' ? C.primary : '#8E8E93' }}
+              >
+                <ArrowUpDown className="w-3 h-3" strokeWidth={2.5} />
+                <span>{
+                  sortBy === 'last_activity' ? (he ? 'פעילות' : 'Activity') :
+                  sortBy === 'followup_date' ? (he ? 'מעקב' : 'Follow-up') :
+                  sortBy === 'created_date' ? (he ? 'נוצר' : 'Created') :
+                  sortBy === 'name_az' ? (he ? 'שם' : 'Name') :
+                  he ? 'צריך מענה' : 'Needs Reply'
+                }</span>
+                <ChevronDown className={`w-2.5 h-2.5 transition-transform ${sortMenuOpen ? 'rotate-180' : ''}`} />
+              </button>
+              {sortMenuOpen && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setSortMenuOpen(false)} />
+                  <div className="absolute top-full mt-1 z-50 w-[160px] rounded-lg border border-black/[0.08] shadow-lg bg-white py-1" style={{ left: 0 }}>
+                    {([
+                      { key: 'last_activity', label: he ? 'פעילות אחרונה' : 'Last Activity' },
+                      { key: 'followup_date', label: he ? 'תאריך מעקב' : 'Follow-up Date' },
+                      { key: 'created_date', label: he ? 'תאריך יצירה' : 'Created Date' },
+                      { key: 'name_az', label: he ? 'שם א-ת' : 'Name A-Z' },
+                      { key: 'needs_reply', label: he ? 'צריך מענה' : 'Needs Reply First' },
+                    ] as const).map(opt => (
+                      <button
+                        key={opt.key}
+                        onClick={() => { setSortBy(opt.key); setSortMenuOpen(false) }}
+                        className="flex items-center gap-2 w-full px-3 py-1.5 text-[11px] font-medium hover:bg-[#f5f5f5] transition-colors"
+                        style={{ color: sortBy === opt.key ? C.primary : C.gray }}
+                      >
+                        {opt.label}
+                        {sortBy === opt.key && <Check className="w-3 h-3 ml-auto" style={{ color: C.primary }} />}
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* Profession filter */}
+            <div className="relative">
+              <button
+                onClick={() => setProfessionMenuOpen(!professionMenuOpen)}
+                className="flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-semibold transition-all hover:bg-black/[0.04]"
+                style={{ color: filterProfession !== 'all' ? C.primary : '#8E8E93' }}
+              >
+                <Briefcase className="w-3 h-3" strokeWidth={2.5} />
+                <span className="max-w-[60px] truncate">{filterProfession === 'all' ? (he ? 'מקצוע' : 'Trade') : filterProfession}</span>
+                <ChevronDown className={`w-2.5 h-2.5 transition-transform ${professionMenuOpen ? 'rotate-180' : ''}`} />
+              </button>
+              {professionMenuOpen && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setProfessionMenuOpen(false)} />
+                  <div className="absolute top-full mt-1 z-50 w-[180px] max-h-[280px] overflow-y-auto rounded-lg border border-black/[0.08] shadow-lg bg-white py-1 scrollbar-hide" style={{ left: 0 }}>
+                    <button
+                      onClick={() => { setFilterProfession('all'); setProfessionMenuOpen(false) }}
+                      className="flex items-center gap-2 w-full px-3 py-1.5 text-[11px] font-medium hover:bg-[#f5f5f5] transition-colors"
+                      style={{ color: filterProfession === 'all' ? C.primary : C.gray }}
+                    >
+                      {he ? 'כל המקצועות' : 'All Professions'}
+                      {filterProfession === 'all' && <Check className="w-3 h-3 ml-auto" style={{ color: C.primary }} />}
+                    </button>
+                    {uniqueProfessions.map(prof => (
+                      <button
+                        key={prof}
+                        onClick={() => { setFilterProfession(prof); setProfessionMenuOpen(false) }}
+                        className="flex items-center gap-2 w-full px-3 py-1.5 text-[11px] font-medium hover:bg-[#f5f5f5] transition-colors truncate"
+                        style={{ color: filterProfession === prof ? C.primary : C.gray }}
+                      >
+                        <span className="truncate">{prof}</span>
+                        {filterProfession === prof && <Check className="w-3 h-3 ml-auto shrink-0" style={{ color: C.primary }} />}
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+
+            <div className="flex-1" />
+
+            {/* Keyboard shortcuts hint */}
+            <div className="relative">
+              <button
+                onMouseEnter={() => setShowShortcuts(true)}
+                onMouseLeave={() => setShowShortcuts(false)}
+                className="w-5 h-5 rounded flex items-center justify-center text-[#C7C7CC] hover:text-[#8E8E93] transition-colors"
+              >
+                <HelpCircle className="w-3.5 h-3.5" strokeWidth={2} />
+              </button>
+              {showShortcuts && (
+                <div className="absolute top-full right-0 mt-1 z-50 w-[200px] rounded-lg border border-black/[0.08] shadow-lg bg-white p-3 space-y-1.5">
+                  <div className="text-[10px] font-bold text-[#1C1C1E] uppercase tracking-wider mb-2">{he ? 'קיצורי מקלדת' : 'Keyboard Shortcuts'}</div>
+                  {[
+                    { keys: '↑ ↓', desc: he ? 'ניווט ברשימה' : 'Navigate list' },
+                    { keys: 'Enter', desc: he ? 'התמקד בעורך' : 'Focus composer' },
+                    { keys: 'Esc', desc: he ? 'ביטול / טשטוש' : 'Deselect / blur' },
+                    { keys: '⌘/Ctrl+N', desc: he ? 'הוסף הערה' : 'Add note' },
+                    { keys: '⌘/Ctrl+F', desc: he ? 'חיפוש' : 'Search' },
+                  ].map(s => (
+                    <div key={s.keys} className="flex items-center justify-between">
+                      <span className="text-[10px] font-mono font-semibold text-[#8E8E93] bg-black/[0.04] px-1.5 py-0.5 rounded">{s.keys}</span>
+                      <span className="text-[10px] text-[#8E8E93]">{s.desc}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
           {/* List */}
           <div className="flex-1 overflow-y-auto p-3 space-y-2 scrollbar-hide">
             {listLoading ? (
@@ -749,14 +1546,29 @@ export default function AdminInbox() {
               {filteredList.slice(0, displayLimit).map((p, idx) => {
               const isActive = p.id === selectedId
               const s = getStage(p.stage)
+              const hasUnread = needsReply.has(p.id)
+              const isFlashing = flashProspects.has(p.id)
+              const lastMsg = lastMessages[p.id]
+              const previewText = lastMsg
+                ? (lastMsg.content || '').substring(0, 50) + ((lastMsg.content || '').length > 50 ? '...' : '')
+                : (he ? getStage(p.stage).he : getStage(p.stage).label)
               return (
                 <button
                   key={`${p.id}-${idx}`}
-                  onClick={() => setSelectedId(p.id)}
-                  className={`w-full flex items-center gap-3 p-3 text-left transition-all rounded-2xl relative overflow-hidden group ${isActive ? 'bg-white shadow-md ring-2 ring-[#fe5b25]/15' : 'hover:bg-white/60 hover:shadow-sm hover:-translate-y-[1px] active:scale-[0.98]'}`}
-                  style={{ direction: he ? 'rtl' : 'ltr' }}
+                  onClick={() => selectMode ? toggleSelect(p.id) : setSelectedId(p.id)}
+                  className={`w-full flex items-center gap-3 p-3 text-left transition-all rounded-2xl relative overflow-hidden group ${selectedIds.has(p.id) ? 'bg-[#007AFF]/[0.06] ring-1 ring-[#007AFF]/20' : isActive ? 'bg-white shadow-md ring-2 ring-[#fe5b25]/15' : isFlashing ? 'bg-[#007AFF]/[0.06] shadow-sm ring-1 ring-[#007AFF]/20' : 'hover:bg-white/60 hover:shadow-sm hover:-translate-y-[1px] active:scale-[0.98]'}`}
+                  style={{ direction: he ? 'rtl' : 'ltr', animation: isFlashing ? 'pulse 1.5s ease-in-out infinite' : undefined }}
                 >
-                  {isActive && <div className="absolute top-0 bottom-0 w-1.5 bg-[#fe5b25] shadow-[0_0_10px_rgba(0,74,255,0.3)]" style={{ [he ? 'right' : 'left']: 0 }} />}
+                  {isActive && !selectMode && <div className="absolute top-0 bottom-0 w-1.5 bg-[#fe5b25] shadow-[0_0_10px_rgba(0,74,255,0.3)]" style={{ [he ? 'right' : 'left']: 0 }} />}
+                  {selectMode && (
+                    <div className="shrink-0">
+                      {selectedIds.has(p.id) ? (
+                        <CheckSquare className="w-5 h-5 text-[#007AFF]" strokeWidth={2.5} />
+                      ) : (
+                        <Square className="w-5 h-5 text-[#C7C7CC]" strokeWidth={2} />
+                      )}
+                    </div>
+                  )}
                   <div className="relative">
                     <Avatar src={p.profile_pic_url} name={pName(p)} waId={p.phone} size={48} />
                     {isGroupAdmin(p.phone) && (
@@ -768,15 +1580,23 @@ export default function AdminInbox() {
                   <div className="flex-1 min-w-0 flex flex-col justify-center">
                     <div className="flex items-center justify-between mb-0.5">
                       <div className="flex items-center gap-1.5 min-w-0">
-                        <span className="text-[16px] font-semibold truncate text-[#1C1C1E]">{pName(p)}</span>
+                        <span className={`text-[16px] truncate ${hasUnread ? 'font-bold text-[#1C1C1E]' : 'font-semibold text-[#1C1C1E]'}`}>{pName(p)}</span>
                         {isGroupAdmin(p.phone) && (
                           <span className="text-[8px] px-1.5 py-0.5 rounded-md font-black uppercase tracking-wider bg-amber-100 text-amber-600 shrink-0">Admin</span>
                         )}
+                        {hasUnread && (
+                          <span className="w-2.5 h-2.5 rounded-full bg-[#007AFF] shrink-0 shadow-[0_0_6px_rgba(0,122,255,0.4)]" />
+                        )}
                       </div>
-                      <span className={`text-[10px] font-bold shrink-0 ml-2 uppercase tracking-tight ${isActive ? 'text-[#fe5b25]' : 'text-[#8E8E93]'}`}>
-                        {p.last_contact_at ? fmtDate(p.last_contact_at) : ''}
+                      <span className={`text-[10px] font-bold shrink-0 ml-2 tracking-tight ${isActive ? 'text-[#fe5b25]' : 'text-[#8E8E93]'}`}>
+                        {lastMsg ? timeAgo(lastMsg.sent_at) : (p.last_contact_at ? timeAgo(p.last_contact_at) : '')}
                       </span>
                     </div>
+                    {/* Message preview */}
+                    <p className={`text-[12px] truncate mb-0.5 ${hasUnread ? 'font-semibold text-[#1C1C1E]' : 'font-normal text-[#8E8E93]'}`}>
+                      {lastMsg?.direction === 'outgoing' && <span className="text-[#8E8E93]">{he ? 'אתה: ' : 'You: '}</span>}
+                      {previewText}
+                    </p>
                     <div className="flex items-center gap-2 mt-0.5">
                       <div className="flex items-center gap-1.5 bg-black/[0.03] px-2 py-0.5 rounded-lg">
                         <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: s.color }} />
@@ -830,12 +1650,10 @@ export default function AdminInbox() {
             <div className="shrink-0 flex items-center gap-4 px-6 h-[72px] z-10 rounded-t-3xl" style={{ background: 'rgba(255,255,255,0.9)', backdropFilter: 'blur(24px)', borderBottom: `1px solid ${C.glassBorder}` }}>
               <div className="relative">
                 <Avatar src={prospect.profile_pic_url} name={pName(prospect)} waId={prospect.wa_id || prospect.phone} size={48} />
-                {isGroupAdmin(prospect.phone) ? (
+                {isGroupAdmin(prospect.phone) && (
                   <div className="absolute -bottom-0.5 -right-0.5 w-5 h-5 rounded-full bg-amber-400 border-2 border-white shadow-sm flex items-center justify-center">
                     <Crown className="w-3 h-3 text-white" strokeWidth={2.5} />
                   </div>
-                ) : (
-                  <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-[#34C759] border-2 border-white shadow-sm" />
                 )}
               </div>
               <div className="flex-1 min-w-0">
@@ -852,7 +1670,9 @@ export default function AdminInbox() {
                 )}
                 <div className="flex items-center gap-2 mt-0.5">
                   <span className="text-[12px] font-bold text-[#8E8E93] tracking-tight">{prospect.phone}</span>
-                  <span className="text-[10px] font-black text-[#34C759] uppercase tracking-widest bg-[#34C759]/10 px-1.5 py-0.5 rounded-md">{he ? 'מחובר' : 'Online'}</span>
+                  <span className="text-[10px] font-semibold text-[#8E8E93] tracking-wide bg-black/[0.03] px-1.5 py-0.5 rounded-md">
+                    {prospect.updated_at ? (he ? `נראה ${timeAgo(prospect.updated_at)}` : `Last seen ${timeAgo(prospect.updated_at)}`) : (he ? 'לא ידוע' : 'Unknown')}
+                  </span>
                   {isGroupAdmin(prospect.phone) && (
                     <span className="text-[10px] font-black text-amber-600 uppercase tracking-widest bg-amber-100 px-1.5 py-0.5 rounded-md flex items-center gap-1">
                       <Crown className="w-3 h-3" strokeWidth={2.5} />
@@ -953,14 +1773,19 @@ export default function AdminInbox() {
           {showQR && prospect && (
             <div className="shrink-0 px-8 py-6 absolute bottom-[88px] left-0 right-0 z-20 rounded-3xl mx-3 mb-1" style={{ background: 'rgba(255,255,255,0.9)', backdropFilter: 'blur(24px)', border: `1px solid ${C.glassBorder}`, boxShadow: C.panelShadow }}>
               <div className="flex items-center justify-between mb-4">
-                <span className="text-[11px] font-black uppercase tracking-[0.2em] text-[#8E8E93]">{he ? 'תבניות מהירות' : 'Quick Templates'}</span>
+                <div className="flex items-center gap-2">
+                  <span className="text-[11px] font-black uppercase tracking-[0.2em] text-[#8E8E93]">{he ? 'תבניות מהירות' : 'Quick Templates'}</span>
+                  <button onClick={() => { setShowQR(false); setShowTemplateManager(true) }} className="p-1 rounded-lg hover:bg-black/[0.06] transition-colors" title={he ? 'נהל תבניות' : 'Manage Templates'}>
+                    <Settings className="w-3.5 h-3.5 text-[#8E8E93]" />
+                  </button>
+                </div>
                 <button onClick={() => setShowQR(false)} className="p-2 rounded-xl bg-black/[0.03] hover:bg-black/[0.06] transition-colors"><X className="w-4 h-4 text-[#1C1C1E]" /></button>
               </div>
               <div className="grid grid-cols-2 gap-3">
-                {QUICK_REPLIES.map(qr => (
-                  <button key={qr.key} onClick={() => { setNewMessage(he ? qr.he : qr.en); setShowQR(false); inputRef.current?.focus() }} className="text-start px-5 py-4 rounded-[24px] bg-white border border-black/[0.02] shadow-sm hover:shadow-md hover:scale-[1.02] active:scale-[0.98] transition-all">
-                    <span className="font-bold block mb-1 text-[#1C1C1E] text-[15px]">{he ? qr.he_label : qr.label}</span>
-                    <span className="line-clamp-1 text-[13px] text-[#8E8E93] font-medium">{he ? qr.he : qr.en}</span>
+                {(qrTemplates.length > 0 ? qrTemplates : QUICK_REPLIES_FALLBACK.map((qr, i) => ({ id: qr.key, title: qr.label, body: qr.body, category: 'general', is_active: true, sort_order: i }))).map(tpl => (
+                  <button key={tpl.id} onClick={() => { setNewMessage(resolveTemplateVars(tpl.body)); setShowQR(false); inputRef.current?.focus() }} className="text-start px-5 py-4 rounded-[24px] bg-white border border-black/[0.02] shadow-sm hover:shadow-md hover:scale-[1.02] active:scale-[0.98] transition-all">
+                    <span className="font-bold block mb-1 text-[#1C1C1E] text-[15px]">{tpl.title}</span>
+                    <span className="line-clamp-1 text-[13px] text-[#8E8E93] font-medium">{tpl.body}</span>
                   </button>
                 ))}
               </div>

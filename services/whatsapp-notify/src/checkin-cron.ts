@@ -3,15 +3,20 @@ import { createClient } from '@supabase/supabase-js';
 import type { Logger } from 'pino';
 import { config } from './config.js';
 import { sendText } from './interactive.js';
+import { sendContentTemplate } from './whatsapp-client.js';
 
 const supabase = createClient(config.supabase.url, config.supabase.serviceKey);
 
 /**
- * Daily check-in: sends availability message to WA-enabled contractors.
- * - Only on their selected working days
- * - Only to active subscribers
- * - Includes yesterday's lead count for motivation
- * - Buttons: "I'm available" / "Off today"
+ * Daily check-in: Push-first morning activation.
+ *
+ * Strategy:
+ *   1. Push notification to ALL contractors (free, always arrives)
+ *   2. WA free-form if window is open (free)
+ *   3. Utility Template if window is closed AND leads exist ($0.004)
+ *
+ * Does NOT reset wa_window_until — preserves valid windows from yesterday.
+ * Only resets available_today so contractor must confirm daily.
  */
 export function startCheckinCron(log: Logger): cron.ScheduledTask {
   log.info(
@@ -41,30 +46,30 @@ export function startCheckinCron(log: Logger): cron.ScheduledTask {
         await supabase.rpc('cleanup_expired_magic_tokens');
       } catch (_) { /* non-critical */ }
 
-      const today = new Date().getDay(); // 0=Sun, 1=Mon, ..., 6=Sat
+      const today = new Date().getDay();
+      const now = new Date();
 
-      // Reset all contractors' availability from yesterday
+      // Reset available_today only — do NOT clear wa_window_until
       await supabase
         .from('contractors')
-        .update({ available_today: false, wa_window_until: null })
+        .update({ available_today: false })
         .eq('wa_notify', true);
 
-      // Fetch WA-enabled contractors with active subscriptions
-      // who work today (working_days contains today's day number)
-      // Filter out expired trials (current_period_end in the past)
+      // Fetch contractors with active subscriptions who work today
       const { data: contractors, error } = await supabase
         .from('contractors')
         .select(`
           user_id,
           working_days,
           zip_codes,
+          wa_window_until,
           profiles!inner(full_name, whatsapp_phone),
           subscriptions!inner(status, current_period_end)
         `)
         .eq('is_active', true)
         .eq('wa_notify', true)
         .in('subscriptions.status', ['active', 'trialing'])
-        .gte('subscriptions.current_period_end', new Date().toISOString())
+        .gte('subscriptions.current_period_end', now.toISOString())
         .not('profiles.whatsapp_phone', 'is', null)
         .contains('working_days', [today]);
 
@@ -74,20 +79,30 @@ export function startCheckinCron(log: Logger): cron.ScheduledTask {
       }
 
       if (!contractors || contractors.length === 0) {
-        log.info({ today }, 'No WA-enabled contractors found for today');
+        log.info({ today }, 'No contractors found for today');
         return;
       }
 
-      log.info({ count: contractors.length, dayOfWeek: today }, 'Sending check-in messages');
+      log.info({ count: contractors.length, dayOfWeek: today }, 'Sending morning activation');
 
-      // Get yesterday's date range for lead count queries
+      // Yesterday's date range for lead counts
       const yesterday = new Date();
       yesterday.setDate(yesterday.getDate() - 1);
       yesterday.setHours(0, 0, 0, 0);
       const todayStart = new Date();
       todayStart.setHours(0, 0, 0, 0);
 
-      let sent = 0;
+      // Fetch push subscriptions for all contractors
+      const userIds = contractors.map((c) => c.user_id);
+      const { data: pushSubs } = await supabase
+        .from('push_subscriptions')
+        .select('user_id')
+        .in('user_id', userIds);
+      const contractorsWithPush = new Set((pushSubs ?? []).map((s: any) => s.user_id));
+
+      let pushSent = 0;
+      let freeFormSent = 0;
+      let templateSent = 0;
       let failed = 0;
 
       for (const contractor of contractors) {
@@ -95,13 +110,11 @@ export function startCheckinCron(log: Logger): cron.ScheduledTask {
           full_name: string;
           whatsapp_phone: string;
         };
+        const firstName = profile.full_name?.split(' ')[0] || 'Hey';
 
-        const firstName = profile.full_name.split(' ')[0];
-
-        // Count yesterday's leads filtered by contractor's service areas (zip_codes)
+        // Count yesterday's leads in contractor's areas
         const contractorZips = (contractor as any).zip_codes as string[] | null;
         let leadCount = 0;
-
         if (contractorZips && contractorZips.length > 0) {
           const { count } = await supabase
             .from('leads')
@@ -112,36 +125,78 @@ export function startCheckinCron(log: Logger): cron.ScheduledTask {
           leadCount = count ?? 0;
         }
 
-        const leadLine = leadCount > 0
-          ? `🔥 ${leadCount} new leads in your area yesterday.`
-          : `Ready for today's leads?`;
-
-        const message = [
-          `☀️ Good morning ${firstName}!`,
-          leadLine,
-          '',
-          `Reply:`,
-          `1️⃣ ✅ I'm available`,
-          `2️⃣ ❌ Off today`,
-        ].join('\n');
-
-        const result = await sendText(profile.whatsapp_phone, message, log);
-
-        if (result.success) {
-          sent++;
-        } else {
-          failed++;
-          log.warn(
-            { contractorId: contractor.user_id, error: result.error },
-            'Failed to send check-in',
-          );
+        // ── Step 1: Push notification (always, free) ──
+        if (contractorsWithPush.has(contractor.user_id)) {
+          try {
+            await supabase.functions.invoke('test-push', {
+              body: {
+                user_id: contractor.user_id,
+                title: leadCount > 0
+                  ? `${leadCount} leads matched your area`
+                  : 'Good morning!',
+                body: leadCount > 0
+                  ? 'Tap to go available and receive them'
+                  : 'We\'re scanning for leads in your area',
+              },
+            });
+            pushSent++;
+          } catch (err) {
+            log.warn({ contractorId: contractor.user_id, err }, 'Push check-in failed');
+          }
         }
 
-        // Small delay to respect rate limits
+        // ── Step 2: WA channel ──
+        const windowOpen = contractor.wa_window_until
+          && new Date(contractor.wa_window_until) > now;
+
+        if (windowOpen) {
+          // Window open → free-form (free)
+          const leadLine = leadCount > 0
+            ? `${leadCount} new leads in your area yesterday.`
+            : 'Ready for today\'s leads?';
+          const message = [
+            `Good morning ${firstName}!`,
+            leadLine,
+            '',
+            'Reply:',
+            '1 - I\'m available',
+            '2 - Off today',
+          ].join('\n');
+
+          const result = await sendText(profile.whatsapp_phone, message, log);
+          if (result.success) freeFormSent++;
+          else failed++;
+
+        } else if (leadCount > 0) {
+          // Window closed + leads exist → Utility Template ($0.004)
+          const contentSid = config.contentTemplates.accountStatusCheckin;
+          if (contentSid) {
+            const result = await sendContentTemplate(
+              profile.whatsapp_phone,
+              contentSid,
+              {
+                '1': String(leadCount),
+                '2': (contractorZips?.slice(0, 3).join(', ') || 'your area'),
+                '3': 'your service area',
+              },
+              log,
+            );
+            if (result.success) templateSent++;
+            else {
+              failed++;
+              log.warn({ contractorId: contractor.user_id, error: result.error }, 'Utility template failed');
+            }
+          }
+        }
+        // else: window closed + no leads → Push only (already sent above)
+
         await sleep(50);
       }
 
-      log.info({ sent, failed, total: contractors.length }, 'Daily check-in completed');
+      log.info(
+        { pushSent, freeFormSent, templateSent, failed, total: contractors.length },
+        'Morning activation completed',
+      );
     },
     { timezone: config.cron.timezone },
   );

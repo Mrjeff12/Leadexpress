@@ -924,6 +924,16 @@ async function handlePatchGroupScanStatus(req: http.IncomingMessage, res: http.S
       return;
     }
 
+    // Notify contractor when status changes to a terminal state
+    if (data?.invite_code && ['joined', 'failed', 'blocked_private'].includes(status)) {
+      try {
+        const { notifyContractorOfGroupStatus } = await import('./scanner.js');
+        await notifyContractorOfGroupStatus(data.invite_code, status as 'joined' | 'failed' | 'blocked_private', data.group_name);
+      } catch (err) {
+        logger.warn({ err }, 'Failed to notify contractor of status change');
+      }
+    }
+
     jsonResponse(res, 200, data);
   } catch (err) {
     logger.error({ err }, 'Error in handlePatchGroupScanStatus');
@@ -1127,6 +1137,41 @@ export async function startAPI(port = 3001): Promise<void> {
       // POST /api/group-scan/admin-links
       if (pathname === '/api/group-scan/admin-links' && req.method === 'POST') {
         await handlePostAdminLink(req, res, user);
+        return;
+      }
+
+      // POST /api/group-scan/:id/dispatch — Send single pending group to scanner phone
+      const groupScanDispatchMatch = pathname.match(/^\/api\/group-scan\/([^/]+)\/dispatch$/);
+      if (groupScanDispatchMatch && req.method === 'POST') {
+        if (user?.role !== 'admin') {
+          jsonResponse(res, 403, { error: 'Admin access required' });
+          return;
+        }
+        try {
+          const { sendGroupLinkToScanner } = await import('./scanner.js');
+          const ok = await sendGroupLinkToScanner(groupScanDispatchMatch[1]);
+          jsonResponse(res, ok ? 200 : 500, { success: ok });
+        } catch (err) {
+          logger.error({ err }, 'Error dispatching group to scanner');
+          jsonResponse(res, 500, { error: 'Internal server error' });
+        }
+        return;
+      }
+
+      // POST /api/group-scan/dispatch-all — Dispatch all pending groups
+      if (pathname === '/api/group-scan/dispatch-all' && req.method === 'POST') {
+        if (user?.role !== 'admin') {
+          jsonResponse(res, 403, { error: 'Admin access required' });
+          return;
+        }
+        try {
+          const { dispatchPendingGroups } = await import('./scanner.js');
+          const dispatched = await dispatchPendingGroups();
+          jsonResponse(res, 200, { dispatched });
+        } catch (err) {
+          logger.error({ err }, 'Error dispatching all pending groups');
+          jsonResponse(res, 500, { error: 'Internal server error' });
+        }
         return;
       }
 

@@ -57,7 +57,9 @@ export interface ProspectListItem {
   stage: string
   profession_tags: string[]
   updated_at: string
+  created_at: string
   last_contact_at: string | null
+  next_followup_at: string | null
   profile_pic_url: string | null
   group_names?: string[]
   onboarding_step?: string
@@ -92,7 +94,9 @@ function toListItem(p: ProspectRecord): ProspectListItem {
     stage: p.stage,
     profession_tags: p.profession_tags,
     updated_at: p.updated_at,
+    created_at: p.created_at,
     last_contact_at: p.last_contact_at,
+    next_followup_at: p.next_followup_at,
     profile_pic_url: p.profile_pic_url,
     group_names: p.group_names,
     onboarding_step: p.onboarding_step,
@@ -179,7 +183,6 @@ export function useProspectDetailData(id: string | undefined) {
         .from('prospect_messages')
         .select('*')
         .eq('prospect_id', id)
-        .eq('channel', 'twilio')
         .order('sent_at', { ascending: true })
       if (error) throw error
       return (data ?? []) as Message[]

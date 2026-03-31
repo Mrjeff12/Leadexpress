@@ -122,18 +122,34 @@ Deno.serve(async (_req) => {
         .in("status", ["active", "trialing"]);
       const activeSubSet = new Set((activeSubs ?? []).map((s) => s.user_id));
 
+      // Check which contractors have real matched leads (only send template if there's value)
+      const { data: recentLeadCounts } = await supabase.rpc('count_matched_leads_by_contractor', {
+        contractor_ids: userIds,
+        since_hours: 24,
+      }).catch(() => ({ data: null }));
+      const leadCountMap = new Map<string, number>();
+      for (const row of recentLeadCounts ?? []) {
+        leadCountMap.set(row.contractor_id, row.count);
+      }
+
+      const ACCOUNT_STATUS_TEMPLATE = Deno.env.get("TWILIO_CONTENT_ACCOUNT_STATUS") || "HX6fab64f5e7365e174e2047a664fa406c";
+
       for (const profile of profiles ?? []) {
         if (!profile.whatsapp_phone) continue;
         if (!activeSubSet.has(profile.id)) continue;
 
-        const firstName = (profile.full_name || "").split(" ")[0] || "there";
-        const body = `Hey ${firstName}! 👋 You missed leads today on MasterLeadFlow.\n\nTap to reconnect with Rebeca and see what's waiting: https://wa.me/${REBECA_PHONE}?text=${encodeURIComponent("👋")}`;
+        const matchedLeads = leadCountMap.get(profile.id) ?? 0;
+        // Only send template if there are real leads — don't waste quality score
+        if (matchedLeads === 0) continue;
 
-        // Send as free-form (Twilio will auto-route to template if outside window)
-        const sent = await sendWhatsApp(profile.whatsapp_phone, body);
+        // Send Utility Template (works on US numbers, $0.004)
+        const sent = await sendContentTemplate(
+          profile.whatsapp_phone,
+          ACCOUNT_STATUS_TEMPLATE,
+          { '1': String(matchedLeads), '2': 'your trades', '3': 'your service area' },
+        );
         if (sent) {
           stage2Sent++;
-          // Record throttle
           await supabase.from("reconnect_throttle").upsert(
             { contractor_id: profile.id, channel: "whatsapp_template", sent_at: now.toISOString() },
             { onConflict: "contractor_id,channel" }
@@ -186,6 +202,51 @@ async function sendWhatsApp(to: string, body: string): Promise<boolean> {
     return false;
   } catch (err) {
     console.error(`Twilio error for ${phone}:`, err);
+    return false;
+  }
+}
+
+// ── Send Content Template via Twilio (bypasses 24h window) ──
+async function sendContentTemplate(
+  to: string,
+  contentSid: string,
+  variables: Record<string, string>,
+): Promise<boolean> {
+  if (!TWILIO_SID || !TWILIO_FROM) {
+    console.error("Twilio not configured");
+    return false;
+  }
+
+  const phone = to.startsWith("+") ? to : `+${to}`;
+  const toWa = `whatsapp:${phone}`;
+
+  const form = new URLSearchParams({
+    From: TWILIO_FROM,
+    To: toWa,
+    ContentSid: contentSid,
+    ContentVariables: JSON.stringify(variables),
+  });
+
+  try {
+    const res = await fetch(
+      `https://api.twilio.com/2010-04-01/Accounts/${TWILIO_SID}/Messages.json`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+          Authorization: "Basic " + btoa(`${TWILIO_SID}:${TWILIO_TOKEN}`),
+        },
+        body: form.toString(),
+      }
+    );
+
+    if (res.ok) return true;
+
+    const data = await res.json();
+    console.error(`Twilio template failed for ${phone}:`, data.message || res.status);
+    return false;
+  } catch (err) {
+    console.error(`Twilio template error for ${phone}:`, err);
     return false;
   }
 }

@@ -1,41 +1,110 @@
-import { useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useI18n } from '../../lib/i18n'
-import { Settings, Globe, Bell, Key, Clock, Save, Check } from 'lucide-react'
+import { supabase } from '../../lib/supabase'
+import { Settings, Globe, Bell, Key, Clock, Save, Check, Loader2, AlertCircle, X } from 'lucide-react'
 
 export default function SystemSettings() {
   const { locale } = useI18n()
   const he = locale === 'he'
 
-  /* ── General ── */
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  /* -- General -- */
   const [businessName, setBusinessName] = useState('MasterLeadFlow')
   const [defaultLang, setDefaultLang] = useState<'en' | 'he'>('en')
 
-  /* ── Notifications ── */
+  /* -- Notifications -- */
   const [emailNotif, setEmailNotif] = useState(true)
   const [whatsappNotif, setWhatsappNotif] = useState(true)
   const [telegramNotif, setTelegramNotif] = useState(true)
   const [smsNotif, setSmsNotif] = useState(false)
 
-  /* ── Timezone ── */
-  const [timezone, setTimezone] = useState('Asia/Jerusalem')
+  /* -- Timezone -- */
+  const [timezone, setTimezone] = useState('America/New_York')
 
-  /* ── Save state ── */
+  /* -- Save state -- */
   const [saved, setSaved] = useState(false)
+  const [saving, setSaving] = useState(false)
 
-  function handleSave() {
+  /* -- Load settings from DB -- */
+  const fetchSettings = useCallback(async () => {
+    setLoading(true)
+    setError(null)
+    const { data, error: err } = await supabase
+      .from('system_settings')
+      .select('key, value')
+    if (err) {
+      setError(err.message)
+      setLoading(false)
+      return
+    }
+    if (data) {
+      const map = new Map(data.map((row: { key: string; value: unknown }) => [row.key, row.value]))
+      if (map.has('business_name')) setBusinessName(map.get('business_name') as string)
+      if (map.has('default_language')) setDefaultLang(map.get('default_language') as 'en' | 'he')
+      if (map.has('timezone')) setTimezone(map.get('timezone') as string)
+      if (map.has('notifications')) {
+        const notifs = map.get('notifications') as Record<string, boolean>
+        setEmailNotif(notifs.email ?? true)
+        setWhatsappNotif(notifs.whatsapp ?? true)
+        setTelegramNotif(notifs.telegram ?? true)
+        setSmsNotif(notifs.sms ?? false)
+      }
+    }
+    setLoading(false)
+  }, [])
+
+  useEffect(() => { fetchSettings() }, [fetchSettings])
+
+  /* -- Save settings to DB -- */
+  async function handleSave() {
+    setSaving(true)
+    setError(null)
+    const settings = [
+      { key: 'business_name', value: JSON.stringify(businessName) },
+      { key: 'default_language', value: JSON.stringify(defaultLang) },
+      { key: 'timezone', value: JSON.stringify(timezone) },
+      { key: 'notifications', value: JSON.stringify({ email: emailNotif, whatsapp: whatsappNotif, telegram: telegramNotif, sms: smsNotif }) },
+    ]
+
+    for (const s of settings) {
+      const { error: err } = await supabase
+        .from('system_settings')
+        .upsert({ key: s.key, value: JSON.parse(s.value), updated_at: new Date().toISOString() }, { onConflict: 'key' })
+      if (err) {
+        setError(err.message)
+        setSaving(false)
+        return
+      }
+    }
+
+    setSaving(false)
     setSaved(true)
     setTimeout(() => setSaved(false), 2000)
   }
 
-  /* ── API key display helpers ── */
+  /* -- Copy to clipboard helper -- */
+  async function copyToClipboard(text: string) {
+    try {
+      await navigator.clipboard.writeText(text)
+    } catch {
+      // fallback: do nothing
+    }
+  }
+
+  /* -- API key display helpers -- */
   const mapboxToken = import.meta.env.VITE_MAPBOX_TOKEN
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
 
   const timezones = [
+    { value: 'America/New_York', label: 'America/New_York' },
+    { value: 'America/Chicago', label: 'America/Chicago' },
+    { value: 'America/Denver', label: 'America/Denver' },
+    { value: 'America/Los_Angeles', label: 'America/Los_Angeles' },
+    { value: 'America/Phoenix', label: 'America/Phoenix' },
     { value: 'Asia/Jerusalem', label: 'Asia/Jerusalem' },
     { value: 'Europe/London', label: 'Europe/London' },
-    { value: 'America/New_York', label: 'America/New_York' },
-    { value: 'America/Los_Angeles', label: 'America/Los_Angeles' },
     { value: 'UTC', label: 'UTC' },
   ]
 
@@ -70,6 +139,15 @@ export default function SystemSettings() {
     },
   ]
 
+  if (loading) {
+    return (
+      <div className="animate-fade-in flex flex-col items-center justify-center py-20" style={{ fontFamily: 'Outfit, sans-serif' }}>
+        <Loader2 className="h-8 w-8 animate-spin mb-3" style={{ color: '#5a8a5e' }} />
+        <p className="text-sm" style={{ color: '#6b7c6e' }}>{he ? 'טוען הגדרות...' : 'Loading settings...'}</p>
+      </div>
+    )
+  }
+
   return (
     <div className="animate-fade-in space-y-8 max-w-3xl" style={{ fontFamily: 'Outfit, sans-serif' }}>
       {/* Header */}
@@ -90,7 +168,18 @@ export default function SystemSettings() {
         </div>
       </header>
 
-      {/* ═══ Section 1: General ═══ */}
+      {/* Error Banner */}
+      {error && (
+        <div className="glass-panel p-4 flex items-center gap-3" style={{ backgroundColor: 'rgba(220,38,38,0.05)', borderColor: '#fca5a5' }}>
+          <AlertCircle className="h-5 w-5 flex-shrink-0" style={{ color: '#dc2626' }} />
+          <p className="text-sm" style={{ color: '#dc2626' }}>{error}</p>
+          <button onClick={() => setError(null)} className="ml-auto btn-ghost p-1">
+            <X className="h-4 w-4" style={{ color: '#dc2626' }} />
+          </button>
+        </div>
+      )}
+
+      {/* Section 1: General */}
       <section className="glass-panel p-6 space-y-5">
         <div className="flex items-center gap-2 mb-1">
           <Globe className="w-5 h-5" style={{ color: '#5a8a5e' }} />
@@ -122,7 +211,7 @@ export default function SystemSettings() {
           />
         </div>
 
-        {/* Logo placeholder */}
+        {/* Logo placeholder — removed upload, just a note */}
         <div>
           <label className="block text-sm font-medium mb-1.5" style={{ color: '#2d3a2e' }}>
             {he ? 'לוגו' : 'Logo'}
@@ -131,7 +220,7 @@ export default function SystemSettings() {
             className="flex items-center justify-center rounded-lg border-2 border-dashed h-24"
             style={{ borderColor: '#9ca89e', color: '#6b7c6e' }}
           >
-            <span className="text-sm">{he ? 'העלה לוגו' : 'Upload logo'}</span>
+            <span className="text-sm">{he ? 'העלאת לוגו תתווסף בקרוב' : 'Logo upload coming soon'}</span>
           </div>
         </div>
 
@@ -167,7 +256,7 @@ export default function SystemSettings() {
         </div>
       </section>
 
-      {/* ═══ Section 2: Notifications ═══ */}
+      {/* Section 2: Notifications */}
       <section className="glass-panel p-6 space-y-4">
         <div className="flex items-center gap-2 mb-1">
           <Bell className="w-5 h-5" style={{ color: '#5a8a5e' }} />
@@ -208,7 +297,7 @@ export default function SystemSettings() {
         ))}
       </section>
 
-      {/* ═══ Section 3: API Keys ═══ */}
+      {/* Section 3: API Keys */}
       <section className="glass-panel p-6 space-y-4">
         <div className="flex items-center gap-2 mb-1">
           <Key className="w-5 h-5" style={{ color: '#5a8a5e' }} />
@@ -236,7 +325,8 @@ export default function SystemSettings() {
             </code>
             <button
               type="button"
-              className="text-xs font-medium px-2 py-1 rounded transition-colors"
+              onClick={() => mapboxToken && copyToClipboard(mapboxToken)}
+              className="text-xs font-medium px-2 py-1 rounded transition-colors hover:bg-[#f0f4f1]"
               style={{ color: '#5a8a5e' }}
             >
               {he ? 'העתק' : 'Copy'}
@@ -258,7 +348,8 @@ export default function SystemSettings() {
             </code>
             <button
               type="button"
-              className="text-xs font-medium px-2 py-1 rounded transition-colors shrink-0"
+              onClick={() => supabaseUrl && copyToClipboard(supabaseUrl)}
+              className="text-xs font-medium px-2 py-1 rounded transition-colors shrink-0 hover:bg-[#f0f4f1]"
               style={{ color: '#5a8a5e' }}
             >
               {he ? 'העתק' : 'Copy'}
@@ -267,7 +358,7 @@ export default function SystemSettings() {
         </div>
       </section>
 
-      {/* ═══ Section 4: Timezone ═══ */}
+      {/* Section 4: Timezone */}
       <section className="glass-panel p-6 space-y-4">
         <div className="flex items-center gap-2 mb-1">
           <Clock className="w-5 h-5" style={{ color: '#5a8a5e' }} />
@@ -299,15 +390,21 @@ export default function SystemSettings() {
         </select>
       </section>
 
-      {/* ═══ Save Button ═══ */}
+      {/* Save Button */}
       <div className="sticky bottom-6 flex justify-end">
         <button
           type="button"
           onClick={handleSave}
+          disabled={saving}
           className="inline-flex items-center gap-2 rounded-xl px-6 py-3 text-sm font-semibold text-white shadow-lg transition-all duration-200 hover:shadow-xl"
           style={{ backgroundColor: saved ? '#3d7a40' : '#5a8a5e' }}
         >
-          {saved ? (
+          {saving ? (
+            <>
+              <Loader2 className="w-4 h-4 animate-spin" />
+              {he ? 'שומר...' : 'Saving...'}
+            </>
+          ) : saved ? (
             <>
               <Check className="w-4 h-4" />
               {he ? 'נשמר!' : 'Saved!'}

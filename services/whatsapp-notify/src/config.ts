@@ -65,6 +65,7 @@ export const config = {
   contentTemplates: {
     leadNotifyBtn: process.env.TWILIO_CONTENT_LEAD_NOTIFY_BTN ?? '',
     leadNotify: process.env.TWILIO_CONTENT_LEAD_NOTIFY ?? '',
+    accountStatusCheckin: process.env.TWILIO_CONTENT_ACCOUNT_STATUS ?? 'HX6fab64f5e7365e174e2047a664fa406c',
   },
 
   smsFrom: process.env.TWILIO_SMS_FROM ?? '',

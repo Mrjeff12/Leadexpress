@@ -156,8 +156,9 @@ export async function matchLead(
   const capped = shuffle(contractors).slice(0, config.matching.maxContractorsPerLead);
   const contractorIds = capped.map((c) => c.user_id);
 
-  // Batch-load reconnect throttle state (12h window)
-  const twelveHoursAgo = new Date(Date.now() - 12 * 60 * 60 * 1000).toISOString();
+  // Batch-load reconnect throttle state (1h window — reduced from 12h to avoid missing leads)
+  const oneHourAgo = new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString();
+  const twelveHoursAgo = oneHourAgo; // alias for backward compat
   const { data: throttleRows } = await supabase
     .from('reconnect_throttle')
     .select('contractor_id, channel')
@@ -291,44 +292,36 @@ export async function matchLead(
       tier3++;
     }
 
-    // ── Tier 4: SMS (US numbers only, last resort) ──
-    if (
-      !primaryChannel &&
-      contractor.profiles.whatsapp_phone?.startsWith('+1') &&
-      !contractor.sms_opt_out &&
-      !isThrottled(contractor.user_id, 'sms')
-    ) {
-      smsJobs.push({
-        name: 'send-sms',
-        data: {
-          leadId: lead.id,
-          contractorId: contractor.user_id,
-          phone: contractor.profiles.whatsapp_phone,
-          profession: lead.profession,
-          city: lead.city,
-        },
-        opts: {
-          jobId: `sms-notif-${lead.id}-${contractor.user_id}`,
-          attempts: 2,
-          backoff: { type: 'exponential' as const, delay: 2000 },
-        },
-      });
-      primaryChannel = 'sms';
-      cascadePos = 4;
-      tier4++;
-    }
+    // ── Tier 4: SMS — DISABLED until business verification is complete ──
+    // if (
+    //   !primaryChannel &&
+    //   contractor.profiles.whatsapp_phone?.startsWith('+1') &&
+    //   !contractor.sms_opt_out &&
+    //   !isThrottled(contractor.user_id, 'sms')
+    // ) { ... }
 
-    // ── Push additive (sent alongside primary if primary != push) ──
-    if (primaryChannel && primaryChannel !== 'push' && contractorsWithPush.has(contractor.user_id)) {
+    // ── Push ALWAYS (sent for every contractor that has push, regardless of primary) ──
+    if (contractorsWithPush.has(contractor.user_id)) {
       const professionLabel = lead.profession.replace(/_/g, ' ').toUpperCase();
       const location = [lead.city, lead.zip_code].filter(Boolean).join(', ');
+
+      // Piggyback window nudge: if WA window closes within 4h, add nudge to push body
+      const windowClosingSoon = contractor.wa_window_until
+        && new Date(contractor.wa_window_until) > new Date()
+        && new Date(contractor.wa_window_until).getTime() - Date.now() < 4 * 60 * 60 * 1000;
+
+      const urgencyText = lead.urgency === 'hot' ? 'ASAP' : lead.urgency === 'warm' ? 'This Week' : 'Flexible';
+      const pushBody = windowClosingSoon
+        ? `${location} — ${urgencyText}\nReply in WhatsApp to keep instant updates`
+        : `${location} — ${urgencyText}`;
+
       pushJobs.push({
         name: 'send-push-notification',
         data: {
           leadId: lead.id,
           contractorId: contractor.user_id,
-          title: `🔥 New ${professionLabel} Lead`,
-          body: `${location} — ${lead.urgency === 'hot' ? 'ASAP' : lead.urgency === 'warm' ? 'This Week' : 'Flexible'}`,
+          title: `New ${professionLabel} Lead`,
+          body: pushBody,
           url: '/leads',
         },
         opts: {

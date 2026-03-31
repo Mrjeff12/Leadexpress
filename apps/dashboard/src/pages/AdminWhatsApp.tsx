@@ -245,20 +245,21 @@ export default function AdminWhatsApp() {
         const nameMap = new Map((profiles ?? []).map(p => [p.id, p.full_name]))
         setPendingGroups(data.map(d => ({ ...d, contractor_name: nameMap.get(d.contractor_id) ?? null })))
       })
-    // Check all Green API instances
-    const instances = [
-      { id: '7107548478', token: '805319ef70304622bc70204e07201458090f71991bcb4f128b', phone: '+972526845908', plan: 'Business' },
-      { id: '7107562213', token: '5dc7d3a193d34269b8de334cd724047a67e494b7fb0d45f8bb', phone: '+17542763406', plan: 'Developer' },
-    ]
-    Promise.all(instances.map(async (inst) => {
-      try {
-        const r = await fetch(`https://7107.api.greenapi.com/waInstance${inst.id}/getStateInstance/${inst.token}`)
-        const d = await r.json()
-        return { id: inst.id, phone: inst.phone, status: d.stateInstance ?? 'unknown', plan: inst.plan }
-      } catch {
-        return { id: inst.id, phone: inst.phone, status: 'error', plan: inst.plan }
-      }
-    })).then(setGreenApiInstances)
+    // Check all Green API instances from wa_accounts table
+    supabase.from('wa_accounts').select('green_api_id, green_api_token, green_api_url, phone_number, label').then(async ({ data: waAccounts }) => {
+      if (!waAccounts || waAccounts.length === 0) return
+      const results = await Promise.all(waAccounts.map(async (acct) => {
+        try {
+          const baseUrl = acct.green_api_url || 'https://7107.api.greenapi.com'
+          const r = await fetch(`${baseUrl}/waInstance${acct.green_api_id}/getStateInstance/${acct.green_api_token}`)
+          const d = await r.json()
+          return { id: acct.green_api_id, phone: acct.phone_number ?? '', status: d.stateInstance ?? 'unknown', plan: acct.label ?? '' }
+        } catch {
+          return { id: acct.green_api_id, phone: acct.phone_number ?? '', status: 'error', plan: acct.label ?? '' }
+        }
+      }))
+      setGreenApiInstances(results)
+    })
   }, [])
 
   const messagesEndRef = useRef<HTMLDivElement>(null)
@@ -286,21 +287,26 @@ export default function AdminWhatsApp() {
     }
   }, [selectedAccountId, accounts.length])
 
-  // ── Fetch group profile pictures from Green API ─────────────────────────────
-  const GREEN_INSTANCES = [
-    { id: '7107548478', token: '805319ef70304622bc70204e07201458090f71991bcb4f128b' },
-    { id: '7107562213', token: '5dc7d3a193d34269b8de334cd724047a67e494b7fb0d45f8bb' },
-  ]
+  // ── Fetch group profile pictures from Green API (credentials from DB) ────────
+  const [waAccountsCreds, setWaAccountsCreds] = useState<{ id: string; token: string; url: string }[]>([])
+
+  useEffect(() => {
+    supabase.from('wa_accounts').select('green_api_id, green_api_token, green_api_url').then(({ data }) => {
+      if (data && data.length > 0) {
+        setWaAccountsCreds(data.map(a => ({ id: a.green_api_id, token: a.green_api_token, url: a.green_api_url || 'https://7107.api.greenapi.com' })))
+      }
+    })
+  }, [])
 
   useEffect(() => {
     const groupsWithId = groups.filter(g => g.waGroupId && !groupIcons.has(g.id))
-    if (groupsWithId.length === 0) return
+    if (groupsWithId.length === 0 || waAccountsCreds.length === 0) return
 
     groupsWithId.forEach(async (group) => {
-      for (const inst of GREEN_INSTANCES) {
+      for (const inst of waAccountsCreds) {
         try {
           const res = await fetch(
-            `https://7107.api.greenapi.com/waInstance${inst.id}/getGroupData/${inst.token}`,
+            `${inst.url}/waInstance${inst.id}/getGroupData/${inst.token}`,
             { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ groupId: group.waGroupId }) }
           )
           if (!res.ok) continue
@@ -315,7 +321,7 @@ export default function AdminWhatsApp() {
       }
     })
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [groups.map(g => g.id).join(',')])
+  }, [groups.map(g => g.id).join(','), waAccountsCreds.length])
 
   // Auto-scroll messages
   useEffect(() => {

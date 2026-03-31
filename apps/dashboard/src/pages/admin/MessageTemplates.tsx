@@ -1,31 +1,34 @@
-import { useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useI18n } from '../../lib/i18n'
-import { MessageSquareText, Plus, X, Eye } from 'lucide-react'
+import { supabase } from '../../lib/supabase'
+import { MessageSquareText, Plus, X, Eye, Loader2, AlertCircle, Trash2 } from 'lucide-react'
 
 type Channel = 'whatsapp' | 'telegram'
 
 interface Template {
   id: string
   name: string
-  channel: Channel
-  body: string
-  active: boolean
-  updatedAt: string
+  touch_number: number
+  category: string
+  body_template: string
+  language: string
+  is_active: boolean
+  send_count: number
+  reply_count: number
+  created_at: string
 }
 
-const initialTemplates: Template[] = [
-  { id: '1', name: 'New Lead Alert', channel: 'whatsapp', body: 'New {{lead_type}} lead in {{lead_location}}! Urgency: {{lead_urgency}}', active: true, updatedAt: '2026-03-15' },
-  { id: '2', name: 'Welcome Message', channel: 'telegram', body: 'Welcome {{contractor_name}}! You are now receiving leads.', active: true, updatedAt: '2026-03-14' },
-  { id: '3', name: 'Payment Reminder', channel: 'whatsapp', body: 'Hi {{contractor_name}}, your subscription payment is due.', active: false, updatedAt: '2026-03-10' },
-]
-
-const variables = ['{{contractor_name}}', '{{lead_type}}', '{{lead_location}}', '{{lead_urgency}}']
+const variables = ['{{contractor_name}}', '{{lead_type}}', '{{lead_location}}', '{{lead_urgency}}', '{name}', '{group_name}', '{lead_count}', '{contractor_count}']
 
 const exampleValues: Record<string, string> = {
   '{{contractor_name}}': 'David Cohen',
   '{{lead_type}}': 'HVAC',
-  '{{lead_location}}': 'Tel Aviv',
+  '{{lead_location}}': 'Miami, FL',
   '{{lead_urgency}}': 'High',
+  '{name}': 'David Cohen',
+  '{group_name}': 'Florida Contractors',
+  '{lead_count}': '12',
+  '{contractor_count}': '45',
 }
 
 function renderPreview(body: string): string {
@@ -40,18 +43,43 @@ export default function MessageTemplates() {
   const { locale } = useI18n()
   const he = locale === 'he'
 
-  const [templates, setTemplates] = useState<Template[]>(initialTemplates)
+  const [templates, setTemplates] = useState<Template[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [saving, setSaving] = useState(false)
+
   const [editorOpen, setEditorOpen] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [formName, setFormName] = useState('')
-  const [formChannel, setFormChannel] = useState<Channel>('whatsapp')
+  const [formCategory, setFormCategory] = useState('custom')
+  const [formTouchNumber, setFormTouchNumber] = useState(1)
+  const [formLanguage, setFormLanguage] = useState('en')
   const [formBody, setFormBody] = useState('')
   const [showPreview, setShowPreview] = useState(false)
+
+  const fetchTemplates = useCallback(async () => {
+    setLoading(true)
+    setError(null)
+    const { data, error: err } = await supabase
+      .from('message_templates')
+      .select('*')
+      .order('created_at', { ascending: false })
+    if (err) {
+      setError(err.message)
+    } else {
+      setTemplates(data ?? [])
+    }
+    setLoading(false)
+  }, [])
+
+  useEffect(() => { fetchTemplates() }, [fetchTemplates])
 
   function openNewEditor() {
     setEditingId(null)
     setFormName('')
-    setFormChannel('whatsapp')
+    setFormCategory('custom')
+    setFormTouchNumber(1)
+    setFormLanguage('en')
     setFormBody('')
     setShowPreview(false)
     setEditorOpen(true)
@@ -60,8 +88,10 @@ export default function MessageTemplates() {
   function openEditEditor(template: Template) {
     setEditingId(template.id)
     setFormName(template.name)
-    setFormChannel(template.channel)
-    setFormBody(template.body)
+    setFormCategory(template.category)
+    setFormTouchNumber(template.touch_number)
+    setFormLanguage(template.language)
+    setFormBody(template.body_template)
     setShowPreview(false)
     setEditorOpen(true)
   }
@@ -71,35 +101,60 @@ export default function MessageTemplates() {
     setEditingId(null)
   }
 
-  function handleSave() {
+  async function handleSave() {
     if (!formName.trim() || !formBody.trim()) return
+    setSaving(true)
+    setError(null)
 
     if (editingId) {
-      setTemplates((prev) =>
-        prev.map((t) =>
-          t.id === editingId
-            ? { ...t, name: formName, channel: formChannel, body: formBody, updatedAt: new Date().toISOString().slice(0, 10) }
-            : t,
-        ),
-      )
+      const { error: err } = await supabase
+        .from('message_templates')
+        .update({
+          name: formName,
+          category: formCategory,
+          touch_number: formTouchNumber,
+          language: formLanguage,
+          body_template: formBody,
+        })
+        .eq('id', editingId)
+      if (err) { setError(err.message); setSaving(false); return }
     } else {
-      const newTemplate: Template = {
-        id: Date.now().toString(),
-        name: formName,
-        channel: formChannel,
-        body: formBody,
-        active: true,
-        updatedAt: new Date().toISOString().slice(0, 10),
-      }
-      setTemplates((prev) => [newTemplate, ...prev])
+      const { error: err } = await supabase
+        .from('message_templates')
+        .insert({
+          name: formName,
+          category: formCategory,
+          touch_number: formTouchNumber,
+          language: formLanguage,
+          body_template: formBody,
+          is_active: true,
+        })
+      if (err) { setError(err.message); setSaving(false); return }
     }
+    setSaving(false)
     closeEditor()
+    fetchTemplates()
   }
 
-  function toggleActive(id: string) {
+  async function toggleActive(id: string, currentActive: boolean) {
+    const { error: err } = await supabase
+      .from('message_templates')
+      .update({ is_active: !currentActive })
+      .eq('id', id)
+    if (err) { setError(err.message); return }
     setTemplates((prev) =>
-      prev.map((t) => (t.id === id ? { ...t, active: !t.active } : t)),
+      prev.map((t) => (t.id === id ? { ...t, is_active: !t.is_active } : t)),
     )
+  }
+
+  async function handleDelete(id: string) {
+    if (!confirm(he ? 'למחוק תבנית זו?' : 'Delete this template?')) return
+    const { error: err } = await supabase
+      .from('message_templates')
+      .delete()
+      .eq('id', id)
+    if (err) { setError(err.message); return }
+    setTemplates((prev) => prev.filter((t) => t.id !== id))
   }
 
   function insertVariable(variable: string) {
@@ -126,6 +181,17 @@ export default function MessageTemplates() {
           {he ? 'תבנית חדשה' : 'New Template'}
         </button>
       </header>
+
+      {/* Error Banner */}
+      {error && (
+        <div className="glass-panel p-4 flex items-center gap-3" style={{ backgroundColor: 'rgba(220,38,38,0.05)', borderColor: '#fca5a5' }}>
+          <AlertCircle className="h-5 w-5 flex-shrink-0" style={{ color: '#dc2626' }} />
+          <p className="text-sm" style={{ color: '#dc2626' }}>{error}</p>
+          <button onClick={() => setError(null)} className="ml-auto btn-ghost p-1">
+            <X className="h-4 w-4" style={{ color: '#dc2626' }} />
+          </button>
+        </div>
+      )}
 
       {/* Editor Panel */}
       {editorOpen && (
@@ -155,19 +221,48 @@ export default function MessageTemplates() {
             />
           </div>
 
-          {/* Channel */}
-          <div>
-            <label className="block text-sm font-medium mb-1.5" style={{ color: '#2d3a2e' }}>
-              {he ? 'ערוץ' : 'Channel'}
-            </label>
-            <select
-              value={formChannel}
-              onChange={(e) => setFormChannel(e.target.value as Channel)}
-              className="w-full"
-            >
-              <option value="whatsapp">WhatsApp</option>
-              <option value="telegram">Telegram</option>
-            </select>
+          {/* Category + Touch Number + Language */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label className="block text-sm font-medium mb-1.5" style={{ color: '#2d3a2e' }}>
+                {he ? 'קטגוריה' : 'Category'}
+              </label>
+              <select
+                value={formCategory}
+                onChange={(e) => setFormCategory(e.target.value)}
+                className="w-full"
+              >
+                <option value="first_touch">First Touch</option>
+                <option value="follow_up">Follow Up</option>
+                <option value="reactivation">Reactivation</option>
+                <option value="custom">Custom</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1.5" style={{ color: '#2d3a2e' }}>
+                {he ? 'מספר נגיעה' : 'Touch Number'}
+              </label>
+              <input
+                type="number"
+                min={1}
+                value={formTouchNumber}
+                onChange={(e) => setFormTouchNumber(Number(e.target.value))}
+                className="w-full"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1.5" style={{ color: '#2d3a2e' }}>
+                {he ? 'שפה' : 'Language'}
+              </label>
+              <select
+                value={formLanguage}
+                onChange={(e) => setFormLanguage(e.target.value)}
+                className="w-full"
+              >
+                <option value="en">English</option>
+                <option value="he">Hebrew</option>
+              </select>
+            </div>
           </div>
 
           {/* Message Body */}
@@ -232,9 +327,10 @@ export default function MessageTemplates() {
           <div className="flex items-center gap-3 pt-2">
             <button
               onClick={handleSave}
-              disabled={!formName.trim() || !formBody.trim()}
-              className="btn-primary"
+              disabled={!formName.trim() || !formBody.trim() || saving}
+              className="btn-primary inline-flex items-center gap-2"
             >
+              {saving && <Loader2 className="h-4 w-4 animate-spin" />}
               {he ? 'שמור' : 'Save'}
             </button>
             <button onClick={closeEditor} className="btn-outline">
@@ -244,76 +340,105 @@ export default function MessageTemplates() {
         </div>
       )}
 
+      {/* Loading State */}
+      {loading && (
+        <div className="glass-panel p-12 flex flex-col items-center justify-center">
+          <Loader2 className="h-8 w-8 animate-spin mb-3" style={{ color: '#5a8a5e' }} />
+          <p className="text-sm" style={{ color: '#6b7c6e' }}>{he ? 'טוען תבניות...' : 'Loading templates...'}</p>
+        </div>
+      )}
+
       {/* Templates Table */}
-      <div className="glass-panel overflow-hidden">
-        {templates.length === 0 ? (
-          <div className="p-12 flex flex-col items-center justify-center text-center">
-            <MessageSquareText className="h-12 w-12 mb-4" style={{ color: '#b0b8b1' }} />
-            <h2 className="text-lg font-semibold" style={{ color: '#2d3a2e' }}>
-              {he ? 'אין תבניות' : 'No Templates'}
-            </h2>
-            <p className="text-sm mt-1" style={{ color: '#6b7c6e' }}>
-              {he ? 'צור תבנית חדשה כדי להתחיל' : 'Create a new template to get started'}
-            </p>
-          </div>
-        ) : (
-          <table className="w-full text-sm">
-            <thead>
-              <tr style={{ backgroundColor: '#f8faf8' }}>
-                <th className="text-left px-5 py-3.5 font-semibold text-xs uppercase tracking-wider" style={{ color: '#6b7c6e' }}>
-                  {he ? 'שם' : 'Name'}
-                </th>
-                <th className="text-left px-5 py-3.5 font-semibold text-xs uppercase tracking-wider" style={{ color: '#6b7c6e' }}>
-                  {he ? 'ערוץ' : 'Channel'}
-                </th>
-                <th className="text-left px-5 py-3.5 font-semibold text-xs uppercase tracking-wider" style={{ color: '#6b7c6e' }}>
-                  {he ? 'סטטוס' : 'Status'}
-                </th>
-                <th className="text-left px-5 py-3.5 font-semibold text-xs uppercase tracking-wider" style={{ color: '#6b7c6e' }}>
-                  {he ? 'עודכן' : 'Last Edited'}
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {templates.map((template) => (
-                <tr
-                  key={template.id}
-                  className="border-t cursor-pointer transition-colors hover:bg-[#f8faf8]"
-                  style={{ borderColor: '#eef0ee' }}
-                  onClick={() => openEditEditor(template)}
-                >
-                  <td className="px-5 py-4 font-medium" style={{ color: '#2d3a2e' }}>
-                    {template.name}
-                  </td>
-                  <td className="px-5 py-4">
-                    <span className={template.channel === 'whatsapp' ? 'badge badge-green' : 'badge badge-blue'}>
-                      {template.channel === 'whatsapp' ? 'WhatsApp' : 'Telegram'}
-                    </span>
-                  </td>
-                  <td className="px-5 py-4">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        toggleActive(template.id)
-                      }}
-                      className="relative inline-flex h-6 w-11 items-center rounded-full transition-colors"
-                      style={{ backgroundColor: template.active ? '#5a8a5e' : '#9ca89e' }}
-                    >
-                      <span
-                        className="inline-block h-4 w-4 rounded-full bg-white transition-transform"
-                        style={{ transform: template.active ? 'translateX(24px)' : 'translateX(4px)' }}
-                      />
-                    </button>
-                  </td>
-                  <td className="px-5 py-4" style={{ color: '#6b7c6e' }}>
-                    {template.updatedAt}
-                  </td>
+      {!loading && (
+        <div className="glass-panel overflow-hidden">
+          {templates.length === 0 ? (
+            <div className="p-12 flex flex-col items-center justify-center text-center">
+              <MessageSquareText className="h-12 w-12 mb-4" style={{ color: '#b0b8b1' }} />
+              <h2 className="text-lg font-semibold" style={{ color: '#2d3a2e' }}>
+                {he ? 'אין תבניות' : 'No Templates'}
+              </h2>
+              <p className="text-sm mt-1" style={{ color: '#6b7c6e' }}>
+                {he ? 'צור תבנית חדשה כדי להתחיל' : 'Create a new template to get started'}
+              </p>
+            </div>
+          ) : (
+            <table className="w-full text-sm">
+              <thead>
+                <tr style={{ backgroundColor: '#f8faf8' }}>
+                  <th className="text-left px-5 py-3.5 font-semibold text-xs uppercase tracking-wider" style={{ color: '#6b7c6e' }}>
+                    {he ? 'שם' : 'Name'}
+                  </th>
+                  <th className="text-left px-5 py-3.5 font-semibold text-xs uppercase tracking-wider" style={{ color: '#6b7c6e' }}>
+                    {he ? 'קטגוריה' : 'Category'}
+                  </th>
+                  <th className="text-left px-5 py-3.5 font-semibold text-xs uppercase tracking-wider" style={{ color: '#6b7c6e' }}>
+                    {he ? 'שפה' : 'Language'}
+                  </th>
+                  <th className="text-left px-5 py-3.5 font-semibold text-xs uppercase tracking-wider" style={{ color: '#6b7c6e' }}>
+                    {he ? 'סטטוס' : 'Status'}
+                  </th>
+                  <th className="text-left px-5 py-3.5 font-semibold text-xs uppercase tracking-wider" style={{ color: '#6b7c6e' }}>
+                    {he ? 'נשלחו / תגובות' : 'Sent / Replies'}
+                  </th>
+                  <th className="px-5 py-3.5 w-16" />
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </div>
+              </thead>
+              <tbody>
+                {templates.map((template) => (
+                  <tr
+                    key={template.id}
+                    className="border-t cursor-pointer transition-colors hover:bg-[#f8faf8]"
+                    style={{ borderColor: '#eef0ee' }}
+                    onClick={() => openEditEditor(template)}
+                  >
+                    <td className="px-5 py-4 font-medium" style={{ color: '#2d3a2e' }}>
+                      {template.name}
+                    </td>
+                    <td className="px-5 py-4">
+                      <span className="badge badge-blue">
+                        {template.category}
+                      </span>
+                    </td>
+                    <td className="px-5 py-4" style={{ color: '#6b7c6e' }}>
+                      {template.language === 'he' ? 'Hebrew' : 'English'}
+                    </td>
+                    <td className="px-5 py-4">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          toggleActive(template.id, template.is_active)
+                        }}
+                        className="relative inline-flex h-6 w-11 items-center rounded-full transition-colors"
+                        style={{ backgroundColor: template.is_active ? '#5a8a5e' : '#9ca89e' }}
+                      >
+                        <span
+                          className="inline-block h-4 w-4 rounded-full bg-white transition-transform"
+                          style={{ transform: template.is_active ? 'translateX(24px)' : 'translateX(4px)' }}
+                        />
+                      </button>
+                    </td>
+                    <td className="px-5 py-4" style={{ color: '#6b7c6e' }}>
+                      {template.send_count} / {template.reply_count}
+                    </td>
+                    <td className="px-5 py-4">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handleDelete(template.id)
+                        }}
+                        className="p-1.5 rounded-lg transition-colors hover:bg-[#fde8e8]"
+                        aria-label={he ? 'מחיקה' : 'Delete'}
+                      >
+                        <Trash2 className="h-4 w-4" style={{ color: '#dc2626' }} />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+      )}
     </div>
   )
 }

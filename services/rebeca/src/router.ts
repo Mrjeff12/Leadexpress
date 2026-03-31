@@ -133,13 +133,41 @@ async function handleGroupLink(phone: string, text: string): Promise<void> {
   const profile = await findProfile(phone);
 
   if (profile) {
-    await supabase.from('contractor_group_scan_requests').insert({
+    // Dedup check
+    const { data: existing } = await supabase
+      .from('contractor_group_scan_requests')
+      .select('id, status')
+      .eq('invite_code', inviteCode)
+      .neq('status', 'archived')
+      .maybeSingle();
+
+    if (existing) {
+      if (existing.status === 'joined') {
+        await sendText(phone, '✅ We already joined this group!');
+      } else if (existing.status === 'failed') {
+        await supabase.from('contractor_group_scan_requests')
+          .update({ status: 'pending', last_error: null })
+          .eq('id', existing.id);
+        await sendText(phone, '🔄 Retrying to join this group!');
+      } else {
+        await sendText(phone, '⏳ This group is already queued — waiting to join.');
+      }
+      return;
+    }
+
+    const inviteLink = `https://chat.whatsapp.com/${inviteCode}`;
+    const { error: insertErr } = await supabase.from('contractor_group_scan_requests').insert({
       contractor_id: profile.id,
       invite_code: inviteCode,
-      invite_link: `https://chat.whatsapp.com/${inviteCode}`,
+      invite_link_raw: inviteLink,
+      invite_link_normalized: inviteLink,
       status: 'pending',
+      join_method: 'manual',
     });
-    await sendText(phone, '✅ Group saved! We\'ll review and add it to our scan list.');
+    if (insertErr) {
+      console.error('[router] Failed to save group link:', insertErr.message);
+    }
+    await sendText(phone, '✅ Group saved! We\'ll join soon.');
   } else {
     await sendText(phone, '✅ Thanks! Send your registration link too so we can connect the group to your account.');
   }

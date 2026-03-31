@@ -708,18 +708,49 @@ async function handleGroupsStep(phone: string, text: string, state: BotState): P
     const userId = state.userId;
 
     if (userId) {
-      await supabase.from('contractor_group_scan_requests').insert({
+      // Check if already submitted
+      const { data: existing } = await supabase
+        .from('contractor_group_scan_requests')
+        .select('id, status')
+        .eq('invite_code', inviteCode)
+        .neq('status', 'archived')
+        .maybeSingle();
+
+      if (existing) {
+        const statusMsg: Record<string, string> = {
+          pending: l === 'he' ? '⏳ הקבוצה הזו כבר בתור — ממתינה להצטרפות.' : '⏳ This group is already queued — waiting to join.',
+          joined: l === 'he' ? '✅ כבר הצטרפנו לקבוצה הזו!' : '✅ We already joined this group!',
+          failed: l === 'he' ? '❌ ניסינו להצטרף אבל נכשל. ננסה שוב!' : '❌ Join failed before. We\'ll retry!',
+        };
+        await sendText(phone, statusMsg[existing.status] ?? (l === 'he' ? '👍 כבר יש לנו את הקבוצה.' : '👍 We already have this group.'));
+
+        // If failed, reset to pending for retry
+        if (existing.status === 'failed') {
+          await supabase.from('contractor_group_scan_requests')
+            .update({ status: 'pending', last_error: null })
+            .eq('id', existing.id);
+        }
+        return;
+      }
+
+      const inviteLink = `https://chat.whatsapp.com/${inviteCode}`;
+      const { error: insertErr } = await supabase.from('contractor_group_scan_requests').insert({
         contractor_id: userId,
         invite_code: inviteCode,
-        invite_link: `https://chat.whatsapp.com/${inviteCode}`,
+        invite_link_raw: inviteLink,
+        invite_link_normalized: inviteLink,
         status: 'pending',
+        join_method: 'manual',
       });
+      if (insertErr) {
+        console.error('[onboarding] Failed to save group link:', insertErr.message);
+      }
     }
 
     await sendText(phone,
       l === 'he'
-        ? '✅ הקבוצה נשמרה! שלח עוד לינקים או כתוב *סיימתי*.'
-        : '✅ Group saved! Send more links or type *DONE*.',
+        ? '✅ הקבוצה נשמרה! נצטרף בהקדם. שלח עוד לינקים או כתוב *סיימתי*.'
+        : '✅ Group saved! We\'ll join soon. Send more links or type *DONE*.',
     );
     return;
   }

@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useI18n } from '../lib/i18n'
 import { useAdminGroupScanData, type AdminGroupScanEntry } from '../hooks/useAdminGroupScanData'
 import type { GroupScanStatus } from '../hooks/useContractorGroupScanLinks'
-import { Plus, CheckCircle2, XCircle, Clock, ShieldAlert, Filter } from 'lucide-react'
+import { Plus, CheckCircle2, XCircle, Clock, ShieldAlert, Filter, Send, User } from 'lucide-react'
 
 const StatusBadge = ({ status, locale }: { status: GroupScanStatus; locale: string }) => {
   switch (status) {
@@ -21,10 +21,13 @@ const StatusBadge = ({ status, locale }: { status: GroupScanStatus; locale: stri
 
 export default function AdminGroupScanQueue() {
   const { locale } = useI18n()
-  const { data, loading, addAdminLink, updateStatus } = useAdminGroupScanData()
-  
+  const { data, loading, addAdminLink, updateStatus, dispatchAll } = useAdminGroupScanData()
+
   const [newLink, setNewLink] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  const [dispatching, setDispatching] = useState(false)
+
+  const pendingCount = data.filter(e => e.status === 'pending').length
   
   const [filterStatus, setFilterStatus] = useState<GroupScanStatus | 'all'>('all')
   const [filterSource, setFilterSource] = useState<'all' | 'contractor' | 'admin'>('all')
@@ -57,13 +60,34 @@ export default function AdminGroupScanQueue() {
     <div className="p-6 max-w-6xl mx-auto space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-extrabold text-stone-900 tracking-tight">
+          <h1 className="text-2xl font-extrabold text-stone-900 tracking-tight flex items-center gap-3">
             {locale === 'he' ? 'בקשות סריקת קבוצות' : 'Group Scan Requests'}
+            {pendingCount > 0 && (
+              <span className="text-sm font-bold px-2.5 py-1 rounded-full bg-amber-100 text-amber-700">{pendingCount}</span>
+            )}
           </h1>
           <p className="text-sm text-stone-500 mt-1">
             {locale === 'he' ? 'ניהול קישורי קבוצות מקבלנים והוספה ידנית למערכת' : 'Manage contractor group links and manually add system groups'}
           </p>
         </div>
+        {pendingCount > 0 && (
+          <button
+            onClick={async () => {
+              setDispatching(true)
+              const res = await dispatchAll()
+              if (res.success) alert(`${res.dispatched} groups dispatched to scanner phone`)
+              else alert(res.error)
+              setDispatching(false)
+            }}
+            disabled={dispatching}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#fe5b25] text-white text-sm font-bold hover:bg-[#e04d1c] disabled:opacity-50 transition-colors"
+          >
+            <Send className="w-4 h-4" />
+            {dispatching
+              ? (locale === 'he' ? 'שולח...' : 'Sending...')
+              : (locale === 'he' ? `שלח ${pendingCount} לסורק` : `Dispatch ${pendingCount} to Scanner`)}
+          </button>
+        )}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -151,8 +175,14 @@ export default function AdminGroupScanQueue() {
                         </span>
                       </div>
                       <div className="flex items-center gap-3 text-[10px] text-stone-400">
-                        {entry.group_name && <span>{entry.group_name}</span>}
+                        {entry.group_name && <span className="font-medium text-stone-500">{entry.group_name}</span>}
                         {entry.member_count && <span>{entry.member_count} members</span>}
+                        {entry.contractor_id && (
+                          <span className="inline-flex items-center gap-1">
+                            <User className="w-3 h-3" />
+                            <span className="font-mono">{entry.contractor_id.slice(0, 8)}</span>
+                          </span>
+                        )}
                         <span>{new Date(entry.created_at).toLocaleString()}</span>
                       </div>
                     </div>
