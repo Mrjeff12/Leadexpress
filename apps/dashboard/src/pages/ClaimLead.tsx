@@ -76,45 +76,42 @@ export default function ClaimLead() {
   const [params] = useSearchParams()
   const nav = useNavigate()
 
-  const token = params.get('t') || ''
-  const userId = params.get('u') || ''
-  const decoded = decodeToken(token)
-  const senderPhone = decoded?.p || ''
-  const introMsg = decoded?.m || ''
-
   const [lead, setLead] = useState<Lead | null>(null)
   const [publisher, setPublisher] = useState<Publisher | null>(null)
   const [claimCount, setClaimCount] = useState(0)
+  const [senderPhone, setSenderPhone] = useState('')
+  const [introMsg, setIntroMsg] = useState('')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     if (!leadId) { setError('Invalid link'); setLoading(false); return }
 
-    Promise.all([
-      // Fetch lead
-      supabase.from('leads').select('*').eq('id', leadId).maybeSingle(),
-      // Count claims for this lead
-      supabase.from('pipeline_events').select('id', { count: 'exact', head: true })
-        .eq('stage', 'lead_claimed').filter('detail->>lead_id', 'eq', leadId),
-    ]).then(async ([leadRes, claimRes]) => {
-      if (!leadRes.data) { setError('Lead not found'); setLoading(false); return }
-      const l = leadRes.data as Lead
-      setLead(l)
-      setClaimCount(claimRes.count ?? 0)
-
-      // Fetch publisher profile from sender_id
-      if (l.sender_id) {
-        const phone = l.sender_id.replace(/@.*$/, '')
-        const { data: prof } = await supabase
-          .from('contractors')
-          .select('id, full_name, slug, trust_tier, avatar_url, business_name')
-          .eq('whatsapp_phone', '+' + phone)
-          .maybeSingle()
-        if (prof) setPublisher(prof as Publisher)
+    // Data is passed via ?d= param from claim-redirect (base64 encoded, bypasses RLS)
+    const dataParam = params.get('d')
+    if (dataParam) {
+      try {
+        const padded = dataParam.replace(/-/g, '+').replace(/_/g, '/')
+        const parsed = JSON.parse(atob(padded))
+        setLead(parsed.lead as Lead)
+        setPublisher(parsed.publisher as Publisher | null)
+        setClaimCount(parsed.claimCount ?? 0)
+        setSenderPhone(parsed.senderPhone || '')
+        setIntroMsg(parsed.introMsg || '')
+        setLoading(false)
+        return
+      } catch (e) {
+        console.error('[ClaimLead] Failed to parse data param:', e)
       }
-      setLoading(false)
-    })
+    }
+
+    // Fallback: try fetching from Supabase (works if user is logged in)
+    supabase.from('leads').select('*').eq('id', leadId).maybeSingle()
+      .then(({ data }) => {
+        if (!data) { setError('Lead not found'); setLoading(false); return }
+        setLead(data as Lead)
+        setLoading(false)
+      })
   }, [leadId])
 
   if (loading) {
