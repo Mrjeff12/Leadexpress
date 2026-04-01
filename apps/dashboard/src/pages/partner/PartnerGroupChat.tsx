@@ -93,6 +93,7 @@ export default function PartnerGroupChat() {
   const { group, members, messages, stats, isLoading, isLoadingMessages } = usePartnerGroupChat(isDemo ? 'demo' : groupId, isDemo)
 
   const [searchQuery, setSearchQuery] = useState('')
+  const [stageFilter, setStageFilter] = useState<ProspectStage | 'all'>('all')
   const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null)
   const [mobileTab, setMobileTab] = useState<MobileTab>('chat')
   const chatEndRef = useRef<HTMLDivElement>(null)
@@ -102,15 +103,21 @@ export default function PartnerGroupChat() {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages.length])
 
-  // Filter members by search
+  // Filter members by search + stage
   const filteredMembers = useMemo(() => {
-    if (!searchQuery.trim()) return members
-    const q = searchQuery.toLowerCase()
-    return members.filter(m =>
-      (m.display_name || '').toLowerCase().includes(q) ||
-      m.wa_sender_id.includes(q)
-    )
-  }, [members, searchQuery])
+    let result = members
+    if (stageFilter !== 'all') {
+      result = result.filter(m => m.prospectStage === stageFilter)
+    }
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase()
+      result = result.filter(m =>
+        (m.display_name || '').toLowerCase().includes(q) ||
+        m.wa_sender_id.includes(q)
+      )
+    }
+    return result
+  }, [members, searchQuery, stageFilter])
 
   // Earnings (from partner profile stats, or demo value)
   const earnings = isDemo
@@ -189,6 +196,29 @@ export default function PartnerGroupChat() {
             className="w-full pl-9 pr-3 py-2 bg-zinc-50 border border-zinc-200 rounded-xl text-sm text-zinc-700 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-[#fe5b25]/20 focus:border-[#fe5b25]/40"
           />
         </div>
+      </div>
+
+      {/* Stage filter pills */}
+      <div className="px-3 pb-2 flex flex-wrap gap-1.5">
+        {([
+          { key: 'all' as const, label: 'All', count: members.length },
+          { key: 'subscribed' as const, label: 'Subscribed', count: stats.subscribed },
+          { key: 'trial' as const, label: 'Trial', count: stats.trial },
+          { key: 'interested' as const, label: 'Interested', count: stats.interested },
+          { key: 'not_reached' as const, label: 'Not Reached', count: stats.notReached },
+        ]).map(f => (
+          <button
+            key={f.key}
+            onClick={() => setStageFilter(f.key)}
+            className={`text-[10px] font-semibold px-2.5 py-1 rounded-full transition-colors ${
+              stageFilter === f.key
+                ? 'bg-[#fe5b25] text-white'
+                : 'bg-zinc-100 text-zinc-500 hover:bg-zinc-200'
+            }`}
+          >
+            {f.label} {f.count > 0 && <span className="opacity-70">({f.count})</span>}
+          </button>
+        ))}
       </div>
 
       {/* Group card */}
