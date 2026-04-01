@@ -138,107 +138,102 @@ export default function ClaimLead() {
     ? `https://wa.me/${senderPhone}${introMsg ? '?text=' + encodeURIComponent(introMsg) : ''}`
     : null
 
+  const displayName = (publisher as any)?.display_name || publisher?.full_name || null
+  const groupName = (lead as any).group_name || 'WhatsApp Group'
+
   return (
     <div className="min-h-screen flex flex-col" style={{ background: '#FBFBFD', fontFamily: '-apple-system, BlinkMacSystemFont, sans-serif' }}>
       {/* Brand bar */}
-      <div className="flex items-center justify-center gap-1.5 py-3">
+      <div className="flex items-center justify-center gap-1.5 py-3 border-b border-gray-100">
         <div className="w-5 h-5 rounded flex items-center justify-center text-white font-bold text-[10px]"
           style={{ background: '#fe5b25' }}>M</div>
-        <span className="text-xs font-medium text-gray-400">MasterLeadFlow</span>
+        <span className="text-xs font-semibold text-gray-500">MasterLeadFlow</span>
       </div>
 
-      <div className="flex-1 px-4 pb-40 max-w-lg mx-auto w-full">
-        {/* Header: profession + urgency */}
-        <div className="flex items-center justify-between py-3">
-          <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-lg flex items-center justify-center text-lg" style={{ background: '#fff3ed' }}>
-              {emoji}
-            </div>
-            <div>
-              <div className="font-bold text-base text-gray-900">{profLabel(lead.profession)} Lead</div>
-              <div className="text-xs text-gray-500 flex items-center gap-1">
-                <MapPin size={11} /> {location}
-              </div>
-            </div>
+      <div className="flex-1 px-4 pb-44 max-w-lg mx-auto w-full">
+        {/* Hero header */}
+        <div className="py-5 text-center">
+          <div className="w-14 h-14 rounded-2xl flex items-center justify-center text-2xl mx-auto mb-3" style={{ background: '#fff3ed' }}>
+            {emoji}
           </div>
-          <div className="text-xs font-semibold px-2.5 py-1 rounded-lg" style={{ background: urg.bg, color: urg.color }}>
+          <h1 className="text-xl font-bold text-gray-900">{profLabel(lead.profession)} Lead</h1>
+          <div className="flex items-center justify-center gap-1.5 mt-1 text-sm text-gray-500">
+            <MapPin size={13} /> {location}
+          </div>
+          <div className="inline-block mt-2 text-xs font-semibold px-3 py-1 rounded-full" style={{ background: urg.bg, color: urg.color }}>
             {urg.label}
           </div>
         </div>
 
-        {/* Description + tags */}
-        <div className="rounded-xl p-3.5 mb-3.5" style={{ background: '#f8f8fa' }}>
-          <p className="text-sm leading-relaxed text-gray-600">
+        {/* Description card */}
+        <div className="rounded-2xl p-4 mb-3" style={{ background: '#f8f8fa', border: '1px solid #f0f0f0' }}>
+          <div className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-2">Request Details</div>
+          <p className="text-[15px] leading-relaxed text-gray-700">
             {lead.parsed_summary || lead.raw_message || 'No details available'}
           </p>
           <div className="flex gap-2 mt-3 flex-wrap">
             {lead.budget_range && (
-              <span className="text-xs px-2.5 py-1 rounded-lg bg-white border border-gray-100 text-gray-500">
+              <span className="text-xs px-2.5 py-1 rounded-lg bg-white border border-gray-100 text-gray-600 font-medium">
                 💰 {lead.budget_range}
               </span>
             )}
-            {lead.property_type && (
-              <span className="text-xs px-2.5 py-1 rounded-lg bg-white border border-gray-100 text-gray-500">
-                🏠 {lead.property_type}
-              </span>
-            )}
-            <span className="text-xs px-2.5 py-1 rounded-lg bg-white border border-gray-100 text-gray-500">
+            <span className="text-xs px-2.5 py-1 rounded-lg bg-white border border-gray-100 text-gray-600 font-medium">
+              📍 {lead.city || 'N/A'}{lead.zip_code ? `, ${lead.zip_code}` : ''}
+            </span>
+            <span className="text-xs px-2.5 py-1 rounded-lg bg-white border border-gray-100 text-gray-600 font-medium">
               ⏱ {timeAgo(lead.created_at)}
             </span>
           </div>
         </div>
 
         {/* Publisher / Source */}
-        {isVerified ? (
-          /* Verified publisher — show name + avatar + badge */
-          <button
-            onClick={() => publisher?.slug ? nav(`/pro/${publisher.slug}`) : undefined}
-            className="w-full flex items-center gap-2.5 p-3 rounded-xl bg-white border border-gray-100 mb-4 text-left transition-colors hover:bg-gray-50"
-          >
-            {publisher?.avatar_url ? (
-              <img src={publisher.avatar_url} alt="" className="w-10 h-10 rounded-full object-cover" />
-            ) : (
-              <div className="w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm text-white"
-                style={{ background: '#fe5b25' }}>
-                {((publisher as any)?.display_name || publisher?.full_name || '?').slice(0, 2).toUpperCase()}
+        <div className="rounded-2xl p-4 mb-3" style={{ background: '#f8f8fa', border: '1px solid #f0f0f0' }}>
+          <div className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-2">Posted By</div>
+          {isVerified ? (
+            <button
+              onClick={() => publisher?.slug ? nav(`/pro/${publisher.slug}`) : undefined}
+              className="w-full flex items-center gap-3 text-left"
+            >
+              {publisher?.avatar_url ? (
+                <img src={publisher.avatar_url} alt="" className="w-12 h-12 rounded-full object-cover border-2 border-white shadow-sm" />
+              ) : (
+                <div className="w-12 h-12 rounded-full flex items-center justify-center font-bold text-sm text-white border-2 border-white shadow-sm"
+                  style={{ background: '#fe5b25' }}>
+                  {(displayName || '?').slice(0, 2).toUpperCase()}
+                </div>
+              )}
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-1.5">
+                  <span className="font-semibold text-sm text-gray-900 truncate">{displayName || 'Unknown'}</span>
+                  <ShieldCheck size={14} className="text-green-500 shrink-0" />
+                </div>
+                <div className="text-xs text-gray-500 truncate">{publisher?.business_name || 'Contractor'} · {groupName}</div>
               </div>
-            )}
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-1.5">
-                <span className="font-semibold text-sm text-gray-900 truncate">
-                  {(publisher as any)?.display_name || publisher?.full_name || 'Unknown'}
-                </span>
-                <ShieldCheck size={14} className="text-green-500 shrink-0" />
-              </div>
-              <div className="text-xs text-gray-500 truncate">
-                {publisher?.business_name || 'Contractor'} · {lead.group_name || 'WhatsApp Group'}
-              </div>
-            </div>
-            <span className="text-xs font-semibold px-2 py-0.5 rounded-full shrink-0" style={{ background: '#f0fdf4', color: '#16a34a' }}>
-              ✓ Verified
-            </span>
-            <ChevronRight size={14} className="text-gray-300 shrink-0" />
-          </button>
-        ) : (
-          /* Not verified — show group source + WhatsApp profile pic if available */
-          <div className="flex items-center gap-2.5 p-3 rounded-xl bg-white border border-gray-100 mb-4">
-            {publisher?.avatar_url ? (
-              <img src={publisher.avatar_url} alt="" className="w-10 h-10 rounded-full object-cover" />
-            ) : (
-              <div className="w-10 h-10 rounded-full flex items-center justify-center text-lg" style={{ background: '#f8f8fa' }}>
-                📣
-              </div>
-            )}
-            <div className="flex-1 min-w-0">
-              <div className="font-semibold text-sm text-gray-900 truncate">
-                {(publisher as any)?.display_name || 'Posted in group'}
-              </div>
-              <div className="text-xs text-gray-500 truncate">
-                {lead.group_name || 'WhatsApp Group'}
+              <ChevronRight size={14} className="text-gray-300 shrink-0" />
+            </button>
+          ) : (
+            <div className="flex items-center gap-3">
+              {publisher?.avatar_url ? (
+                <img src={publisher.avatar_url} alt="" className="w-12 h-12 rounded-full object-cover border-2 border-white shadow-sm" />
+              ) : (
+                <div className="w-12 h-12 rounded-full flex items-center justify-center text-lg border-2 border-white shadow-sm" style={{ background: '#fff3ed' }}>
+                  📣
+                </div>
+              )}
+              <div className="flex-1 min-w-0">
+                <div className="font-semibold text-sm text-gray-900 truncate">{displayName || groupName}</div>
+                <div className="text-xs text-gray-500 truncate">{displayName ? groupName : 'WhatsApp Community'}</div>
               </div>
             </div>
-          </div>
-        )}
+          )}
+        </div>
+
+        {/* Trust footer */}
+        <div className="text-center py-3">
+          <p className="text-[11px] text-gray-400">
+            Lead sourced from WhatsApp · Respond quickly for best results
+          </p>
+        </div>
       </div>
 
       {/* Sticky bottom buttons */}
