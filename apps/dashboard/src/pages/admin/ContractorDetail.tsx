@@ -46,21 +46,32 @@ import {
 } from 'lucide-react'
 import { useToast } from '../../components/hooks/use-toast'
 
-/* ── Design tokens (aligned with app-wide system) ─────────────── */
+/* ── Design tokens (matches ContractorDashboard visual language) ── */
+/* Card: bg-white rounded-[20px] border border-black/[0.04] shadow-sm */
+/* Hint: #a3a3a3 | Sub: #737373 | Ink: #111 | Accent: #fe5b25 */
+/* Light accent bg: #fff4f0 | Subtle bg: #fafafa */
 const C = {
   primary: '#fe5b25',
   primaryDark: '#e04d1c',
-  dark: '#1C1C1E',
-  darkSub: '#3A3A3C',
-  muted: '#8E8E93',
-  accent: '#5856D6',
+  primaryLight: '#fff4f0',
+  // Text scale
+  ink: '#111',
+  sub: '#737373',
+  hint: '#a3a3a3',
+  // Surfaces
+  card: '#ffffff',
+  subtle: '#fafafa',
+  line: 'rgba(0,0,0,0.04)',
+  // Semantic
   success: '#059669',
   warning: '#D97706',
   danger: '#DC2626',
+  accent: '#5856D6',
+  // Legacy aliases
+  dark: '#111',
+  darkSub: '#737373',
+  muted: '#a3a3a3',
   border: 'rgba(0,0,0,0.04)',
-  bg: '#FBFBFD',
-  glass: 'rgba(255,255,255,0.82)',
-  glassBorder: 'rgba(255,255,255,0.5)',
 }
 
 /* ── Types ──────────────────────────────────────────────────────── */
@@ -143,9 +154,9 @@ const PROF_EMOJI: Record<string, string> = {
 }
 
 const PLAN_CONFIG: Record<string, { color: string; bg: string; border: string; gradient: string }> = {
-  starter: { color: '#6B7280', bg: '#F3F4F6', border: '#E5E7EB', gradient: 'linear-gradient(135deg, #F8F9FA, #E9ECEF)' },
-  pro: { color: '#2563EB', bg: '#EFF6FF', border: '#BFDBFE', gradient: 'linear-gradient(135deg, #EFF6FF, #DBEAFE)' },
-  unlimited: { color: '#7C3AED', bg: '#F5F3FF', border: '#DDD6FE', gradient: 'linear-gradient(135deg, #F5F3FF, #EDE9FE)' },
+  starter: { color: '#6B7280', bg: '#F9FAFB', border: '#E5E7EB', gradient: '#F9FAFB' },
+  pro: { color: '#2563EB', bg: '#F0F6FF', border: '#BFDBFE', gradient: '#F0F6FF' },
+  unlimited: { color: '#7C3AED', bg: '#F5F3FF', border: '#DDD6FE', gradient: '#F5F3FF' },
 }
 
 const JOB_STATUS_CONFIG: Record<string, { color: string; bg: string }> = {
@@ -199,19 +210,12 @@ function monthsBetween(a: string, b: Date): number {
   return Math.max(0, (b.getFullYear() - start.getFullYear()) * 12 + b.getMonth() - start.getMonth())
 }
 
-/* ── Glass Card wrapper (matches app design system) ───────────── */
+/* ── Card — matches ContractorDashboard: bg-white rounded-[20px] border-black/[0.04] shadow-sm ── */
 function GlassCard({ children, className = '', delay = 0 }: { children: React.ReactNode; className?: string; delay?: number }) {
   return (
     <div
-      className={`rounded-3xl overflow-hidden transition-all duration-500 hover:-translate-y-0.5 ${className}`}
-      style={{
-        background: C.glass,
-        backdropFilter: 'blur(32px) saturate(180%)',
-        WebkitBackdropFilter: 'blur(32px) saturate(180%)',
-        border: `1px solid ${C.border}`,
-        boxShadow: '0 1px 3px rgba(0,0,0,0.04), 0 4px 12px rgba(0,0,0,0.03)',
-        animationDelay: `${delay}ms`,
-      }}
+      className={`bg-white rounded-[20px] border border-black/[0.04] shadow-sm overflow-hidden animate-fade-in ${className}`}
+      style={{ animationDelay: `${delay}ms` }}
     >
       {children}
     </div>
@@ -220,20 +224,14 @@ function GlassCard({ children, className = '', delay = 0 }: { children: React.Re
 
 function SectionHeader({ icon: Icon, iconColor, title, count, action }: { icon: any; iconColor: string; title: string; count?: number; action?: React.ReactNode }) {
   return (
-    <div className="px-6 py-4 flex items-center justify-between" style={{ borderBottom: `1px solid ${C.border}` }}>
-      <h2 className="text-[14px] font-bold tracking-tight flex items-center gap-2.5" style={{ color: C.dark, letterSpacing: '-0.015em' }}>
-        <div
-          className="w-8 h-8 rounded-xl flex items-center justify-center"
-          style={{ background: `${iconColor}12`, boxShadow: `0 2px 8px ${iconColor}15` }}
-        >
-          <Icon className="w-4 h-4" style={{ color: iconColor }} />
+    <div className="px-5 py-3.5 flex items-center justify-between border-b border-black/[0.04]">
+      <h2 className="text-[15px] font-bold tracking-tight flex items-center gap-2">
+        <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: '#fff4f0' }}>
+          <Icon className="w-3.5 h-3.5" style={{ color: C.primary }} />
         </div>
         {title}
         {count !== undefined && (
-          <span
-            className="text-[10px] font-bold px-2.5 py-1 rounded-full"
-            style={{ background: `${iconColor}12`, color: iconColor }}
-          >
+          <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-[#fafafa] text-[#737373]">
             {count}
           </span>
         )}
@@ -246,13 +244,10 @@ function SectionHeader({ icon: Icon, iconColor, title, count, action }: { icon: 
 /* Keep old name as alias for backward compat in modals */
 const SectionCard = GlassCard
 
-/* ── Badge component ───────────────────────────────────────────── */
+/* ── Badge ────────────────────────────────────────────────────── */
 function StatusBadge({ label, color, bg }: { label: string; color: string; bg: string }) {
   return (
-    <span
-      className="inline-flex items-center text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider"
-      style={{ background: bg, color, letterSpacing: '0.04em' }}
-    >
+    <span className="inline-flex items-center text-[10px] font-semibold px-2 py-0.5 rounded-full" style={{ background: bg, color }}>
       {label}
     </span>
   )
@@ -270,80 +265,53 @@ interface PipelineStage {
 
 function LifecyclePipeline({ stages, he }: { stages: PipelineStage[]; he: boolean }) {
   return (
-    <div className="px-6 py-6">
-      <div className="flex items-center justify-between relative">
-        {/* Connecting line behind nodes */}
+    <div className="px-6 py-5">
+      <div className="flex items-start relative">
+        {/* Background track */}
+        <div className="absolute top-4 left-0 right-0 h-[2px]" style={{ background: C.line }} />
+        {/* Filled track */}
         <div
-          className="absolute top-6 left-0 right-0 h-[2px] rounded-full"
-          style={{ background: 'linear-gradient(90deg, #E5E7EB 0%, #E5E7EB 100%)' }}
-        />
-        {/* Filled progress line */}
-        <div
-          className="absolute top-6 left-0 h-[2px] rounded-full transition-all duration-700"
+          className="absolute top-4 left-0 h-[2px] transition-all duration-500"
           style={{
-            background: `linear-gradient(90deg, ${C.primary}, ${C.primary}CC)`,
+            background: C.primary,
             width: `${(stages.filter(s => s.reached).length - 1) / (stages.length - 1) * 100}%`,
-            boxShadow: `0 0 8px ${C.primary}40`,
           }}
         />
-        {stages.map((stage) => {
-          const completedColor = C.primary
-          const futureColor = '#D1D5DB'
-
-          return (
-            <div key={stage.key} className="relative flex flex-col items-center z-10" style={{ flex: 1 }}>
-              {/* Node */}
-              <div
-                className="w-12 h-12 rounded-2xl flex items-center justify-center transition-all duration-500"
-                style={{
-                  background: stage.reached
-                    ? stage.isCurrent
-                      ? `linear-gradient(135deg, ${completedColor}, ${C.primaryDark})`
-                      : `${completedColor}15`
-                    : 'white',
-                  border: stage.reached ? 'none' : `2px solid ${futureColor}`,
-                  boxShadow: stage.isCurrent
-                    ? `0 4px 16px ${completedColor}35, 0 0 0 4px ${completedColor}15`
-                    : stage.reached
-                      ? `0 2px 8px ${completedColor}15`
-                      : '0 1px 3px rgba(0,0,0,0.04)',
-                }}
-              >
-                {stage.reached ? (
-                  <CheckCircle2 className="w-5 h-5" style={{ color: stage.isCurrent ? 'white' : completedColor }} />
-                ) : (
-                  <CircleDot className="w-5 h-5" style={{ color: futureColor }} />
-                )}
-              </div>
-
-              {/* Label */}
-              <p
-                className="text-[10px] font-bold mt-2.5 text-center leading-tight uppercase tracking-wider"
-                style={{ color: stage.reached ? C.dark : C.muted, letterSpacing: '0.04em' }}
-              >
-                {he ? stage.labelHe : stage.label}
-              </p>
-
-              {/* Date */}
-              {stage.date && (
-                <p className="text-[9px] font-medium mt-1" style={{ color: C.muted }}>
-                  {fmtShort(stage.date)}
-                </p>
+        {stages.map((stage) => (
+          <div key={stage.key} className="relative flex flex-col items-center z-10" style={{ flex: 1 }}>
+            <div
+              className="w-8 h-8 rounded-full flex items-center justify-center"
+              style={{
+                background: stage.isCurrent ? C.primary : stage.reached ? C.primaryLight : C.card,
+                border: stage.reached ? 'none' : `2px solid ${C.line}`,
+                boxShadow: stage.isCurrent ? `0 0 0 3px ${C.primary}20` : 'none',
+              }}
+            >
+              {stage.reached ? (
+                <CheckCircle2 className="w-4 h-4" style={{ color: stage.isCurrent ? 'white' : C.primary }} />
+              ) : (
+                <CircleDot className="w-4 h-4" style={{ color: '#D1D5DB' }} />
               )}
             </div>
-          )
-        })}
+            <p className="text-[11px] font-medium mt-2 text-center" style={{ color: stage.reached ? C.ink : C.hint }}>
+              {he ? stage.labelHe : stage.label}
+            </p>
+            {stage.date && (
+              <p className="text-[11px] mt-0.5" style={{ color: C.hint }}>{fmtShort(stage.date)}</p>
+            )}
+          </div>
+        ))}
       </div>
     </div>
   )
 }
 
-/* ── Info Row (for sidebar) ────────────────────────────────────── */
+/* ── Info Row ─────────────────────────────────────────────────── */
 function InfoRow({ label, value, mono }: { label: string; value: React.ReactNode; mono?: boolean }) {
   return (
-    <div className="flex items-center justify-between py-3 group" style={{ borderBottom: `1px solid ${C.border}` }}>
-      <span className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: C.muted, letterSpacing: '0.04em' }}>{label}</span>
-      <span className={`text-[13px] font-semibold ${mono ? 'font-mono text-[12px]' : ''}`} style={{ color: C.dark }}>{value}</span>
+    <div className="flex items-center justify-between py-2.5 border-b border-black/[0.04]">
+      <span className="text-[12px] text-[#a3a3a3]">{label}</span>
+      <span className={`text-[13px] font-semibold ${mono ? 'font-mono text-[11px]' : ''}`}>{value}</span>
     </div>
   )
 }
@@ -866,7 +834,7 @@ export default function ContractorDetail() {
   })()
 
   return (
-    <div className="animate-fade-in space-y-6">
+    <div className="animate-fade-in space-y-5">
       {/* ═══ Back link ═══ */}
       <Link
         to="/admin/clients"
@@ -878,67 +846,29 @@ export default function ContractorDetail() {
       </Link>
 
       {/* ═══ Hero Header ═══ */}
-      <div
-        className="rounded-3xl overflow-hidden relative"
-        style={{
-          background: `linear-gradient(135deg, rgba(255,255,255,0.92) 0%, rgba(248,250,252,0.85) 100%)`,
-          backdropFilter: 'blur(40px) saturate(180%)',
-          WebkitBackdropFilter: 'blur(40px) saturate(180%)',
-          border: `1px solid ${C.border}`,
-          boxShadow: '0 2px 4px rgba(0,0,0,0.04), 0 8px 24px rgba(0,0,0,0.06)',
-        }}
-      >
-        {/* Decorative gradient accent */}
-        <div
-          className="absolute top-0 left-0 right-0 h-1 rounded-t-3xl"
-          style={{ background: `linear-gradient(90deg, ${C.primary}, ${C.accent}, ${C.primary})` }}
-        />
-
-        <div className="px-8 py-7">
+      <div className="bg-white rounded-[20px] border border-black/[0.04] shadow-sm overflow-hidden animate-fade-in">
+        <div className="px-6 py-5">
           <div className="flex flex-wrap items-start justify-between gap-5">
-            <div className="flex items-center gap-5">
-              {/* Avatar with brand gradient */}
+            <div className="flex items-center gap-4">
+              {/* Avatar */}
               <div className="relative">
-                <div
-                  className="w-[68px] h-[68px] rounded-2xl flex items-center justify-center text-2xl font-extrabold shrink-0"
-                  style={{
-                    background: `linear-gradient(135deg, ${C.primary}, ${C.primaryDark})`,
-                    color: 'white',
-                    boxShadow: `0 4px 20px ${C.primary}35`,
-                    letterSpacing: '-0.02em',
-                  }}
-                >
+                <div className="w-14 h-14 rounded-2xl bg-[#fe5b25] flex items-center justify-center text-xl font-bold text-white shrink-0">
                   {initials}
                 </div>
-                {/* Online indicator */}
                 <div
-                  className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center"
-                  style={{
-                    background: contractor.is_active ? C.success : C.danger,
-                    border: '3px solid white',
-                    boxShadow: `0 2px 6px ${contractor.is_active ? C.success : C.danger}40`,
-                  }}
+                  className="absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full ring-[2.5px] ring-white"
+                  style={{ background: contractor.is_active ? C.success : C.danger }}
                 />
               </div>
 
-              <div className="space-y-2">
-                {/* Name + badges row */}
-                <div className="flex items-center gap-3 flex-wrap">
-                  <h1 className="text-2xl font-extrabold tracking-tight" style={{ color: C.dark, letterSpacing: '-0.025em' }}>
-                    {contractor.profiles?.full_name ?? 'Unknown'}
-                  </h1>
+              <div className="space-y-1.5">
+                {/* Name + badges */}
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h1 className="text-[20px] font-bold tracking-tight">{contractor.profiles?.full_name ?? 'Unknown'}</h1>
 
                   {planConf && (
-                    <span
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[11px] font-bold"
-                      style={{
-                        background: `linear-gradient(135deg, ${planConf.bg}, ${planConf.border}40)`,
-                        color: planConf.color,
-                        boxShadow: `0 2px 8px ${planConf.color}15`,
-                      }}
-                    >
-                      <Crown className="w-3.5 h-3.5" />
-                      {plan?.name}
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-[#fff4f0] text-[#fe5b25]">
+                      <Crown className="w-3 h-3" /> {plan?.name}
                     </span>
                   )}
 
@@ -946,7 +876,7 @@ export default function ContractorDetail() {
                     <StatusBadge
                       label={SUB_STATUS_MAP[contractor.subscription.status]?.label ?? contractor.subscription.status}
                       color={SUB_STATUS_MAP[contractor.subscription.status]?.color ?? C.muted}
-                      bg={SUB_STATUS_MAP[contractor.subscription.status]?.bg ?? '#F3F4F6'}
+                      bg={SUB_STATUS_MAP[contractor.subscription.status]?.bg ?? '#f5f5f5'}
                     />
                   )}
 
@@ -955,40 +885,36 @@ export default function ContractorDetail() {
                   )}
                 </div>
 
-                {/* Meta info row */}
-                <div className="flex items-center gap-4 flex-wrap">
+                {/* Meta row */}
+                <div className="flex items-center gap-3 flex-wrap">
                   {contractor.profiles?.phone && (
-                    <span className="text-[13px] font-medium flex items-center gap-1.5" style={{ color: C.darkSub }}>
-                      <Phone className="w-3.5 h-3.5" style={{ color: C.muted }} /> {contractor.profiles.phone}
+                    <span className="text-[13px] flex items-center gap-1.5 text-[#737373]">
+                      <Phone className="w-3.5 h-3.5 text-[#a3a3a3]" /> {contractor.profiles.phone}
                     </span>
                   )}
-                  <span className="text-[13px] font-medium flex items-center gap-1.5" style={{ color: C.darkSub }}>
-                    <Calendar className="w-3.5 h-3.5" style={{ color: C.muted }} /> {fmtDate(contractor.created_at)}
+                  <span className="text-[13px] flex items-center gap-1.5 text-[#737373]">
+                    <Calendar className="w-3.5 h-3.5 text-[#a3a3a3]" /> {fmtDate(contractor.created_at)}
                   </span>
-                  <span
-                    className="text-[12px] font-bold px-2.5 py-1 rounded-lg"
-                    style={{ background: '#F3F4F6', color: C.darkSub }}
-                  >
+                  <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-[#fafafa] text-[#737373]">
                     {daysAsCustomer} {he ? 'ימים' : 'days'}
                   </span>
                 </div>
 
-                {/* Channel indicators */}
-                <div className="flex items-center gap-2 mt-1">
+                {/* Channel pills */}
+                <div className="flex items-center gap-1.5">
                   {[
                     { key: 'wa', label: 'WhatsApp', active: contractor.wa_notify && !!contractor.profiles?.whatsapp_phone, color: '#25D366', icon: MessageCircle },
-                    { key: 'tg', label: 'Telegram', active: !!contractor.profiles?.telegram_chat_id, color: '#2563EB', icon: Send },
-                    { key: 'push', label: 'Push', active: pushSubs.length > 0, color: '#7C3AED', icon: Bell },
+                    { key: 'tg', label: 'Telegram', active: !!contractor.profiles?.telegram_chat_id, color: '#0088CC', icon: Send },
+                    { key: 'push', label: 'Push', active: pushSubs.length > 0, color: C.accent, icon: Bell },
                     { key: 'sms', label: 'SMS', active: !contractor.sms_opt_out, color: C.primary, icon: Smartphone },
                   ].map((ch) => (
                     <span
                       key={ch.key}
                       title={`${ch.label}: ${ch.active ? 'Active' : 'Off'}`}
-                      className="inline-flex items-center gap-1.5 text-[10px] font-bold px-2.5 py-1 rounded-lg transition-all"
+                      className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-1 rounded-full"
                       style={{
-                        background: ch.active ? `${ch.color}10` : '#F9FAFB',
-                        color: ch.active ? ch.color : '#D1D5DB',
-                        border: `1px solid ${ch.active ? `${ch.color}25` : '#F3F4F6'}`,
+                        background: ch.active ? `${ch.color}10` : '#fafafa',
+                        color: ch.active ? ch.color : '#d4d4d4',
                       }}
                     >
                       <ch.icon className="w-3 h-3" />
@@ -999,20 +925,19 @@ export default function ContractorDetail() {
               </div>
             </div>
 
-            {/* Actions + Account Status merged */}
-            <div className="flex flex-col items-end gap-2.5">
-              <div className="flex items-center gap-2.5">
+            {/* Actions */}
+            <div className="flex flex-col items-end gap-2">
+              <div className="flex items-center gap-2">
                 <button
                   onClick={async () => { await impersonate(contractor.user_id); navigate('/') }}
-                  className="flex items-center gap-2 px-5 py-2.5 rounded-2xl text-[13px] font-bold transition-all hover:shadow-lg hover:-translate-y-0.5 active:scale-95"
-                  style={{ background: C.dark, color: 'white', boxShadow: '0 2px 8px rgba(0,0,0,0.15)' }}
+                  className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-[13px] font-semibold text-white bg-[#111] active:scale-[0.97] transition-transform"
                 >
                   <Eye className="w-4 h-4" /> {he ? 'צפה' : 'View As'}
                 </button>
                 <button
                   onClick={toggleActive}
                   disabled={toggling}
-                  className="flex items-center gap-2 px-4 py-2.5 rounded-2xl text-[13px] font-bold transition-all hover:shadow-lg hover:-translate-y-0.5 active:scale-95"
+                  className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-[13px] font-semibold active:scale-[0.97] transition-transform"
                   style={{
                     background: contractor.is_active ? '#FEF2F2' : '#ECFDF5',
                     color: contractor.is_active ? C.danger : C.success,
@@ -1025,21 +950,19 @@ export default function ContractorDetail() {
                   }
                 </button>
               </div>
-              {/* Inline account moderation */}
+              {/* Moderation */}
               {(() => {
                 const userStatus = contractor.profiles?.status ?? 'active'
                 return (
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1.5">
                     {(userStatus === 'suspended' || userStatus === 'banned') && (
-                      <span className="text-[10px] font-medium" style={{ color: C.muted }}>
-                        {contractor.profiles?.suspension_reason}
-                      </span>
+                      <span className="text-[11px] text-[#a3a3a3]">{contractor.profiles?.suspension_reason}</span>
                     )}
                     {userStatus !== 'suspended' && userStatus !== 'banned' && (
                       <button
                         onClick={() => { setStatusAction('suspend'); setStatusReason('') }}
-                        className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-[11px] font-semibold transition-all hover:shadow-sm active:scale-95"
-                        style={{ background: '#FFFBEB', color: '#D97706' }}
+                        className="flex items-center gap-1 px-2.5 py-1.5 rounded-full text-[11px] font-medium active:scale-[0.97] transition-transform"
+                        style={{ background: '#FFFBEB', color: C.warning }}
                       >
                         <AlertTriangle className="w-3 h-3" /> {he ? 'השעה' : 'Suspend'}
                       </button>
@@ -1047,8 +970,8 @@ export default function ContractorDetail() {
                     {userStatus !== 'banned' && (
                       <button
                         onClick={() => { setStatusAction('ban'); setStatusReason('') }}
-                        className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-[11px] font-semibold transition-all hover:shadow-sm active:scale-95"
-                        style={{ background: '#FEF2F2', color: '#DC2626' }}
+                        className="flex items-center gap-1 px-2.5 py-1.5 rounded-full text-[11px] font-medium active:scale-[0.97] transition-transform"
+                        style={{ background: '#FEF2F2', color: C.danger }}
                       >
                         <Ban className="w-3 h-3" /> {he ? 'חסום' : 'Ban'}
                       </button>
@@ -1056,8 +979,8 @@ export default function ContractorDetail() {
                     {userStatus !== 'active' && (
                       <button
                         onClick={() => { setStatusAction('activate'); setStatusReason('') }}
-                        className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-[11px] font-semibold transition-all hover:shadow-sm active:scale-95"
-                        style={{ background: '#ECFDF5', color: '#059669' }}
+                        className="flex items-center gap-1 px-2.5 py-1.5 rounded-full text-[11px] font-medium active:scale-[0.97] transition-transform"
+                        style={{ background: '#ECFDF5', color: C.success }}
                       >
                         <UserCheck className="w-3 h-3" /> {he ? 'הפעל' : 'Activate'}
                       </button>
@@ -1073,10 +996,10 @@ export default function ContractorDetail() {
       {/* ═══ Status Change Confirmation Modal ═══ */}
       {statusAction && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={() => setStatusAction(null)}>
-          <div className="absolute inset-0 bg-black/50 backdrop-blur-md" />
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
           <div
-            className="relative rounded-2xl p-7 w-full max-w-sm animate-fade-in"
-            style={{ background: 'white', boxShadow: '0 25px 50px rgba(0,0,0,0.15)' }}
+            className="relative rounded-xl p-6 w-full max-w-sm animate-fade-in"
+            style={{ background: 'white', boxShadow: '0 20px 40px rgba(0,0,0,0.12)' }}
             onClick={(e) => e.stopPropagation()}
           >
             <h2 className="text-lg font-bold mb-1" style={{ color: C.dark }}>
@@ -1140,47 +1063,44 @@ export default function ContractorDetail() {
         </div>
       )}
 
-      {/* ═══ Customer Lifecycle Pipeline (compact) ═══ */}
-      <GlassCard>
-        <div className="px-6 py-4">
-          <div className="flex items-center gap-6">
-            <h2 className="text-[13px] font-bold tracking-tight flex items-center gap-2 shrink-0" style={{ color: C.dark, letterSpacing: '-0.015em' }}>
-              <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: `${C.primary}12` }}>
-                <TrendingUp className="w-3.5 h-3.5" style={{ color: C.primary }} />
+      {/* ═══ Customer Lifecycle Pipeline ═══ */}
+      <GlassCard delay={50}>
+        <div className="px-5 py-4">
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2 shrink-0">
+              <div className="w-7 h-7 rounded-lg bg-[#fff4f0] flex items-center justify-center">
+                <TrendingUp className="w-3.5 h-3.5 text-[#fe5b25]" />
               </div>
-              {he ? 'מסלול' : 'Lifecycle'}
-            </h2>
-            {/* Inline pipeline */}
-            <div className="flex items-center gap-1 flex-1">
+              <h2 className="text-[15px] font-bold tracking-tight">{he ? 'מסלול' : 'Lifecycle'}</h2>
+            </div>
+            <div className="flex items-center gap-1.5 flex-1">
               {pipelineStages.map((stage, i) => (
-                <div key={stage.key} className="flex items-center gap-1" style={{ flex: 1 }}>
+                <div key={stage.key} className="flex items-center gap-1.5" style={{ flex: 1 }}>
                   <div
-                    className="flex items-center gap-1.5 px-3 py-2 rounded-xl flex-1 transition-all"
+                    className="flex items-center gap-2 px-3 py-2.5 rounded-xl flex-1 active:scale-[0.97] transition-transform"
                     style={{
-                      background: stage.isCurrent
-                        ? `linear-gradient(135deg, ${C.primary}, ${C.primaryDark})`
-                        : stage.reached ? `${C.primary}10` : '#F9FAFB',
-                      border: `1px solid ${stage.reached ? `${C.primary}20` : '#F3F4F6'}`,
+                      background: stage.isCurrent ? '#fe5b25' : stage.reached ? '#fff4f0' : '#fafafa',
+                      border: `1px solid ${stage.isCurrent ? '#fe5b25' : stage.reached ? 'rgba(254,91,37,0.15)' : 'rgba(0,0,0,0.04)'}`,
                     }}
                   >
                     {stage.reached ? (
-                      <CheckCircle2 className="w-3.5 h-3.5 shrink-0" style={{ color: stage.isCurrent ? 'white' : C.primary }} />
+                      <CheckCircle2 className="w-3.5 h-3.5 shrink-0" style={{ color: stage.isCurrent ? 'white' : '#fe5b25' }} />
                     ) : (
-                      <CircleDot className="w-3.5 h-3.5 shrink-0" style={{ color: '#D1D5DB' }} />
+                      <CircleDot className="w-3.5 h-3.5 shrink-0 text-[#d4d4d4]" />
                     )}
                     <div className="min-w-0">
-                      <p className="text-[10px] font-bold truncate" style={{ color: stage.isCurrent ? 'white' : stage.reached ? C.dark : C.muted }}>
+                      <p className="text-[11px] font-semibold truncate" style={{ color: stage.isCurrent ? 'white' : stage.reached ? '#111' : '#a3a3a3' }}>
                         {he ? stage.labelHe : stage.label}
                       </p>
                       {stage.date && (
-                        <p className="text-[8px] font-medium" style={{ color: stage.isCurrent ? 'rgba(255,255,255,0.7)' : C.muted }}>
+                        <p className="text-[9px]" style={{ color: stage.isCurrent ? 'rgba(255,255,255,0.7)' : '#a3a3a3' }}>
                           {fmtShort(stage.date)}
                         </p>
                       )}
                     </div>
                   </div>
                   {i < pipelineStages.length - 1 && (
-                    <div className="w-2 h-0.5 rounded-full shrink-0" style={{ background: stage.reached ? C.primary : '#E5E7EB' }} />
+                    <div className="w-3 h-0.5 rounded-full shrink-0" style={{ background: stage.reached ? 'rgba(254,91,37,0.3)' : '#e5e5e5' }} />
                   )}
                 </div>
               ))}
@@ -1189,34 +1109,27 @@ export default function ContractorDetail() {
         </div>
       </GlassCard>
 
-      {/* ═══ Revenue KPI Strip (full width) ═══ */}
-      <GlassCard delay={70}>
+      {/* ═══ Revenue KPI Strip ═══ */}
+      <GlassCard delay={80}>
         <SectionHeader icon={BarChart3} iconColor={C.success} title={he ? 'הכנסות וחיוב' : 'Revenue & Billing'} />
-            <div className="p-6">
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-                {[
-                  { label: 'MRR', value: monthlyFee > 0 ? `$${monthlyFee}` : '\u2014', gradient: 'linear-gradient(135deg, #ECFDF5, #D1FAE5)', color: C.success, shadow: 'rgba(5,150,105,0.1)' },
-                  { label: 'LTV', value: ltv > 0 ? `$${ltv.toLocaleString()}` : '\u2014', gradient: 'linear-gradient(135deg, #F5F3FF, #EDE9FE)', color: C.accent, shadow: 'rgba(88,86,214,0.1)' },
-                  { label: he ? 'חודשים' : 'Months', value: monthsActive > 0 ? String(monthsActive) : '\u2014', gradient: 'linear-gradient(135deg, #FFF7ED, #FFEDD5)', color: C.primary, shadow: 'rgba(254,91,37,0.1)' },
-                  { label: he ? 'ימים' : 'Days', value: String(daysAsCustomer), gradient: 'linear-gradient(135deg, #F0F9FF, #E0F2FE)', color: '#0284C7', shadow: 'rgba(2,132,199,0.1)' },
-                  { label: he ? 'חיוב הבא' : 'Next Bill', value: contractor.subscription?.current_period_end ? fmtShort(contractor.subscription.current_period_end) : '\u2014', gradient: 'linear-gradient(135deg, #FFFBEB, #FEF3C7)', color: C.warning, shadow: 'rgba(217,119,6,0.1)' },
-                  { label: he ? 'מחזור' : 'Interval', value: monthlyFee > 0 ? (he ? 'חודשי' : 'Monthly') : '\u2014', gradient: 'linear-gradient(135deg, #FDF2F8, #FCE7F3)', color: '#DB2777', shadow: 'rgba(219,39,119,0.1)' },
-                ].map((kpi) => (
-                  <div
-                    key={kpi.label}
-                    className="rounded-2xl p-4 relative overflow-hidden transition-all hover:-translate-y-0.5 hover:shadow-md"
-                    style={{ background: kpi.gradient, boxShadow: `0 2px 8px ${kpi.shadow}` }}
-                  >
-                    <div className="absolute inset-0 rounded-2xl" style={{ background: 'linear-gradient(135deg, rgba(255,255,255,0.5) 0%, transparent 60%)', pointerEvents: 'none' }} />
-                    <p className="text-[10px] font-bold uppercase tracking-wider relative" style={{ color: kpi.color, letterSpacing: '0.06em' }}>{kpi.label}</p>
-                    <p className="text-2xl font-extrabold mt-1 relative tracking-tight" style={{ color: C.dark, letterSpacing: '-0.03em' }}>
-                      {kpi.value}
-                    </p>
-                  </div>
-                ))}
+        <div className="p-5">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2">
+            {[
+              { label: 'MRR', value: monthlyFee > 0 ? `$${monthlyFee}` : '\u2014' },
+              { label: 'LTV', value: ltv > 0 ? `$${ltv.toLocaleString()}` : '\u2014' },
+              { label: he ? 'חודשים' : 'Months', value: monthsActive > 0 ? String(monthsActive) : '\u2014' },
+              { label: he ? 'ימים' : 'Days', value: String(daysAsCustomer) },
+              { label: he ? 'חיוב הבא' : 'Next Bill', value: contractor.subscription?.current_period_end ? fmtShort(contractor.subscription.current_period_end) : '\u2014' },
+              { label: he ? 'מחזור' : 'Interval', value: monthlyFee > 0 ? (he ? 'חודשי' : 'Monthly') : '\u2014' },
+            ].map((kpi) => (
+              <div key={kpi.label} className="bg-white rounded-[20px] border border-black/[0.04] shadow-sm p-3 text-center">
+                <p className="text-[18px] font-bold tracking-tight">{kpi.value}</p>
+                <p className="text-[8px] text-[#a3a3a3] mt-0.5 uppercase tracking-wide">{kpi.label}</p>
               </div>
-            </div>
-          </GlassCard>
+            ))}
+          </div>
+        </div>
+      </GlassCard>
 
       {/* ═══ 2-Column Layout: Main + Sidebar ═══ */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -1230,29 +1143,17 @@ export default function ContractorDetail() {
               {contractor.subscription ? (
                 <div className="space-y-4">
                   {/* Plan visual */}
-                  <div
-                    className="rounded-2xl p-5 relative overflow-hidden"
-                    style={{
-                      background: planConf?.gradient ?? '#F3F4F6',
-                      boxShadow: `0 2px 12px ${planConf?.color ?? C.muted}15`,
-                    }}
-                  >
-                    <div className="absolute inset-0" style={{ background: 'linear-gradient(135deg, rgba(255,255,255,0.4) 0%, transparent 50%)', pointerEvents: 'none' }} />
-                    <div className="flex items-center justify-between relative">
-                      <div className="flex items-center gap-2.5">
-                        <div
-                          className="w-10 h-10 rounded-xl flex items-center justify-center"
-                          style={{ background: `${planConf?.color ?? C.muted}18` }}
-                        >
-                          <Crown className="w-5 h-5" style={{ color: planConf?.color ?? C.muted }} />
+                  <div className="bg-[#fafafa] rounded-[20px] p-5">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-xl bg-[#fff4f0] flex items-center justify-center">
+                          <Crown className="w-5 h-5 text-[#fe5b25]" />
                         </div>
-                        <span className="text-[16px] font-extrabold tracking-tight" style={{ color: planConf?.color ?? C.dark, letterSpacing: '-0.02em' }}>{plan?.name}</span>
+                        <span className="text-[15px] font-bold">{plan?.name}</span>
                       </div>
                       <div className="text-right">
-                        <span className="text-2xl font-extrabold tracking-tight" style={{ color: C.dark, letterSpacing: '-0.03em' }}>
-                          ${monthlyFee}
-                        </span>
-                        <span className="text-[11px] font-medium ml-0.5" style={{ color: C.muted }}>/mo</span>
+                        <span className="text-[26px] font-bold tracking-tight">${monthlyFee}</span>
+                        <span className="text-[12px] text-[#a3a3a3] ml-0.5">/mo</span>
                       </div>
                     </div>
                   </div>
@@ -1298,11 +1199,10 @@ export default function ContractorDetail() {
                   </div>
 
                   {/* Admin upgrade/change plan button */}
-                  <div className="flex gap-3 mt-5 pt-5" style={{ borderTop: `1px solid ${C.border}` }}>
+                  <div className="flex gap-3 mt-5 pt-5" style={{ borderTop: `1px solid ${C.line}` }}>
                     <button
                       onClick={openPlanModal}
-                      className="flex-1 flex items-center justify-center gap-2 rounded-2xl py-3 text-[13px] font-bold text-white transition-all hover:shadow-lg hover:-translate-y-0.5 active:scale-[0.97]"
-                      style={{ background: `linear-gradient(135deg, ${C.accent}, ${C.accent}DD)`, boxShadow: `0 2px 12px ${C.accent}30` }}
+                      className="flex-1 flex items-center justify-center gap-2 bg-[#fe5b25] text-white py-3 rounded-xl text-[13px] font-semibold active:scale-[0.97] transition-transform"
                     >
                       <ArrowUpCircle className="w-4 h-4" />
                       {he ? 'שנה חבילה' : 'Change Plan'}
@@ -1310,8 +1210,7 @@ export default function ContractorDetail() {
                     {contractor.subscription.stripe_customer_id && (
                       <button
                         onClick={() => window.open(`https://dashboard.stripe.com/customers/${contractor.subscription.stripe_customer_id}`, '_blank')}
-                        className="rounded-2xl px-5 py-3 text-[13px] font-semibold transition-all hover:bg-gray-50 hover:-translate-y-0.5 active:scale-[0.97]"
-                        style={{ border: `1.5px solid #E5E7EB`, color: C.darkSub }}
+                        className="px-5 py-3 rounded-xl text-[13px] font-semibold border border-black/[0.04] text-[#737373] active:scale-[0.97] transition-transform"
                       >
                         Stripe
                       </button>
@@ -1320,15 +1219,14 @@ export default function ContractorDetail() {
                 </div>
               ) : (
                 <div className="text-center py-10">
-                  <div className="w-16 h-16 mx-auto mb-4 rounded-2xl flex items-center justify-center" style={{ background: '#F3F4F6' }}>
-                    <Package className="w-8 h-8" style={{ color: '#D1D5DB' }} />
+                  <div className="w-14 h-14 mx-auto mb-4 rounded-2xl flex items-center justify-center" style={{ background: C.subtle }}>
+                    <Package className="w-7 h-7" style={{ color: '#CBD5E1' }} />
                   </div>
-                  <p className="text-[14px] font-semibold mb-1" style={{ color: C.dark }}>{he ? 'ללא מנוי' : 'No subscription'}</p>
-                  <p className="text-[12px] mb-5" style={{ color: C.muted }}>{he ? 'הפעל תקופת ניסיון' : 'Start a trial to begin billing'}</p>
+                  <p className="text-[15px] font-semibold mb-1" style={{ color: C.ink }}>{he ? 'ללא מנוי' : 'No subscription'}</p>
+                  <p className="text-[13px] mb-5" style={{ color: C.hint }}>{he ? 'הפעל תקופת ניסיון' : 'Start a trial to begin billing'}</p>
                   <button
                     onClick={openPlanModal}
-                    className="inline-flex items-center gap-2 rounded-2xl px-6 py-3 text-[13px] font-bold text-white transition-all hover:shadow-lg hover:-translate-y-0.5 active:scale-[0.97]"
-                    style={{ background: `linear-gradient(135deg, ${C.success}, ${C.success}DD)`, boxShadow: `0 2px 12px ${C.success}30` }}
+                    className="inline-flex items-center gap-2 bg-[#059669] text-white px-6 py-3 rounded-xl text-[13px] font-semibold active:scale-[0.97] transition-transform"
                   >
                     <Sparkles className="w-4 h-4" />
                     {he ? 'הפעל Trial' : 'Start Trial'}
@@ -1424,7 +1322,7 @@ export default function ContractorDetail() {
             <SectionHeader icon={MessageSquare} iconColor="#059669" title={he ? 'קבוצות ווטסאפ' : 'WhatsApp Groups'} count={groups.length + linkedGroups.length} />
             {groups.length === 0 && linkedGroups.length === 0 ? (
               <div className="px-6 py-4 text-center">
-                <p className="text-[12px] font-medium" style={{ color: '#D1D5DB' }}>
+                <p className="text-[13px]" style={{ color: C.hint }}>
                   {he ? 'אין קבוצות מקושרות' : 'No groups linked'}
                 </p>
               </div>
@@ -1433,7 +1331,7 @@ export default function ContractorDetail() {
                 {/* Groups from leads */}
                 {groups.length > 0 && (
                   <div>
-                    <p className="text-[10px] font-bold uppercase tracking-wider mb-2" style={{ color: C.muted }}>
+                    <p className="text-[12px] font-medium mb-2" style={{ color: C.hint }}>
                       {he ? 'קבוצות מלידים' : 'From Leads'}
                     </p>
                     <div className="flex flex-wrap gap-2">
@@ -1459,7 +1357,7 @@ export default function ContractorDetail() {
                 {/* Linked / Scan groups */}
                 {linkedGroups.length > 0 && (
                   <div>
-                    <p className="text-[10px] font-bold uppercase tracking-wider mb-2" style={{ color: C.muted }}>
+                    <p className="text-[12px] font-medium mb-2" style={{ color: C.hint }}>
                       {he ? 'קבוצות מקושרות' : 'Linked Groups'}
                     </p>
                     <div className="flex flex-wrap gap-2">
@@ -1499,37 +1397,37 @@ export default function ContractorDetail() {
             <SectionHeader icon={UsersRound} iconColor={C.accent} title={he ? 'תת-קבלנים' : 'Subcontractors'} count={subcontractors.length} />
             {subcontractors.length === 0 ? (
               <div className="px-6 py-4 text-center">
-                <p className="text-[12px] font-medium" style={{ color: '#D1D5DB' }}>{he ? 'אין תת-קבלנים' : 'No subcontractors yet'}</p>
+                <p className="text-[13px]" style={{ color: C.hint }}>{he ? 'אין תת-קבלנים' : 'No subcontractors yet'}</p>
               </div>
             ) : (
               <div className="overflow-x-auto">
-                <table className="w-full text-sm">
+                <table className="w-full">
                   <thead>
-                    <tr style={{ background: '#FAFBFC', borderBottom: `1px solid ${C.border}` }}>
+                    <tr style={{ borderBottom: `1px solid ${C.line}` }}>
                       {[he ? 'שם' : 'Name', he ? 'טלפון' : 'Phone', he ? 'מקצועות' : 'Skills', he ? 'עבודות' : 'Jobs', he ? 'סטטוס' : 'Last Status', he ? 'נוסף' : 'Added'].map((col, i) => (
-                        <th key={i} className="text-start px-5 py-3 font-semibold text-[10px] uppercase tracking-widest" style={{ color: C.muted }}>{col}</th>
+                        <th key={i} className="text-start px-5 py-3 text-[12px] font-medium" style={{ color: C.hint }}>{col}</th>
                       ))}
                     </tr>
                   </thead>
                   <tbody>
                     {subcontractors.map((sub, idx) => (
-                      <tr key={sub.id} style={{ borderBottom: idx < subcontractors.length - 1 ? `1px solid ${C.border}` : undefined }}>
-                        <td className="px-5 py-3.5">
-                          <span className="font-semibold text-[13px]" style={{ color: C.dark }}>{sub.full_name}</span>
+                      <tr key={sub.id} className="transition-colors duration-150 hover:bg-slate-50" style={{ borderBottom: idx < subcontractors.length - 1 ? `1px solid ${C.line}` : undefined }}>
+                        <td className="px-5 py-3">
+                          <span className="font-medium text-[13px]" style={{ color: C.ink }}>{sub.full_name}</span>
                         </td>
-                        <td className="px-5 py-3.5 text-[12px] font-mono" style={{ color: C.muted }}>{sub.phone ?? '\u2014'}</td>
-                        <td className="px-5 py-3.5">
+                        <td className="px-5 py-3 text-[13px] font-mono" style={{ color: C.hint }}>{sub.phone ?? '\u2014'}</td>
+                        <td className="px-5 py-3">
                           <div className="flex gap-0.5">
                             {sub.profession_tags?.map((p) => (
                               <span key={p} title={p} className="text-sm leading-none">{PROF_EMOJI[p] ?? '📋'}</span>
                             ))}
-                            {(!sub.profession_tags || sub.profession_tags.length === 0) && <span className="text-[11px]" style={{ color: '#D1D5DB' }}>{'\u2014'}</span>}
+                            {(!sub.profession_tags || sub.profession_tags.length === 0) && <span className="text-[13px]" style={{ color: '#D1D5DB' }}>{'\u2014'}</span>}
                           </div>
                         </td>
-                        <td className="px-5 py-3.5">
-                          <span className="text-[12px] font-bold" style={{ color: sub.job_count > 0 ? C.dark : '#D1D5DB' }}>{sub.job_count}</span>
+                        <td className="px-5 py-3">
+                          <span className="text-[13px] font-semibold" style={{ color: sub.job_count > 0 ? C.ink : '#D1D5DB' }}>{sub.job_count}</span>
                         </td>
-                        <td className="px-5 py-3.5">
+                        <td className="px-5 py-3">
                           {sub.last_job_status ? (
                             <StatusBadge
                               label={sub.last_job_status}
@@ -1537,10 +1435,10 @@ export default function ContractorDetail() {
                               bg={JOB_STATUS_CONFIG[sub.last_job_status]?.bg ?? '#F3F4F6'}
                             />
                           ) : (
-                            <span className="text-[11px]" style={{ color: '#D1D5DB' }}>{'\u2014'}</span>
+                            <span className="text-[13px]" style={{ color: '#D1D5DB' }}>{'\u2014'}</span>
                           )}
                         </td>
-                        <td className="px-5 py-3.5 text-[11px]" style={{ color: C.muted }}>{fmtShort(sub.created_at)}</td>
+                        <td className="px-5 py-3 text-[12px]" style={{ color: C.hint }}>{fmtShort(sub.created_at)}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -1554,49 +1452,46 @@ export default function ContractorDetail() {
             <SectionHeader icon={Zap} iconColor={C.primary} title={he ? 'לידים אחרונים' : 'Recent Leads'} count={leads.length} />
             {leads.length === 0 ? (
               <div className="px-6 py-4 text-center">
-                <p className="text-[12px] font-medium" style={{ color: '#D1D5DB' }}>{he ? 'אין לידים' : 'No leads yet'}</p>
+                <p className="text-[13px]" style={{ color: C.hint }}>{he ? 'אין לידים' : 'No leads yet'}</p>
               </div>
             ) : (
               <div className="overflow-x-auto">
-                <table className="w-full text-sm">
+                <table className="w-full">
                   <thead>
-                    <tr style={{ background: '#FAFBFC', borderBottom: `1px solid ${C.border}` }}>
+                    <tr style={{ borderBottom: `1px solid ${C.line}` }}>
                       {[he ? 'מקצוע' : 'Profession', he ? 'עיר' : 'City', he ? 'קבוצה' : 'Group', he ? 'דחיפות' : 'Urgency', he ? 'סטטוס' : 'Status', he ? 'תאריך' : 'Date'].map((col, i) => (
-                        <th key={i} className="text-start px-5 py-3 font-semibold text-[10px] uppercase tracking-widest" style={{ color: C.muted }}>{col}</th>
+                        <th key={i} className="text-start px-5 py-3 text-[12px] font-medium" style={{ color: C.hint }}>{col}</th>
                       ))}
                     </tr>
                   </thead>
                   <tbody>
                     {leads.map((lead, idx) => (
-                      <tr key={lead.id} style={{ borderBottom: idx < leads.length - 1 ? `1px solid ${C.border}` : undefined }}>
-                        <td className="px-5 py-3.5">
+                      <tr key={lead.id} className="transition-colors duration-150 hover:bg-slate-50" style={{ borderBottom: idx < leads.length - 1 ? `1px solid ${C.line}` : undefined }}>
+                        <td className="px-5 py-3">
                           <span className="text-sm mr-1">{PROF_EMOJI[lead.profession] ?? '📋'}</span>
-                          <span className="text-[12px] font-medium" style={{ color: C.dark }}>{lead.profession}</span>
+                          <span className="text-[13px] font-medium" style={{ color: C.ink }}>{lead.profession}</span>
                         </td>
-                        <td className="px-5 py-3.5 text-[12px]" style={{ color: C.muted }}>{lead.city ?? '\u2014'}</td>
-                        <td className="px-5 py-3.5">
+                        <td className="px-5 py-3 text-[13px]" style={{ color: C.hint }}>{lead.city ?? '\u2014'}</td>
+                        <td className="px-5 py-3">
                           {lead.group_name ? (
-                            <span
-                              className="text-[10px] font-semibold px-2 py-0.5 rounded-md"
-                              style={{ background: '#ECFDF5', color: '#065F46' }}
-                            >
+                            <span className="text-[11px] font-medium px-2 py-0.5 rounded-md" style={{ background: '#ECFDF5', color: '#065F46' }}>
                               {lead.group_name}
                             </span>
                           ) : (
-                            <span className="text-[11px]" style={{ color: '#D1D5DB' }}>{'\u2014'}</span>
+                            <span className="text-[13px]" style={{ color: '#D1D5DB' }}>{'\u2014'}</span>
                           )}
                         </td>
-                        <td className="px-5 py-3.5">
+                        <td className="px-5 py-3">
                           {URGENCY_CONFIG[lead.urgency] ? (
                             <StatusBadge label={lead.urgency} color={URGENCY_CONFIG[lead.urgency].color} bg={URGENCY_CONFIG[lead.urgency].bg} />
-                          ) : <span className="text-[11px]" style={{ color: '#D1D5DB' }}>{'\u2014'}</span>}
+                          ) : <span className="text-[13px]" style={{ color: '#D1D5DB' }}>{'\u2014'}</span>}
                         </td>
-                        <td className="px-5 py-3.5">
+                        <td className="px-5 py-3">
                           {LEAD_STATUS_CONFIG[lead.status] ? (
                             <StatusBadge label={lead.status} color={LEAD_STATUS_CONFIG[lead.status].color} bg={LEAD_STATUS_CONFIG[lead.status].bg} />
-                          ) : <span className="text-[11px]" style={{ color: '#D1D5DB' }}>{'\u2014'}</span>}
+                          ) : <span className="text-[13px]" style={{ color: '#D1D5DB' }}>{'\u2014'}</span>}
                         </td>
-                        <td className="px-5 py-3.5 text-[11px]" style={{ color: C.muted }}>{fmtShort(lead.created_at)}</td>
+                        <td className="px-5 py-3 text-[12px]" style={{ color: C.hint }}>{fmtShort(lead.created_at)}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -1609,81 +1504,60 @@ export default function ContractorDetail() {
         {/* ── Right Sidebar (1/3) ── */}
         <div className="space-y-6">
 
-          {/* Contact + Channels combined */}
-          <GlassCard delay={70}>
+          {/* Contact + Channels */}
+          <GlassCard delay={100}>
             <div className="p-5 space-y-4">
-              <h3 className="text-[12px] font-bold uppercase tracking-widest flex items-center gap-2" style={{ color: C.muted, letterSpacing: '0.08em' }}>
-                <Phone className="w-3.5 h-3.5" />
+              <h3 className="text-[13px] font-semibold flex items-center gap-2" style={{ color: C.ink }}>
+                <Phone className="w-3.5 h-3.5" style={{ color: C.hint }} />
                 {he ? 'פרטי קשר' : 'Contact Info'}
               </h3>
 
-              {/* Compact contact rows */}
               <div className="space-y-0">
                 {contractor.profiles?.phone && (
                   <InfoRow label={he ? 'טלפון' : 'Phone'} value={contractor.profiles.phone} />
                 )}
                 <InfoRow label={he ? 'הצטרף' : 'Joined'} value={fmtDate(contractor.created_at)} />
-                <InfoRow label="User ID" value={<span className="font-mono text-[10px]">{contractor.user_id.slice(0, 12)}...</span>} mono />
+                <InfoRow label="User ID" value={<span className="font-mono text-[11px]">{contractor.user_id.slice(0, 12)}...</span>} mono />
               </div>
 
-              {/* Divider */}
               <div className="pt-2">
-                <h3 className="text-[12px] font-bold uppercase tracking-widest flex items-center gap-2" style={{ color: C.muted, letterSpacing: '0.08em' }}>
-                  <Bell className="w-3.5 h-3.5" />
+                <h3 className="text-[13px] font-semibold flex items-center gap-2" style={{ color: C.ink }}>
+                  <Bell className="w-3.5 h-3.5" style={{ color: C.hint }} />
                   {he ? 'ערוצי התראות' : 'Channels'}
-                  <span
-                    className="text-[10px] font-bold px-2 py-0.5 rounded-full"
-                    style={{
-                      background: (() => {
-                        const count = [
-                          contractor.wa_notify && contractor.profiles?.whatsapp_phone,
-                          contractor.profiles?.telegram_chat_id,
-                          pushSubs.length > 0,
-                          !contractor.sms_opt_out,
-                        ].filter(Boolean).length
-                        return count >= 3 ? '#ECFDF5' : count >= 1 ? '#FFFBEB' : '#FEF2F2'
-                      })(),
-                      color: (() => {
-                        const count = [
-                          contractor.wa_notify && contractor.profiles?.whatsapp_phone,
-                          contractor.profiles?.telegram_chat_id,
-                          pushSubs.length > 0,
-                          !contractor.sms_opt_out,
-                        ].filter(Boolean).length
-                        return count >= 3 ? C.success : count >= 1 ? C.warning : C.danger
-                      })(),
-                    }}
-                  >
-                    {[
+                  {(() => {
+                    const count = [
                       contractor.wa_notify && contractor.profiles?.whatsapp_phone,
                       contractor.profiles?.telegram_chat_id,
                       pushSubs.length > 0,
                       !contractor.sms_opt_out,
-                    ].filter(Boolean).length}/4
-                  </span>
+                    ].filter(Boolean).length
+                    const clr = count >= 3 ? C.success : count >= 1 ? C.warning : C.danger
+                    return (
+                      <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full" style={{ background: `${clr}12`, color: clr }}>
+                        {count}/4
+                      </span>
+                    )
+                  })()}
                 </h3>
               </div>
 
-              {/* Channel grid — compact 2x2 */}
               <div className="grid grid-cols-2 gap-2">
                 {[
                   { label: 'WhatsApp', active: contractor.wa_notify && !!contractor.profiles?.whatsapp_phone, color: '#25D366', icon: MessageCircle },
-                  { label: 'Telegram', active: !!contractor.profiles?.telegram_chat_id, color: '#2563EB', icon: Send },
-                  { label: 'Push', active: pushSubs.length > 0, color: '#7C3AED', icon: Smartphone },
+                  { label: 'Telegram', active: !!contractor.profiles?.telegram_chat_id, color: '#0088CC', icon: Send },
+                  { label: 'Push', active: pushSubs.length > 0, color: C.accent, icon: Smartphone },
                   { label: 'SMS', active: !contractor.sms_opt_out, color: C.primary, icon: Wifi },
                 ].map((ch) => (
                   <div
                     key={ch.label}
-                    className="flex items-center gap-2.5 p-3 rounded-xl transition-all"
-                    style={{
-                      background: ch.active ? `${ch.color}08` : '#FAFAFA',
-                      border: `1px solid ${ch.active ? `${ch.color}20` : '#F3F4F6'}`,
-                    }}
+                    className="flex items-center gap-2.5 p-2.5 bg-white rounded-[20px] border border-black/[0.04] shadow-sm"
                   >
-                    <ch.icon className="w-4 h-4 shrink-0" style={{ color: ch.active ? ch.color : '#D1D5DB' }} />
+                    <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: ch.active ? `${ch.color}10` : '#fafafa' }}>
+                      <ch.icon className="w-4 h-4" style={{ color: ch.active ? ch.color : '#d4d4d4' }} />
+                    </div>
                     <div className="min-w-0">
-                      <p className="text-[10px] font-bold" style={{ color: ch.active ? ch.color : '#D1D5DB' }}>{ch.label}</p>
-                      <p className="text-[9px] font-semibold truncate" style={{ color: ch.active ? C.darkSub : '#D1D5DB' }}>
+                      <p className="text-[11px] font-semibold" style={{ color: ch.active ? ch.color : '#d4d4d4' }}>{ch.label}</p>
+                      <p className="text-[9px]" style={{ color: ch.active ? '#737373' : '#d4d4d4' }}>
                         {ch.active ? (he ? 'מחובר' : 'Active') : (he ? 'כבוי' : 'Off')}
                       </p>
                     </div>
@@ -1696,15 +1570,12 @@ export default function ContractorDetail() {
 
 
           {/* Trades / Professions */}
-          <GlassCard delay={210}>
-            <div className="p-6 space-y-4">
-              <h3 className="text-[12px] font-bold uppercase tracking-widest flex items-center gap-2" style={{ color: C.muted, letterSpacing: '0.08em' }}>
-                <Briefcase className="w-3.5 h-3.5" />
+          <GlassCard delay={200}>
+            <div className="p-5 space-y-3">
+              <h3 className="text-[13px] font-semibold flex items-center gap-2" style={{ color: C.ink }}>
+                <Briefcase className="w-3.5 h-3.5" style={{ color: C.hint }} />
                 {he ? 'מקצועות' : 'Trades'}
-                <span
-                  className="text-[10px] font-bold px-2 py-0.5 rounded-full"
-                  style={{ background: `${C.accent}12`, color: C.accent }}
-                >
+                <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full" style={{ background: `${C.accent}12`, color: C.accent }}>
                   {contractor.professions.length}
                 </span>
               </h3>
@@ -1712,18 +1583,16 @@ export default function ContractorDetail() {
               {contractor.professions.length > 0 ? (
                 <div className="flex flex-wrap gap-2">
                   {contractor.professions.map((p) => (
-                    <span
-                      key={p}
-                      className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-[12px] font-bold capitalize transition-all hover:-translate-y-0.5 hover:shadow-sm"
-                      style={{ background: `${C.accent}08`, color: C.accent, border: `1px solid ${C.accent}18` }}
-                    >
-                      <span className="text-base">{PROF_EMOJI[p] ?? '📋'}</span>
-                      {p}
-                    </span>
+                    <div key={p} className="bg-white rounded-[20px] border border-black/[0.04] shadow-sm px-3.5 py-3 flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-lg bg-[#fff4f0] flex items-center justify-center">
+                        <span className="text-sm">{PROF_EMOJI[p] ?? '📋'}</span>
+                      </div>
+                      <span className="text-[12px] font-semibold capitalize">{p}</span>
+                    </div>
                   ))}
                 </div>
               ) : (
-                <p className="text-[12px] text-center py-4" style={{ color: C.muted }}>
+                <p className="text-[12px] text-center py-3" style={{ color: C.hint }}>
                   {he ? 'לא הוגדרו' : 'None defined'}
                 </p>
               )}
@@ -1732,35 +1601,29 @@ export default function ContractorDetail() {
 
           {/* Service Areas */}
           <GlassCard delay={280}>
-            <div className="p-6 space-y-4">
-              <h3 className="text-[12px] font-bold uppercase tracking-widest flex items-center gap-2" style={{ color: C.muted, letterSpacing: '0.08em' }}>
-                <MapPin className="w-3.5 h-3.5" />
+            <div className="p-5 space-y-3">
+              <h3 className="text-[13px] font-semibold flex items-center gap-2" style={{ color: C.ink }}>
+                <MapPin className="w-3.5 h-3.5" style={{ color: C.hint }} />
                 {he ? 'אזורי שירות' : 'Service Areas'}
-                <span
-                  className="text-[10px] font-bold px-2 py-0.5 rounded-full"
-                  style={{ background: '#FFF1F2', color: '#E11D48' }}
-                >
+                <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full" style={{ background: C.primaryLight, color: C.primary }}>
                   {contractor.zip_codes.length}
                 </span>
               </h3>
 
               {contractor.zip_codes.length > 0 ? (
                 <>
-                  <div className="flex flex-wrap gap-2">
+                  <div className="flex flex-wrap gap-1.5">
                     {(showAllZips ? contractor.zip_codes : contractor.zip_codes.slice(0, 12)).map((zip) => (
-                      <span
-                        key={zip}
-                        className="inline-flex items-center px-3 py-1.5 rounded-xl text-[11px] font-bold transition-all hover:-translate-y-0.5"
-                        style={{ background: '#FFF7ED', color: C.primary, border: '1px solid #FFEDD5' }}
-                      >
-                        {zip}
-                      </span>
+                      <div key={zip} className="bg-white rounded-[20px] border border-black/[0.04] shadow-sm px-3 py-2 flex items-center gap-2">
+                        <MapPin className="w-2.5 h-2.5 text-[#fe5b25]" />
+                        <span className="text-[11px] font-medium">{zip}</span>
+                      </div>
                     ))}
                   </div>
                   {contractor.zip_codes.length > 12 && (
                     <button
                       onClick={() => setShowAllZips(!showAllZips)}
-                      className="w-full text-center text-[11px] font-bold py-2 rounded-xl transition-all hover:bg-gray-50"
+                      className="w-full text-center text-[12px] font-semibold py-2 rounded-lg transition-all duration-200 hover:bg-orange-50"
                       style={{ color: C.primary }}
                     >
                       {showAllZips
@@ -1771,7 +1634,7 @@ export default function ContractorDetail() {
                   )}
                 </>
               ) : (
-                <p className="text-[12px] text-center py-4" style={{ color: C.muted }}>
+                <p className="text-[13px] text-center py-3" style={{ color: C.hint }}>
                   {he ? 'לא הוגדרו' : 'None defined'}
                 </p>
               )}
@@ -1781,27 +1644,19 @@ export default function ContractorDetail() {
           {/* Profile Verification */}
           {cpProfile && (
             <GlassCard delay={350}>
-              <div className="p-6 space-y-5">
-                <h3 className="text-[12px] font-bold uppercase tracking-widest flex items-center gap-2" style={{ color: C.muted, letterSpacing: '0.08em' }}>
-                  <ShieldCheck className="w-3.5 h-3.5" />
+              <div className="p-5 space-y-4">
+                <h3 className="text-[13px] font-semibold flex items-center gap-2" style={{ color: C.ink }}>
+                  <ShieldCheck className="w-3.5 h-3.5" style={{ color: C.hint }} />
                   {he ? 'אימות פרופיל' : 'Profile Verification'}
                 </h3>
 
                 {/* Background Check */}
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div
-                      className="w-10 h-10 rounded-xl flex items-center justify-center transition-transform hover:scale-105"
-                      style={{
-                        background: cpProfile.background_check === 'passed' ? '#ECFDF5' : '#F3F4F6',
-                        boxShadow: cpProfile.background_check === 'passed' ? `0 2px 8px ${C.success}15` : 'none',
-                      }}
-                    >
-                      <ShieldCheck className="w-5 h-5" style={{ color: cpProfile.background_check === 'passed' ? C.success : C.muted }} />
-                    </div>
+                  <div className="flex items-center gap-2.5">
+                    <ShieldCheck className="w-5 h-5" style={{ color: cpProfile.background_check === 'passed' ? C.success : C.hint }} />
                     <div>
-                      <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: C.muted, letterSpacing: '0.06em' }}>Background Check</p>
-                      <p className="text-[13px] font-bold" style={{ color: cpProfile.background_check === 'passed' ? C.success : C.muted }}>
+                      <p className="text-[12px] font-medium" style={{ color: C.hint }}>Background Check</p>
+                      <p className="text-[13px] font-semibold" style={{ color: cpProfile.background_check === 'passed' ? C.success : C.hint }}>
                         {cpProfile.background_check === 'passed' ? (he ? 'מאומת' : 'Passed') : (he ? 'לא מאומת' : 'Not verified')}
                       </p>
                     </div>
@@ -1809,7 +1664,7 @@ export default function ContractorDetail() {
                   <button
                     onClick={handleToggleBgCheck}
                     disabled={savingVerification}
-                    className="px-4 py-2 rounded-xl text-[11px] font-bold transition-all hover:shadow-md hover:-translate-y-0.5 active:scale-95"
+                    className="px-3 py-1.5 rounded-lg text-[11px] font-semibold transition-colors hover:opacity-80"
                     style={{
                       background: cpProfile.background_check === 'passed' ? '#FEF2F2' : '#ECFDF5',
                       color: cpProfile.background_check === 'passed' ? C.danger : C.success,
@@ -1822,13 +1677,13 @@ export default function ContractorDetail() {
 
                 {/* Trust Tier */}
                 <div>
-                  <p className="text-[10px] font-bold uppercase tracking-widest mb-3" style={{ color: C.muted, letterSpacing: '0.06em' }}>Trust Tier</p>
-                  <div className="grid grid-cols-4 gap-2">
+                  <p className="text-[12px] font-medium mb-2" style={{ color: C.hint }}>Trust Tier</p>
+                  <div className="grid grid-cols-4 gap-1.5">
                     {([
-                      { key: 'new', label: 'New', color: '#6B7280', bg: '#F3F4F6' },
-                      { key: 'verified', label: 'Verified', color: '#2563EB', bg: '#EFF6FF' },
-                      { key: 'trusted', label: 'Trusted', color: '#059669', bg: '#ECFDF5' },
-                      { key: 'elite', label: 'Elite', color: '#D97706', bg: '#FFFBEB' },
+                      { key: 'new', label: 'New', color: '#6B7280' },
+                      { key: 'verified', label: 'Verified', color: '#2563EB' },
+                      { key: 'trusted', label: 'Trusted', color: '#059669' },
+                      { key: 'elite', label: 'Elite', color: '#D97706' },
                     ] as const).map((t) => {
                       const isActive = cpProfile.tier === t.key
                       return (
@@ -1836,14 +1691,13 @@ export default function ContractorDetail() {
                           key={t.key}
                           onClick={() => handleChangeTier(t.key)}
                           disabled={savingVerification}
-                          className="py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-wider transition-all hover:shadow-md hover:-translate-y-0.5 active:scale-95 text-center"
+                          className="py-2.5 rounded-xl text-[11px] font-semibold text-center transition-all duration-200 hover:-translate-y-0.5 hover:shadow-sm active:scale-[0.97]"
                           style={{
-                            background: isActive ? t.bg : 'white',
-                            color: isActive ? t.color : C.muted,
-                            border: `2px solid ${isActive ? t.color : 'transparent'}`,
-                            boxShadow: isActive ? `0 2px 8px ${t.color}20` : '0 1px 3px rgba(0,0,0,0.04)',
+                            background: isActive ? `${t.color}08` : C.card,
+                            color: isActive ? t.color : C.hint,
+                            border: `2px solid ${isActive ? t.color : C.line}`,
+                            boxShadow: isActive ? `0 2px 8px ${t.color}20` : 'none',
                             opacity: savingVerification ? 0.6 : 1,
-                            letterSpacing: '0.04em',
                           }}
                         >
                           {t.label}
@@ -1855,25 +1709,21 @@ export default function ContractorDetail() {
 
                 {/* Profile Completeness */}
                 <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: C.muted, letterSpacing: '0.06em' }}>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <p className="text-[12px] font-medium" style={{ color: C.hint }}>
                       {he ? 'השלמת פרופיל' : 'Profile Completeness'}
                     </p>
-                    <span className="text-[14px] font-extrabold" style={{ color: cpProfile.profile_completeness >= 70 ? C.success : cpProfile.profile_completeness >= 40 ? C.warning : C.muted }}>
+                    <span className="text-[13px] font-bold" style={{ color: cpProfile.profile_completeness >= 70 ? C.success : cpProfile.profile_completeness >= 40 ? C.warning : C.hint }}>
                       {cpProfile.profile_completeness}%
                     </span>
                   </div>
-                  <div className="w-full h-2.5 rounded-full overflow-hidden" style={{ background: '#F3F4F6' }}>
+                  <div className="w-full h-2 rounded-full overflow-hidden" style={{ background: C.subtle }}>
                     <div
-                      className="h-full rounded-full transition-all duration-700"
+                      className="h-full rounded-full transition-all duration-500"
                       style={{
                         width: `${cpProfile.profile_completeness}%`,
-                        background: cpProfile.profile_completeness >= 70
-                          ? `linear-gradient(90deg, ${C.success}, ${C.success}CC)`
-                          : cpProfile.profile_completeness >= 40
-                            ? `linear-gradient(90deg, ${C.warning}, ${C.warning}CC)`
-                            : C.muted,
-                        boxShadow: `0 1px 4px ${cpProfile.profile_completeness >= 70 ? C.success : cpProfile.profile_completeness >= 40 ? C.warning : C.muted}30`,
+                        background: cpProfile.profile_completeness >= 70 ? C.success
+                          : cpProfile.profile_completeness >= 40 ? C.warning : C.hint,
                       }}
                     />
                   </div>
@@ -1884,25 +1734,25 @@ export default function ContractorDetail() {
 
           {/* Admin Notes */}
           <GlassCard delay={420}>
-            <div className="p-6 space-y-3">
-              <h3 className="text-[12px] font-bold uppercase tracking-widest flex items-center gap-2" style={{ color: C.muted, letterSpacing: '0.08em' }}>
-                <StickyNote className="w-3.5 h-3.5" />
+            <div className="p-5 space-y-3">
+              <h3 className="text-[13px] font-semibold flex items-center gap-2" style={{ color: C.ink }}>
+                <StickyNote className="w-3.5 h-3.5" style={{ color: C.hint }} />
                 {he ? 'הערות מנהל' : 'Admin Notes'}
               </h3>
               <textarea
-                className="w-full rounded-2xl px-5 py-4 text-[13px] resize-none focus:outline-none focus:ring-2 focus:ring-orange-200/50 transition-all"
+                className="w-full rounded-xl px-4 py-3 text-[13px] resize-none focus:outline-none focus:ring-2 focus:ring-orange-200/60 transition-all duration-200"
                 style={{
-                  background: '#FAFBFC',
-                  border: `1.5px solid ${C.border}`,
-                  color: C.dark,
-                  minHeight: '120px',
+                  background: C.subtle,
+                  border: `1.5px solid ${C.line}`,
+                  color: C.ink,
+                  minHeight: '100px',
                   lineHeight: '1.6',
                 }}
                 placeholder={he ? 'הוסף הערות על הלקוח...' : 'Add notes about this customer...'}
                 value={adminNotes}
                 onChange={(e) => setAdminNotes(e.target.value)}
               />
-              <p className="text-[10px] font-medium" style={{ color: C.muted }}>
+              <p className="text-[11px]" style={{ color: C.hint }}>
                 {he ? 'הערות נשמרות באופן מקומי בלבד' : 'Notes are saved locally only'}
               </p>
             </div>
@@ -1911,17 +1761,7 @@ export default function ContractorDetail() {
         </div>
       </div>
 
-      {/* Custom animations */}
-      <style>{`
-        @keyframes pulse {
-          0%, 100% { box-shadow: 0 0 0 0 rgba(254, 91, 37, 0.3); }
-          50% { box-shadow: 0 0 0 8px rgba(254, 91, 37, 0); }
-        }
-        @keyframes slideUp {
-          from { opacity: 0; transform: translateY(12px) scale(0.98); }
-          to { opacity: 1; transform: translateY(0) scale(1); }
-        }
-      `}</style>
+      {/* No page-specific CSS — uses app design system */}
     </div>
   )
 }

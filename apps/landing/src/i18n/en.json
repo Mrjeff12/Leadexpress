@@ -1,6 +1,8 @@
 {
   "nav": {
-    "features": "How It Works",
+    "findJobs": "Find Jobs",
+    "postJobs": "Post Jobs",
+    "protection": "Secure Jobs",
     "pricing": "Pricing",
     "faq": "FAQ",
     "contact": "Contact",

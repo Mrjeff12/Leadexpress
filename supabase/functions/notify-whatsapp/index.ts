@@ -13,7 +13,7 @@ let _secretsLoaded = false;
 // Claim token signing (same secret as claim-redirect)
 const CLAIM_SECRET = Deno.env.get("CLAIM_TOKEN_SECRET") || Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-async function signClaimToken(payload: { l: string; u: string; p: string; m: string; ts: number }): Promise<string> {
+async function signClaimToken(payload: { l: string; u: string; p: string; m: string; ts: number; cp?: string }): Promise<string> {
   const json = JSON.stringify(payload);
   const token = btoa(json).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
   const encoder = new TextEncoder();
@@ -168,6 +168,7 @@ Deno.serve(async (req: Request) => {
       const introMsg = `Hi, I found your ${profLabel} request in ${location} through MasterLeadFlow. I'm a licensed contractor and available to help. Is this still relevant? I'd love to hear more details.`;
       const claimTokenParam = await signClaimToken({
         l: p.leadId, u: p.contractorId, p: senderPhone, m: introMsg, ts: Date.now(),
+        cp: p.whatsappPhone,
       });
 
       // CTA template: {{1}}=profession, {{2}}=location, {{3}}=summary, {{4}}=source, {{5}}=claim_token

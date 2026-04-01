@@ -39,7 +39,7 @@ Deno.serve(async (req: Request) => {
   };
 
   try {
-    const { leadId, contractorId } = await req.json();
+    const { leadId, contractorId, contractorPhone } = await req.json();
 
     if (!leadId || !contractorId) {
       return new Response(JSON.stringify({ error: "missing_params" }), {
@@ -80,7 +80,7 @@ Deno.serve(async (req: Request) => {
 
     const { error } = await supabase.from("pipeline_events").insert({
       stage: "lead_claimed",
-      detail: { lead_id: leadId, contractor_id: contractorId, channel: "whatsapp_cta" },
+      detail: { lead_id: leadId, contractor_id: contractorId, channel: "whatsapp_cta", ...(contractorPhone ? { contractor_phone: contractorPhone } : {}) },
     });
 
     if (error) {

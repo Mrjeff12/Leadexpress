@@ -1,21 +1,12 @@
 import { serve } from '@hono/node-server';
 import pino from 'pino';
-import Redis from 'ioredis';
 import { config } from './config.js';
 import { createServer } from './server.js';
 import { createWorker } from './outbound/worker.js';
+import { createTemplateWorker } from './outbound/template-worker.js';
 import { startCheckinCron } from './outbound/checkin.js';
 
 const log = pino({ name: 'rebeca' });
-
-const redis = process.env.REDIS_URL
-  ? new Redis(process.env.REDIS_URL, { maxRetriesPerRequest: null })
-  : new Redis({
-      host: config.redis.host,
-      port: config.redis.port,
-      password: config.redis.password,
-      maxRetriesPerRequest: null,
-    });
 
 log.info({
   port: config.server.port,
@@ -23,9 +14,11 @@ log.info({
   timezone: config.cron.timezone,
 }, 'Starting Rebeca service');
 
-// 1. BullMQ outbound worker
-const { worker, cleanup: cleanupWorker } = createWorker(redis);
+// 1. BullMQ outbound workers (wa-notifications + wa-template-notifications)
+const { worker, cleanup: cleanupWorker } = createWorker();
+const { worker: templateWorker, cleanup: cleanupTemplate } = createTemplateWorker();
 worker.on('ready', () => log.info('WA notification worker ready'));
+templateWorker.on('ready', () => log.info('WA template notification worker ready'));
 
 // 2. Daily check-in cron
 const cronTask = startCheckinCron();
@@ -40,8 +33,8 @@ async function shutdown(signal: string): Promise<void> {
   log.info({ signal }, 'Shutting down gracefully');
   cronTask.stop();
   await cleanupWorker();
+  await cleanupTemplate();
   server.close();
-  redis.disconnect();
   process.exit(0);
 }
 

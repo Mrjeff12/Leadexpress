@@ -25,6 +25,7 @@ const ContractorPerformance = lazy(() => import('../../pages/admin/ContractorPer
 
 // Partners
 const PartnerOverview = lazy(() => import('../../pages/admin/PartnerOverview'))
+const PartnerList = lazy(() => import('../../pages/admin/PartnerList'))
 const PartnerDetail = lazy(() => import('../../pages/admin/PartnerDetail'))
 const WithdrawalQueue = lazy(() => import('../../pages/admin/WithdrawalQueue'))
 const CommissionLog = lazy(() => import('../../pages/admin/CommissionLog'))
@@ -63,6 +64,7 @@ const TAB_COMPONENTS: Record<string, React.LazyExoticComponent<() => React.JSX.E
   'clients/performance': ContractorPerformance,
   // Partners
   'partners/overview': PartnerOverview,
+  'partners/list': PartnerList,
   'partners/commissions': CommissionLog,
   'partners/withdrawals': WithdrawalQueue,
   // Finance
@@ -233,7 +235,7 @@ export default function DepartmentLayout() {
               <Route path="groups/:id" element={<div className="max-w-6xl mx-auto w-full px-6 py-8 h-full overflow-y-auto"><AdminGroupDetail /></div>} />
             )}
             {dept.id === 'partners' && (
-              <Route path="list/:id" element={<div className="max-w-6xl mx-auto w-full px-6 py-8 h-full overflow-y-auto"><PartnerDetail /></div>} />
+              <Route path="detail/:id" element={<div className="max-w-6xl mx-auto w-full px-6 py-8 h-full overflow-y-auto"><PartnerDetail /></div>} />
             )}
 
             <Route path="*" element={<Navigate to={basePath} replace />} />

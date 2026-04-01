@@ -97,6 +97,7 @@ export const departments: DepartmentDef[] = [
     basePath: 'partners',
     tabs: [
       { key: 'overview', labelEn: 'Overview', labelHe: 'סקירה', path: '' },
+      { key: 'list', labelEn: 'Partners', labelHe: 'שותפים', path: 'list' },
       { key: 'commissions', labelEn: 'Commissions', labelHe: 'עמלות', path: 'commissions' },
       { key: 'withdrawals', labelEn: 'Withdrawals', labelHe: 'משיכות', path: 'withdrawals' },
     ],

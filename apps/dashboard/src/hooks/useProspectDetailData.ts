@@ -1,7 +1,7 @@
 import { useEffect } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../lib/supabase'
-import { PROSPECTS_QUERY_KEY, type ProspectRecord } from './useAdminProspectsData'
+import { PROSPECTS_QUERY_KEY, fetchProspects, type ProspectRecord } from './useAdminProspectsData'
 
 export interface Prospect {
   id: string
@@ -111,11 +111,9 @@ export function useProspectDetailData(id: string | undefined) {
   // Using the same query key means TanStack Query deduplicates the request — no extra fetch.
   const listQuery = useQuery({
     queryKey: [...PROSPECTS_QUERY_KEY],
-    // No queryFn needed when cache is already populated by useAdminProspectsData.
-    // Provide a no-op that returns empty array as fallback if cache is cold.
-    queryFn: () => queryClient.getQueryData<ProspectRecord[]>(PROSPECTS_QUERY_KEY) ?? ([] as ProspectRecord[]),
+    queryFn: fetchProspects,
     select: (data: ProspectRecord[]) => data.map(toListItem),
-    staleTime: Infinity, // Never refetch — useAdminProspectsData owns the refetch schedule
+    staleTime: 30_000,
   })
 
   const prospectQuery = useQuery({

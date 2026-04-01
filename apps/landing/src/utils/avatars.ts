@@ -44,10 +44,27 @@ export function initialsAvatar(name: string, id?: number): string {
 }
 
 /**
- * Returns an SVG data-URI for a generic user avatar (silhouette).
- * @param id - Numeric id for deterministic color selection
+ * Photo-realistic stock avatars for marketing pages.
+ * Deterministic by id — same id always returns same photo.
+ * Uses randomuser.me (free, no attribution required).
+ */
+const PHOTO_AVATARS: Record<number, string> = {
+  11: 'https://randomuser.me/api/portraits/men/32.jpg',
+  15: 'https://randomuser.me/api/portraits/men/45.jpg',
+  22: 'https://randomuser.me/api/portraits/men/22.jpg',
+  33: 'https://randomuser.me/api/portraits/men/75.jpg',
+  47: 'https://randomuser.me/api/portraits/men/36.jpg',
+  51: 'https://randomuser.me/api/portraits/men/52.jpg',
+  60: 'https://randomuser.me/api/portraits/men/67.jpg',
+}
+
+/**
+ * Returns a photo avatar URL for known IDs, or falls back to SVG silhouette.
+ * @param id - Numeric id for deterministic selection
  */
 export function genericAvatar(id: number): string {
+  if (PHOTO_AVATARS[id]) return PHOTO_AVATARS[id]
+
   const bg = COLORS[id % COLORS.length]
 
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" viewBox="0 0 80 80">

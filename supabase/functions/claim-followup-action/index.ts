@@ -139,7 +139,6 @@ Deno.serve(async (req: Request) => {
           .insert({
             lead_id: leadId,
             contractor_id: contractorId,
-            assigned_user_id: contractorId,
             deal_type: "custom",
             deal_value: "TBD",
             status: "accepted",

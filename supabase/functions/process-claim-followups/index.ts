@@ -90,20 +90,26 @@ Deno.serve(async (_req: Request) => {
       .eq("id", leadId)
       .maybeSingle();
 
-    const { data: contractor } = await supabase
-      .from("contractors")
-      .select("whatsapp_phone")
-      .eq("user_id", contractorId)
-      .maybeSingle();
+    // Try contractor phone from claim event detail first (works for unregistered contractors),
+    // then fall back to contractors table
+    let contractorPhone = (detail as any)?.contractor_phone || null;
+    if (!contractorPhone) {
+      const { data: contractor } = await supabase
+        .from("contractors")
+        .select("whatsapp_phone")
+        .eq("user_id", contractorId)
+        .maybeSingle();
+      contractorPhone = contractor?.whatsapp_phone || null;
+    }
 
-    if (!contractor?.whatsapp_phone) {
+    if (!contractorPhone) {
       results.push(`skip_no_phone:${contractorId}`);
       continue;
     }
 
     const profession = (lead?.profession || "").replace(/_/g, " ").replace(/\b\w/g, (c: string) => c.toUpperCase());
     const location = [lead?.city, lead?.zip_code].filter(Boolean).join(", ") || "Your area";
-    const toWa = `whatsapp:${contractor.whatsapp_phone.startsWith("+") ? contractor.whatsapp_phone : "+" + contractor.whatsapp_phone}`;
+    const toWa = `whatsapp:${contractorPhone.startsWith("+") ? contractorPhone : "+" + contractorPhone}`;
 
     // Create signed follow-up token
     const followupToken = await signFollowupToken({

@@ -321,7 +321,7 @@ export default function PartnerOverview() {
                         style={{ borderBottom: idx < leaderboard.length - 1 ? `1px solid ${C.border}` : undefined }}
                         onMouseEnter={(e) => (e.currentTarget.style.background = '#FAFBFC')}
                         onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
-                        onClick={() => navigate(`/admin/partners/list/${p.id}`)}
+                        onClick={() => navigate(`/admin/partners/detail/${p.id}`)}
                       >
                         <td className="px-5 py-3.5">
                           <span className="text-[12px] font-bold" style={{ color: idx < 3 ? C.primary : C.muted }}>{idx + 1}</span>

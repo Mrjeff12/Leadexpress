@@ -43,10 +43,10 @@ export default function Navbar() {
 
         {/* Desktop nav */}
         <div className="hidden md:flex items-center gap-8">
-          <a href="#features" className="text-sm text-gray-subtle hover:text-primary transition-colors">{t.nav.features}</a>
+          <a href="#solution-find" className="text-sm text-gray-subtle hover:text-primary transition-colors">{t.nav.findJobs}</a>
+          <a href="#solution-share" className="text-sm text-gray-subtle hover:text-primary transition-colors">{t.nav.postJobs}</a>
+          <a href="#solution-protect" className="text-sm text-gray-subtle hover:text-primary transition-colors">{t.nav.protection}</a>
           <a href="#pricing" className="text-sm text-gray-subtle hover:text-primary transition-colors">{t.nav.pricing}</a>
-          <a href="#faq" className="text-sm text-gray-subtle hover:text-primary transition-colors">{t.nav.faq}</a>
-          <a href="#contact" className="text-sm text-gray-subtle hover:text-primary transition-colors">{t.nav.contact}</a>
         </div>
 
         <div className="hidden md:flex items-center gap-3">
@@ -65,10 +65,10 @@ export default function Navbar() {
       {/* Mobile menu */}
       {mobileOpen && (
         <div className="md:hidden bg-white border-t border-dark/5 px-6 py-6 space-y-4">
-          <a href="#features" className="block text-sm py-2">{t.nav.features}</a>
-          <a href="#pricing" className="block text-sm py-2">{t.nav.pricing}</a>
-          <a href="#faq" className="block text-sm py-2">{t.nav.faq}</a>
-          <a href="#contact" className="block text-sm py-2">{t.nav.contact}</a>
+          <a href="#solution-find" className="block text-sm py-2" onClick={() => setMobileOpen(false)}>{t.nav.findJobs}</a>
+          <a href="#solution-share" className="block text-sm py-2" onClick={() => setMobileOpen(false)}>{t.nav.postJobs}</a>
+          <a href="#solution-protect" className="block text-sm py-2" onClick={() => setMobileOpen(false)}>{t.nav.protection}</a>
+          <a href="#pricing" className="block text-sm py-2" onClick={() => setMobileOpen(false)}>{t.nav.pricing}</a>
           <a href="https://app.masterleadflow.com/login" className="block text-sm py-2 font-medium text-gray-subtle">
             Log in
           </a>

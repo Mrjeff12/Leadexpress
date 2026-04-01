@@ -76,12 +76,13 @@ Deno.serve(async (req: Request) => {
     // Decode base64url → JSON
     const padded = token.replace(/-/g, "+").replace(/_/g, "/");
     const decoded = atob(padded);
-    const { l: leadId, u: userId, p: phone, m: msg, ts } = JSON.parse(decoded) as {
+    const { l: leadId, u: userId, p: phone, m: msg, ts, cp: contractorPhone } = JSON.parse(decoded) as {
       l: string;
       u: string;
       p: string;
       m: string;
       ts?: number;
+      cp?: string;
     };
 
     if (!leadId || !userId || !phone) {
@@ -169,7 +170,7 @@ Deno.serve(async (req: Request) => {
     // Record page view (non-blocking) — actual claim is recorded when they click WhatsApp
     supabase.from("pipeline_events").insert({
       stage: "lead_page_viewed",
-      detail: { lead_id: leadId, contractor_id: userId, channel: "whatsapp_cta" },
+      detail: { lead_id: leadId, contractor_id: userId, channel: "whatsapp_cta", ...(contractorPhone ? { contractor_phone: contractorPhone } : {}) },
     }).then(({ error: evtErr }) => {
       if (evtErr) console.error("[claim-redirect] pipeline_events insert error:", evtErr);
     });
@@ -184,6 +185,7 @@ Deno.serve(async (req: Request) => {
       senderPhone: phone,
       introMsg: msg,
       contractorId: userId,
+      contractorPhone: contractorPhone || null,
       isRegistered,
     };
     const dataParam = btoa(JSON.stringify(pageData))

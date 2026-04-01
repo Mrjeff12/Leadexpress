@@ -80,6 +80,7 @@ export default function ClaimLead() {
   const [senderPhone, setSenderPhone] = useState('')
   const [introMsg, setIntroMsg] = useState('')
   const [contractorId, setContractorId] = useState('')
+  const [contractorPhone, setContractorPhone] = useState('')
   const [isRegistered, setIsRegistered] = useState(false)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -99,6 +100,7 @@ export default function ClaimLead() {
         setSenderPhone(parsed.senderPhone || '')
         setIntroMsg(parsed.introMsg || '')
         setContractorId(parsed.contractorId || '')
+        setContractorPhone(parsed.contractorPhone || '')
         setIsRegistered(parsed.isRegistered ?? false)
         setLoading(false)
         return
@@ -153,7 +155,7 @@ export default function ClaimLead() {
       fetch(`${supabaseUrl}/functions/v1/record-claim`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ leadId, contractorId }),
+        body: JSON.stringify({ leadId, contractorId, contractorPhone: contractorPhone || undefined }),
       }).catch(() => {}) // silent — don't block user
     }
     window.open(waUrl, '_blank', 'noopener,noreferrer')

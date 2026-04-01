@@ -23,7 +23,7 @@ export interface ProspectRecord {
 
 export const PROSPECTS_QUERY_KEY = ['admin', 'prospects'] as const
 
-async function fetchProspects(): Promise<ProspectRecord[]> {
+export async function fetchProspects(): Promise<ProspectRecord[]> {
   let all: ProspectRecord[] = []
   let from = 0
   const pageSize = 1000
