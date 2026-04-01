@@ -79,6 +79,7 @@ export default function ClaimLead() {
   const [claimCount, setClaimCount] = useState(0)
   const [senderPhone, setSenderPhone] = useState('')
   const [introMsg, setIntroMsg] = useState('')
+  const [contractorId, setContractorId] = useState('')
   const [isRegistered, setIsRegistered] = useState(false)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -97,6 +98,7 @@ export default function ClaimLead() {
         setClaimCount(parsed.claimCount ?? 0)
         setSenderPhone(parsed.senderPhone || '')
         setIntroMsg(parsed.introMsg || '')
+        setContractorId(parsed.contractorId || '')
         setIsRegistered(parsed.isRegistered ?? false)
         setLoading(false)
         return
@@ -142,6 +144,20 @@ export default function ClaimLead() {
 
   const displayName = (publisher as any)?.display_name || publisher?.full_name || null
   const groupName = (lead as any).group_name || 'WhatsApp Group'
+
+  const handleWhatsAppClick = () => {
+    if (!waUrl) return
+    // Record claim (fire-and-forget, don't block navigation)
+    if (leadId && contractorId) {
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
+      fetch(`${supabaseUrl}/functions/v1/record-claim`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ leadId, contractorId }),
+      }).catch(() => {}) // silent — don't block user
+    }
+    window.open(waUrl, '_blank', 'noopener,noreferrer')
+  }
 
   return (
     <div className="min-h-screen flex flex-col" style={{ background: '#FBFBFD', fontFamily: '-apple-system, BlinkMacSystemFont, sans-serif' }}>
@@ -243,11 +259,9 @@ export default function ClaimLead() {
       <div className="fixed bottom-0 left-0 right-0 p-4 pb-6 flex flex-col gap-2.5 max-w-lg mx-auto"
         style={{ background: 'linear-gradient(transparent, #FBFBFD 20%)' }}>
         {waUrl ? (
-          <a
-            href={waUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center justify-center gap-2 rounded-xl py-4 text-base font-bold text-white no-underline"
+          <button
+            onClick={handleWhatsAppClick}
+            className="flex items-center justify-center gap-2 rounded-xl py-4 text-base font-bold text-white"
             style={{ background: '#25D366', boxShadow: '0 4px 12px rgba(37,211,102,0.3)' }}
           >
             <svg width="20" height="20" viewBox="0 0 24 24" fill="white">
@@ -255,7 +269,7 @@ export default function ClaimLead() {
               <path d="M12 0C5.373 0 0 5.373 0 12c0 2.625.846 5.059 2.284 7.034L.789 23.492a.5.5 0 00.627.616l4.584-1.212A11.96 11.96 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22c-2.205 0-4.247-.707-5.912-1.908l-.423-.31-2.823.746.583-2.735-.34-.441A9.958 9.958 0 012 12C2 6.486 6.486 2 12 2s10 4.486 10 10-4.486 10-10 10z"/>
             </svg>
             WhatsApp the Customer
-          </a>
+          </button>
         ) : (
           <div className="flex items-center justify-center gap-2 rounded-xl py-4 text-base font-bold text-white opacity-50"
             style={{ background: '#25D366' }}>

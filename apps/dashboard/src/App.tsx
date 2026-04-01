@@ -5,6 +5,7 @@ import { AuthProvider, useAuth } from './lib/auth'
 import { I18nContext, createTranslator, type Locale } from './lib/i18n'
 import { Toaster } from './components/shadcn/ui/toaster'
 import { GlobalNotificationListener } from './components/GlobalNotificationListener'
+import { AdminClaimListener } from './components/AdminClaimListener'
 import ErrorBoundary from './components/ErrorBoundary'
 import Sidebar from './components/Sidebar'
 import ImpersonationBanner from './components/ImpersonationBanner'
@@ -267,6 +268,7 @@ function App() {
               </Suspense>
               <Toaster />
               <GlobalNotificationListener />
+              <AdminClaimListener />
             </BrowserRouter>
           </AuthProvider>
         </div>

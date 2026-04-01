@@ -160,15 +160,15 @@ Deno.serve(async (req: Request) => {
       .eq("stage", "lead_claimed")
       .filter("detail->>lead_id", "eq", leadId);
 
-    // Record this claim (non-blocking)
+    // Record page view (non-blocking) — actual claim is recorded when they click WhatsApp
     supabase.from("pipeline_events").insert({
-      stage: "lead_claimed",
+      stage: "lead_page_viewed",
       detail: { lead_id: leadId, contractor_id: userId, channel: "whatsapp_cta" },
     }).then(({ error: evtErr }) => {
       if (evtErr) console.error("[claim-redirect] pipeline_events insert error:", evtErr);
     });
 
-    console.log(`[claim-redirect] Lead ${leadId} claimed by ${userId}`);
+    console.log(`[claim-redirect] Lead page viewed: ${leadId} by ${userId}`);
 
     // Encode lead + publisher data as base64 URL param (avoids RLS issue on frontend)
     const pageData = {
@@ -177,6 +177,7 @@ Deno.serve(async (req: Request) => {
       claimCount: (claimCount ?? 0) + 1,
       senderPhone: phone,
       introMsg: msg,
+      contractorId: userId,
       isRegistered,
     };
     const dataParam = btoa(JSON.stringify(pageData))
