@@ -151,87 +151,88 @@ export default function ClaimLead() {
       </div>
 
       <div className="flex-1 px-4 pb-44 max-w-lg mx-auto w-full">
-        {/* Hero header */}
-        <div className="py-5 text-center">
-          <div className="w-14 h-14 rounded-2xl flex items-center justify-center text-2xl mx-auto mb-3" style={{ background: '#fff3ed' }}>
-            {emoji}
-          </div>
-          <h1 className="text-xl font-bold text-gray-900">{profLabel(lead.profession)} Lead</h1>
-          <div className="flex items-center justify-center gap-1.5 mt-1 text-sm text-gray-500">
-            <MapPin size={13} /> {location}
-          </div>
-          <div className="inline-block mt-2 text-xs font-semibold px-3 py-1 rounded-full" style={{ background: urg.bg, color: urg.color }}>
-            {urg.label}
-          </div>
-        </div>
 
-        {/* Description card */}
-        <div className="rounded-2xl p-4 mb-3" style={{ background: '#f8f8fa', border: '1px solid #f0f0f0' }}>
-          <div className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-2">Request Details</div>
-          <p className="text-[15px] leading-relaxed text-gray-700">
-            {lead.parsed_summary || lead.raw_message || 'No details available'}
-          </p>
-          <div className="flex gap-2 mt-3 flex-wrap">
-            {lead.budget_range && (
-              <span className="text-xs px-2.5 py-1 rounded-lg bg-white border border-gray-100 text-gray-600 font-medium">
-                💰 {lead.budget_range}
-              </span>
-            )}
-            <span className="text-xs px-2.5 py-1 rounded-lg bg-white border border-gray-100 text-gray-600 font-medium">
-              📍 {lead.city || 'N/A'}{lead.zip_code ? `, ${lead.zip_code}` : ''}
-            </span>
-            <span className="text-xs px-2.5 py-1 rounded-lg bg-white border border-gray-100 text-gray-600 font-medium">
-              ⏱ {timeAgo(lead.created_at)}
-            </span>
-          </div>
-        </div>
-
-        {/* Publisher / Source */}
-        <div className="rounded-2xl p-4 mb-3" style={{ background: '#f8f8fa', border: '1px solid #f0f0f0' }}>
-          <div className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-2">Posted By</div>
+        {/* ── Publisher / Source (TOP) ── */}
+        <div className="pt-5 pb-4">
           {isVerified ? (
             <button
               onClick={() => publisher?.slug ? nav(`/pro/${publisher.slug}`) : undefined}
               className="w-full flex items-center gap-3 text-left"
             >
               {publisher?.avatar_url ? (
-                <img src={publisher.avatar_url} alt="" className="w-12 h-12 rounded-full object-cover border-2 border-white shadow-sm" />
+                <img src={publisher.avatar_url} alt="" className="w-14 h-14 rounded-full object-cover border-2 border-white shadow-md" />
               ) : (
-                <div className="w-12 h-12 rounded-full flex items-center justify-center font-bold text-sm text-white border-2 border-white shadow-sm"
+                <div className="w-14 h-14 rounded-full flex items-center justify-center font-bold text-base text-white border-2 border-white shadow-md"
                   style={{ background: '#fe5b25' }}>
                   {(displayName || '?').slice(0, 2).toUpperCase()}
                 </div>
               )}
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-1.5">
-                  <span className="font-semibold text-sm text-gray-900 truncate">{displayName || 'Unknown'}</span>
-                  <ShieldCheck size={14} className="text-green-500 shrink-0" />
+                  <span className="font-bold text-base text-gray-900 truncate">{displayName || 'Unknown'}</span>
+                  <ShieldCheck size={15} className="text-green-500 shrink-0" />
                 </div>
-                <div className="text-xs text-gray-500 truncate">{publisher?.business_name || 'Contractor'} · {groupName}</div>
+                <div className="text-xs text-gray-500 truncate">{publisher?.business_name || 'Contractor'}</div>
+                <div className="text-xs text-gray-400 truncate">{groupName}</div>
               </div>
-              <ChevronRight size={14} className="text-gray-300 shrink-0" />
+              <ChevronRight size={16} className="text-gray-300 shrink-0" />
             </button>
           ) : (
             <div className="flex items-center gap-3">
               {publisher?.avatar_url ? (
-                <img src={publisher.avatar_url} alt="" className="w-12 h-12 rounded-full object-cover border-2 border-white shadow-sm" />
+                <img src={publisher.avatar_url} alt="" className="w-14 h-14 rounded-full object-cover border-2 border-white shadow-md" />
               ) : (
-                <div className="w-12 h-12 rounded-full flex items-center justify-center text-lg border-2 border-white shadow-sm" style={{ background: '#fff3ed' }}>
+                <div className="w-14 h-14 rounded-full flex items-center justify-center text-xl border-2 border-white shadow-md" style={{ background: '#fff3ed' }}>
                   📣
                 </div>
               )}
               <div className="flex-1 min-w-0">
-                <div className="font-semibold text-sm text-gray-900 truncate">{displayName || groupName}</div>
-                <div className="text-xs text-gray-500 truncate">{displayName ? groupName : 'WhatsApp Community'}</div>
+                <div className="font-bold text-base text-gray-900 truncate">{displayName || 'Group Post'}</div>
+                <div className="text-xs text-gray-500 truncate">{groupName}</div>
+                <div className="text-xs text-gray-400">{timeAgo(lead.created_at)}</div>
               </div>
             </div>
           )}
         </div>
 
+        {/* ── Lead Details Card (BELOW publisher) ── */}
+        <div className="rounded-2xl overflow-hidden mb-3" style={{ border: '1px solid #e8e8ec', boxShadow: '0 2px 12px rgba(0,0,0,0.04)' }}>
+          {/* Card header */}
+          <div className="flex items-center justify-between px-4 py-3" style={{ background: '#fff3ed', borderBottom: '1px solid #f0ebe6' }}>
+            <div className="flex items-center gap-2">
+              <span className="text-lg">{emoji}</span>
+              <span className="font-bold text-sm text-gray-900">{profLabel(lead.profession)} Lead</span>
+            </div>
+            <div className="text-xs font-semibold px-2.5 py-1 rounded-full" style={{ background: urg.bg, color: urg.color }}>
+              {urg.label}
+            </div>
+          </div>
+
+          {/* Card body */}
+          <div className="px-4 py-4 bg-white">
+            <p className="text-[15px] leading-relaxed text-gray-700 mb-3">
+              {lead.parsed_summary || lead.raw_message || 'No details available'}
+            </p>
+            <div className="flex gap-2 flex-wrap">
+              <span className="text-xs px-2.5 py-1.5 rounded-lg text-gray-600 font-medium" style={{ background: '#f8f8fa', border: '1px solid #f0f0f0' }}>
+                📍 {lead.city || 'N/A'}{lead.zip_code ? `, ${lead.zip_code}` : ''}
+              </span>
+              {lead.budget_range && (
+                <span className="text-xs px-2.5 py-1.5 rounded-lg text-gray-600 font-medium" style={{ background: '#f8f8fa', border: '1px solid #f0f0f0' }}>
+                  💰 {lead.budget_range}
+                </span>
+              )}
+              <span className="text-xs px-2.5 py-1.5 rounded-lg text-gray-600 font-medium" style={{ background: '#f8f8fa', border: '1px solid #f0f0f0' }}>
+                ⏱ {timeAgo(lead.created_at)}
+              </span>
+            </div>
+          </div>
+        </div>
+
         {/* Trust footer */}
-        <div className="text-center py-3">
+        <div className="text-center py-2">
           <p className="text-[11px] text-gray-400">
-            Lead sourced from WhatsApp · Respond quickly for best results
+            Respond quickly for best results
           </p>
         </div>
       </div>
