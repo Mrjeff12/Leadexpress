@@ -79,6 +79,7 @@ export default function ClaimLead() {
   const [claimCount, setClaimCount] = useState(0)
   const [senderPhone, setSenderPhone] = useState('')
   const [introMsg, setIntroMsg] = useState('')
+  const [isRegistered, setIsRegistered] = useState(false)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -96,6 +97,7 @@ export default function ClaimLead() {
         setClaimCount(parsed.claimCount ?? 0)
         setSenderPhone(parsed.senderPhone || '')
         setIntroMsg(parsed.introMsg || '')
+        setIsRegistered(parsed.isRegistered ?? false)
         setLoading(false)
         return
       } catch (e) {
@@ -261,11 +263,16 @@ export default function ClaimLead() {
           </div>
         )}
         <button
-          onClick={() => nav(`/leads/${leadId}`)}
-          className="flex items-center justify-center gap-2 rounded-xl py-3.5 text-sm font-semibold bg-white border border-gray-200 text-gray-700"
+          onClick={() => isRegistered ? nav(`/leads/${leadId}`) : undefined}
+          disabled={!isRegistered}
+          className={`flex items-center justify-center gap-2 rounded-xl py-3.5 text-sm font-semibold border ${
+            isRegistered
+              ? 'bg-white border-gray-200 text-gray-700 cursor-pointer'
+              : 'bg-gray-100 border-gray-100 text-gray-400 cursor-not-allowed opacity-50'
+          }`}
         >
           <MessageCircle size={16} />
-          Message in App
+          {isRegistered ? 'Message in App' : 'Message in App (Members Only)'}
         </button>
       </div>
     </div>

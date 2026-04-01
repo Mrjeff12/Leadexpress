@@ -90,12 +90,20 @@ Deno.serve(async (req: Request) => {
     // Token signature already verified above — no need to re-check matched_contractors.
     // Anyone with a valid signed token was sent the notification legitimately.
 
-    // Fetch lead details (service role bypasses RLS)
-    const { data: lead } = await supabase
+    // Fetch lead details with group name (service role bypasses RLS)
+    const { data: lead, error: leadErr } = await supabase
       .from("leads")
-      .select("id, profession, parsed_summary, raw_message, city, zip_code, urgency, budget_range, sender_id, created_at, group_name, property_type")
+      .select("id, profession, parsed_summary, raw_message, city, zip_code, urgency, budget_range, sender_id, created_at, group_id, sender_name, source, groups(name)")
       .eq("id", leadId)
       .maybeSingle();
+
+    if (leadErr) console.error("[claim-redirect] Lead query error:", leadErr.message);
+
+    // Flatten group name
+    if (lead) {
+      (lead as any).group_name = (lead as any).groups?.name || null;
+      delete (lead as any).groups;
+    }
 
     // Fetch publisher info: try contractors (verified), then prospects (WhatsApp profile pic)
     let publisher: {
@@ -137,6 +145,14 @@ Deno.serve(async (req: Request) => {
       }
     }
 
+    // Check if the claiming contractor is a registered customer
+    const { data: claimingContractor } = await supabase
+      .from("contractors")
+      .select("user_id")
+      .eq("user_id", userId)
+      .maybeSingle();
+    const isRegistered = !!claimingContractor;
+
     // Count claims
     const { count: claimCount } = await supabase
       .from("pipeline_events")
@@ -161,6 +177,7 @@ Deno.serve(async (req: Request) => {
       claimCount: (claimCount ?? 0) + 1,
       senderPhone: phone,
       introMsg: msg,
+      isRegistered,
     };
     const dataParam = btoa(JSON.stringify(pageData))
       .replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
