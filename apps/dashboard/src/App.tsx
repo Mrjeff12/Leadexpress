@@ -31,6 +31,7 @@ const Profile = lazy(() => import('./pages/Profile'))
 const Subscription = lazy(() => import('./pages/Subscription'))
 const TelegramConnect = lazy(() => import('./pages/TelegramConnect'))
 const JobPortal = lazy(() => import('./pages/JobPortal'))
+const ClaimLead = lazy(() => import('./pages/ClaimLead'))
 const JobsDashboard = lazy(() => import('./pages/JobsDashboard'))
 const OnboardingWizard = lazy(() => import('./pages/OnboardingWizard'))
 const NotFound = lazy(() => import('./pages/NotFound'))
@@ -254,6 +255,7 @@ function App() {
               <Suspense fallback={<LoadingScreen />}>
                 <Routes>
                   <Route path="/portal/job/:token" element={<JobPortal />} />
+                  <Route path="/claim/:leadId" element={<ClaimLead />} />
                   <Route path="/login" element={<Login />} />
                   <Route path="/auto-login" element={<AutoLogin />} />
                   <Route path="/complete-account" element={<RequireAuth><CompleteAccount /></RequireAuth>} />

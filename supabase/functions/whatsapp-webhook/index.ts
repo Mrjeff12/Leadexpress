@@ -62,6 +62,23 @@ const CONTENT = {
   CONTRACTOR_INVITE:  requiredEnv('TWILIO_CONTENT_CONTRACTOR_INVITE'),
 };
 
+// ── Claim Token Signing (for CTA URL buttons) ─────────────────────────────
+const CLAIM_SECRET = Deno.env.get("CLAIM_TOKEN_SECRET") || Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+
+async function signClaimToken(payload: { l: string; u: string; p: string; m: string }): Promise<string> {
+  const json = JSON.stringify(payload);
+  const token = btoa(json).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+  const encoder = new TextEncoder();
+  const key = await crypto.subtle.importKey(
+    "raw", encoder.encode(CLAIM_SECRET),
+    { name: "HMAC", hash: "SHA-256" }, false, ["sign"],
+  );
+  const sig = await crypto.subtle.sign("HMAC", key, encoder.encode(token));
+  const sigB64 = btoa(String.fromCharCode(...new Uint8Array(sig)))
+    .replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+  return `${token}&sig=${sigB64}`;
+}
+
 // ── Phone normalization (single source of truth) ────────────────────────────
 function normalizePhone(raw: string): string {
   const cleaned = raw.replace('whatsapp:', '').replace(/\s/g, '');
@@ -260,7 +277,7 @@ Deno.serve(async (req: Request) => {
     const from = params['From'] ?? '';
     let body = params['Body'] ?? '';
     const messageSid = params['MessageSid'] ?? '';
-    const buttonPayload = params['ButtonPayload'] ?? '';
+    const buttonPayload = params['ButtonPayload'] || params['ListId'] || '';
     const numMedia = parseInt(params['NumMedia'] ?? '0', 10);
 
     // ── Twilio status callback (delivery receipts) ──
@@ -848,6 +865,21 @@ async function handleButtonPayload(phone: string, payload: string, _text: string
       break;
     }
 
+    case 'menu_post_job': {
+      await startPostJob(phone, profile);
+      break;
+    }
+
+    case 'menu_help': {
+      await sendText(phone, `ℹ️ *LeadExpress Help*\n\n• Send *MENU* anytime for options\n• Send *STOP* to pause lead notifications\n• Send *GO* to resume leads\n\nNeed support? Email support@masterleadflow.com`);
+      break;
+    }
+
+    case 'menu_dashboard': {
+      await sendDashboardLink(phone, profile.id);
+      break;
+    }
+
     default:
       console.log(`[webhook] Unknown button payload: ${payload}`);
       await sendText(phone, `Send *MENU* for options.`);
@@ -1200,40 +1232,20 @@ async function sendLeadNotification(
     return;
   }
 
-  // Step 1: Quick Reply notification with Claim/Pass buttons
-  // Button payloads include leadId for routing: "claim_lead:{leadId}"
-  // Use UTILITY template for US (+1) numbers — MARKETING is blocked outside 24h window
-  const notifyTemplate = phone.startsWith('+1') ? CONTENT.LEAD_NOTIFY_BTN : CONTENT.LEAD_NOTIFY;
-  await sendButtons(phone, notifyTemplate, {
-    '1': emoji,
-    '2': profLabel,
-    '3': cityLabel,
-    '4': summary || 'New service request',
-    '5': source || 'WhatsApp Group',
+  // Build signed claim token for CTA URL button
+  const introMsg = `Hi! I am a licensed ${profLabel} contractor reaching out about your request in ${cityLabel}. I am available and can help. When works for you?`;
+  const claimTokenParam = await signClaimToken({
+    l: leadId, u: _userId, p: senderPhone || '', m: introMsg,
   });
 
-  // Append to pending leads array — handles multiple simultaneous leads without collision
-  const { data: existingState, error: stateErr } = await supabase
-    .from('wa_onboard_state')
-    .select('data')
-    .eq('phone', phone)
-    .eq('step', 'lead_pending')
-    .maybeSingle();
-  if (stateErr) console.error('[lead-notify] Failed to read existing state for phone', phone, stateErr);
-
-  const existingLeads: Array<{ leadId: string; senderPhone: string; profession: string; city: string }> =
-    (existingState?.data as { pendingLeads?: Array<{ leadId: string; senderPhone: string; profession: string; city: string }> })?.pendingLeads ?? [];
-
-  await supabase.from('wa_onboard_state').upsert({
-    phone,
-    step: 'lead_pending',
-    data: {
-      pendingLeads: [
-        ...existingLeads,
-        { leadId, senderPhone: senderPhone || '', profession: profLabel, city: cityLabel },
-      ],
-    },
-    updated_at: new Date().toISOString(),
+  // CTA template: {{1}}=profession, {{2}}=location, {{3}}=summary, {{4}}=source, {{5}}=claim_token
+  const notifyTemplate = phone.startsWith('+1') ? CONTENT.LEAD_NOTIFY_BTN : CONTENT.LEAD_NOTIFY;
+  await sendButtons(phone, notifyTemplate, {
+    '1': profLabel.toUpperCase(),
+    '2': cityLabel,
+    '3': summary || 'New service request',
+    '4': source || 'WhatsApp Group',
+    '5': claimTokenParam,
   });
 }
 

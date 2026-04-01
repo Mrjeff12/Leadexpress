@@ -106,32 +106,19 @@ Deno.serve(async (req: Request) => {
       return new Response("You are not eligible for this lead", { status: 403 });
     }
 
-    // Claim the lead (only if still available)
-    const { data: lead, error } = await supabase
-      .from("leads")
-      .update({
-        status: "claimed",
-        claimed_by: userId,
-        claimed_at: new Date().toISOString(),
-      })
-      .eq("id", leadId)
-      .eq("status", "sent")
-      .select("id")
-      .maybeSingle();
+    // Record claim in pipeline_events (non-blocking, multiple contractors can claim)
+    supabase.from("pipeline_events").insert({
+      stage: "lead_claimed",
+      detail: { lead_id: leadId, contractor_id: userId, channel: "whatsapp_cta" },
+    }).then(({ error: evtErr }) => {
+      if (evtErr) console.error("[claim-redirect] pipeline_events insert error:", evtErr);
+    });
 
-    if (error) {
-      console.error("[claim-redirect] DB error:", error);
-    }
+    console.log(`[claim-redirect] Lead ${leadId} claimed by ${userId}`);
 
-    if (lead) {
-      console.log(`[claim-redirect] Lead ${leadId} claimed by ${userId}`);
-    } else {
-      console.log(`[claim-redirect] Lead ${leadId} already claimed or not available`);
-    }
-
-    // Redirect to WhatsApp chat regardless
-    const waUrl = `https://wa.me/${phone}${msg ? "?text=" + encodeURIComponent(msg) : ""}`;
-    return Response.redirect(waUrl, 302);
+    // Redirect to dashboard claim page with token for data fetching
+    const dashboardUrl = `https://app.masterleadflow.com/claim/${leadId}?u=${encodeURIComponent(userId)}&t=${encodeURIComponent(token)}`;
+    return Response.redirect(dashboardUrl, 302);
   } catch (err) {
     console.error("[claim-redirect] Error:", err);
     return new Response("Something went wrong. Please try again.", { status: 400 });
