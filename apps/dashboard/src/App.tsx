@@ -45,6 +45,7 @@ const MessagesInbox = lazy(() => import('./pages/MessagesInbox'))
 const RebecaChat = lazy(() => import('./pages/RebecaChat'))
 const DirectChat = lazy(() => import('./pages/DirectChat'))
 const PartnerOnboarding = lazy(() => import('./pages/partner/PartnerOnboarding'))
+const PartnerGroupChat = lazy(() => import('./pages/partner/PartnerGroupChat'))
 const PartnerLayout = lazy(() => import('./pages/partner/PartnerLayout'))
 const NotificationsPage = lazy(() => import('./pages/NotificationsPage'))
 const PublicProfileView = lazy(() => import('./pages/PublicProfileView'))
@@ -259,6 +260,7 @@ function App() {
                   <Route path="/portal/job/:token" element={<JobPortal />} />
                   <Route path="/claim/:leadId" element={<ClaimLead />} />
                   <Route path="/claim-followup" element={<ClaimFollowup />} />
+                  <Route path="/partner/chat-demo" element={<PartnerGroupChat />} />
                   <Route path="/login" element={<Login />} />
                   <Route path="/auto-login" element={<AutoLogin />} />
                   <Route path="/complete-account" element={<RequireAuth><CompleteAccount /></RequireAuth>} />

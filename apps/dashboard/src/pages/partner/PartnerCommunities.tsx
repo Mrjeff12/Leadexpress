@@ -256,7 +256,7 @@ export default function PartnerCommunities() {
               return (
                 <button
                   key={group.id}
-                  onClick={() => navigate(`/partner/groups/${group.id}`)}
+                  onClick={() => navigate(`/partner/groups/${group.id}/chat`)}
                   className="text-start p-6 rounded-2xl bg-white border border-zinc-200 hover:border-[#fe5b25]/30 hover:shadow-lg hover:shadow-[#fe5b25]/5 transition-all group"
                 >
                   <div className="flex items-start justify-between mb-3">

@@ -5,6 +5,7 @@ const PartnerHome = lazy(() => import('./PartnerHome'))
 const PartnerReferrals = lazy(() => import('./PartnerReferrals'))
 const PartnerCommunities = lazy(() => import('./PartnerCommunities'))
 const PartnerGroupDetail = lazy(() => import('./PartnerGroupDetail'))
+const PartnerGroupChat = lazy(() => import('./PartnerGroupChat'))
 const PartnerWallet = lazy(() => import('./PartnerWallet'))
 const PartnerShare = lazy(() => import('./PartnerShare'))
 const PartnerSettings = lazy(() => import('./PartnerSettings'))
@@ -24,6 +25,7 @@ export default function PartnerLayout() {
         <Route index element={<PartnerHome />} />
         <Route path="referrals" element={<PartnerReferrals />} />
         <Route path="communities" element={<PartnerCommunities />} />
+        <Route path="groups/:groupId/chat" element={<PartnerGroupChat />} />
         <Route path="groups/:groupId" element={<PartnerGroupDetail />} />
         <Route path="wallet" element={<PartnerWallet />} />
         <Route path="share" element={<PartnerShare />} />
