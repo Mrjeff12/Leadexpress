@@ -97,25 +97,43 @@ Deno.serve(async (req: Request) => {
       .eq("id", leadId)
       .maybeSingle();
 
-    // Fetch publisher profile if sender exists
-    let publisher: { full_name: string | null; slug: string | null; trust_tier: string | null; avatar_url: string | null; business_name: string | null } | null = null;
+    // Fetch publisher info: try contractors (verified), then prospects (WhatsApp profile pic)
+    let publisher: {
+      display_name: string | null; slug: string | null; trust_tier: string | null;
+      avatar_url: string | null; business_name: string | null; is_verified: boolean;
+    } | null = null;
+
     if (lead?.sender_id) {
       const senderPhone = lead.sender_id.replace(/@.*$/, "");
-      const { data: prof } = await supabase
+
+      // 1. Check if sender is a verified contractor
+      const { data: contractor } = await supabase
         .from("contractors")
         .select("full_name, slug, trust_tier, avatar_url, business_name")
         .eq("whatsapp_phone", "+" + senderPhone)
         .maybeSingle();
-      // fallback to profiles table
-      if (!prof) {
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("full_name, slug, avatar_url")
+
+      if (contractor) {
+        publisher = {
+          display_name: contractor.full_name, slug: contractor.slug,
+          trust_tier: contractor.trust_tier, avatar_url: contractor.avatar_url,
+          business_name: contractor.business_name, is_verified: true,
+        };
+      } else {
+        // 2. Fallback: get WhatsApp display name + profile pic from prospects
+        const { data: prospect } = await supabase
+          .from("prospects")
+          .select("display_name, profile_pic_url")
           .eq("phone", "+" + senderPhone)
           .maybeSingle();
-        if (profile) publisher = { ...profile, trust_tier: null, business_name: null };
-      } else {
-        publisher = prof;
+
+        if (prospect) {
+          publisher = {
+            display_name: prospect.display_name, slug: null,
+            trust_tier: null, avatar_url: prospect.profile_pic_url,
+            business_name: null, is_verified: false,
+          };
+        }
       }
     }
 

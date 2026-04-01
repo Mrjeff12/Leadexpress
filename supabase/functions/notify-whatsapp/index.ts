@@ -165,7 +165,7 @@ Deno.serve(async (req: Request) => {
       if (leadRow?.sender_id) senderPhone = leadRow.sender_id.replace(/@.*$/, "");
 
       const profLabel = p.profession.replace(/_/g, " ").charAt(0).toUpperCase() + p.profession.replace(/_/g, " ").slice(1);
-      const introMsg = `Hi! I am a licensed ${profLabel} contractor reaching out about your request in ${location}. I am available and can help. When works for you?`;
+      const introMsg = `Hi, I found your ${profLabel} request in ${location} through MasterLeadFlow. I'm a licensed contractor and available to help. Is this still relevant? I'd love to hear more details.`;
       const claimTokenParam = await signClaimToken({
         l: p.leadId, u: p.contractorId, p: senderPhone, m: introMsg,
       });

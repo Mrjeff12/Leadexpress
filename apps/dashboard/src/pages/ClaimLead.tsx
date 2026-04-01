@@ -51,9 +51,7 @@ function timeAgo(iso: string) {
   const m = Math.floor(diff / 60000)
   if (m < 1) return 'Just now'
   if (m < 60) return `${m}m ago`
-  const h = Math.floor(m / 60)
-  if (h < 24) return `${h}h ago`
-  return `${Math.floor(h / 24)}d ago`
+  return 'Posted today'
 }
 
 function profLabel(p: string) {
@@ -135,15 +133,19 @@ export default function ClaimLead() {
   const urg = URG[lead.urgency] || URG.cold
   const emoji = PROF_EMOJI[lead.profession] || '📋'
   const location = [lead.city, lead.zip_code].filter(Boolean).join(', ') || 'Your area'
-  const isVerified = publisher?.trust_tier && publisher.trust_tier !== 'none'
+  const isVerified = (publisher as any)?.is_verified || (publisher?.trust_tier && publisher.trust_tier !== 'none')
   const waUrl = senderPhone
     ? `https://wa.me/${senderPhone}${introMsg ? '?text=' + encodeURIComponent(introMsg) : ''}`
     : null
 
   return (
     <div className="min-h-screen flex flex-col" style={{ background: '#FBFBFD', fontFamily: '-apple-system, BlinkMacSystemFont, sans-serif' }}>
-      {/* Domain bar */}
-      <div className="text-center py-2 text-xs" style={{ color: '#999' }}>masterleadflow.com</div>
+      {/* Brand bar */}
+      <div className="flex items-center justify-center gap-1.5 py-3">
+        <div className="w-5 h-5 rounded flex items-center justify-center text-white font-bold text-[10px]"
+          style={{ background: '#fe5b25' }}>M</div>
+        <span className="text-xs font-medium text-gray-400">MasterLeadFlow</span>
+      </div>
 
       <div className="flex-1 px-4 pb-40 max-w-lg mx-auto w-full">
         {/* Header: profession + urgency */}
@@ -186,58 +188,57 @@ export default function ClaimLead() {
           </div>
         </div>
 
-        {/* Publisher profile */}
-        <button
-          onClick={() => publisher?.slug ? nav(`/pro/${publisher.slug}`) : undefined}
-          className="w-full flex items-center gap-2.5 p-3 rounded-xl bg-white border border-gray-100 mb-3.5 text-left transition-colors hover:bg-gray-50"
-        >
-          {/* Avatar */}
-          {publisher?.avatar_url ? (
-            <img src={publisher.avatar_url} alt="" className="w-10 h-10 rounded-full object-cover" />
-          ) : (
-            <div className="w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm text-white"
-              style={{ background: '#fe5b25' }}>
-              {(publisher?.full_name || '?').slice(0, 2).toUpperCase()}
-            </div>
-          )}
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-1.5">
-              <span className="font-semibold text-sm text-gray-900 truncate">
-                {publisher?.full_name || 'Unknown'}
-              </span>
-              {isVerified ? (
+        {/* Publisher / Source */}
+        {isVerified ? (
+          /* Verified publisher — show name + avatar + badge */
+          <button
+            onClick={() => publisher?.slug ? nav(`/pro/${publisher.slug}`) : undefined}
+            className="w-full flex items-center gap-2.5 p-3 rounded-xl bg-white border border-gray-100 mb-4 text-left transition-colors hover:bg-gray-50"
+          >
+            {publisher?.avatar_url ? (
+              <img src={publisher.avatar_url} alt="" className="w-10 h-10 rounded-full object-cover" />
+            ) : (
+              <div className="w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm text-white"
+                style={{ background: '#fe5b25' }}>
+                {((publisher as any)?.display_name || publisher?.full_name || '?').slice(0, 2).toUpperCase()}
+              </div>
+            )}
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-1.5">
+                <span className="font-semibold text-sm text-gray-900 truncate">
+                  {(publisher as any)?.display_name || publisher?.full_name || 'Unknown'}
+                </span>
                 <ShieldCheck size={14} className="text-green-500 shrink-0" />
-              ) : (
-                <ShieldAlert size={14} className="text-orange-400 shrink-0" />
-              )}
+              </div>
+              <div className="text-xs text-gray-500 truncate">
+                {publisher?.business_name || 'Contractor'} · {lead.group_name || 'WhatsApp Group'}
+              </div>
             </div>
-            <div className="text-xs text-gray-500 truncate">
-              {publisher?.business_name || 'Homeowner'} · {lead.group_name || 'WhatsApp Group'}
-            </div>
-          </div>
-          {isVerified ? (
             <span className="text-xs font-semibold px-2 py-0.5 rounded-full shrink-0" style={{ background: '#f0fdf4', color: '#16a34a' }}>
               ✓ Verified
             </span>
-          ) : (
-            <span className="text-xs font-semibold px-2 py-0.5 rounded-full shrink-0" style={{ background: '#fff3ed', color: '#fe5b25' }}>
-              Not Verified
-            </span>
-          )}
-          <ChevronRight size={14} className="text-gray-300 shrink-0" />
-        </button>
-
-        {/* Stats row */}
-        <div className="flex gap-2 mb-4">
-          <div className="flex-1 text-center py-2.5 rounded-lg" style={{ background: '#f8f8fa' }}>
-            <div className="text-lg font-bold" style={{ color: '#fe5b25' }}>{claimCount}</div>
-            <div className="text-[10px] text-gray-400">Responded</div>
+            <ChevronRight size={14} className="text-gray-300 shrink-0" />
+          </button>
+        ) : (
+          /* Not verified — show group source + WhatsApp profile pic if available */
+          <div className="flex items-center gap-2.5 p-3 rounded-xl bg-white border border-gray-100 mb-4">
+            {publisher?.avatar_url ? (
+              <img src={publisher.avatar_url} alt="" className="w-10 h-10 rounded-full object-cover" />
+            ) : (
+              <div className="w-10 h-10 rounded-full flex items-center justify-center text-lg" style={{ background: '#f8f8fa' }}>
+                📣
+              </div>
+            )}
+            <div className="flex-1 min-w-0">
+              <div className="font-semibold text-sm text-gray-900 truncate">
+                {(publisher as any)?.display_name || 'Posted in group'}
+              </div>
+              <div className="text-xs text-gray-500 truncate">
+                {lead.group_name || 'WhatsApp Group'}
+              </div>
+            </div>
           </div>
-          <div className="flex-1 text-center py-2.5 rounded-lg" style={{ background: '#f0fdf4' }}>
-            <CheckCircle2 size={20} className="mx-auto text-green-500" />
-            <div className="text-[10px] text-gray-400">You Claimed</div>
-          </div>
-        </div>
+        )}
       </div>
 
       {/* Sticky bottom buttons */}

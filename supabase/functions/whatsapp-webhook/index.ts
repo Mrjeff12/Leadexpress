@@ -1233,7 +1233,7 @@ async function sendLeadNotification(
   }
 
   // Build signed claim token for CTA URL button
-  const introMsg = `Hi! I am a licensed ${profLabel} contractor reaching out about your request in ${cityLabel}. I am available and can help. When works for you?`;
+  const introMsg = `Hi, I found your ${profLabel} request in ${cityLabel} through MasterLeadFlow. I'm a licensed contractor and available to help. Is this still relevant? I'd love to hear more details.`;
   const claimTokenParam = await signClaimToken({
     l: leadId, u: _userId, p: senderPhone || '', m: introMsg,
   });
