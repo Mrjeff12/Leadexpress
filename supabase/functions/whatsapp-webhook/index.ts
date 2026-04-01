@@ -65,7 +65,7 @@ const CONTENT = {
 // ── Claim Token Signing (for CTA URL buttons) ─────────────────────────────
 const CLAIM_SECRET = Deno.env.get("CLAIM_TOKEN_SECRET") || Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-async function signClaimToken(payload: { l: string; u: string; p: string; m: string }): Promise<string> {
+async function signClaimToken(payload: { l: string; u: string; p: string; m: string; ts: number }): Promise<string> {
   const json = JSON.stringify(payload);
   const token = btoa(json).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
   const encoder = new TextEncoder();
@@ -1235,7 +1235,7 @@ async function sendLeadNotification(
   // Build signed claim token for CTA URL button
   const introMsg = `Hi, I found your ${profLabel} request in ${cityLabel} through MasterLeadFlow. I'm a licensed contractor and available to help. Is this still relevant? I'd love to hear more details.`;
   const claimTokenParam = await signClaimToken({
-    l: leadId, u: _userId, p: senderPhone || '', m: introMsg,
+    l: leadId, u: _userId, p: senderPhone || '', m: introMsg, ts: Date.now(),
   });
 
   // CTA template: {{1}}=profession, {{2}}=location, {{3}}=summary, {{4}}=source, {{5}}=claim_token

@@ -76,18 +76,24 @@ Deno.serve(async (req: Request) => {
     // Decode base64url → JSON
     const padded = token.replace(/-/g, "+").replace(/_/g, "/");
     const decoded = atob(padded);
-    const { l: leadId, u: userId, p: phone, m: msg } = JSON.parse(decoded) as {
+    const { l: leadId, u: userId, p: phone, m: msg, ts } = JSON.parse(decoded) as {
       l: string;
       u: string;
       p: string;
       m: string;
+      ts?: number;
     };
 
     if (!leadId || !userId || !phone) {
       return new Response("Invalid token", { status: 400 });
     }
 
-    // Token signature already verified above — no need to re-check matched_contractors.
+    // Expiry: reject tokens older than 72 hours (ts is optional for backwards compat)
+    const MAX_AGE_MS = 72 * 60 * 60 * 1000;
+    if (ts && Date.now() - ts > MAX_AGE_MS) {
+      console.error(`[claim-redirect] Expired token: ${leadId}, age=${Math.round((Date.now() - ts) / 3600000)}h`);
+      return new Response("This link has expired. Please request a new notification.", { status: 410 });
+    }
     // Anyone with a valid signed token was sent the notification legitimately.
 
     // Fetch lead details with group name (service role bypasses RLS)
