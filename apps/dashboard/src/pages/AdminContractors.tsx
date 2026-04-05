@@ -135,7 +135,24 @@ export default function AdminContractors() {
 
   async function quickChangePlan(userId: string, planId: string, e: React.MouseEvent) {
     e.stopPropagation()
-    await supabase.from('subscriptions').update({ plan_id: planId }).eq('user_id', userId).in('status', ['active', 'trialing'])
+    // Check if user already has a subscription to update
+    const { data: existing } = await supabase
+      .from('subscriptions')
+      .select('id')
+      .eq('user_id', userId)
+      .in('status', ['active', 'trialing'])
+      .maybeSingle()
+
+    if (existing) {
+      await supabase.from('subscriptions').update({ plan_id: planId }).eq('id', existing.id)
+    } else {
+      await supabase.from('subscriptions').insert({
+        user_id: userId,
+        plan_id: planId,
+        status: 'active',
+        current_period_end: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+      })
+    }
     await supabase.from('audit_logs').insert({
       admin_user_id: profile?.id,
       target_user_id: userId,
@@ -283,7 +300,16 @@ export default function AdminContractors() {
     setBulkProcessing(true)
     try {
       for (const uid of selectedIds) {
-        await supabase.from('subscriptions').update({ plan_id: planId }).eq('user_id', uid).in('status', ['active', 'trialing'])
+        const { data: existing } = await supabase
+          .from('subscriptions').select('id').eq('user_id', uid).in('status', ['active', 'trialing']).maybeSingle()
+        if (existing) {
+          await supabase.from('subscriptions').update({ plan_id: planId }).eq('id', existing.id)
+        } else {
+          await supabase.from('subscriptions').insert({
+            user_id: uid, plan_id: planId, status: 'active',
+            current_period_end: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+          })
+        }
         await supabase.from('audit_logs').insert({
           admin_user_id: profile?.id,
           target_user_id: uid,

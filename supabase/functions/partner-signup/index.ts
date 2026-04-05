@@ -114,28 +114,52 @@ Deno.serve(async (req: Request) => {
       }
     }
 
-    // Insert partner record
-    const { data: partner, error: insertError } = await supabase
-      .from("community_partners")
-      .insert({
-        user_id: user.id,
-        slug,
-        display_name,
-        bio: bio || null,
-        location: location || null,
-        service_areas: service_areas || [],
-        specialties: specialties || [],
-        commission_rate: 0.15,
-        status: "pending",
-        stats: group_link ? { pending_group_link: group_link } : {},
-      })
-      .select("id, slug, status")
-      .single();
+    // Insert partner record — retry with random suffix on slug collision (23505)
+    let partner: { id: string; slug: string; status: string } | null = null;
+    let attempts = 0;
+    const MAX_ATTEMPTS = 3;
 
-    if (insertError) {
+    while (attempts < MAX_ATTEMPTS) {
+      const { data, error: insertError } = await supabase
+        .from("community_partners")
+        .insert({
+          user_id: user.id,
+          slug: attempts === 0 ? slug : `${slug}-${randomSuffix()}`,
+          display_name,
+          bio: bio || null,
+          location: location || null,
+          service_areas: service_areas || [],
+          specialties: specialties || [],
+          commission_rate: 0.15,
+          status: "pending",
+          stats: group_link ? { pending_group_link: group_link } : {},
+        })
+        .select("id, slug, status")
+        .single();
+
+      if (!insertError) {
+        partner = data;
+        break;
+      }
+
+      // 23505 = unique_violation — slug or user_id collision
+      if (insertError.code === "23505" && insertError.message?.includes("slug")) {
+        attempts++;
+        console.warn(`[partner-signup] Slug collision on attempt ${attempts}, retrying`);
+        continue;
+      }
+
+      // Non-slug unique violation (e.g. user_id) or other error — stop
       console.error("[partner-signup] Insert error:", insertError);
       return new Response(JSON.stringify({ error: insertError.message }), {
-        status: 500,
+        status: insertError.code === "23505" ? 409 : 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (!partner) {
+      return new Response(JSON.stringify({ error: "Could not generate unique slug after retries" }), {
+        status: 409,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }

@@ -74,43 +74,46 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    // ── Check if group already exists by wa_group_id (invite code) ──
-    const { data: existingGroup } = await supabase
+    // ── Upsert group — atomic, no race condition ──
+    // wa_group_id has a UNIQUE constraint, so ON CONFLICT handles concurrency
+    const { data: upsertedGroup, error: upsertGroupErr } = await supabase
       .from("groups")
-      .select("id, status")
-      .eq("wa_group_id", inviteCode)
-      .maybeSingle();
-
-    let groupId: string;
-    let responseStatus: "linked" | "pending";
-
-    if (existingGroup) {
-      // Group exists — link it
-      groupId = existingGroup.id;
-      responseStatus = existingGroup.status === "active" ? "linked" : "pending";
-    } else {
-      // Group doesn't exist — create a pending entry
-      const { data: newGroup, error: insertGroupErr } = await supabase
-        .from("groups")
-        .insert({
+      .upsert(
+        {
           wa_group_id: inviteCode,
           name: `Pending: ${inviteCode.slice(0, 8)}...`,
           status: "paused",
           message_count: 0,
-        })
-        .select("id")
+        },
+        { onConflict: "wa_group_id", ignoreDuplicates: true },
+      )
+      .select("id, status")
+      .single();
+
+    // If upsert returned nothing (ignoreDuplicates + existing row), fetch it
+    let groupId: string;
+    let responseStatus: "linked" | "pending";
+
+    if (upsertedGroup) {
+      groupId = upsertedGroup.id;
+      responseStatus = upsertedGroup.status === "active" ? "linked" : "pending";
+    } else {
+      const { data: existingGroup, error: fetchErr } = await supabase
+        .from("groups")
+        .select("id, status")
+        .eq("wa_group_id", inviteCode)
         .single();
 
-      if (insertGroupErr) {
-        console.error("[partner-link-group] Insert group error:", insertGroupErr);
+      if (fetchErr || !existingGroup) {
+        console.error("[partner-link-group] Upsert + fetch failed:", upsertGroupErr, fetchErr);
         return new Response(
-          JSON.stringify({ error: "Failed to create group entry" }),
+          JSON.stringify({ error: "Failed to create or find group" }),
           { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
         );
       }
 
-      groupId = newGroup.id;
-      responseStatus = "pending";
+      groupId = existingGroup.id;
+      responseStatus = existingGroup.status === "active" ? "linked" : "pending";
     }
 
     // ── Link partner to group (ON CONFLICT DO NOTHING) ──
