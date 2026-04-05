@@ -96,15 +96,9 @@ Deno.serve(async (req: Request) => {
         new Date(contractor.wa_window_until) > new Date();
 
       if (!windowOpen) {
-        // Fallback to telegram
-        await supabase.rpc("enqueue_job", {
-          p_queue: "notify_telegram",
-          p_payload: { leadId: p.leadId, contractorId: p.contractorId,
-            telegramChatId: "", contractorName: p.contractorName, message: p.message },
-          p_max_attempts: 3,
-        });
+        // Window closed — skip free-form, template queue handles these
         await supabase.rpc("complete_job", { p_job_id: job.id });
-        results.push(`fallback_tg:${p.contractorId}`);
+        results.push(`window_closed:${p.contractorId}`);
         continue;
       }
 

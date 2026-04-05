@@ -1,7 +1,7 @@
 {
   "name": "@masterleadflow/notification",
   "version": "1.0.0",
-  "description": "Notification worker — sends lead alerts to contractors via Telegram",
+  "description": "Notification worker — sends lead alerts to contractors via Push",
   "type": "module",
   "main": "dist/index.js",
   "scripts": {

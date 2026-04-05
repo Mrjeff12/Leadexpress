@@ -16,7 +16,6 @@ interface WaNotificationJob {
 }
 
 export function createWorker() {
-  const telegramQueue = new Queue('notifications', { connection: config.redis });
   const pushQueue = new Queue('push-notifications', { connection: config.redis });
 
   const worker = new Worker<WaNotificationJob>(
@@ -42,7 +41,7 @@ export function createWorker() {
 
       if (!windowOpen) {
         jobLog.info('WA window closed, attempting fallback notification');
-        await enqueueFallback(telegramQueue, pushQueue, contractorId, leadId, message, jobLog);
+        await enqueuePushFallback(pushQueue, contractorId, leadId, jobLog);
         return;
       }
 
@@ -65,12 +64,12 @@ export function createWorker() {
       log.warn({ jobId: job?.id, err: err.message }, 'WA job failed, will retry');
     }
 
-    // If all retries exhausted, cascade to Telegram/Push
+    // If all retries exhausted, cascade to Push
     if (job && job.attemptsMade >= (job.opts.attempts ?? 3)) {
       const { leadId, contractorId } = job.data;
       log.info({ contractorId, leadId }, 'WA delivery failed permanently, attempting fallback');
       try {
-        await enqueueFallback(telegramQueue, pushQueue, contractorId, leadId, '', log);
+        await enqueuePushFallback(pushQueue, contractorId, leadId, log);
       } catch (fallbackErr: unknown) {
         const msg = fallbackErr instanceof Error ? fallbackErr.message : 'unknown';
         log.error({ contractorId, leadId, err: msg }, 'Failed to enqueue fallback notification');
@@ -81,43 +80,18 @@ export function createWorker() {
   return {
     worker,
     cleanup: async () => {
-      await telegramQueue.close();
       await pushQueue.close();
       await worker.close();
     },
   };
 }
 
-async function enqueueFallback(
-  telegramQueue: Queue,
+async function enqueuePushFallback(
   pushQueue: Queue,
   contractorId: string,
   leadId: string,
-  message: string,
   logger: typeof log,
 ): Promise<void> {
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('telegram_chat_id, full_name')
-    .eq('id', contractorId)
-    .maybeSingle();
-
-  if (profile?.telegram_chat_id) {
-    await telegramQueue.add('send-notification', {
-      leadId,
-      contractorId,
-      telegramChatId: profile.telegram_chat_id,
-      contractorName: profile.full_name,
-      message: message || 'You have a new lead! Check your dashboard for details.',
-    }, {
-      jobId: `fallback-tg-${leadId}-${contractorId}`,
-      attempts: 3,
-      backoff: { type: 'exponential', delay: 2000 },
-    });
-    logger.info({ contractorId, leadId }, 'Fallback: enqueued Telegram notification');
-    return;
-  }
-
   const { data: pushSub } = await supabase
     .from('push_subscriptions')
     .select('user_id')

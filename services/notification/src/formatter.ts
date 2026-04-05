@@ -1,5 +1,5 @@
 /**
- * Lead message formatter with inline keyboard buttons for Telegram.
+ * Lead message formatter for notifications.
  */
 
 const PROFESSION_EMOJI: Record<string, string> = {
@@ -34,7 +34,7 @@ export interface FormattedLead {
 }
 
 /**
- * Formats a lead into an HTML Telegram message with inline keyboard buttons.
+ * Formats a lead into a notification message.
  */
 export function formatLeadMessage(lead: LeadData, leadId?: string): FormattedLead {
   const emoji = PROFESSION_EMOJI[lead.profession] ?? '\uD83D\uDCCB';

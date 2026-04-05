@@ -185,7 +185,7 @@ export default function Subscription() {
               <span className="text-[12px] text-[#737373]">/month</span>
             </div>
             <div className="space-y-2 mb-4">
-              {['Unlimited professions', 'Unlimited zip codes', 'Priority leads', 'All channels (WhatsApp, Telegram, Push)', 'Rebeca AI assistant', 'Verified badge'].map((f) => (
+              {['Unlimited professions', 'Unlimited zip codes', 'Priority leads', 'All channels (WhatsApp, Push)', 'Rebeca AI assistant', 'Verified badge'].map((f) => (
                 <div key={f} className="flex items-center gap-2">
                   <Check className="w-3 h-3 text-[#fe5b25]" />
                   <span className="text-[12px]">{f}</span>

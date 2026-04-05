@@ -56,7 +56,6 @@ interface Contractor {
   wa_notify: boolean
   profiles: {
     full_name: string | null
-    telegram_chat_id: number | null
     phone: string | null
     whatsapp_phone: string | null
     status?: string
@@ -152,7 +151,7 @@ export default function AdminContractors() {
       .from('contractors')
       .select(`
         user_id, professions, zip_codes, is_active, created_at, wa_notify,
-        profiles!inner(full_name, telegram_chat_id, phone, whatsapp_phone, status, subscriptions(status, plans(name, slug, price_cents)))
+        profiles!inner(full_name, phone, whatsapp_phone, status, subscriptions(status, plans(name, slug, price_cents)))
       `)
       .order('created_at', { ascending: false })
 
@@ -267,7 +266,6 @@ export default function AdminContractors() {
     { header: 'Leads', accessor: (c) => leadCounts[c.user_id] ?? 0 },
     { header: 'Monthly Revenue ($)', accessor: (c) => getMonthlyFee(c) },
     { header: 'WhatsApp', accessor: (c) => c.wa_notify && c.profiles?.whatsapp_phone ? 'Yes' : 'No' },
-    { header: 'Telegram', accessor: (c) => c.profiles?.telegram_chat_id ? 'Yes' : 'No' },
     { header: 'Push', accessor: (c) => (c.push_count ?? 0) > 0 ? 'Yes' : 'No' },
     { header: 'Joined', accessor: (c) => csvDate(c.created_at) },
   ]
@@ -714,17 +712,6 @@ export default function AdminContractors() {
                           >
                             W
                           </span>
-                          {/* Telegram */}
-                          <span
-                            title={c.profiles?.telegram_chat_id ? 'Telegram: Connected' : 'Telegram: Off'}
-                            className="inline-flex items-center justify-center w-6 h-6 rounded-md text-[10px] font-bold"
-                            style={{
-                              background: c.profiles?.telegram_chat_id ? '#EFF6FF' : '#F3F4F6',
-                              color: c.profiles?.telegram_chat_id ? '#2563EB' : '#D1D5DB',
-                            }}
-                          >
-                            T
-                          </span>
                           {/* Push */}
                           <span
                             title={(c.push_count ?? 0) > 0 ? `Push: ${c.push_count} device(s)` : 'Push: Off'}
@@ -769,16 +756,6 @@ export default function AdminContractors() {
                             <Eye className="w-3 h-3" />
                             {he ? 'צפה' : 'View'}
                           </button>
-                          {!c.profiles?.telegram_chat_id && (
-                            <button
-                              onClick={() => generateQr(c)}
-                              className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold transition-all hover:shadow-sm active:scale-95"
-                              style={{ background: C.primary, color: 'white' }}
-                            >
-                              <QrCode className="w-3 h-3" />
-                              QR
-                            </button>
-                          )}
                           <button
                             onClick={() => navigate(`/admin/clients/contractors/${c.user_id}`)}
                             className="w-7 h-7 rounded-lg flex items-center justify-center transition-all hover:bg-gray-100 active:scale-95"
@@ -871,7 +848,7 @@ export default function AdminContractors() {
             </button>
 
             <div className="text-center mb-5">
-              <h2 className="text-lg font-bold" style={{ color: C.dark }}>Telegram QR</h2>
+              <h2 className="text-lg font-bold" style={{ color: C.dark }}>QR Code</h2>
               <p className="text-sm mt-1" style={{ color: C.muted }}>
                 {qrModal.contractor.profiles?.full_name ?? 'Contractor'}
               </p>
@@ -879,7 +856,7 @@ export default function AdminContractors() {
 
             <div className="flex justify-center mb-5">
               <div className="rounded-2xl p-3 shadow-lg" style={{ background: C.cream, border: '2px solid rgba(0,0,0,0.05)' }}>
-                <img src={qrUrl(qrModal.url)} alt="Telegram QR" width={260} height={260} className="rounded-xl" />
+                <img src={qrUrl(qrModal.url)} alt="QR Code" width={260} height={260} className="rounded-xl" />
               </div>
             </div>
 

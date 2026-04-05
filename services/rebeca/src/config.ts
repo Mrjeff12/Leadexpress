@@ -51,11 +51,9 @@ export const config = {
   queues: {
     waNotifications: 'wa-notifications',
     waTemplateNotifications: 'wa-template-notifications',
-    smsNotifications: 'sms-notifications',
   },
   contentTemplates: {
     leadNotifyBtn: process.env.TWILIO_CONTENT_LEAD_NOTIFY_BTN ?? '',
     leadNotify: process.env.TWILIO_CONTENT_LEAD_NOTIFY ?? '',
   },
-  smsFrom: process.env.TWILIO_SMS_FROM ?? '',
 } as const;

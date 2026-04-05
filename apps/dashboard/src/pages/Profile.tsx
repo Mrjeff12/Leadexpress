@@ -130,11 +130,11 @@ function MobilePortfolioSection() {
 }
 
 function MobileCommSection({
-  isWhatsAppConnected, whatsappPhone, isTelegramConnected,
+  isWhatsAppConnected, whatsappPhone,
   pushStatus, pushLoading, waPolling,
   handleConnectWhatsApp, enablePush, navigate,
 }: {
-  isWhatsAppConnected: boolean; whatsappPhone: string | null; isTelegramConnected: boolean
+  isWhatsAppConnected: boolean; whatsappPhone: string | null
   pushStatus: string; pushLoading: boolean; waPolling: boolean
   handleConnectWhatsApp: () => void; enablePush: () => void; navigate: (path: string) => void
 }) {
@@ -146,14 +146,6 @@ function MobileCommSection({
       ok: isWhatsAppConnected,
       status: isWhatsAppConnected ? (whatsappPhone ?? 'Connected') : 'Not connected',
       action: () => handleConnectWhatsApp(),
-    },
-    {
-      icon: Send,
-      label: 'Telegram',
-      bg: 'bg-[#0088cc]',
-      ok: isTelegramConnected,
-      status: isTelegramConnected ? 'Connected' : 'Not connected',
-      action: () => navigate('/telegram'),
     },
     {
       icon: Bell,
@@ -247,7 +239,6 @@ export default function Profile() {
 
   const [fullName, setFullName] = useState('')
   const [phone, setPhone] = useState('')
-  const [telegramChatId, setTelegramChatId] = useState<number | null>(null)
   const [whatsappPhone, setWhatsappPhone] = useState<string | null>(null)
 
   const { status: pushStatus, enable: enablePush, isLoading: pushLoading } = usePushNotifications()
@@ -267,7 +258,7 @@ export default function Profile() {
 
     const { data } = await supabase
       .from('profiles')
-      .select('full_name, phone, telegram_chat_id, whatsapp_phone')
+      .select('full_name, phone, whatsapp_phone')
       .eq('id', effectiveUserId)
       .maybeSingle()
 
@@ -275,11 +266,9 @@ export default function Profile() {
     if (data) {
       setFullName(data.full_name ?? '')
       setPhone(data.phone ?? '')
-      setTelegramChatId(data.telegram_chat_id ?? null)
       setWhatsappPhone(data.whatsapp_phone ?? null)
     } else {
       setFullName(activeProfile?.full_name ?? '')
-      setTelegramChatId(activeProfile?.telegram_chat_id ?? null)
     }
 
     setLoading(false)
@@ -360,7 +349,6 @@ export default function Profile() {
     )
   }
 
-  const isTelegramConnected = telegramChatId !== null && telegramChatId !== 0
   const isWhatsAppConnected = !!whatsappPhone
 
   // Helper: initials from name
@@ -372,7 +360,7 @@ export default function Profile() {
   const strengthSegments = [
     !!fullName,
     !!phone,
-    isWhatsAppConnected || isTelegramConnected,
+    isWhatsAppConnected,
     pushStatus === 'granted',
     identityVerified,
   ]
@@ -613,7 +601,6 @@ export default function Profile() {
             <MobileCommSection
               isWhatsAppConnected={isWhatsAppConnected}
               whatsappPhone={whatsappPhone}
-              isTelegramConnected={isTelegramConnected}
               pushStatus={pushStatus}
               pushLoading={pushLoading}
               waPolling={waPolling}
@@ -777,55 +764,6 @@ export default function Profile() {
                             <ExternalLink className="h-3 w-3 opacity-60" />
                           </>
                         )}
-                      </button>
-                    </div>
-                  )}
-                </div>
-
-                {/* Telegram Channel */}
-                <div className={`rounded-xl border p-5 transition-all ${
-                  isTelegramConnected
-                    ? 'border-blue-200 bg-blue-50/50'
-                    : 'border-zinc-200 bg-white hover:border-[#fe5b25]/30 hover:shadow-sm'
-                }`}>
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
-                      isTelegramConnected ? 'bg-blue-500' : 'bg-[#0088CC]'
-                    }`}>
-                      <Send className="h-5 w-5 text-white" />
-                    </div>
-                    <div className="flex-1">
-                      <p className="text-sm font-bold text-zinc-900">Telegram</p>
-                      {isTelegramConnected ? (
-                        <span className="inline-flex items-center gap-1 text-[10px] font-bold text-blue-600 bg-blue-100 px-2 py-0.5 rounded-full">
-                          <CheckCircle2 className="h-2.5 w-2.5" /> Connected
-                        </span>
-                      ) : (
-                        <p className="text-[10px] text-zinc-400">Receive leads via Telegram bot</p>
-                      )}
-                    </div>
-                  </div>
-
-                  {isTelegramConnected ? (
-                    <div className="space-y-1.5">
-                      <p className="text-xs text-zinc-500">
-                        Chat ID: <span className="font-mono font-semibold text-zinc-700">{telegramChatId}</span>
-                      </p>
-                      <p className="text-[10px] text-zinc-400">Leads are sent to your Telegram</p>
-                    </div>
-                  ) : (
-                    <div>
-                      <p className="text-xs text-zinc-500 mb-3">
-                        Connect our Telegram bot to get instant lead notifications.
-                      </p>
-                      <button
-                        type="button"
-                        onClick={() => navigate('/telegram')}
-                        className="w-full py-2.5 rounded-xl text-sm font-semibold flex items-center justify-center gap-2 transition-all bg-[#0088CC] text-white hover:bg-[#006da8] shadow-sm"
-                      >
-                        <Send className="h-4 w-4" />
-                        Connect Telegram
-                        <ExternalLink className="h-3 w-3 opacity-60" />
                       </button>
                     </div>
                   )}

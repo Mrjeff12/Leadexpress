@@ -154,7 +154,6 @@ export default function ContractorDashboard() {
 
   const [leads, setLeads] = useState<Lead[]>([])
   const [contactedCount, setContactedCount] = useState(0)
-  const [telegramConnected, setTelegramConnected] = useState(true)
   const [counties, setCounties] = useState<string[]>([])
   const [forwardLead, setForwardLead] = useState<Lead | null>(null)
   const [showUpsell, setShowUpsell] = useState(false)
@@ -329,12 +328,11 @@ export default function ContractorDashboard() {
 
       const { data: profData } = await supabase
         .from('profiles')
-        .select('telegram_chat_id, counties')
+        .select('counties')
         .eq('id', effectiveUserId)
         .maybeSingle()
 
       if (profData && !cancelled) {
-        setTelegramConnected(!!profData.telegram_chat_id)
         if (profData.counties) setCounties(profData.counties)
       }
 
@@ -810,9 +808,9 @@ export default function ContractorDashboard() {
               <Sparkles className="w-3 h-3" />
               {planName}
             </span>
-            <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold ${telegramConnected ? 'bg-[#fff4ef] text-[#e04d1c]' : 'bg-stone-100 text-stone-400'}`}>
-              {telegramConnected ? <Wifi className="w-3 h-3" /> : <WifiOff className="w-3 h-3" />}
-              {telegramConnected ? 'Telegram' : 'Offline'}
+            <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold ${pushStatus === 'granted' ? 'bg-[#fff4ef] text-[#e04d1c]' : 'bg-stone-100 text-stone-400'}`}>
+              {pushStatus === 'granted' ? <Wifi className="w-3 h-3" /> : <WifiOff className="w-3 h-3" />}
+              {pushStatus === 'granted' ? 'Push Active' : 'Push Off'}
             </span>
           </div>
         </div>

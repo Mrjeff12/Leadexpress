@@ -50,6 +50,5 @@ export const config = {
 
   queues: {
     parsedLeads: 'parsed-leads',
-    notifications: 'notifications',
   },
 } as const;

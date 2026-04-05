@@ -31,7 +31,6 @@ const supabase = createClient(config.supabase.url, config.supabase.serviceKey);
  */
 export function createWaTemplateWorker(log: Logger): { worker: Worker; cleanup: () => Promise<void> } {
   const pushQueue = new Queue('push-notifications', { connection: config.redis });
-  const smsQueue = new Queue(config.queues.smsNotifications, { connection: config.redis });
 
   const worker = new Worker<WaTemplateNotificationJob>(
     config.queues.waTemplateNotifications,
@@ -98,24 +97,9 @@ export function createWaTemplateWorker(log: Logger): { worker: Worker; cleanup: 
 
     if (job && job.attemptsMade >= (job.opts.attempts ?? 3)) {
       const { leadId, contractorId, whatsappPhone, profession, city } = job.data;
-      log.info({ contractorId, leadId }, 'WA template failed permanently, cascading to push/SMS');
+      log.info({ contractorId, leadId }, 'WA template failed permanently, cascading to push');
       try {
         await enqueuePushFallback(pushQueue, leadId, contractorId, profession, city, log);
-
-        // SMS fallback for US numbers
-        if (whatsappPhone.startsWith('+1') && config.smsFrom) {
-          await smsQueue.add('send-sms', {
-            leadId,
-            contractorId,
-            phone: whatsappPhone,
-            profession,
-            city,
-          }, {
-            jobId: `fallback-sms-${leadId}-${contractorId}`,
-            attempts: 2,
-            backoff: { type: 'exponential', delay: 2000 },
-          });
-        }
       } catch (fallbackErr: unknown) {
         const msg = fallbackErr instanceof Error ? fallbackErr.message : 'unknown';
         log.error({ contractorId, leadId, err: msg }, 'Failed to enqueue template fallback');
@@ -129,7 +113,6 @@ export function createWaTemplateWorker(log: Logger): { worker: Worker; cleanup: 
 
   const cleanup = async () => {
     await pushQueue.close();
-    await smsQueue.close();
     await worker.close();
   };
 

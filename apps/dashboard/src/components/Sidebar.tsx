@@ -112,7 +112,7 @@ export default function Sidebar() {
   const userName = profile?.full_name || 'Contractor'
   const initials = userName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
 
-  const isProfileActive = location.pathname === '/profile' || location.pathname === '/subscription' || location.pathname === '/telegram'
+  const isProfileActive = location.pathname === '/profile' || location.pathname === '/subscription'
 
   return (
     <>

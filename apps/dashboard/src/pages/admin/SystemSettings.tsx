@@ -17,8 +17,6 @@ export default function SystemSettings() {
   /* -- Notifications -- */
   const [emailNotif, setEmailNotif] = useState(true)
   const [whatsappNotif, setWhatsappNotif] = useState(true)
-  const [telegramNotif, setTelegramNotif] = useState(true)
-  const [smsNotif, setSmsNotif] = useState(false)
 
   /* -- Timezone -- */
   const [timezone, setTimezone] = useState('America/New_York')
@@ -48,8 +46,6 @@ export default function SystemSettings() {
         const notifs = map.get('notifications') as Record<string, boolean>
         setEmailNotif(notifs.email ?? true)
         setWhatsappNotif(notifs.whatsapp ?? true)
-        setTelegramNotif(notifs.telegram ?? true)
-        setSmsNotif(notifs.sms ?? false)
       }
     }
     setLoading(false)
@@ -65,7 +61,7 @@ export default function SystemSettings() {
       { key: 'business_name', value: JSON.stringify(businessName) },
       { key: 'default_language', value: JSON.stringify(defaultLang) },
       { key: 'timezone', value: JSON.stringify(timezone) },
-      { key: 'notifications', value: JSON.stringify({ email: emailNotif, whatsapp: whatsappNotif, telegram: telegramNotif, sms: smsNotif }) },
+      { key: 'notifications', value: JSON.stringify({ email: emailNotif, whatsapp: whatsappNotif }) },
     ]
 
     for (const s of settings) {
@@ -122,20 +118,6 @@ export default function SystemSettings() {
       desc: he ? 'קבל לידים חדשים ב-WhatsApp' : 'Receive new leads via WhatsApp',
       checked: whatsappNotif,
       onChange: setWhatsappNotif,
-    },
-    {
-      id: 'telegram',
-      label: he ? 'התראות טלגרם' : 'Telegram notifications',
-      desc: he ? 'קבל לידים חדשים בטלגרם' : 'Receive new leads via Telegram',
-      checked: telegramNotif,
-      onChange: setTelegramNotif,
-    },
-    {
-      id: 'sms',
-      label: he ? 'התראות SMS' : 'SMS notifications',
-      desc: he ? 'קבל לידים חדשים ב-SMS' : 'Receive new leads via SMS',
-      checked: smsNotif,
-      onChange: setSmsNotif,
     },
   ]
 

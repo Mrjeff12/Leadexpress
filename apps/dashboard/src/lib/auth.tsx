@@ -9,7 +9,6 @@ interface Profile {
   full_name: string | null
   role: UserRole
   roles: UserRole[]
-  telegram_chat_id: number | null
   publisher_bio?: string | null
   publisher_company_name?: string | null
   publisher_verified?: boolean
@@ -64,7 +63,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   async function fetchProfile(userId: string): Promise<Profile | null> {
     const { data, error } = await supabase
       .from('profiles')
-      .select('id, full_name, role, roles, telegram_chat_id, publisher_bio, publisher_company_name, publisher_verified, status, suspension_reason')
+      .select('id, full_name, role, roles, publisher_bio, publisher_company_name, publisher_verified, status, suspension_reason')
       .eq('id', userId)
       .maybeSingle()
 

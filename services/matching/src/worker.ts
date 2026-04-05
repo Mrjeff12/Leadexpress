@@ -27,14 +27,6 @@ function makeRedis() {
 
 export function createMatchingWorker(log: Logger): { worker: Worker; cleanup: () => Promise<void> } {
   const connection = makeRedis();
-  const notificationQueue = new Queue(config.queues.notifications, {
-    connection,
-    defaultJobOptions: {
-      removeOnComplete: { count: 1000 },
-      removeOnFail: { count: 5000 },
-    },
-  });
-
   // WhatsApp notification queue (for contractors with open 24h window)
   const waNotificationQueue = new Queue('wa-notifications', {
     connection,
@@ -61,14 +53,6 @@ export function createMatchingWorker(log: Logger): { worker: Worker; cleanup: ()
     },
   });
 
-  // SMS queue (last-resort fallback for US numbers)
-  const smsQueue = new Queue('sms-notifications', {
-    connection,
-    defaultJobOptions: {
-      removeOnComplete: { count: 1000 },
-      removeOnFail: { count: 5000 },
-    },
-  });
 
   const worker = new Worker(
     config.queues.parsedLeads,
@@ -146,7 +130,7 @@ export function createMatchingWorker(log: Logger): { worker: Worker; cleanup: ()
       // ---- Log pipeline event: matching ----
       await logPipelineEvent('matched', row.group_id, leadId);
 
-      const matched = await matchLead(lead, notificationQueue, jobLog, waNotificationQueue, pushNotificationQueue, waTemplateQueue, smsQueue);
+      const matched = await matchLead(lead, jobLog, waNotificationQueue, pushNotificationQueue, waTemplateQueue);
 
       // ---- Log pipeline event: sent ----
       if (matched > 0) {
@@ -179,11 +163,9 @@ export function createMatchingWorker(log: Logger): { worker: Worker; cleanup: ()
 
   const cleanup = async () => {
     await worker.close();
-    await notificationQueue.close();
     await waNotificationQueue.close();
     await pushNotificationQueue.close();
     await waTemplateQueue.close();
-    await smsQueue.close();
   };
 
   return { worker, cleanup };

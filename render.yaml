@@ -98,7 +98,7 @@ services:
         sync: false
       - fromGroup: redis-shared
 
-  # ── notification: notifications → Telegram messages ──
+  # ── notification: push notifications ──
   - type: worker
     name: notification
     env: docker
@@ -111,8 +111,6 @@ services:
       - key: SUPABASE_URL
         sync: false
       - key: SUPABASE_SERVICE_KEY
-        sync: false
-      - key: TELEGRAM_BOT_TOKEN
         sync: false
       - fromGroup: redis-shared
 

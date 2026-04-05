@@ -1,8 +1,11 @@
-import { useMemo } from 'react'
+import { useMemo, useState, useCallback, useRef } from 'react'
 import { useAuth } from '../../lib/auth'
 import { useI18n } from '../../lib/i18n'
 import { useAdminKPIs } from '../../hooks/useAdminKPIs'
 import { useNetworkData } from '../../hooks/useNetworkData'
+import { useDateFilter, type DatePreset } from '../../hooks/useDateFilter'
+import { useBotStatus } from '../../hooks/useBotStatus'
+import { useCanvasTransform } from '../../hooks/useCanvasTransform'
 import { useNavigate } from 'react-router-dom'
 import {
   LogOut,
@@ -12,36 +15,34 @@ import {
   Radio,
   TrendingUp,
   Wifi,
-  Phone,
   BarChart3,
   Handshake,
-  Bot,
   Coins,
   Settings,
   Brain,
   MessageCircle,
-  Scan,
+  X,
+  Clock,
+  Calendar,
+  Maximize2,
+  ZoomIn,
+  ZoomOut,
 } from 'lucide-react'
 
 /* ═══════════════════════════════════════════════════════════
-   Solar System Dashboard
+   Solar System Dashboard — Redesigned
    ═══════════════════════════════════════════════════════════
-   Each department = its own "solar system" with clear space.
-
-   Left zone:    Channels ☀️ (groups orbit)  →  Scanner
-   Center zone:  Brain ☀️ (the AI core, pulse animation)
-   Right zone:   Clients ☀️ (professions ring → contractors orbit each)
-   Bottom zone:  Finance, Partners, Intel, Settings
-   Top:          Bot
-
-   Pipeline: Channels → Brain → Clients → Finance
-   Support:  Bot ↔ Brain, Partners → Clients, Brain → Intel
+   Main pipeline: Groups → AI (merged Brain+Bot) → Contractors
+   WA accounts ring around Groups
+   Pending badge on Groups
+   Date filter in top bar affecting filtered KPIs
+   Bottom bar = operational status only
 */
 
 const VW = 1400
 const VH = 800
 
-/* ─── Hub definitions with absolute positions ─── */
+/* ─── Hub definitions ─── */
 interface HubDef {
   id: string
   x: number
@@ -54,91 +55,310 @@ interface HubDef {
 }
 
 const HUBS: HubDef[] = [
-  // ☀️ Brain — center-left, the AI engine
-  { id: 'brain', x: 420, y: 390, size: 76, color: '#fe5b25',
-    gradient: ['#ff8a5c', '#e04d1c'], icon: Brain, path: '/admin/channels/leads' },
+  // AI (merged Brain + Bot) — center, the largest node
+  { id: 'brain', x: 450, y: 380, size: 84, color: '#fe5b25',
+    gradient: ['#ff8a5c', '#e04d1c'], icon: Brain, path: '/admin/bot' },
 
-  // ☀️ Channels — far left, groups orbit around it
-  { id: 'channels', x: 140, y: 390, size: 52, color: '#8b5cf6',
+  // Groups — left side
+  { id: 'channels', x: 160, y: 380, size: 60, color: '#8b5cf6',
     gradient: ['#a78bfa', '#7c3aed'], icon: MessageCircle, path: '/admin/channels' },
 
-  // Scanner — between Channels and Brain
-  { id: 'scan', x: 285, y: 265, size: 40, color: '#06b6d4',
-    gradient: ['#22d3ee', '#0891b2'], icon: Scan, path: '/admin/channels/scan' },
-
-  // Bot — above Brain
-  { id: 'bot', x: 420, y: 130, size: 44, color: '#8b5cf6',
-    gradient: ['#a78bfa', '#7c3aed'], icon: Bot, path: '/admin/bot' },
-
-  // ☀️ Clients — right side, center of profession solar system
-  { id: 'clients', x: 950, y: 380, size: 56, color: '#10b981',
+  // Contractors — right side
+  { id: 'clients', x: 800, y: 380, size: 60, color: '#10b981',
     gradient: ['#34d399', '#059669'], icon: Users, path: '/admin/clients' },
 
-  // Finance — bottom center (navigates to subscriptions under Clients)
-  { id: 'finance', x: 560, y: 660, size: 44, color: '#f59e0b',
+  // Finance — bottom center
+  { id: 'finance', x: 450, y: 660, size: 44, color: '#f59e0b',
     gradient: ['#fbbf24', '#d97706'], icon: Coins, path: '/admin/finance' },
 
   // Partners — bottom left
-  { id: 'partners', x: 210, y: 660, size: 44, color: '#ec4899',
+  { id: 'partners', x: 230, y: 660, size: 44, color: '#ec4899',
     gradient: ['#f472b6', '#db2777'], icon: Handshake, path: '/admin/partners' },
 
-  // Today's leads — bottom right (navigates to leads under Clients)
-  { id: 'intel', x: 760, y: 660, size: 44, color: '#3b82f6',
+  // Intel — bottom right
+  { id: 'intel', x: 640, y: 660, size: 44, color: '#3b82f6',
     gradient: ['#60a5fa', '#2563eb'], icon: BarChart3, path: '/admin/channels/leads' },
 
   // Settings — far bottom right
-  { id: 'settings', x: 1200, y: 660, size: 36, color: '#6b7280',
+  { id: 'settings', x: 1200, y: 680, size: 36, color: '#6b7280',
     gradient: ['#9ca3af', '#4b5563'], icon: Settings, path: '/admin/settings' },
 ]
 
 function getHub(id: string) { return HUBS.find(h => h.id === id)! }
 
-/* ─── Pipeline connections between solar systems ─── */
+/* ─── Pipeline connections ─── */
 const CONNECTIONS: { from: string; to: string; width: number; animated?: boolean }[] = [
-  // Primary pipeline: Channels → Brain → Clients → Finance
   { from: 'channels', to: 'brain', width: 3, animated: true },
-  { from: 'scan', to: 'brain', width: 2, animated: true },
   { from: 'brain', to: 'clients', width: 3.5, animated: true },
   { from: 'clients', to: 'finance', width: 2, animated: true },
-  // AI: Bot ↔ Brain
-  { from: 'bot', to: 'brain', width: 2, animated: true },
-  // Analytics: Brain → Intel
   { from: 'brain', to: 'intel', width: 1.5, animated: true },
-  // Referrals: Partners → Clients
+  { from: 'brain', to: 'finance', width: 1.5, animated: true },
   { from: 'partners', to: 'clients', width: 1.5 },
-  // Config: Settings → Brain
   { from: 'settings', to: 'brain', width: 1 },
 ]
 
-/* ─── Subscription status colors ─── */
-const _STATUS_COLORS: Record<string, string> = {
-  active: '#22c55e',
-  trialing: '#3b82f6',
-  past_due: '#f59e0b',
-  canceled: '#ef4444',
-  incomplete: '#9ca3af',
-}
-void _STATUS_COLORS
+const PROF_RING_R = 155
 
-/* ─── Solar system radii ─── */
-const PROF_RING_R = 155      // professions orbit Clients at this radius
-/* contractor orbit removed — count on profession node is cleaner */
-const GROUP_ORBIT_R = 55      // groups orbit Channels
+/* ═══════════════════════════════════════════════════════════
+   Date Filter Bar
+   ═══════════════════════════════════════════════════════════ */
+function DateFilterBar({ preset, onSelect, he }: {
+  preset: DatePreset
+  onSelect: (p: DatePreset) => void
+  he: boolean
+}) {
+  const presets: { key: DatePreset; label: string }[] = [
+    { key: 'today', label: he ? 'היום' : 'Today' },
+    { key: 'yesterday', label: he ? 'אתמול' : 'Yesterday' },
+    { key: '7days', label: he ? '7 ימים' : '7 Days' },
+    { key: 'custom', label: he ? 'מותאם' : 'Custom' },
+  ]
+
+  return (
+    <div className="flex items-center gap-1">
+      {presets.map(p => (
+        <button
+          key={p.key}
+          onClick={() => onSelect(p.key)}
+          className="px-3 py-1.5 rounded-md text-[11px] font-semibold transition-all duration-200 cursor-pointer"
+          style={{
+            background: preset === p.key ? '#fe5b25' : '#f5f2ed',
+            color: preset === p.key ? '#fff' : '#78716c',
+            boxShadow: preset === p.key ? '0 2px 8px rgba(254,91,37,0.3)' : 'none',
+          }}
+        >
+          {p.key === 'custom' && <Calendar className="w-3 h-3 inline mr-1" />}
+          {p.label}
+        </button>
+      ))}
+    </div>
+  )
+}
+
+/* ═══════════════════════════════════════════════════════════
+   Pending Groups Popup
+   ═══════════════════════════════════════════════════════════ */
+function PendingPopup({ groups, onClose, he }: {
+  groups: { id: string; group_name: string | null; created_at: string }[]
+  onClose: () => void
+  he: boolean
+}) {
+  function timeAgo(iso: string) {
+    const diff = Date.now() - new Date(iso).getTime()
+    const hours = Math.floor(diff / 3600000)
+    if (hours < 1) return he ? 'עכשיו' : 'just now'
+    if (hours < 24) return `${hours}h ago`
+    return `${Math.floor(hours / 24)}d ago`
+  }
+
+  return (
+    <div className="absolute inset-0 z-50 flex items-center justify-center" onClick={onClose}>
+      <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" />
+      <div
+        className="relative bg-white rounded-2xl shadow-2xl p-5 w-[340px] max-h-[400px] overflow-y-auto"
+        onClick={e => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-[15px] font-bold text-[#1c1917]">
+            <Clock className="w-4 h-4 inline mr-1.5 text-[#06b6d4]" />
+            {he ? 'קבוצות ממתינות' : 'Pending Groups'}
+          </h3>
+          <button onClick={onClose} className="p-1 rounded-md hover:bg-gray-100 transition-colors cursor-pointer">
+            <X className="w-4 h-4 text-gray-400" />
+          </button>
+        </div>
+        {groups.length === 0 ? (
+          <p className="text-[13px] text-gray-400 text-center py-6">
+            {he ? 'אין קבוצות ממתינות' : 'No pending groups'}
+          </p>
+        ) : (
+          <div className="flex flex-col gap-2">
+            {groups.map(g => (
+              <div key={g.id} className="flex items-center gap-3 p-3 bg-[#f9fafb] rounded-xl">
+                <div className="w-9 h-9 rounded-lg bg-[#e0f2fe] flex items-center justify-center text-[14px] shrink-0">
+                  💬
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="text-[12px] font-semibold text-[#1c1917] truncate">
+                    {g.group_name ?? 'Unknown Group'}
+                  </div>
+                  <div className="text-[10px] text-[#a8a29e]">
+                    {he ? 'נשלח ' : 'Requested '}{timeAgo(g.created_at)}
+                  </div>
+                </div>
+                <div className="bg-[#fef3c7] text-[#92400e] text-[9px] font-semibold px-2 py-0.5 rounded-md shrink-0">
+                  {he ? 'ממתין' : 'waiting'}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+/* ═══════════════════════════════════════════════════════════
+   Groups Expand Overlay
+   ═══════════════════════════════════════════════════════════ */
+function GroupsPanel({ groups, onClose, he }: {
+  groups: { id: string; name: string; leadsCount: number; total_members: number; instance_status: string | null }[]
+  onClose: () => void
+  he: boolean
+}) {
+  const sorted = [...groups].sort((a, b) => b.leadsCount - a.leadsCount)
+
+  function statusColor(status: string | null): string {
+    if (status === 'active') return '#22c55e'
+    if (status === 'pending') return '#f59e0b'
+    return '#ef4444'
+  }
+
+  function statusLabel(status: string | null): string {
+    if (status === 'active') return he ? 'מחובר' : 'connected'
+    if (status === 'pending') return he ? 'ממתין' : 'pending'
+    return he ? 'מנותק' : 'offline'
+  }
+
+  return (
+    <div
+      className="absolute top-0 left-0 h-full z-40 flex"
+      style={{ animation: 'slideIn 0.25s ease-out' }}
+    >
+      {/* Panel */}
+      <div className="w-[320px] h-full bg-white shadow-2xl border-r border-[#efeff1] flex flex-col">
+        {/* Header */}
+        <div className="shrink-0 flex items-center justify-between px-4 py-3 border-b border-[#efeff1]">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-lg bg-[#8b5cf6] flex items-center justify-center">
+              <MessageCircle className="w-4 h-4 text-white" />
+            </div>
+            <div>
+              <div className="text-[13px] font-bold text-[#1c1917]">
+                {he ? 'קבוצות' : 'Groups'}
+              </div>
+              <div className="text-[10px] text-[#a8a29e]">
+                {groups.length} {he ? 'קבוצות' : 'groups'}
+              </div>
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            className="p-1.5 rounded-lg hover:bg-[#f5f2ed] transition-colors cursor-pointer"
+          >
+            <X className="w-4 h-4 text-[#888]" />
+          </button>
+        </div>
+
+        {/* Groups list */}
+        <div className="flex-1 overflow-y-auto px-2 py-2">
+          {sorted.map((g) => {
+            const color = statusColor(g.instance_status)
+            return (
+              <div
+                key={g.id}
+                className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-[#f9f8f6] transition-colors mb-0.5"
+              >
+                {/* Status indicator + icon */}
+                <div className="relative shrink-0">
+                  <div
+                    className="w-10 h-10 rounded-xl flex items-center justify-center text-[16px]"
+                    style={{
+                      background: g.instance_status === 'active' ? '#f0fdf4' :
+                                  g.instance_status === 'pending' ? '#fefce8' : '#fef2f2',
+                      border: `1.5px solid ${color}30`,
+                    }}
+                  >
+                    💬
+                  </div>
+                  <div
+                    className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-white"
+                    style={{ background: color }}
+                  />
+                </div>
+
+                {/* Group info */}
+                <div className="flex-1 min-w-0">
+                  <div className="text-[12px] font-semibold text-[#1c1917] truncate">
+                    {g.name}
+                  </div>
+                  <div className="flex items-center gap-2 mt-0.5">
+                    <span className="text-[9px] font-medium" style={{ color }}>
+                      {statusLabel(g.instance_status)}
+                    </span>
+                    <span className="text-[9px] text-[#ccc]">·</span>
+                    <span className="text-[9px] text-[#a8a29e] flex items-center gap-0.5">
+                      <Users className="w-2.5 h-2.5" />
+                      {g.total_members.toLocaleString()}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Lead count */}
+                <div className="shrink-0 text-center">
+                  <div
+                    className="text-[16px] font-black tabular-nums leading-none"
+                    style={{ color: g.leadsCount > 0 ? '#fe5b25' : '#d4d4d4' }}
+                  >
+                    {g.leadsCount}
+                  </div>
+                  <div className="text-[7px] text-[#a8a29e] uppercase tracking-wider">
+                    leads
+                  </div>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+
+        {/* Summary footer */}
+        <div className="shrink-0 px-4 py-2.5 border-t border-[#efeff1] bg-[#faf9f6]">
+          <div className="flex items-center justify-between text-[10px]">
+            <span className="text-[#a8a29e]">
+              <span className="text-[#22c55e] font-semibold">{groups.filter(g => g.instance_status === 'active').length}</span> {he ? 'מחוברות' : 'connected'}
+              <span className="text-[#ccc] mx-1">·</span>
+              <span className="text-[#ef4444] font-semibold">{groups.filter(g => g.instance_status !== 'active').length}</span> {he ? 'מנותקות' : 'offline'}
+            </span>
+            <span className="text-[#fe5b25] font-bold">
+              {groups.reduce((s, g) => s + g.leadsCount, 0)} {he ? 'לידים' : 'total leads'}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* Click-away overlay */}
+      <div className="flex-1 h-full" onClick={onClose} />
+
+      <style>{`
+        @keyframes slideIn {
+          from { transform: translateX(-100%); opacity: 0; }
+          to { transform: translateX(0); opacity: 1; }
+        }
+      `}</style>
+    </div>
+  )
+}
 
 /* ═══════════════════════════════════════════════════════════
    Network Visualization (SVG + HTML overlay)
    ═══════════════════════════════════════════════════════════ */
-function NetworkVisualization({ he, kpis }: {
+function NetworkVisualization({ he, kpis, dateRange, botStatus, groupsExpanded, setGroupsExpanded, showPending, setShowPending }: {
   he: boolean
   kpis: Record<string, number | string>
+  dateRange: { from: string; to: string; preset: string }
+  botStatus: { active: boolean; messagesSent: number; errors: number }
+  groupsExpanded: boolean
+  setGroupsExpanded: (v: boolean) => void
+  showPending: boolean
+  setShowPending: (v: boolean) => void
 }) {
-  const { data: net } = useNetworkData()
+  const { data: net } = useNetworkData(dateRange)
   const navigate = useNavigate()
   const clientsHub = getHub('clients')
   const channelsHub = getHub('channels')
   const brainHub = getHub('brain')
 
-  /* ─── Professions ring around Clients hub ─── */
+  /* ─── Professions ring around Clients ─── */
   const profNodes = useMemo(() => {
     const withContractors = net.professions.filter(p => p.contractorCount > 0)
     const without = net.professions.filter(p => p.contractorCount === 0)
@@ -151,42 +371,37 @@ function NetworkVisualization({ he, kpis }: {
         ...prof,
         x: clientsHub.x + PROF_RING_R * Math.cos(angle),
         y: clientsHub.y + PROF_RING_R * Math.sin(angle),
-        angle,
       }
     })
   }, [net.professions, clientsHub])
 
-  /* Contractors data used for count display only — no individual nodes */
-
-  /* ─── Group bubbles orbiting Channels ─── */
-  const groupBubbles = useMemo(() => {
-    const count = Math.min(Number(net.groupsCount) || 8, 16)
-    return Array.from({ length: count }, (_, i) => {
-      const angle = (i / count) * Math.PI * 2 - Math.PI / 2
-      const r = GROUP_ORBIT_R + (i % 3) * 8
+  /* ─── WA accounts ring around Groups ─── */
+  const waRingR = 85
+  const waNodes = useMemo(() => {
+    if (net.waAccounts.length === 0) return []
+    return net.waAccounts.map((wa, i) => {
+      const count = net.waAccounts.length
+      const angle = (i / Math.max(count, 3)) * Math.PI * 2 - Math.PI / 2
       return {
-        x: channelsHub.x + r * Math.cos(angle),
-        y: channelsHub.y + r * Math.sin(angle),
-        size: 4 + (i % 3) * 2,
+        ...wa,
+        x: channelsHub.x + waRingR * Math.cos(angle),
+        y: channelsHub.y + waRingR * Math.sin(angle),
       }
     })
-  }, [net.groupsCount, channelsHub])
+  }, [net.waAccounts, channelsHub])
 
-  /* ─── Hub label data ─── */
   const hotLeads = Number(kpis.hotLeads ?? 0)
   const mrr = Number(kpis.mrr ?? 0)
   const leadsToday = Number(kpis.leadsToday ?? 0)
   const activePartners = Number(kpis.activePartners ?? 0)
 
-  const hubLabels: Record<string, { value: string | number; label: string }> = {
-    brain: { value: hotLeads, label: he ? 'לידים חמים' : 'HOT LEADS' },
+  const hubLabels: Record<string, { value: string | number; label: string; filtered?: boolean }> = {
+    brain: { value: hotLeads, label: he ? 'AI · לידים חמים' : 'AI · HOT LEADS', filtered: true },
     channels: { value: net.groupsCount, label: he ? 'קבוצות' : 'GROUPS' },
     clients: { value: net.contractors.length, label: he ? 'קבלנים' : 'CONTRACTORS' },
     finance: { value: `$${mrr}`, label: 'MRR' },
-    intel: { value: leadsToday, label: he ? 'היום' : 'TODAY' },
+    intel: { value: leadsToday, label: he ? 'היום' : 'TODAY', filtered: true },
     partners: { value: activePartners, label: he ? 'שותפים' : 'PARTNERS' },
-    bot: { value: 'AI', label: he ? 'בוט' : 'BOT' },
-    scan: { value: '', label: he ? 'סריקה' : 'SCAN' },
     settings: { value: '', label: he ? 'הגדרות' : 'SETTINGS' },
   }
 
@@ -206,23 +421,21 @@ function NetworkVisualization({ he, kpis }: {
           </filter>
         </defs>
 
-        {/* ─── Clients Solar System: professions orbit ring ─── */}
+        {/* Clients profession orbit ring */}
         <circle cx={clientsHub.x} cy={clientsHub.y} r={PROF_RING_R}
           fill="none" stroke="#10b981" strokeWidth="0.6" opacity="0.1" strokeDasharray="4 8" />
 
-        {/* (contractor orbit rings removed) */}
+        {/* WA accounts orbit ring around Groups */}
+        <circle cx={channelsHub.x} cy={channelsHub.y} r={waRingR}
+          fill="none" stroke="#25D366" strokeWidth="0.5" opacity="0.1" strokeDasharray="3 5" />
 
-        {/* ─── Channels Solar System: group orbit ring ─── */}
-        <circle cx={channelsHub.x} cy={channelsHub.y} r={GROUP_ORBIT_R}
-          fill="none" stroke="#8b5cf6" strokeWidth="0.5" opacity="0.1" strokeDasharray="3 5" />
-
-        {/* ─── Brain pulse animation ─── */}
-        <circle cx={brainHub.x} cy={brainHub.y} r="50" fill="none" stroke="#fe5b25" strokeWidth="1" opacity="0.08">
-          <animate attributeName="r" values="50;120" dur="4s" repeatCount="indefinite" />
+        {/* Brain pulse */}
+        <circle cx={brainHub.x} cy={brainHub.y} r="55" fill="none" stroke="#fe5b25" strokeWidth="1" opacity="0.08">
+          <animate attributeName="r" values="55;130" dur="4s" repeatCount="indefinite" />
           <animate attributeName="opacity" values="0.08;0" dur="4s" repeatCount="indefinite" />
         </circle>
 
-        {/* ─── Hub-to-hub connections ─── */}
+        {/* Hub connections + particles */}
         {CONNECTIONS.map((conn, i) => {
           const from = getHub(conn.from)
           const to = getHub(conn.to)
@@ -245,45 +458,119 @@ function NetworkVisualization({ he, kpis }: {
           )
         })}
 
-        {/* ─── Clients hub → Profession spokes ─── */}
+        {/* Profession spokes */}
         {profNodes.map((p, i) => (
           <line key={`spoke-${i}`}
             x1={clientsHub.x} y1={clientsHub.y} x2={p.x} y2={p.y}
             stroke={p.color || '#10b981'} strokeWidth="1" opacity="0.1" />
         ))}
 
-        {/* (contractor lines removed — count on profession is enough) */}
-
-        {/* ─── Group bubbles orbiting Channels ─── */}
-        {groupBubbles.map((g, i) => (
-          <g key={`gb-${i}`}>
-            <circle cx={g.x} cy={g.y} r={g.size} fill="#8b5cf6" opacity="0.12">
-              <animate attributeName="r" values={`${g.size};${g.size + 1.5};${g.size}`}
-                dur={`${3 + i * 0.2}s`} repeatCount="indefinite" />
-            </circle>
-            <line x1={channelsHub.x} y1={channelsHub.y} x2={g.x} y2={g.y}
-              stroke="#8b5cf6" strokeWidth="0.3" opacity="0.06" />
-          </g>
+        {/* WA account spokes */}
+        {waNodes.map((wa, i) => (
+          <line key={`wa-spoke-${i}`}
+            x1={channelsHub.x} y1={channelsHub.y} x2={wa.x} y2={wa.y}
+            stroke="#25D366" strokeWidth="0.5" opacity="0.15" />
         ))}
       </svg>
 
       {/* ═══ HTML Layer ═══ */}
 
+      {/* ─── WA Account nodes ─── */}
+      {waNodes.map((wa) => {
+        const isConnected = wa.status === 'connected'
+        return (
+          <div
+            key={wa.id}
+            data-interactive
+            className="absolute flex flex-col items-center"
+            style={{
+              left: `${(wa.x / VW) * 100}%`,
+              top: `${(wa.y / VH) * 100}%`,
+              transform: 'translate(-50%, -50%)',
+              pointerEvents: 'auto',
+            }}
+            title={wa.display_name ?? wa.label}
+          >
+            <div
+              className="relative flex items-center justify-center rounded-full border-[3px] border-white shadow-md overflow-hidden"
+              style={{
+                width: 40, height: 40,
+                background: isConnected
+                  ? 'linear-gradient(135deg, #25D366, #128C7E)'
+                  : 'linear-gradient(135deg, #9ca3af, #6b7280)',
+                opacity: isConnected ? 1 : 0.5,
+              }}
+            >
+              {wa.avatar_url ? (
+                <img src={wa.avatar_url} alt="" className="w-full h-full object-cover" />
+              ) : (
+                <span className="text-white text-[13px] font-bold">
+                  {(wa.display_name ?? wa.label)?.[0]?.toUpperCase() ?? 'W'}
+                </span>
+              )}
+            </div>
+            <div className="flex items-center gap-0.5 mt-0.5">
+              <div className="w-[5px] h-[5px] rounded-full" style={{ background: isConnected ? '#22c55e' : '#ef4444' }} />
+              <span className="text-[7px] text-[#555]">{isConnected ? 'connected' : 'offline'}</span>
+            </div>
+            <div
+              className="text-[9px] font-bold px-1.5 py-0.5 rounded-md mt-0.5"
+              style={{
+                background: wa.leadsCount > 0 ? '#fe5b25' : '#e5e5e5',
+                color: wa.leadsCount > 0 ? '#fff' : '#999',
+              }}
+            >
+              {wa.leadsCount}
+            </div>
+          </div>
+        )
+      })}
+
+      {/* ─── Pending Badge on Groups ─── */}
+      {net.pendingGroups.length > 0 && (
+        <div
+          data-interactive
+          className="absolute z-20 cursor-pointer"
+          style={{
+            left: `${((channelsHub.x + 55) / VW) * 100}%`,
+            top: `${((channelsHub.y - 50) / VH) * 100}%`,
+            transform: 'translate(-50%, -50%)',
+            pointerEvents: 'auto',
+          }}
+          onClick={() => setShowPending(true)}
+        >
+          <div className="bg-gradient-to-r from-[#06b6d4] to-[#0891b2] text-white text-[10px] font-semibold px-2.5 py-1 rounded-full shadow-md whitespace-nowrap flex items-center gap-1">
+            <Clock className="w-3 h-3" />
+            {net.pendingGroups.length} {he ? 'ממתינות' : 'pending'}
+          </div>
+        </div>
+      )}
+
       {/* ─── Hub nodes ─── */}
       {HUBS.map((hub) => {
         const Icon = hub.icon
         const data = hubLabels[hub.id]
+        const isGroupsHub = hub.id === 'channels'
+
         return (
           <div
             key={hub.id}
+            data-interactive
             className="absolute flex flex-col items-center cursor-pointer transition-all duration-300 hover:scale-110 hover:-translate-y-1"
             style={{
               left: `${(hub.x / VW) * 100}%`,
               top: `${(hub.y / VH) * 100}%`,
               transform: 'translate(-50%, -50%)',
               pointerEvents: 'auto',
+              zIndex: hub.id === 'brain' ? 15 : 10,
             }}
-            onClick={() => navigate(hub.path)}
+            onClick={() => {
+              if (isGroupsHub) {
+                setGroupsExpanded(!groupsExpanded)
+              } else {
+                navigate(hub.path)
+              }
+            }}
           >
             <div
               className="relative flex items-center justify-center"
@@ -304,16 +591,60 @@ function NetworkVisualization({ he, kpis }: {
               }} />
             </div>
             {data.value !== '' && (
-              <div className="text-[14px] font-black tabular-nums text-[#0b0707]/85 mt-1 leading-none">
+              <div className="text-[14px] font-black tabular-nums text-[#0b0707]/85 mt-1 leading-none flex items-center gap-1">
                 {data.value}
+                {data.filtered && (
+                  <span className="text-[7px] font-semibold text-[#fe5b25] bg-[#fe5b25]/10 px-1 py-0.5 rounded">
+                    {dateRange.preset === 'today' ? (he ? 'היום' : 'today') :
+                     dateRange.preset === 'yesterday' ? (he ? 'אתמול' : 'yest') :
+                     dateRange.preset === '7days' ? '7d' : 'custom'}
+                  </span>
+                )}
               </div>
             )}
             <div className="text-[8px] text-[#3b3b3b]/40 uppercase tracking-[0.1em] font-semibold mt-0.5">
               {data.label}
             </div>
+            {isGroupsHub && !groupsExpanded && (
+              <div className="text-[7px] text-[#8b5cf6]/50 mt-0.5">{he ? 'לחץ להרחבה' : 'click to expand'}</div>
+            )}
           </div>
         )
       })}
+
+      {/* ─── Bot Sub-Indicator under AI node ─── */}
+      <div
+        className="absolute z-15 pointer-events-none"
+        style={{
+          left: `${(brainHub.x / VW) * 100}%`,
+          top: `${((brainHub.y + 68) / VH) * 100}%`,
+          transform: 'translate(-50%, 0)',
+        }}
+      >
+        <div className="bg-white border border-[#efeff1] rounded-lg px-2.5 py-1 flex items-center gap-1.5 shadow-sm">
+          <div
+            className="w-[6px] h-[6px] rounded-full"
+            style={{
+              background: botStatus.active ? '#22c55e' : '#ef4444',
+              boxShadow: botStatus.active ? '0 0 6px rgba(34,197,94,0.6)' : '0 0 6px rgba(239,68,68,0.6)',
+              animation: botStatus.active ? 'pulse 2s infinite' : 'none',
+            }}
+          />
+          <span className="text-[9px] text-[#555] font-medium">
+            {botStatus.active ? (he ? 'בוט פעיל' : 'Bot Active') : (he ? 'בוט לא פעיל' : 'Bot Idle')}
+          </span>
+          <span className="text-[#d4d4d4]">|</span>
+          <span className="text-[9px] text-[#fe5b25] font-bold tabular-nums">
+            {botStatus.messagesSent} {he ? 'הודעות' : 'msgs'}
+          </span>
+          {botStatus.errors > 0 && (
+            <>
+              <span className="text-[#d4d4d4]">|</span>
+              <span className="text-[9px] text-[#ef4444] font-bold">{botStatus.errors} err</span>
+            </>
+          )}
+        </div>
+      </div>
 
       {/* ─── Profession nodes orbiting Clients ─── */}
       {profNodes.map((prof, i) => {
@@ -321,6 +652,7 @@ function NetworkVisualization({ he, kpis }: {
         return (
           <div
             key={prof.id}
+            data-interactive
             className="absolute flex flex-col items-center cursor-pointer transition-all duration-300 hover:scale-110"
             style={{
               left: `${(prof.x / VW) * 100}%`,
@@ -360,12 +692,18 @@ function NetworkVisualization({ he, kpis }: {
         )
       })}
 
-      {/* Contractor avatars removed — profession count badges tell the story */}
-
       <style>{`
         @keyframes fadeScaleIn {
           from { opacity: 0; transform: translate(-50%, -50%) scale(0.5); }
           to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+        }
+        @keyframes expandBubble {
+          from { opacity: 0; transform: translate(-50%, -50%) scale(0); }
+          to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+        }
+        @keyframes pulse {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.4; }
         }
       `}</style>
     </div>
@@ -375,12 +713,13 @@ function NetworkVisualization({ he, kpis }: {
 /* ═══════════════════════════════════════════════════════════
    Top-bar KPI pill
    ═══════════════════════════════════════════════════════════ */
-function KpiPill({ icon: Icon, label, value, color, highlight }: {
+function KpiPill({ icon: Icon, label, value, color, highlight, filtered }: {
   icon: React.ComponentType<{ className?: string; style?: React.CSSProperties }>
   label: string
   value: string | number
   color: string
   highlight?: boolean
+  filtered?: boolean
 }) {
   return (
     <div
@@ -388,6 +727,7 @@ function KpiPill({ icon: Icon, label, value, color, highlight }: {
       style={{
         background: highlight ? `${color}08` : '#f5f2ed',
         border: `1px solid ${highlight ? color + '20' : '#efeff1'}`,
+        borderBottom: filtered ? `2px solid ${color}` : undefined,
       }}
     >
       <Icon className="w-3.5 h-3.5 shrink-0 opacity-60" style={{ color }} />
@@ -402,38 +742,37 @@ function KpiPill({ icon: Icon, label, value, color, highlight }: {
 }
 
 /* ═══════════════════════════════════════════════════════════
-   Bottom-bar stat cell
-   ═══════════════════════════════════════════════════════════ */
-function BottomStat({ label, value, color }: { label: string; value: string | number; color?: string }) {
-  return (
-    <div className="flex flex-col items-center px-5">
-      <span className="text-[20px] font-black tabular-nums leading-tight" style={{ color: color ?? '#0b0707' }}>{value}</span>
-      <span className="text-[8px] text-[#3b3b3b]/40 uppercase tracking-[0.15em] font-medium">{label}</span>
-    </div>
-  )
-}
-
-/* ═══════════════════════════════════════════════════════════
    Main Canvas
    ═══════════════════════════════════════════════════════════ */
 export default function AdminCanvas() {
   const { profile, signOut } = useAuth()
   const { locale } = useI18n()
   const navigate = useNavigate()
-  const { data: kpis, loading } = useAdminKPIs()
   const he = locale === 'he'
 
-  const { data: netData } = useNetworkData()
-  const totalLeads = Number(kpis.hotLeads ?? 0) + Number(kpis.leadsOnMap ?? 0)
+  // Infinite canvas — pan & zoom
+  const canvasContainerRef = useRef<HTMLDivElement>(null)
+  const canvasTransform = useCanvasTransform(canvasContainerRef)
+
+  // Groups expand & pending popup — lifted state (renders outside transform)
+  const [groupsExpanded, setGroupsExpanded] = useState(false)
+  const [showPending, setShowPending] = useState(false)
+
+  // Date filter — global state
+  const { range, preset, setPresetFilter } = useDateFilter('today')
+
+  // Data hooks — pass date range to filtered queries
+  const { data: kpis, loading } = useAdminKPIs(range)
+  const { data: netData } = useNetworkData(range)
+  const botStatus = useBotStatus(range)
+
+  const hotLeads = Number(kpis.hotLeads ?? 0)
   const mrr = Number(kpis.mrr ?? 0)
+  const arr = Number(kpis.arr ?? 0)
   const activeContractors = netData.contractors.length || Number(kpis.activeContractors ?? 0)
   const waConnected = Number(kpis.waConnected ?? 0)
   const activeGroups = netData.groupsCount || Number(kpis.activeGroups ?? 0)
   const convRate = Number(kpis.conversionRate ?? 0)
-  const activeSubs = Number(kpis.activeSubs ?? 0)
-  const scansPending = Number(kpis.scansPending ?? 0)
-  const leadsToday = Number(kpis.leadsToday ?? 0)
-  const hotLeads = Number(kpis.hotLeads ?? 0)
   const activePartners = Number(kpis.activePartners ?? 0)
   const pendingPartners = Number(kpis.pendingPartners ?? 0)
 
@@ -442,44 +781,42 @@ export default function AdminCanvas() {
       {/* ═══════════════ TOP BAR ═══════════════ */}
       <div
         className="shrink-0 flex items-center justify-between px-4 h-[60px] z-10 relative"
-        style={{ background: '#ffffff', borderBottom: '1px solid #efeff1', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}
+        style={{ background: '#ffffff', borderBottom: '2px solid #fe5b25', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}
       >
+        {/* Logo + Live */}
         <div className="flex items-center gap-3 shrink-0">
           <div className="flex items-center gap-2">
             <img src="/icon.png" alt="MasterLeadFlow" className="w-7 h-7 rounded-lg" />
-            <div className="flex flex-col leading-none">
-              <span className="text-[#0b0707]/80 font-extrabold text-[12px] tracking-[0.05em]">MASTERLEADFLOW</span>
-              <span className="text-[7px] text-[#3b3b3b]/30 uppercase tracking-[0.25em]">neural network</span>
-            </div>
+            <span className="text-[#0b0707]/80 font-extrabold text-[12px] tracking-[0.05em]">MASTERLEADFLOW</span>
           </div>
-          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-[#fe5b25]/10 border border-[#fe5b25]/20 ml-1">
+          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-[#fe5b25]/10 border border-[#fe5b25]/20">
             <div className="w-1.5 h-1.5 rounded-full bg-[#fe5b25] animate-pulse shadow-[0_0_6px_rgba(254,91,37,0.8)]" />
             <span className="text-[9px] font-bold text-[#fe5b25] uppercase tracking-[0.12em]">{he ? 'פעיל' : 'Live'}</span>
           </div>
         </div>
 
+        {/* Date Filter */}
+        <DateFilterBar preset={preset} onSelect={setPresetFilter} he={he} />
+
+        {/* KPIs */}
         <div className="flex items-center gap-1.5">
-          <KpiPill icon={Zap} label={he ? 'לידים חמים' : 'HOT LEADS'} value={hotLeads} color="#ff6b35" highlight={hotLeads > 0} />
+          <KpiPill icon={Zap} label={he ? 'לידים חמים' : 'HOT LEADS'} value={hotLeads} color="#ff6b35" highlight={hotLeads > 0} filtered />
           <div className="w-px h-6 bg-[#efeff1]" />
           <KpiPill icon={Users} label={he ? 'קבלנים' : 'CONTRACTORS'} value={activeContractors} color="#10b981" />
           <div className="w-px h-6 bg-[#efeff1]" />
           <KpiPill icon={Radio} label={he ? 'קבוצות' : 'GROUPS'} value={activeGroups} color="#8b5cf6" />
           <div className="w-px h-6 bg-[#efeff1]" />
-          <KpiPill icon={TrendingUp} label={he ? 'המרה' : 'RATE'} value={`${convRate}%`} color="#f59e0b" />
+          <KpiPill icon={TrendingUp} label={he ? 'המרה' : 'RATE'} value={`${convRate}%`} color="#f59e0b" filtered />
           <div className="w-px h-6 bg-[#efeff1]" />
           <KpiPill icon={DollarSign} label="MRR" value={`$${mrr.toLocaleString()}`} color="#22c55e" highlight={mrr > 0} />
+          <div className="w-px h-6 bg-[#efeff1]" />
+          <KpiPill icon={DollarSign} label="ARR" value={`$${arr.toLocaleString()}`} color="#22c55e" />
           <div className="w-px h-6 bg-[#efeff1]" />
           <KpiPill icon={Handshake} label={he ? 'שותפים' : 'PARTNERS'} value={activePartners} color="#ec4899" highlight={pendingPartners > 0} />
         </div>
 
+        {/* User */}
         <div className="flex items-center gap-2 shrink-0">
-          <button
-            onClick={() => navigate('/admin/bot')}
-            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-[#8b5cf6]/10 border border-[#8b5cf6]/20 hover:bg-[#8b5cf6]/20 transition-colors cursor-pointer"
-          >
-            <Bot className="w-3.5 h-3.5 text-[#8b5cf6]" />
-            <span className="text-[9px] font-bold text-[#8b5cf6] uppercase tracking-[0.08em]">{he ? 'בוט' : 'Bot'}</span>
-          </button>
           {profile && (
             <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-[#f5f2ed] border border-[#efeff1]">
               <div className="w-6 h-6 rounded-md bg-[#efeff1] flex items-center justify-center text-[10px] font-bold text-[#0b0707]/50">
@@ -488,15 +825,87 @@ export default function AdminCanvas() {
               <span className="text-[#3b3b3b]/60 text-[11px] font-medium">{profile.full_name}</span>
             </div>
           )}
-          <button onClick={signOut} className="p-2 rounded-lg hover:bg-[#f5f2ed] transition-colors text-[#3b3b3b]/30 hover:text-[#3b3b3b]/60">
+          <button onClick={signOut} className="p-2 rounded-lg hover:bg-[#f5f2ed] transition-colors text-[#3b3b3b]/30 hover:text-[#3b3b3b]/60 cursor-pointer">
             <LogOut className="w-3.5 h-3.5" />
           </button>
         </div>
       </div>
 
-      {/* ═══════════════ SOLAR SYSTEM NETWORK ═══════════════ */}
-      <div className="flex-1 relative overflow-hidden">
-        <NetworkVisualization he={he} kpis={kpis} />
+      {/* ═══════════════ INFINITE CANVAS ═══════════════ */}
+      <div
+        ref={canvasContainerRef}
+        className="flex-1 relative overflow-hidden select-none"
+        style={{ cursor: 'grab' }}
+        onMouseDown={canvasTransform.handleMouseDown}
+        onMouseMove={canvasTransform.handleMouseMove}
+        onMouseUp={canvasTransform.handleMouseUp}
+        onMouseLeave={canvasTransform.handleMouseUp}
+      >
+        {/* Transformed layer — everything inside pans & zooms */}
+        <div
+          style={{
+            transform: canvasTransform.cssTransform,
+            transformOrigin: '0 0',
+            width: '100%',
+            height: '100%',
+            willChange: 'transform',
+          }}
+        >
+          <NetworkVisualization
+            he={he} kpis={kpis} dateRange={range} botStatus={botStatus}
+            groupsExpanded={groupsExpanded} setGroupsExpanded={setGroupsExpanded}
+            showPending={showPending} setShowPending={setShowPending}
+          />
+
+          {/* Groups expanded removed — now using side panel */}
+        </div>
+
+        {/* Zoom controls — fixed position, not affected by transform */}
+        <div className="absolute bottom-4 right-4 z-30 flex items-center gap-1 bg-white/90 backdrop-blur-sm rounded-lg shadow-lg border border-[#efeff1] p-1">
+          <button
+            onClick={() => canvasTransform.zoomIn()}
+            className="p-1.5 rounded-md hover:bg-[#f5f2ed] transition-colors cursor-pointer text-[#555]"
+            title="Zoom In"
+          >
+            <ZoomIn className="w-4 h-4" />
+          </button>
+          <div className="text-[10px] font-mono text-[#888] w-10 text-center tabular-nums">
+            {Math.round(canvasTransform.transform.scale * 100)}%
+          </div>
+          <button
+            onClick={() => canvasTransform.zoomOut()}
+            className="p-1.5 rounded-md hover:bg-[#f5f2ed] transition-colors cursor-pointer text-[#555]"
+            title="Zoom Out"
+          >
+            <ZoomOut className="w-4 h-4" />
+          </button>
+          <div className="w-px h-5 bg-[#efeff1]" />
+          <button
+            onClick={canvasTransform.resetTransform}
+            className="p-1.5 rounded-md hover:bg-[#f5f2ed] transition-colors cursor-pointer text-[#555]"
+            title="Reset View"
+          >
+            <Maximize2 className="w-4 h-4" />
+          </button>
+        </div>
+
+        {/* Groups side panel — outside transform */}
+        {groupsExpanded && (
+          <GroupsPanel
+            groups={netData.groups}
+            onClose={() => setGroupsExpanded(false)}
+            he={he}
+          />
+        )}
+
+        {/* Pending Groups popup — outside transform */}
+        {showPending && (
+          <PendingPopup
+            groups={netData.pendingGroups}
+            onClose={() => setShowPending(false)}
+            he={he}
+          />
+        )}
 
         {loading && (
           <div className="absolute inset-0 flex items-center justify-center bg-[#faf9f6]/90 z-20 backdrop-blur-sm">
@@ -511,39 +920,38 @@ export default function AdminCanvas() {
         )}
       </div>
 
-      {/* ═══════════════ BOTTOM BAR ═══════════════ */}
+      {/* ═══════════════ BOTTOM STATUS BAR ═══════════════ */}
       <div
-        className="shrink-0 flex items-center justify-between px-5 h-12 z-10"
-        style={{ background: '#ffffff', borderTop: '1px solid #efeff1', boxShadow: '0 -1px 3px rgba(0,0,0,0.05)' }}
+        className="shrink-0 flex items-center justify-between px-5 h-10 z-10"
+        style={{ background: '#1c1917', borderTop: '1px solid #2a2a2a' }}
       >
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-1.5">
             <div className="w-[6px] h-[6px] rounded-full bg-emerald-500 animate-pulse shadow-[0_0_4px_rgba(52,211,153,0.5)]" />
-            <span className="text-[9px] text-[#3b3b3b]/40 uppercase tracking-[0.12em] font-medium">{he ? 'מערכת מחוברת' : 'System Online'}</span>
+            <span className="text-[9px] text-[#a8a29e] uppercase tracking-[0.12em] font-medium">{he ? 'מערכת מחוברת' : 'System Online'}</span>
           </div>
-          <div className="w-px h-3 bg-[#efeff1]" />
+          <div className="w-px h-3 bg-[#44403c]" />
           <div className="flex items-center gap-1">
-            <Phone className="w-3 h-3 text-emerald-500/40" />
-            <span className="text-[9px] text-[#3b3b3b]/35 tabular-nums">{waConnected} WA</span>
+            <Wifi className="w-3 h-3 text-emerald-500/60" />
+            <span className="text-[9px] text-[#a8a29e] tabular-nums">{waConnected} WA Connected</span>
+            {netData.waAccounts.filter(w => w.status !== 'connected').length > 0 && (
+              <span className="text-[9px] text-[#ef4444]/80 tabular-nums ml-1">
+                · {netData.waAccounts.filter(w => w.status !== 'connected').length} Offline
+              </span>
+            )}
           </div>
-          <div className="w-px h-3 bg-[#efeff1]" />
+          <div className="w-px h-3 bg-[#44403c]" />
           <div className="flex items-center gap-1">
             <BarChart3 className="w-3 h-3 text-blue-500/40" />
-            <span className="text-[9px] text-[#3b3b3b]/35 tabular-nums">{leadsToday} {he ? 'היום' : 'today'}</span>
+            <span className="text-[9px] text-[#a8a29e] tabular-nums">
+              {he ? 'סריקה אחרונה:' : 'Last Scan:'} 3m ago
+            </span>
           </div>
         </div>
 
-        <div className="flex items-center divide-x divide-[#efeff1]">
-          <BottomStat label={he ? 'לידים' : 'LEADS'} value={totalLeads} color="#ff6b35" />
-          <BottomStat label={he ? 'מנויים' : 'SUBS'} value={activeSubs} color="#22c55e" />
-          <BottomStat label={he ? 'סריקות' : 'SCANS'} value={scansPending} color="#8b5cf6" />
-          <BottomStat label={he ? 'קבוצות' : 'GROUPS'} value={activeGroups} color="#3b82f6" />
-          <BottomStat label={he ? 'שותפים' : 'PARTNERS'} value={activePartners} color="#ec4899" />
-        </div>
-
-        <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#fe5b25]/10 border border-[#fe5b25]/20">
-          <Wifi className="w-3 h-3 text-[#fe5b25]/80" />
-          <span className="text-[9px] font-bold text-[#fe5b25] uppercase tracking-[0.12em]">LIVE</span>
+        <div className="flex items-center gap-1.5">
+          <div className="w-2 h-2 rounded-full bg-[#ef4444] animate-pulse" />
+          <span className="text-[10px] font-bold text-white uppercase tracking-[0.1em]">LIVE</span>
         </div>
       </div>
     </div>

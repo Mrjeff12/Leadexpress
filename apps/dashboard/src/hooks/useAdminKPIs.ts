@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
+import type { DateRange } from './useDateFilter'
 
 export interface AdminKPIs {
   [key: string]: number | string
@@ -7,21 +8,28 @@ export interface AdminKPIs {
 
 const DEFAULT_PLAN_PRICE = 49
 
-export function useAdminKPIs() {
+export function useAdminKPIs(dateRange?: DateRange) {
   const [data, setData] = useState<AdminKPIs>({})
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
+  const from = dateRange?.from
+  const to = dateRange?.to
+
   useEffect(() => {
     async function fetchKPIs() {
       try {
-        const today = new Date().toISOString().slice(0, 10)
+        // Date range for filtered KPIs
+        const rangeFrom = from ?? new Date().toISOString().slice(0, 10)
+        const rangeTo = to ?? rangeFrom
+        // rangeTo needs end-of-day for gte/lte queries
+        const rangeToEnd = rangeTo + 'T23:59:59.999Z'
 
         const [
           totalLeadsRes,
-          leadsTodayRes,
-          hotLeadsRes,
-          sentLeadsRes,
+          filteredHotLeadsRes,
+          filteredSentLeadsRes,
+          filteredTotalLeadsRes,
           activeLeadsRes,
           groupsRes,
           contractorsRes,
@@ -35,16 +43,22 @@ export function useAdminKPIs() {
           plansRes,
         ] = await Promise.all([
           supabase.from('leads').select('id', { count: 'exact', head: true }),
-          supabase.from('leads').select('id', { count: 'exact', head: true }).gte('created_at', today),
-          supabase.from('leads').select('id', { count: 'exact', head: true }).eq('urgency', 'hot'),
-          supabase.from('leads').select('id', { count: 'exact', head: true }).eq('status', 'sent'),
+          // Filtered: hot leads created in date range
+          supabase.from('leads').select('id', { count: 'exact', head: true })
+            .eq('urgency', 'hot').gte('created_at', rangeFrom).lte('created_at', rangeToEnd),
+          // Filtered: sent leads in date range (for rate calc)
+          supabase.from('leads').select('id', { count: 'exact', head: true })
+            .eq('status', 'sent').gte('created_at', rangeFrom).lte('created_at', rangeToEnd),
+          // Filtered: total leads in date range (for rate calc)
+          supabase.from('leads').select('id', { count: 'exact', head: true })
+            .gte('created_at', rangeFrom).lte('created_at', rangeToEnd),
           supabase.from('leads').select('id', { count: 'exact', head: true }).neq('status', 'archived'),
           supabase.from('groups').select('id', { count: 'exact', head: true }),
           supabase.from('subscriptions').select('id, plan_id, user_id, plans(slug, price_cents)').eq('status', 'active'),
           supabase.from('professions').select('id', { count: 'exact', head: true }),
           supabase.from('contractor_group_scan_requests').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
           supabase.from('wa_accounts').select('id', { count: 'exact', head: true }).eq('status', 'connected'),
-          supabase.from('professions').select('id', { count: 'exact', head: true }), // service_areas table doesn't exist; reuse professions count
+          supabase.from('professions').select('id', { count: 'exact', head: true }),
           supabase.from('community_partners').select('id', { count: 'exact', head: true }).eq('status', 'active'),
           supabase.from('community_partners').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
           supabase.from('partner_commissions').select('amount_cents').eq('status', 'pending').eq('type', 'earning'),
@@ -56,15 +70,17 @@ export function useAdminKPIs() {
         if (contractorsRes.error) throw new Error(`Subscriptions query failed: ${contractorsRes.error.message}`)
 
         const totalLeads = totalLeadsRes.count ?? 0
-        const leadsToday = leadsTodayRes.count ?? 0
-        const hotLeads = hotLeadsRes.count ?? 0
-        const sent = sentLeadsRes.count ?? 0
+        // Filtered KPIs
+        const hotLeads = filteredHotLeadsRes.count ?? 0
+        const filteredSent = filteredSentLeadsRes.count ?? 0
+        const filteredTotal = filteredTotalLeadsRes.count ?? 0
         const activeGroups = groupsRes.count ?? 0
         // activeContractors = count of unique users with active subscriptions
         const activeSubs = contractorsRes.data ?? []
         const activeContractors = activeSubs.length
         const activeSubsCount = activeSubs.length
-        const convRate = totalLeads > 0 ? Math.round((sent / totalLeads) * 1000) / 10 : 0
+        // Rate is filtered: sent/total in the date range
+        const convRate = filteredTotal > 0 ? Math.round((filteredSent / filteredTotal) * 1000) / 10 : 0
 
         // Build plan price lookup from DB (fall back to default if plans table fails)
         const planPrices: Record<string, number> = {}
@@ -87,6 +103,8 @@ export function useAdminKPIs() {
           (sum: number, c: any) => sum + (c.amount_cents ?? 0), 0
         )
 
+        const arr = mrr * 12
+
         setError(null)
         setData({
           hotLeads,
@@ -100,7 +118,8 @@ export function useAdminKPIs() {
           scansPending: scanQueueRes.count ?? 0,
           activeSubs: activeSubsCount,
           mrr,
-          leadsToday,
+          arr,
+          leadsToday: filteredTotal,
           conversionRate: convRate,
           professionsCount: professionsRes.count ?? 0,
           systemConfig: 'Active',
@@ -119,7 +138,7 @@ export function useAdminKPIs() {
     fetchKPIs()
     const interval = setInterval(fetchKPIs, 30_000)
     return () => clearInterval(interval)
-  }, [])
+  }, [from, to])
 
   return { data, loading, error }
 }

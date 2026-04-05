@@ -82,13 +82,11 @@ interface ContractorData {
   is_active: boolean
   created_at: string
   wa_notify: boolean
-  sms_opt_out: boolean
   profiles: {
     id: string
     full_name: string | null
     phone: string | null
     whatsapp_phone: string | null
-    telegram_chat_id: number | null
     status?: string
     suspension_reason?: string | null
     suspended_at?: string | null
@@ -359,8 +357,8 @@ export default function ContractorDetail() {
     const { data, error } = await supabase
       .from('contractors')
       .select(`
-        user_id, professions, zip_codes, is_active, created_at, wa_notify, sms_opt_out,
-        profiles!inner(id, full_name, phone, whatsapp_phone, telegram_chat_id, status, suspension_reason, suspended_at, banned_at)
+        user_id, professions, zip_codes, is_active, created_at, wa_notify,
+        profiles!inner(id, full_name, phone, whatsapp_phone, status, suspension_reason, suspended_at, banned_at)
       `)
       .eq('user_id', id)
       .single()
@@ -387,7 +385,6 @@ export default function ContractorDetail() {
       is_active: raw.is_active,
       created_at: raw.created_at,
       wa_notify: raw.wa_notify ?? false,
-      sms_opt_out: raw.sms_opt_out ?? false,
       profiles: raw.profiles,
       subscription: sub ? {
         id: sub.id,
@@ -904,9 +901,7 @@ export default function ContractorDetail() {
                 <div className="flex items-center gap-1.5">
                   {[
                     { key: 'wa', label: 'WhatsApp', active: contractor.wa_notify && !!contractor.profiles?.whatsapp_phone, color: '#25D366', icon: MessageCircle },
-                    { key: 'tg', label: 'Telegram', active: !!contractor.profiles?.telegram_chat_id, color: '#0088CC', icon: Send },
                     { key: 'push', label: 'Push', active: pushSubs.length > 0, color: C.accent, icon: Bell },
-                    { key: 'sms', label: 'SMS', active: !contractor.sms_opt_out, color: C.primary, icon: Smartphone },
                   ].map((ch) => (
                     <span
                       key={ch.key}
@@ -1527,14 +1522,12 @@ export default function ContractorDetail() {
                   {(() => {
                     const count = [
                       contractor.wa_notify && contractor.profiles?.whatsapp_phone,
-                      contractor.profiles?.telegram_chat_id,
                       pushSubs.length > 0,
-                      !contractor.sms_opt_out,
                     ].filter(Boolean).length
-                    const clr = count >= 3 ? C.success : count >= 1 ? C.warning : C.danger
+                    const clr = count >= 2 ? C.success : count >= 1 ? C.warning : C.danger
                     return (
                       <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full" style={{ background: `${clr}12`, color: clr }}>
-                        {count}/4
+                        {count}/2
                       </span>
                     )
                   })()}
@@ -1544,9 +1537,7 @@ export default function ContractorDetail() {
               <div className="grid grid-cols-2 gap-2">
                 {[
                   { label: 'WhatsApp', active: contractor.wa_notify && !!contractor.profiles?.whatsapp_phone, color: '#25D366', icon: MessageCircle },
-                  { label: 'Telegram', active: !!contractor.profiles?.telegram_chat_id, color: '#0088CC', icon: Send },
                   { label: 'Push', active: pushSubs.length > 0, color: C.accent, icon: Smartphone },
-                  { label: 'SMS', active: !contractor.sms_opt_out, color: C.primary, icon: Wifi },
                 ].map((ch) => (
                   <div
                     key={ch.label}

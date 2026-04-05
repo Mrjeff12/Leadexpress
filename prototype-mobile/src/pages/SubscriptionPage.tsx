@@ -50,7 +50,7 @@ export default function SubscriptionPage() {
               <span className="text-[12px] text-muted">/month</span>
             </div>
             <div className="space-y-2 mb-4">
-              {['Unlimited professions', 'Unlimited zip codes', 'Priority leads', 'All channels (WhatsApp, Telegram, Push)', 'Rebeca AI assistant', 'Portfolio & reviews', 'Verified badge'].map((f, j) => (
+              {['Unlimited professions', 'Unlimited zip codes', 'Priority leads', 'All channels (WhatsApp, Push)', 'Rebeca AI assistant', 'Portfolio & reviews', 'Verified badge'].map((f, j) => (
                 <div key={j} className="flex items-center gap-2">
                   <Check size={13} className="text-[var(--brand)]" />
                   <span className="text-[12px]">{f}</span>

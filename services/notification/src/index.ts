@@ -1,8 +1,6 @@
 import pino from 'pino';
 import { config } from './config.js';
-import { createNotificationWorker } from './worker.js';
 import { createPushWorker } from './push-worker.js';
-import { createSmsWorker } from './sms-worker.js';
 
 const log = pino({ name: 'notification-service' });
 
@@ -10,21 +8,17 @@ log.info(
   {
     redis: `${config.redis.host}:${config.redis.port}`,
     concurrency: config.worker.concurrency,
-    queues: [config.queues.notifications, config.queues.pushNotifications],
+    queues: [config.queues.pushNotifications],
     vapidConfigured: !!(config.vapid.publicKey && config.vapid.privateKey),
   },
   'Starting notification service',
 );
 
-const { worker: telegramWorker, cleanup: cleanupTelegram } = createNotificationWorker(log);
 const { worker: pushWorker, cleanup: cleanupPush } = createPushWorker(log);
-const { worker: smsWorker, cleanup: cleanupSms } = createSmsWorker(log);
 
 async function shutdown(signal: string) {
   log.info({ signal }, 'Shutting down');
-  await cleanupTelegram();
   await cleanupPush();
-  await cleanupSms();
   process.exit(0);
 }
 
@@ -41,18 +35,8 @@ process.on('uncaughtException', (err) => {
   process.exit(1);
 });
 
-telegramWorker.on('ready', () => {
-  log.info('Telegram notification worker ready');
-});
-
 if (pushWorker) {
   pushWorker.on('ready', () => {
     log.info('Push notification worker ready');
-  });
-}
-
-if (smsWorker) {
-  smsWorker.on('ready', () => {
-    log.info('SMS notification worker ready');
   });
 }

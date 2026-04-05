@@ -66,17 +66,6 @@ function ChannelPicker() {
           <ChevronRight size={14} className="text-faded" />
         </button>
 
-        <button className="w-full flex items-center gap-3 p-3 rounded-xl bg-[#0088cc]/10 press border border-[#0088cc]/20">
-          <div className="w-9 h-9 rounded-lg bg-[#0088cc] flex items-center justify-center">
-            <Send size={14} className="text-white" />
-          </div>
-          <div className="flex-1 text-left">
-            <p className="text-[13px] font-semibold">Telegram</p>
-            <p className="text-[10px] text-muted">Send via Telegram</p>
-          </div>
-          <ChevronRight size={14} className="text-faded" />
-        </button>
-
         <button className="w-full flex items-center gap-3 p-3 rounded-xl bg-[var(--brand)]/5 press border border-[var(--brand)]/15">
           <div className="w-9 h-9 rounded-lg bg-[var(--brand)] flex items-center justify-center">
             <Zap size={14} className="text-white" />

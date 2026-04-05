@@ -271,7 +271,6 @@ export default function ProfilePage() {
               <div className="space-y-0 mt-3">
                 {[
                   { icon: MessageCircle, label: 'WhatsApp', status: 'Connected', bg: 'bg-[#25D366]', ok: true },
-                  { icon: Send, label: 'Telegram', status: 'Not connected', bg: 'bg-[#0088cc]', ok: false },
                   { icon: Bell, label: 'Push Notifications', status: 'Enabled', bg: 'bg-[var(--dark)]', ok: true },
                 ].map((ch, i, arr) => {
                   const I = ch.icon

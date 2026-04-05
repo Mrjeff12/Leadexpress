@@ -3,7 +3,7 @@ import { useI18n } from '../../lib/i18n'
 import { supabase } from '../../lib/supabase'
 import { MessageSquareText, Plus, X, Eye, Loader2, AlertCircle, Trash2 } from 'lucide-react'
 
-type Channel = 'whatsapp' | 'telegram'
+type Channel = 'whatsapp'
 
 interface Template {
   id: string
@@ -170,7 +170,7 @@ export default function MessageTemplates() {
             {he ? 'תבניות הודעות' : 'Message Templates'}
           </h1>
           <p className="mt-1 text-sm" style={{ color: '#6b7c6e' }}>
-            {he ? 'ניהול תבניות הודעות WhatsApp וטלגרם' : 'Manage WhatsApp & Telegram message templates'}
+            {he ? 'ניהול תבניות הודעות WhatsApp' : 'Manage WhatsApp message templates'}
           </p>
         </div>
         <button

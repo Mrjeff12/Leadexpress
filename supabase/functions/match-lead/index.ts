@@ -37,21 +37,6 @@ function formatWhatsAppMessage(lead: Record<string, unknown>): string {
   return msg;
 }
 
-function formatTelegramMessage(lead: Record<string, unknown>): string {
-  const emoji = PROFESSION_EMOJI[lead.profession as string] ?? "📋";
-  const prof = (lead.profession as string).replace(/_/g, " ").toUpperCase();
-  const location = [lead.city, lead.state, lead.zip_code].filter(Boolean).join(", ");
-  const urgency = URGENCY_LABEL[lead.urgency as string] ?? "❄️ Flexible";
-  const summary = lead.parsed_summary as string;
-
-  let msg = `${emoji} <b>New ${prof} Lead</b>\n\n`;
-  if (summary) msg += `<i>${summary}</i>\n\n`;
-  if (location) msg += `📍 <b>Location:</b> ${location}\n`;
-  if (lead.budget_range) msg += `💰 <b>Budget:</b> ${lead.budget_range}\n`;
-  msg += `⏰ <b>Urgency:</b> ${urgency}\n`;
-  return msg;
-}
-
 // ── Main handler ─────────────────────────────────────────────────────────────
 Deno.serve(async (req: Request) => {
   if (req.method === "GET") {
@@ -100,8 +85,8 @@ Deno.serve(async (req: Request) => {
         .from("contractors")
         .select(`
           user_id, professions, zip_codes, wa_notify, available_today,
-          wa_window_until, sms_opt_out,
-          profiles!inner(telegram_chat_id, full_name, whatsapp_phone,
+          wa_window_until,
+          profiles!inner(full_name, whatsapp_phone,
             subscriptions!inner(status, plan_id))
         `)
         .eq("is_active", true)
@@ -141,7 +126,6 @@ Deno.serve(async (req: Request) => {
 
       // Format messages
       const waMessage = formatWhatsAppMessage(lead);
-      const tgMessage = formatTelegramMessage(lead);
 
       // Cap at 50 contractors
       const capped = contractors.slice(0, 50);
@@ -150,7 +134,6 @@ Deno.serve(async (req: Request) => {
 
       for (const c of capped) {
         const profile = c.profiles as unknown as {
-          telegram_chat_id: string | null;
           full_name: string;
           whatsapp_phone: string | null;
         };
@@ -171,22 +154,7 @@ Deno.serve(async (req: Request) => {
           primaryChannel = "whatsapp_template";
         }
 
-        // Tier 2b: Telegram
-        if (!primaryChannel && profile.telegram_chat_id) {
-          await supabase.rpc("enqueue_job", {
-            p_queue: "notify_telegram",
-            p_payload: {
-              leadId, contractorId: c.user_id, telegramChatId: profile.telegram_chat_id,
-              contractorName: profile.full_name, message: tgMessage,
-              profession: lead.profession, urgency: lead.urgency,
-            },
-            p_dedup_key: `tg-${leadId}-${c.user_id}`,
-            p_max_attempts: 3,
-          });
-          primaryChannel = "telegram";
-        }
-
-        // Tier 3: Push (always, if available)
+        // Tier 2: Push (if available)
         if (hasPush.has(c.user_id)) {
           const profLabel = lead.profession.replace(/_/g, " ").toUpperCase();
           await supabase.rpc("enqueue_job", {

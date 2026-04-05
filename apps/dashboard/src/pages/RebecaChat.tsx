@@ -126,7 +126,6 @@ function ChannelPicker() {
       <div className="space-y-2">
         {[
           { color: '#25D366', Icon: MessageCircle, label: 'WhatsApp', sub: 'Send via WhatsApp' },
-          { color: '#0088cc', Icon: Send, label: 'Telegram', sub: 'Send via Telegram' },
           { color: '#fe5b25', Icon: Zap, label: 'In-App Chat', sub: 'Send via Masterleadflow' },
         ].map(({ color, Icon, label, sub }) => (
           <button key={label} className="w-full flex items-center gap-3 p-3 rounded-[14px] bg-white border border-black/[0.06] active:scale-[0.98] transition-transform">

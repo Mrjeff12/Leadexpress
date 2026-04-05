@@ -38,10 +38,6 @@ export const config = {
     maxRetriesPerRequest: null as null,
   },
 
-  telegram: {
-    botToken: required('TELEGRAM_BOT_TOKEN'),
-  },
-
   vapid: {
     publicKey: optional('VAPID_PUBLIC_KEY'),
     privateKey: optional('VAPID_PRIVATE_KEY'),
@@ -60,7 +56,6 @@ export const config = {
   twilio: {
     accountSid: optional('TWILIO_ACCOUNT_SID') ?? '',
     authToken: optional('TWILIO_AUTH_TOKEN') ?? '',
-    smsFrom: optional('TWILIO_SMS_FROM') ?? '',
   },
 
   supabase: {
@@ -69,8 +64,6 @@ export const config = {
   },
 
   queues: {
-    notifications: 'notifications',
     pushNotifications: 'push-notifications',
-    smsNotifications: 'sms-notifications',
   },
 } as const;

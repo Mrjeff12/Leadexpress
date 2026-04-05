@@ -21,9 +21,7 @@ interface MatchedContractor {
   wa_notify: boolean;
   available_today: boolean;
   wa_window_until: string | null;
-  sms_opt_out: boolean;
   profiles: {
-    telegram_chat_id: number | null;
     full_name: string;
     whatsapp_phone: string | null;
     subscriptions: Array<{
@@ -82,12 +80,10 @@ const supabase: SupabaseClient = createClient(
  */
 export async function matchLead(
   lead: Lead,
-  notificationQueue: Queue,
   log: Logger,
   waNotificationQueue?: Queue,
   pushNotificationQueue?: Queue,
   waTemplateQueue?: Queue,
-  smsQueue?: Queue,
 ): Promise<number> {
   const start = performance.now();
 
@@ -100,9 +96,7 @@ export async function matchLead(
       wa_notify,
       available_today,
       wa_window_until,
-      sms_opt_out,
       profiles!inner(
-        telegram_chat_id,
         full_name,
         whatsapp_phone,
         subscriptions!inner(status, plan_id)
@@ -139,9 +133,9 @@ export async function matchLead(
     : { data: [] };
   const contractorsWithPush = new Set((pushSubs ?? []).map((s: { user_id: string }) => s.user_id));
 
-  // Filter: must have at least one notification channel (WA, Telegram, OR Push)
+  // Filter: must have at least one notification channel (WA or Push)
   const contractors = allContractors.filter(
-    (c) => c.profiles.whatsapp_phone || c.profiles.telegram_chat_id || contractorsWithPush.has(c.user_id),
+    (c) => c.profiles.whatsapp_phone || contractorsWithPush.has(c.user_id),
   );
 
   if (contractors.length === 0) {
@@ -174,18 +168,15 @@ export async function matchLead(
   const isThrottled = (cId: string, channel: string) => throttled.get(cId)?.has(channel) ?? false;
 
   const whatsappMessage = formatWhatsAppMessage(lead);
-  const telegramMessage = formatTelegramMessage(lead);
 
   type BulkJob = { name: string; data: Record<string, unknown>; opts: Record<string, unknown> };
   const waJobs: BulkJob[] = [];
   const waTemplateJobs: BulkJob[] = [];
-  const telegramJobs: BulkJob[] = [];
   const pushJobs: BulkJob[] = [];
-  const smsJobs: BulkJob[] = [];
 
   const notificationRows: Array<{ lead_id: string; contractor_id: string; channel: string; delivery_status: string; cascade_position: number }> = [];
 
-  let tier1 = 0, tier2 = 0, tier3 = 0, tier4 = 0, unreachable = 0;
+  let tier1 = 0, tier2 = 0, tier3 = 0, unreachable = 0;
 
   for (const contractor of capped) {
     let primaryChannel: string | null = null;
@@ -245,29 +236,6 @@ export async function matchLead(
       tier2++;
     }
 
-    // ── Tier 2b: Telegram (if configured — fallback before push) ──
-    if (!primaryChannel && contractor.profiles.telegram_chat_id) {
-      telegramJobs.push({
-        name: 'send-notification',
-        data: {
-          leadId: lead.id,
-          contractorId: contractor.user_id,
-          telegramChatId: contractor.profiles.telegram_chat_id,
-          contractorName: contractor.profiles.full_name,
-          message: telegramMessage,
-          profession: lead.profession,
-          urgency: lead.urgency,
-        },
-        opts: {
-          jobId: `notif-${lead.id}-${contractor.user_id}`,
-          attempts: 3,
-          backoff: { type: 'exponential' as const, delay: 2000 },
-        },
-      });
-      primaryChannel = 'telegram';
-      cascadePos = 2;
-    }
-
     // ── Tier 3: Web Push as primary (if no other channel worked) ──
     if (!primaryChannel && contractorsWithPush.has(contractor.user_id)) {
       const professionLabel = lead.profession.replace(/_/g, ' ').toUpperCase();
@@ -291,14 +259,6 @@ export async function matchLead(
       cascadePos = 3;
       tier3++;
     }
-
-    // ── Tier 4: SMS — DISABLED until business verification is complete ──
-    // if (
-    //   !primaryChannel &&
-    //   contractor.profiles.whatsapp_phone?.startsWith('+1') &&
-    //   !contractor.sms_opt_out &&
-    //   !isThrottled(contractor.user_id, 'sms')
-    // ) { ... }
 
     // ── Push ALWAYS (sent for every contractor that has push, regardless of primary) ──
     if (contractorsWithPush.has(contractor.user_id)) {
@@ -352,12 +312,10 @@ export async function matchLead(
   // ── Enqueue all jobs in bulk ──
   if (waJobs.length > 0 && waNotificationQueue) await waNotificationQueue.addBulk(waJobs);
   if (waTemplateJobs.length > 0 && waTemplateQueue) await waTemplateQueue.addBulk(waTemplateJobs);
-  if (telegramJobs.length > 0) await notificationQueue.addBulk(telegramJobs);
   if (pushJobs.length > 0 && pushNotificationQueue) await pushNotificationQueue.addBulk(pushJobs);
-  if (smsJobs.length > 0 && smsQueue) await smsQueue.addBulk(smsJobs);
 
   const notifiedContractorIds = new Set<string>();
-  for (const j of [...waJobs, ...waTemplateJobs, ...telegramJobs, ...pushJobs, ...smsJobs]) {
+  for (const j of [...waJobs, ...waTemplateJobs, ...pushJobs]) {
     notifiedContractorIds.add(j.data.contractorId as string);
   }
   const totalSent = notifiedContractorIds.size;
@@ -384,7 +342,6 @@ export async function matchLead(
       tier1_wa: tier1,
       tier2_template: tier2,
       tier3_push: tier3,
-      tier4_sms: tier4,
       unreachable,
       sentTotal: totalSent,
       durationMs,
@@ -447,38 +404,3 @@ function formatWhatsAppMessage(lead: Lead): string {
     .trim();
 }
 
-function formatTelegramMessage(lead: Lead): string {
-  const emoji = PROFESSION_EMOJI[lead.profession] ?? '📋';
-  const professionLabel = lead.profession.toUpperCase();
-  const location = [lead.city, lead.zip_code].filter(Boolean).join(', ');
-
-  const budgetLine = lead.budget_range
-    ? `\n💰 Budget: ${lead.budget_range}`
-    : '';
-
-  const urgencyMap: Record<string, string> = {
-    hot: '🔥 ASAP — Today/Tomorrow',
-    warm: '⚡ This Week',
-    cold: '❄️ Flexible',
-  };
-  const urgencyLine = urgencyMap[lead.urgency] ?? '';
-
-  const sourceLine = lead.source_name
-    ? `\n📍 Source: ${lead.source_name}`
-    : '';
-
-  return [
-    `🔥 <b>NEW LEAD — ${professionLabel}</b>`,
-    '',
-    `${emoji} <i>"${lead.summary}"</i>`,
-    '',
-    `📍 <b>Location:</b> ${location}`,
-    budgetLine,
-    `⏰ <b>Urgency:</b> ${urgencyLine}`,
-    sourceLine,
-  ]
-    .filter((line) => line !== undefined)
-    .join('\n')
-    .replace(/\n{3,}/g, '\n\n')
-    .trim();
-}

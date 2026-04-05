@@ -53,25 +53,11 @@ services:
     environment:
       - REDIS_HOST=redis
       - REDIS_PORT=6379
-      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
       - SUPABASE_URL=${SUPABASE_URL}
       - SUPABASE_SERVICE_KEY=${SUPABASE_SERVICE_KEY}
     depends_on: [redis]
     restart: always
 
-  telegram-bot:
-    build: ./services/telegram-bot
-    environment:
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
-      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
-      - TELEGRAM_WEBHOOK_URL=${TELEGRAM_WEBHOOK_URL}
-      - SUPABASE_URL=${SUPABASE_URL}
-      - SUPABASE_SERVICE_KEY=${SUPABASE_SERVICE_KEY}
-    ports:
-      - "3001:3001"
-    depends_on: [redis]
-    restart: always
 
   whatsapp-notify:
     build: ./services/whatsapp-notify

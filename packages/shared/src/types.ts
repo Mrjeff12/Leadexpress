@@ -11,7 +11,6 @@ export interface Profile {
   role: UserRole
   full_name: string
   phone: string | null
-  telegram_chat_id: number | null
   whatsapp_phone: string | null
   preferred_locale: 'en' | 'he'
   timezone: string
@@ -151,31 +150,12 @@ export interface ParsedLeadJob {
   leadId: string
 }
 
-export interface NotificationJob {
-  leadId: string
-  contractorId: string
-  telegramChatId: number
-  message: string
-}
-
 export interface WaNotificationJob {
   leadId: string
   contractorId: string
   whatsappPhone: string
   contractorName: string
   message: string
-}
-
-// --- Telegram Bot ---
-
-export interface TelegramLeadMessage {
-  profession: string
-  professionEmoji: string
-  location: string
-  budget: string
-  urgency: string
-  summary: string
-  source: string
 }
 
 // --- Prospects CRM ---

@@ -32,13 +32,7 @@
       "runtimeArgs": ["--filter", "@masterleadflow/notification", "dev"],
       "port": 0
     },
-    {
-      "name": "Telegram Bot",
-      "runtimeExecutable": "pnpm",
-      "runtimeArgs": ["--filter", "@masterleadflow/telegram-bot", "dev"],
-      "port": 3001
-    },
-    {
+{
       "name": "All Services (Docker)",
       "runtimeExecutable": "docker",
       "runtimeArgs": ["compose", "up"],

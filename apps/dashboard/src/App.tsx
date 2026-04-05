@@ -30,7 +30,6 @@ const LeadsFeed = lazy(() => import('./pages/LeadsFeed'))
 const Subcontractors = lazy(() => import('./pages/Subcontractors'))
 const Profile = lazy(() => import('./pages/Profile'))
 const Subscription = lazy(() => import('./pages/Subscription'))
-const TelegramConnect = lazy(() => import('./pages/TelegramConnect'))
 const JobPortal = lazy(() => import('./pages/JobPortal'))
 const ClaimLead = lazy(() => import('./pages/ClaimLead'))
 const ClaimFollowup = lazy(() => import('./pages/ClaimFollowup'))
@@ -213,7 +212,7 @@ function AppShell() {
               <Route path="/profile/edit" element={<ProfileEdit />} />
               <Route path="/profile/public" element={<PublicProfileView />} />
               <Route path="/subscription" element={<Subscription />} />
-              <Route path="/telegram" element={<RequireSubscription><TelegramConnect /></RequireSubscription>} />
+
               <Route path="/onboarding" element={<RequireSubscription><OnboardingWizard /></RequireSubscription>} />
               <Route path="/verify-identity" element={<IdentityVerification />} />
               <Route path="/messages" element={<MessagesInbox />} />
