@@ -196,20 +196,11 @@ async function handleSendBroadcast(broadcastId: string, cors: CorsHeaders): Prom
 
     const normalized = normalizePhone(phone);
 
-    // Skip contractors already pending for THIS specific broadcast
-    const { data: existingState } = await supabase
-      .from('wa_onboard_state')
-      .select('step, data')
-      .eq('phone', normalized)
-      .maybeSingle();
-
-    if (
-      existingState?.step === 'broadcast_pending' &&
-      existingState?.data?.broadcastId === broadcastId
-    ) {
-      // Already notified for this broadcast — skip to avoid duplicate messages
-      continue;
-    }
+    // Idempotency: atomic insert into broadcast_sent_log — skip on conflict
+    const { error: dedupErr } = await supabase
+      .from('broadcast_sent_log')
+      .insert({ broadcast_id: broadcastId, contractor_id: contractor.user_id });
+    if (dedupErr?.code === '23505') continue;
 
     await supabase.from('wa_onboard_state').upsert(
       { phone: normalized, step: 'broadcast_pending', data: { broadcastId } },

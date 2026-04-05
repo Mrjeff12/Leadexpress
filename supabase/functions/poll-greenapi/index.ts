@@ -268,11 +268,12 @@ async function routeToProspectChat(body: GreenNotification["body"]) {
 
   const messageId = body.idMessage ?? `green-${Date.now()}`;
 
-  await supabase.from("prospect_messages").insert({
+  const { error: msgErr } = await supabase.from("prospect_messages").upsert({
     prospect_id: prospect.id, direction: "incoming", message_type: "text",
     content: text, wa_message_id: messageId,
     sent_at: new Date(body.timestamp * 1000).toISOString(),
-  });
+  }, { onConflict: "wa_message_id", ignoreDuplicates: true });
+  if (msgErr?.code === "23505") return; // already processed
 
   await supabase.from("prospect_events").insert({
     prospect_id: prospect.id, event_type: "message_received",

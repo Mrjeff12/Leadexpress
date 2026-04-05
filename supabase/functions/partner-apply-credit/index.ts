@@ -74,7 +74,7 @@ Deno.serve(async (req: Request) => {
         duration: "once",
         max_redemptions: 1,
         name: `Partner credit - ${amount_cents / 100} USD`,
-      });
+      }, { idempotencyKey: `apply-credit-${commissionId}` });
 
       await stripe.customers.update(sub.stripe_customer_id, {
         coupon: coupon.id,

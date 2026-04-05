@@ -102,6 +102,16 @@ Deno.serve(async (req: Request) => {
         continue;
       }
 
+      // Idempotency: insert into lead_notifications first — skip if already sent
+      const { error: dedupErr } = await supabase
+        .from("lead_notifications")
+        .insert({ lead_id: p.leadId, contractor_id: p.contractorId, channel: "whatsapp" });
+      if (dedupErr?.code === "23505") {
+        await supabase.rpc("complete_job", { p_job_id: job.id });
+        results.push(`dedup:${p.contractorId}`);
+        continue;
+      }
+
       const sent = await sendWhatsApp(p.whatsappPhone, p.message);
       if (sent) {
         await supabase.rpc("complete_job", { p_job_id: job.id });
@@ -166,6 +176,16 @@ Deno.serve(async (req: Request) => {
       });
 
       // CTA template: {{1}}=profession, {{2}}=location, {{3}}=summary, {{4}}=source, {{5}}=claim_token
+      // Idempotency: insert into lead_notifications first — skip if already sent
+      const { error: tplDedupErr } = await supabase
+        .from("lead_notifications")
+        .insert({ lead_id: p.leadId, contractor_id: p.contractorId, channel: "whatsapp" });
+      if (tplDedupErr?.code === "23505") {
+        await supabase.rpc("complete_job", { p_job_id: job.id });
+        results.push(`dedup_tpl:${p.contractorId}`);
+        continue;
+      }
+
       const res = await fetch(
         `https://api.twilio.com/2010-04-01/Accounts/${TWILIO_SID}/Messages.json`,
         {

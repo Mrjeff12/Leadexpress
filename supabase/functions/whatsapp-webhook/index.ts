@@ -280,6 +280,19 @@ Deno.serve(async (req: Request) => {
     const buttonPayload = params['ButtonPayload'] || params['ListId'] || '';
     const numMedia = parseInt(params['NumMedia'] ?? '0', 10);
 
+    // ── Idempotency: skip already-processed inbound messages ──
+    // Status callbacks (SmsStatus present) are excluded — they must always be processed
+    const smsStatusRaw = params['SmsStatus'] ?? params['MessageStatus'] ?? '';
+    if (messageSid && !smsStatusRaw) {
+      const { error: dedupErr } = await supabase
+        .from('twilio_message_dedup')
+        .insert({ message_sid: messageSid });
+      if (dedupErr?.code === '23505') {
+        console.log(`[webhook] Dedup: ${messageSid} already processed`);
+        return twiml();
+      }
+    }
+
     // ── Twilio status callback (delivery receipts) ──
     const smsStatus = params['SmsStatus'] ?? params['MessageStatus'] ?? '';
     if (smsStatus && !body && !buttonPayload) {
