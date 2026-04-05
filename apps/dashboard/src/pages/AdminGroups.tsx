@@ -444,6 +444,19 @@ export default function AdminGroups() {
                               ? 'מושבת'
                               : 'Paused'}
                         </span>
+                        {row.scannerStatus && (
+                          <span
+                            className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-semibold ${
+                              row.scannerStatus === 'connected'
+                                ? 'bg-emerald-50 text-emerald-600'
+                                : 'bg-red-50 text-red-500'
+                            }`}
+                            title={`Scanner: ${row.scannerName || 'Unknown'}`}
+                          >
+                            <span className={`w-1.5 h-1.5 rounded-full ${row.scannerStatus === 'connected' ? 'bg-emerald-500' : 'bg-red-400'}`} />
+                            {row.scannerName || 'Scanner'}
+                          </span>
+                        )}
                         {row.leadsCreated > 0 && (
                           <span
                             className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-xs font-semibold"

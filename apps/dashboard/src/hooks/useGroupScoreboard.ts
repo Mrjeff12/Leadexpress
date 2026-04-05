@@ -27,13 +27,15 @@ export interface GroupRow {
   leadYield: number
   lastLeadAt: string | null
   score: GroupScoreResult
+  scannerName: string | null
+  scannerStatus: string | null
 }
 
 async function fetchScoreboardData(): Promise<GroupRow[]> {
-  // 1. Fetch all groups
+  // 1. Fetch all groups with scanner connection status
   const { data: groups, error: gErr } = await supabase
     .from('groups')
-    .select('*')
+    .select('*, wa_accounts(label, status)')
     .order('created_at', { ascending: false })
 
   if (gErr || !groups) throw gErr || new Error('No groups')
@@ -118,6 +120,8 @@ async function fetchScoreboardData(): Promise<GroupRow[]> {
       leadYield: stats?.leadYield ?? 0,
       lastLeadAt: stats?.lastLeadAt ?? null,
       score,
+      scannerName: g.wa_accounts?.label ?? null,
+      scannerStatus: g.wa_accounts?.status ?? null,
     }
   })
 }

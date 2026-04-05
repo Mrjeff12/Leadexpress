@@ -182,17 +182,11 @@ Deno.serve(async (req: Request) => {
         }
       }
 
-      // Update lead
-      await supabase.from("leads").update({
-        status: "sent",
-        sent_to_count: notifyCount,
-        matched_contractors: matchedIds,
-      }).eq("id", leadId);
-
-      // Log pipeline
-      await supabase.from("pipeline_events").insert({
-        lead_id: leadId, stage: "matched",
-        detail: { matched: matchedIds.length, sent: notifyCount },
+      // Atomic: update lead status + log pipeline event
+      await supabase.rpc("finalize_lead_match", {
+        p_lead_id: leadId,
+        p_matched_contractor_ids: matchedIds,
+        p_sent_count: notifyCount,
       });
 
       await supabase.rpc("complete_job", { p_job_id: job.id });

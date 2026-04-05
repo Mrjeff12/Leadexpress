@@ -30,6 +30,25 @@ Deno.serve(async (req: Request) => {
 
   console.log(`[webhook] ${event.type} — ${event.id}`);
 
+  // ── Idempotency gate: skip already-processed events ──────────────────
+  const { data: alreadyProcessed } = await supabase
+    .from("stripe_events_processed")
+    .select("event_id")
+    .eq("event_id", event.id)
+    .maybeSingle();
+
+  if (alreadyProcessed) {
+    console.log(`[webhook] Event ${event.id} already processed, skipping`);
+    return new Response(JSON.stringify({ received: true, dedup: true }), {
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+
+  await supabase.from("stripe_events_processed").insert({
+    event_id: event.id,
+    event_type: event.type,
+  });
+
   try {
     switch (event.type) {
       case "checkout.session.completed":
@@ -202,58 +221,23 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
 
   const subscription = await stripe.subscriptions.retrieve(session.subscription as string);
 
-  await supabase.from("subscriptions").upsert(
-    {
-      user_id: userId,
-      plan_id: plan.id,
-      stripe_subscription_id: subscription.id,
-      stripe_customer_id: session.customer as string,
-      status: subscription.status === "trialing" ? "trialing" : "active",
-      current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
-    },
-    { onConflict: "user_id" },
-  );
+  // Atomic: upsert subscription + create partner referral
+  const refPartnerSlug = session.metadata?.ref_partner_slug || null;
 
-  console.log(`[webhook] Subscription activated: user=${userId}, plan=${planSlug}`);
+  const { error: rpcErr } = await supabase.rpc("handle_checkout_with_referral", {
+    p_user_id: userId,
+    p_plan_id: plan.id,
+    p_stripe_sub_id: subscription.id,
+    p_stripe_customer_id: session.customer as string,
+    p_status: subscription.status === "trialing" ? "trialing" : "active",
+    p_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
+    p_ref_partner_slug: refPartnerSlug,
+  });
 
-  // ── Create partner referral if checkout had a ref code ───────────────
-  const refPartnerSlug = session.metadata?.ref_partner_slug;
-  if (refPartnerSlug) {
-    try {
-      const { data: partner } = await supabase
-        .from("community_partners")
-        .select("id, user_id, status")
-        .eq("slug", refPartnerSlug)
-        .eq("status", "active")
-        .maybeSingle();
-
-      if (!partner) {
-        console.warn(`[webhook] Referral partner not found or inactive: slug=${refPartnerSlug}`);
-      } else if (partner.user_id === userId) {
-        console.warn(`[webhook] Self-referral blocked: user=${userId}, partner=${partner.id}`);
-      } else {
-        const { error: refErr } = await supabase
-          .from("partner_referrals")
-          .insert({
-            partner_id: partner.id,
-            referred_user_id: userId,
-            referral_source: "link",
-          })
-          .select("id")
-          .maybeSingle();
-
-        // 23505 = unique_violation (user already referred)
-        if (refErr && refErr.code !== "23505") {
-          console.error("[webhook] Failed to create partner referral:", refErr.message);
-        } else if (refErr?.code === "23505") {
-          console.log(`[webhook] Referral already exists for user=${userId}, skipping`);
-        } else {
-          console.log(`[webhook] Partner referral created: partner=${partner.id}, user=${userId}`);
-        }
-      }
-    } catch (err) {
-      console.error("[webhook] Partner referral creation error (non-blocking):", err);
-    }
+  if (rpcErr) {
+    console.error("[webhook] handle_checkout_with_referral error:", rpcErr.message);
+  } else {
+    console.log(`[webhook] Checkout completed (atomic): user=${userId}, plan=${planSlug}, ref=${refPartnerSlug || "none"}`);
   }
 }
 
@@ -297,15 +281,17 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
   const userId = subscription.metadata?.supabase_user_id;
   if (!userId) return;
 
-  await supabase.from("subscriptions").update({ status: "canceled" }).eq("user_id", userId);
+  // Atomic: cancel subscription + churn prospect + set substatus
+  const { error } = await supabase.rpc("handle_subscription_deleted_atomic", {
+    p_user_id: userId,
+    p_reason: "cancelled",
+  });
 
-  // Move prospect to churned stage with sub_status
-  const { data: prospect } = await supabase.from("prospects").select("id").eq("user_id", userId).maybeSingle();
-  if (prospect) {
-    await supabase.from("prospects").update({ stage: "churned" }).eq("id", prospect.id);
-    await supabase.rpc("set_churned_substatus", { p_prospect_id: prospect.id, p_reason: "cancelled" });
+  if (error) {
+    console.error("[webhook] handle_subscription_deleted_atomic error:", error.message);
+  } else {
+    console.log(`[webhook] Subscription canceled (atomic): user=${userId}`);
   }
-  console.log(`[webhook] Subscription canceled: user=${userId}`);
 }
 
 async function handleInvoicePaid(invoice: Stripe.Invoice) {
@@ -333,15 +319,16 @@ async function handleInvoiceFailed(invoice: Stripe.Invoice) {
   const userId = sub.metadata?.supabase_user_id;
   if (!userId) return;
 
-  await supabase.from("subscriptions").update({ status: "past_due" }).eq("user_id", userId);
+  // Atomic: set past_due + update prospect substatus
+  const { error } = await supabase.rpc("handle_invoice_failed_atomic", {
+    p_user_id: userId,
+  });
 
-  // Update prospect sub_status to payment_failing
-  const { data: prospect } = await supabase.from("prospects").select("id").eq("user_id", userId).maybeSingle();
-  if (prospect) {
-    await supabase.rpc("set_churned_substatus", { p_prospect_id: prospect.id, p_reason: "payment_failed" });
-    await supabase.from("prospects").update({ sub_status: "payment_failing" }).eq("id", prospect.id);
+  if (error) {
+    console.error("[webhook] handle_invoice_failed_atomic error:", error.message);
+  } else {
+    console.log(`[webhook] Invoice failed (atomic): user=${userId}`);
   }
-  console.log(`[webhook] Invoice failed: user=${userId}`);
 }
 
 async function handleChargeRefunded(charge: Stripe.Charge) {
@@ -351,58 +338,18 @@ async function handleChargeRefunded(charge: Stripe.Charge) {
     return;
   }
 
-  try {
-    // Find the earning commission tied to this invoice
-    const { data: earning, error: earningErr } = await supabase
-      .from("partner_commissions")
-      .select("id, partner_id, referral_id, amount_cents, status")
-      .eq("stripe_invoice_id", invoiceId)
-      .eq("type", "earning")
-      .maybeSingle();
+  // Atomic: lookup earning + insert clawback + reverse original
+  const { data: clawbackId, error } = await supabase.rpc("handle_charge_refunded_atomic", {
+    p_invoice_id: invoiceId,
+    p_charge_id: charge.id,
+  });
 
-    if (earningErr) {
-      console.error("[webhook] Error looking up earning for clawback:", earningErr.message);
-      return;
-    }
-
-    if (!earning) {
-      console.log(`[webhook] charge.refunded — no partner commission for invoice ${invoiceId}`);
-      return;
-    }
-
-    // Insert refund_clawback (negative amount)
-    const { error: clawbackErr } = await supabase.from("partner_commissions").insert({
-      partner_id: earning.partner_id,
-      referral_id: earning.referral_id,
-      type: "refund_clawback",
-      amount_cents: -Math.abs(earning.amount_cents),
-      status: "approved",
-      stripe_invoice_id: invoiceId,
-      note: `Clawback for refunded charge ${charge.id}`,
-    });
-
-    if (clawbackErr) {
-      console.error("[webhook] Failed to insert refund clawback:", clawbackErr.message);
-      return;
-    }
-
-    console.log(`[webhook] Refund clawback created: partner=${earning.partner_id}, amount=-${earning.amount_cents}`);
-
-    // If original commission is still pending, reverse it
-    if (earning.status === "pending") {
-      const { error: reverseErr } = await supabase
-        .from("partner_commissions")
-        .update({ status: "reversed" })
-        .eq("id", earning.id);
-
-      if (reverseErr) {
-        console.error("[webhook] Failed to reverse original commission:", reverseErr.message);
-      } else {
-        console.log(`[webhook] Original commission ${earning.id} reversed`);
-      }
-    }
-  } catch (err) {
-    console.error("[webhook] Commission clawback error (non-blocking):", err);
+  if (error) {
+    console.error("[webhook] handle_charge_refunded_atomic error:", error.message);
+  } else if (clawbackId) {
+    console.log(`[webhook] Refund clawback created (atomic): clawback=${clawbackId}, charge=${charge.id}`);
+  } else {
+    console.log(`[webhook] charge.refunded — no partner commission for invoice ${invoiceId}`);
   }
 }
 
@@ -712,29 +659,6 @@ async function handleIdentityVerification(session: any, eventType: string) {
     } catch (err) {
       console.error("[webhook] Failed to retrieve verification details:", err);
     }
-
-    // Mark user as identity-verified in profiles
-    const { error: profileErr } = await supabase
-      .from("profiles")
-      .update({ identity_verified: true })
-      .eq("id", userId);
-
-    if (profileErr) {
-      console.error("[webhook] Failed to update profile identity_verified:", profileErr.message);
-    }
-
-    // Upgrade contractor tier to 'verified' if currently 'new'
-    const { error: tierErr } = await supabase
-      .from("contractor_profiles")
-      .update({ tier: "verified" })
-      .eq("user_id", userId)
-      .eq("tier", "new");
-
-    if (tierErr) {
-      console.error("[webhook] Failed to upgrade contractor tier:", tierErr.message);
-    } else {
-      console.log(`[webhook] Contractor tier upgraded to verified: user=${userId}`);
-    }
   }
 
   if (eventType === "identity.verification_session.requires_input") {
@@ -745,14 +669,16 @@ async function handleIdentityVerification(session: any, eventType: string) {
     }
   }
 
-  const { error } = await supabase
-    .from("identity_verifications")
-    .update(updates)
-    .eq("stripe_session_id", sessionId);
+  // Atomic: update identity_verifications + profiles + contractor tier
+  const { error } = await supabase.rpc("handle_identity_verified_atomic", {
+    p_user_id: userId,
+    p_stripe_session_id: sessionId,
+    p_updates: updates,
+  });
 
   if (error) {
-    console.error(`[webhook] Failed to update identity verification:`, error.message);
+    console.error(`[webhook] handle_identity_verified_atomic error:`, error.message);
   } else {
-    console.log(`[webhook] Identity verification updated: user=${userId}, status=${newStatus}`);
+    console.log(`[webhook] Identity verification updated (atomic): user=${userId}, status=${newStatus}`);
   }
 }

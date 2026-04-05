@@ -265,12 +265,12 @@ Deno.serve(async (req: Request) => {
       const coords = derivedState ? STATE_COORDS[derivedState] : null;
       const budgetRange = formatBudgetRange(parsed.budget_min, parsed.budget_max);
 
-      const { data: lead, error: insertErr } = await supabase
-        .from("leads")
-        .insert({
-          group_id: group?.id,
+      // Atomic: insert lead + update stats + enqueue match + log event
+      const hasPhone = /(?:\+?1[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}/.test(payload.body);
+
+      const { data: leadId, error: rpcErr } = await supabase.rpc("finalize_parsed_lead", {
+        p_lead: {
           wa_message_id: payload.messageId,
-          content_hash: hash,
           raw_message: payload.body,
           sender_id: payload.senderId ?? null,
           sender_name: payload.sender ?? null,
@@ -283,55 +283,27 @@ Deno.serve(async (req: Request) => {
           budget_range: budgetRange,
           urgency: parsed.urgency,
           parsed_summary: parsed.summary,
-          filter_stage: "ai_parsed",
-          status: "parsed",
-          review_status: "pending",
-        })
-        .select("id")
-        .single();
-
-      if (insertErr) {
-        // Duplicate content_hash (parallel processing)
-        if (insertErr.code === "23505") {
-          await supabase.rpc("complete_job", { p_job_id: job.id });
-          results.push(`dedup_insert:${payload.messageId}`);
-          continue;
-        }
-        throw new Error(`Lead insert failed: ${insertErr.message}`);
-      }
-
-      // Update sender stats
-      const hasPhone = /(?:\+?1[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}/.test(payload.body);
-      if (group && payload.senderId) {
-        const { data: member } = await supabase
-          .from("group_members")
-          .select("id, total_messages, lead_messages, service_messages")
-          .eq("group_id", group.id).eq("wa_sender_id", payload.senderId).single();
-
-        if (member) {
-          await supabase.from("group_members").update({
-            lead_messages: member.lead_messages + 1,
-            service_messages: member.service_messages + (hasPhone ? 1 : 0),
-          }).eq("id", member.id);
-        }
-      }
-
-      // Enqueue for matching
-      await supabase.rpc("enqueue_job", {
-        p_queue: "parsed_leads",
-        p_payload: { leadId: lead!.id },
-        p_max_attempts: 3,
+        },
+        p_content_hash: hash,
+        p_group_id: group?.id ?? null,
+        p_sender_id: payload.senderId ?? null,
+        p_message_id: payload.messageId ?? null,
+        p_has_phone: hasPhone,
       });
 
-      await supabase.from("pipeline_events").insert({
-        group_id: group?.id, wa_message_id: payload.messageId,
-        sender_id: payload.senderId, stage: "lead_created",
-        lead_id: lead!.id,
-        detail: { profession: parsed.profession, city: parsed.city, urgency: parsed.urgency },
-      });
+      if (rpcErr) {
+        throw new Error(`finalize_parsed_lead failed: ${rpcErr.message}`);
+      }
+
+      if (!leadId) {
+        // Dedup: lead with this content_hash already exists
+        await supabase.rpc("complete_job", { p_job_id: job.id });
+        results.push(`dedup_insert:${payload.messageId}`);
+        continue;
+      }
 
       await supabase.rpc("complete_job", { p_job_id: job.id });
-      results.push(`lead:${lead!.id}`);
+      results.push(`lead:${leadId}`);
 
     } catch (err) {
       const msg = err instanceof Error ? err.message : "unknown";

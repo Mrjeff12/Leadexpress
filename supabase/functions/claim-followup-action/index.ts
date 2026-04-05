@@ -133,36 +133,22 @@ Deno.serve(async (req: Request) => {
         const profession = (lead.profession || "").replace(/_/g, " ").replace(/\b\w/g, (c: string) => c.toUpperCase());
         const location = [lead.city, lead.zip_code].filter(Boolean).join(", ") || "Your area";
 
-        // Create job_order
-        const { data: job, error: jobErr } = await supabase
-          .from("job_orders")
-          .insert({
-            lead_id: leadId,
-            contractor_id: contractorId,
-            deal_type: "custom",
-            deal_value: "TBD",
-            status: "accepted",
-            customer_name: lead.sender_name || null,
-            customer_address: location,
-            notes: lead.parsed_summary || null,
-            token_expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-          })
-          .select("id, access_token")
-          .single();
+        // Atomic: create job_order + log pipeline event
+        const { data: job, error: jobErr } = await supabase.rpc("create_job_from_claim", {
+          p_lead_id: leadId,
+          p_contractor_id: contractorId,
+          p_customer_name: lead.sender_name || null,
+          p_customer_address: location,
+          p_notes: lead.parsed_summary || null,
+        });
 
         if (jobErr) {
-          console.error("[claim-followup-action] Job creation error:", jobErr.message);
-        } else {
-          jobOrder = job;
-
-          // Record job creation event
-          await supabase.from("pipeline_events").insert({
-            stage: "job_created_from_claim",
-            detail: { lead_id: leadId, contractor_id: contractorId, job_order_id: job.id },
-          });
+          console.error("[claim-followup-action] create_job_from_claim error:", jobErr.message);
+        } else if (job && job.length > 0) {
+          jobOrder = job[0];
 
           // Build publisher forwarding message
-          const jobUrl = `https://app.masterleadflow.com/portal/job/${job.access_token}`;
+          const jobUrl = `https://app.masterleadflow.com/portal/job/${job[0].access_token}`;
           publisherMessage = `Hi! I'm reaching out about the ${profession} job you posted in ${location}.\n\nI'd like to take this on through MasterLeadFlow — here's a link with the job details. You can approve it there, and we'll both have everything tracked securely:\n\n${jobUrl}\n\nFeel free to sign up for free to manage the process easily. Looking forward to working together!`;
         }
       }

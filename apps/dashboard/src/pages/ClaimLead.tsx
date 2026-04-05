@@ -110,10 +110,25 @@ export default function ClaimLead() {
     }
 
     // Fallback: try fetching from Supabase (works if user is logged in)
+    const timeout = setTimeout(() => {
+      setError('This link has expired or is invalid. Please request a new lead notification.')
+      setLoading(false)
+    }, 8000)
+
     supabase.from('leads').select('*').eq('id', leadId).maybeSingle()
-      .then(({ data }) => {
-        if (!data) { setError('Lead not found'); setLoading(false); return }
+      .then(({ data, error: fetchErr }) => {
+        clearTimeout(timeout)
+        if (fetchErr || !data) {
+          setError('Lead not found. Please request a new notification from WhatsApp.')
+          setLoading(false)
+          return
+        }
         setLead(data as Lead)
+        setLoading(false)
+      })
+      .catch(() => {
+        clearTimeout(timeout)
+        setError('Connection error. Please try again.')
         setLoading(false)
       })
   }, [leadId])
