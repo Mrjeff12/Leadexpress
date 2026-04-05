@@ -74,11 +74,12 @@ Deno.serve(async (req: Request) => {
           await supabase.from("wa_accounts").update({ status: "disconnected" }).eq("id", account.id);
           // Alert admin about scanner disconnect
           await supabase.from("system_alerts").insert({
-            type: "scanner_disconnected",
+            alert_type: "scanner_disconnected",
             severity: "critical",
             title: `Scanner ${account.label} disconnected`,
             message: `WhatsApp scanner "${account.label}" lost connection. Groups monitored by this scanner will not receive leads until reconnected.`,
-          }).then(() => {}, () => {}); // ignore if table doesn't exist
+            delivered: false,
+          }).then(() => {}, () => {});
         }
         results.push(`${account.label}: disconnected — skipped`);
         continue;
@@ -88,10 +89,11 @@ Deno.serve(async (req: Request) => {
       if (account.status === "disconnected") {
         await supabase.from("wa_accounts").update({ status: "connected" }).eq("id", account.id);
         await supabase.from("system_alerts").insert({
-          type: "scanner_reconnected",
+          alert_type: "scanner_reconnected",
           severity: "info",
           title: `Scanner ${account.label} back online`,
           message: `WhatsApp scanner "${account.label}" reconnected successfully. Resuming group monitoring.`,
+          delivered: false,
         }).then(() => {}, () => {});
         // Trigger immediate member sync for this scanner's groups
         const { data: scannerGroups } = await supabase

@@ -11,11 +11,11 @@ import {
 // ── System alerts from system_alerts table ──
 interface SystemAlert {
   id: string
-  type: string
+  alert_type: string
   severity: string
   title: string
   message: string | null
-  read_at: string | null
+  delivered: boolean
   created_at: string
 }
 
@@ -23,30 +23,31 @@ function useSystemAlerts() {
   const [alerts, setAlerts] = useState<SystemAlert[]>([])
   const [loading, setLoading] = useState(true)
 
-  const fetch = useCallback(async () => {
+  const fetchAlerts = useCallback(async () => {
     const { data } = await supabase
       .from('system_alerts')
       .select('*')
-      .is('read_at', null)
+      .eq('delivered', false)
       .order('created_at', { ascending: false })
       .limit(50)
     setAlerts((data ?? []) as SystemAlert[])
     setLoading(false)
   }, [])
 
-  useEffect(() => { fetch() }, [fetch])
+  useEffect(() => { fetchAlerts() }, [fetchAlerts])
 
   const dismiss = async (id: string) => {
-    await supabase.from('system_alerts').update({ read_at: new Date().toISOString() }).eq('id', id)
+    await supabase.from('system_alerts').update({ delivered: true, delivered_at: new Date().toISOString() }).eq('id', id)
     setAlerts(prev => prev.filter(a => a.id !== id))
   }
 
   const dismissAll = async () => {
-    await supabase.from('system_alerts').update({ read_at: new Date().toISOString() }).is('read_at', null)
+    const ids = alerts.map(a => a.id)
+    if (ids.length) await supabase.from('system_alerts').update({ delivered: true, delivered_at: new Date().toISOString() }).in('id', ids)
     setAlerts([])
   }
 
-  return { alerts, loading, dismiss, dismissAll, refetch: fetch }
+  return { alerts, loading, dismiss, dismissAll, refetch: fetchAlerts }
 }
 
 const ALERT_CONFIG: Record<string, { icon: typeof Bell; color: string; borderColor: string; bgColor: string }> = {
@@ -116,7 +117,7 @@ export default function Alerts() {
           </div>
           <div className="space-y-2">
             {sys.alerts.map((a) => {
-              const cfg = ALERT_CONFIG[a.type] || { icon: Bell, color: 'text-stone-500', borderColor: 'border-stone-300', bgColor: 'bg-stone-50' }
+              const cfg = ALERT_CONFIG[a.alert_type] || { icon: Bell, color: 'text-stone-500', borderColor: 'border-stone-300', bgColor: 'bg-stone-50' }
               const Icon = cfg.icon
               const timeAgo = (() => {
                 const diff = Date.now() - new Date(a.created_at).getTime()
