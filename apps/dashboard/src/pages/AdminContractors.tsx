@@ -62,7 +62,10 @@ interface Contractor {
     subscriptions: {
       status: string
       plans: { name: string; slug: string; price_cents: number }
-    }[]
+    }[] | {
+      status: string
+      plans: { name: string; slug: string; price_cents: number }
+    }
   }
   push_count?: number
 }
@@ -227,7 +230,11 @@ export default function AdminContractors() {
   useEffect(() => { fetchContractors() }, [fetchContractors])
 
   // Helpers
-  const getSub = (c: Contractor) => c.profiles?.subscriptions?.[0]
+  const getSub = (c: Contractor) => {
+    const s = c.profiles?.subscriptions
+    if (!s) return undefined
+    return Array.isArray(s) ? s[0] : s
+  }
   const getPlanSlug = (c: Contractor) => getSub(c)?.plans?.slug ?? 'none'
   const getSubStatus = (c: Contractor) => getSub(c)?.status ?? 'none'
   const getMonthlyFee = (c: Contractor) => { const cents = getSub(c)?.plans?.price_cents; return cents ? cents / 100 : 0 }
