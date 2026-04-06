@@ -3,7 +3,7 @@ import { useI18n } from '../../lib/i18n'
 import { supabase } from '../../lib/supabase'
 import { CreditCard, Users, ChevronDown, ChevronUp, Search, Loader2, ExternalLink } from 'lucide-react'
 
-type PlanSlug = 'starter' | 'pro' | 'unlimited'
+type PlanSlug = 'starter' | 'pro' | 'unlimited' | 'premium'
 type SubStatus = 'active' | 'past_due' | 'canceled' | 'trialing' | 'paused'
 
 interface SubscriberRow {
@@ -96,8 +96,11 @@ export default function Subscriptions() {
       starter: { en: 'Starter', he: 'סטארטר' },
       pro: { en: 'Pro', he: 'פרו' },
       unlimited: { en: 'Unlimited', he: 'ללא הגבלה' },
+      premium: { en: 'Premium', he: 'פרימיום' },
     }
-    return he ? labels[plan].he : labels[plan].en
+    const match = labels[plan]
+    if (!match) return plan || 'Unknown'
+    return he ? match.he : match.en
   }
 
   const statusLabel = (status: SubStatus): string => {
@@ -108,7 +111,9 @@ export default function Subscriptions() {
       canceled: { en: 'Canceled', he: 'מבוטל' },
       paused: { en: 'Paused', he: 'מושהה' },
     }
-    return he ? labels[status].he : labels[status].en
+    const match = labels[status]
+    if (!match) return status || 'Unknown'
+    return he ? match.he : match.en
   }
 
   const filtered = subscribers.filter((s) => {
@@ -122,12 +127,14 @@ export default function Subscriptions() {
   const activeCount = subscribers.filter((s) => s.status === 'active' || s.status === 'trialing').length
   const proCount = subscribers.filter((s) => s.plan === 'pro').length
   const unlimitedCount = subscribers.filter((s) => s.plan === 'unlimited').length
+  const premiumCount = subscribers.filter((s) => s.plan === 'premium').length
 
   const kpis = [
     { label: he ? 'סה"כ מנויים' : 'Total Subscribers', value: totalSubscribers, icon: Users },
     { label: he ? 'פעילים' : 'Active', value: activeCount, icon: CreditCard },
     { label: he ? 'מסלול פרו' : 'Pro Plan', value: proCount, icon: CreditCard },
     { label: he ? 'מסלול ללא הגבלה' : 'Unlimited Plan', value: unlimitedCount, icon: CreditCard },
+    { label: he ? 'מסלול פרימיום' : 'Premium Plan', value: premiumCount, icon: CreditCard },
   ]
 
   if (loading) {
@@ -200,6 +207,7 @@ export default function Subscriptions() {
           <option value="starter">{he ? 'סטארטר' : 'Starter'}</option>
           <option value="pro">{he ? 'פרו' : 'Pro'}</option>
           <option value="unlimited">{he ? 'ללא הגבלה' : 'Unlimited'}</option>
+          <option value="premium">{he ? 'פרימיום' : 'Premium'}</option>
         </select>
 
         <select
