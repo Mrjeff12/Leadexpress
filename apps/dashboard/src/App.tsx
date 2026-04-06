@@ -11,7 +11,7 @@ import Sidebar from './components/Sidebar'
 import ImpersonationBanner from './components/ImpersonationBanner'
 import Login from './pages/Login'
 import AutoLogin from './pages/AutoLogin'
-const CompleteAccount = lazy(() => import('./pages/CompleteAccount'))
+const CompleteAccount = lazyRetry(() => import('./pages/CompleteAccount'))
 import RequireSubscription from './components/Paywall'
 import SubscriptionBanner from './components/SubscriptionBanner'
 import CompleteAccountBanner from './components/CompleteAccountBanner'
@@ -22,36 +22,50 @@ import { PWAInstallBanner } from './components/PWAInstallBanner'
 import { OnboardingOverlayContext } from './components/OnboardingOverlayContext'
 import PushPermissionPopup from './components/PushPermissionPopup'
 
-/* ─── Lazy-loaded pages ─── */
-const AdminLayout = lazy(() => import('./components/AdminLayout'))
-const ContractorDashboard = lazy(() => import('./pages/ContractorDashboard'))
-const ContractorGroupScan = lazy(() => import('./pages/ContractorGroupScan'))
-const LeadsFeed = lazy(() => import('./pages/LeadsFeed'))
-const Subcontractors = lazy(() => import('./pages/Subcontractors'))
-const Profile = lazy(() => import('./pages/Profile'))
-const Subscription = lazy(() => import('./pages/Subscription'))
-const JobPortal = lazy(() => import('./pages/JobPortal'))
-const ClaimLead = lazy(() => import('./pages/ClaimLead'))
-const ClaimFollowup = lazy(() => import('./pages/ClaimFollowup'))
-const JobsDashboard = lazy(() => import('./pages/JobsDashboard'))
-const OnboardingWizard = lazy(() => import('./pages/OnboardingWizard'))
-const NotFound = lazy(() => import('./pages/NotFound'))
-const PublishChat = lazy(() => import('./pages/PublishChat'))
-const MyPublishedLeads = lazy(() => import('./pages/MyPublishedLeads'))
-const IdentityVerification = lazy(() => import('./pages/IdentityVerification'))
-const PublishedJobDetail = lazy(() => import('./pages/PublishedJobDetail'))
-const MessagesInbox = lazy(() => import('./pages/MessagesInbox'))
-const RebecaChat = lazy(() => import('./pages/RebecaChat'))
-const DirectChat = lazy(() => import('./pages/DirectChat'))
-const PartnerOnboarding = lazy(() => import('./pages/partner/PartnerOnboarding'))
-const PartnerGroupChat = lazy(() => import('./pages/partner/PartnerGroupChat'))
-const PartnerLayout = lazy(() => import('./pages/partner/PartnerLayout'))
-const NotificationsPage = lazy(() => import('./pages/NotificationsPage'))
-const PublicProfileView = lazy(() => import('./pages/PublicProfileView'))
-const ProfileEdit = lazy(() => import('./pages/ProfileEdit'))
-const LeadDetail = lazy(() => import('./pages/LeadDetail'))
-const JobDetail = lazy(() => import('./pages/JobDetail'))
-const MyReviews = lazy(() => import('./pages/MyReviews'))
+/* ─── Lazy with auto-reload on stale chunks ─── */
+function lazyRetry(loader: () => Promise<any>) {
+  return lazy(() =>
+    loader().catch(() => {
+      // Chunk probably disappeared after a new deploy — reload once
+      const key = 'chunk-reload'
+      if (!sessionStorage.getItem(key)) {
+        sessionStorage.setItem(key, '1')
+        window.location.reload()
+      }
+      return loader() // will throw if still broken after reload
+    })
+  )
+}
+
+const AdminLayout = lazyRetry(() => import('./components/AdminLayout'))
+const ContractorDashboard = lazyRetry(() => import('./pages/ContractorDashboard'))
+const ContractorGroupScan = lazyRetry(() => import('./pages/ContractorGroupScan'))
+const LeadsFeed = lazyRetry(() => import('./pages/LeadsFeed'))
+const Subcontractors = lazyRetry(() => import('./pages/Subcontractors'))
+const Profile = lazyRetry(() => import('./pages/Profile'))
+const Subscription = lazyRetry(() => import('./pages/Subscription'))
+const JobPortal = lazyRetry(() => import('./pages/JobPortal'))
+const ClaimLead = lazyRetry(() => import('./pages/ClaimLead'))
+const ClaimFollowup = lazyRetry(() => import('./pages/ClaimFollowup'))
+const JobsDashboard = lazyRetry(() => import('./pages/JobsDashboard'))
+const OnboardingWizard = lazyRetry(() => import('./pages/OnboardingWizard'))
+const NotFound = lazyRetry(() => import('./pages/NotFound'))
+const PublishChat = lazyRetry(() => import('./pages/PublishChat'))
+const MyPublishedLeads = lazyRetry(() => import('./pages/MyPublishedLeads'))
+const IdentityVerification = lazyRetry(() => import('./pages/IdentityVerification'))
+const PublishedJobDetail = lazyRetry(() => import('./pages/PublishedJobDetail'))
+const MessagesInbox = lazyRetry(() => import('./pages/MessagesInbox'))
+const RebecaChat = lazyRetry(() => import('./pages/RebecaChat'))
+const DirectChat = lazyRetry(() => import('./pages/DirectChat'))
+const PartnerOnboarding = lazyRetry(() => import('./pages/partner/PartnerOnboarding'))
+const PartnerGroupChat = lazyRetry(() => import('./pages/partner/PartnerGroupChat'))
+const PartnerLayout = lazyRetry(() => import('./pages/partner/PartnerLayout'))
+const NotificationsPage = lazyRetry(() => import('./pages/NotificationsPage'))
+const PublicProfileView = lazyRetry(() => import('./pages/PublicProfileView'))
+const ProfileEdit = lazyRetry(() => import('./pages/ProfileEdit'))
+const LeadDetail = lazyRetry(() => import('./pages/LeadDetail'))
+const JobDetail = lazyRetry(() => import('./pages/JobDetail'))
+const MyReviews = lazyRetry(() => import('./pages/MyReviews'))
 import RequirePartner from './components/RequirePartner'
 
 /* ─── Auth guard ─── */
