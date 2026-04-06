@@ -138,45 +138,54 @@ export default function ArmyCommandCenter() {
   const { scenarios: realScenarios, refetch: refetchScenarios } = useArmyScenarios()
 
   const DEMO_SCENARIOS: ArmyScenario[] = DEMO ? [
-    { id: 'sc-1', name: 'מחפש עבודה', description: 'חייל שואל איפה למצוא עבודות, חבר ממליץ', category: 'job_inquiry', lines: [
-      { role: 'A', delay_min: 0, delay_max: 0, text: 'אחי מישהו יודע איפה למצוא עבודות צבע באזור מיאמי?' },
-      { role: 'B', delay_min: 3, delay_max: 8, text: 'יש אפליקציה חדשה masterlead תיכנס שם, אני נרשמתי שבוע שעבר' },
-      { role: 'A', delay_min: 1, delay_max: 3, text: 'מה זה? טוב?' },
-      { role: 'B', delay_min: 2, delay_max: 5, text: 'כן אחי שם אתה רואה עבודות לפי אזור ומקצוע, תנסה' },
-      { role: 'C', delay_min: 5, delay_max: 15, text: 'גם אני נכנסתי לשם לאחרונה, יש שם המון' },
+    { id: 'sc-1', name: 'מחפש עבודה', description: 'חייל שואל איפה למצוא עבודות, חבר ממליץ על masterlead דרך אגב', category: 'job_inquiry', cooldown_days: 3, placeholders: ['{city}', '{profession}'], lines: [
+      { role: 'A', delay_min: 0, delay_max: 0, text: 'אחי מישהו יודע איפה למצוא עבודות {profession} באזור {city}?', variations: ['חבר׳ה מישהו מכיר עבודות {profession} ב{city}?', 'יש פה מישהו שיודע על עבודות {profession} באזור {city}?'] },
+      { role: 'B', delay_min: 3, delay_max: 8, text: 'יש אפליקציה חדשה masterlead תיכנס שם, אני נרשמתי שבוע שעבר', variations: ['תנסה masterlead, אני מוצא שם עבודות כל הזמן', 'אני נרשמתי ל-masterlead לפני שבועיים, יש שם הכל'] },
+      { role: 'A', delay_min: 1, delay_max: 3, text: 'מה זה? טוב?', variations: ['מה זה בדיוק?', 'לא שמעתי על זה, מה זה?'] },
+      { role: 'B', delay_min: 2, delay_max: 5, text: 'כן אחי שם אתה רואה עבודות לפי אזור ומקצוע, תנסה', variations: ['אתר שמחבר קבלנים לעבודות, הכל לפי אזור ומקצוע', 'זה כמו מאגר עבודות, אתה בוחר אזור ומקצוע וזה מראה לך'] },
+      { role: 'C', delay_min: 5, delay_max: 15, text: 'גם אני נכנסתי לשם לאחרונה, יש שם המון', variations: ['אני גם שם, שווה להירשם', 'כן מכיר, נרשמתי ומצאתי כמה דברים'] },
     ], is_active: true, times_used: 12, last_used_at: new Date(Date.now() - 2 * 3600000).toISOString(), created_at: '2026-03-20T10:00:00Z' },
-    { id: 'sc-2', name: 'מה זה masterlead?', description: 'מישהו שואל מה זה, שניים מסבירים', category: 'curiosity', lines: [
-      { role: 'A', delay_min: 0, delay_max: 0, text: 'חבר׳ה מישהו מכיר את masterlead? ראיתי את זה כמה פעמים' },
-      { role: 'B', delay_min: 2, delay_max: 6, text: 'כן אחי זה אפליקציה שמחברת בין קבלנים לעבודות, אני שם כבר חודש' },
-      { role: 'C', delay_min: 3, delay_max: 8, text: 'גם אני, יש שם עבודות שלא רואים במקומות אחרים' },
-      { role: 'A', delay_min: 1, delay_max: 3, text: 'אה סבבה ואיך נרשמים?' },
-      { role: 'B', delay_min: 2, delay_max: 4, text: 'תחפש masterlead באינטרנט, יש להם אתר. לוקח דקה' },
+    { id: 'sc-2', name: 'מה זה masterlead?', description: 'מישהו רואה את השם ושואל, שניים מסבירים בטבעיות', category: 'curiosity', cooldown_days: 5, placeholders: [], lines: [
+      { role: 'A', delay_min: 0, delay_max: 0, text: 'חבר׳ה מישהו מכיר את masterlead? ראיתי את זה כמה פעמים', variations: ['מה זה masterlead? מישהו שמע על זה?', 'ראיתי כמה אנשים מדברים על masterlead, מה זה?'] },
+      { role: 'B', delay_min: 2, delay_max: 6, text: 'כן אחי זה אפליקציה שמחברת בין קבלנים לעבודות, אני שם כבר חודש', variations: ['זה אתר שקבלנים מוצאים שם עבודות, אני רשום', 'כן מכיר, זה פלטפורמה לעבודות שיפוצים, אני שם'] },
+      { role: 'C', delay_min: 3, delay_max: 8, text: 'גם אני, יש שם עבודות שלא רואים במקומות אחרים', variations: ['אני גם נרשמתי, יש שם דברים שלא מוצאים בפייסבוק', 'כן שווה, מצאתי שם עבודות שלא ראיתי בשום מקום אחר'] },
+      { role: 'A', delay_min: 1, delay_max: 3, text: 'אה סבבה ואיך נרשמים?', variations: ['נשמע טוב, איך נכנסים?', 'מעניין, איך מוצאים את זה?'] },
+      { role: 'B', delay_min: 2, delay_max: 4, text: 'תחפש masterlead באינטרנט, יש להם אתר. לוקח דקה', variations: ['תכתוב בגוגל masterlead, תגיע לאתר ותירשם', 'תיכנס לmasterlead.app, הרשמה לוקחת שתי דקות'] },
     ], is_active: true, times_used: 8, last_used_at: new Date(Date.now() - 5 * 3600000).toISOString(), created_at: '2026-03-21T10:00:00Z' },
-    { id: 'sc-3', name: 'המלצה לחבר', description: 'חייל מתלונן שאין עבודה, חבר ממליץ', category: 'recommendation', lines: [
-      { role: 'A', delay_min: 0, delay_max: 0, text: 'אין עבודה בכלל השבוע הזה, מישהו עוד ככה?' },
-      { role: 'B', delay_min: 4, delay_max: 10, text: 'אחי תיכנס ל-masterlead, אני מצאתי שם שתי עבודות השבוע' },
-      { role: 'A', delay_min: 1, delay_max: 3, text: 'מה זה בדיוק?' },
-      { role: 'B', delay_min: 2, delay_max: 5, text: 'אתר שבו בעלי בתים מפרסמים עבודות ואתה רואה לפי האזור שלך' },
-      { role: 'A', delay_min: 1, delay_max: 2, text: 'ויש עבודות באזור פלורידה?' },
-      { role: 'B', delay_min: 2, delay_max: 4, text: 'בטח יש שם פול של עבודות בדרום פלורידה, תבדוק' },
+    { id: 'sc-3', name: 'המלצה לחבר', description: 'חייל מתלונן שאין עבודה, חבר מספר על masterlead בלי שיווק ישיר', category: 'recommendation', cooldown_days: 4, placeholders: ['{city}'], lines: [
+      { role: 'A', delay_min: 0, delay_max: 0, text: 'אין עבודה בכלל השבוע הזה, מישהו עוד ככה?', variations: ['שקט מת השבוע, אין כלום', 'מישהו מצליח למצוא עבודה? אצלי מת'] },
+      { role: 'B', delay_min: 4, delay_max: 10, text: 'אחי תיכנס ל-masterlead, אני מצאתי שם שתי עבודות השבוע', variations: ['אני מוצא דברים ב-masterlead, תנסה', 'תבדוק את masterlead, לי זה עוזר'] },
+      { role: 'A', delay_min: 1, delay_max: 3, text: 'מה זה בדיוק?', variations: ['לא מכיר, מה זה?', 'מה זה הדבר הזה?'] },
+      { role: 'B', delay_min: 2, delay_max: 5, text: 'אתר שבו בעלי בתים מפרסמים עבודות ואתה רואה לפי האזור שלך', variations: ['פלטפורמה שמחברת בעלי בתים לקבלנים, הכל לפי אזור', 'מאגר עבודות, אתה בוחר איפה אתה ומה המקצוע שלך'] },
+      { role: 'A', delay_min: 1, delay_max: 2, text: 'ויש עבודות באזור {city}?', variations: ['עובד גם ב{city}?', 'יש שם משהו באזור {city}?'] },
+      { role: 'B', delay_min: 2, delay_max: 4, text: 'בטח יש שם פול של עבודות בדרום פלורידה, תבדוק', variations: ['כן יש, תיכנס ותראה בעצמך', 'בטח, יש שם עבודות בכל פלורידה'] },
     ], is_active: true, times_used: 15, last_used_at: new Date(Date.now() - 1 * 3600000).toISOString(), created_at: '2026-03-22T10:00:00Z' },
-    { id: 'sc-4', name: 'שיחה על אפליקציות', description: 'דיון טבעי על כלים למציאת עבודה', category: 'general', lines: [
-      { role: 'A', delay_min: 0, delay_max: 0, text: 'באיזה אפליקציות אתם משתמשים למצוא עבודות?' },
-      { role: 'B', delay_min: 3, delay_max: 7, text: 'אני משתמש ב-masterlead, הכי נוח בשבילי' },
-      { role: 'C', delay_min: 2, delay_max: 6, text: 'גם אני, שם הכל מסודר לפי מקצוע ואזור' },
-      { role: 'A', delay_min: 1, delay_max: 3, text: 'יש מצב שזה עובד גם לאזור אורלנדו?' },
-      { role: 'B', delay_min: 2, delay_max: 5, text: 'כן אחי יש שם עבודות בכל פלורידה' },
+    { id: 'sc-4', name: 'שיחה על אפליקציות', description: 'דיון טבעי על כלים, masterlead עולה כאחד מכמה אפשרויות', category: 'general', cooldown_days: 5, placeholders: [], lines: [
+      { role: 'A', delay_min: 0, delay_max: 0, text: 'באיזה אפליקציות אתם משתמשים למצוא עבודות?', variations: ['מה אתם משתמשים למצוא פרויקטים?', 'איך אתם מוצאים עבודות חוץ מקבוצות ווצאפ?'] },
+      { role: 'B', delay_min: 3, delay_max: 7, text: 'אני משתמש ב-masterlead, הכי נוח בשבילי', variations: ['אני נרשמתי לmasterlead לאחרונה, מרוצה', 'אני מוצא ב-masterlead, עובד טוב'] },
+      { role: 'C', delay_min: 2, delay_max: 6, text: 'גם אני, שם הכל מסודר לפי מקצוע ואזור', variations: ['גם אני שם, מסודר ונוח', 'כן גם אני, אפשר לסנן לפי מה שאתה עושה'] },
+      { role: 'A', delay_min: 1, delay_max: 3, text: 'יש מצב שזה עובד גם לאזור אורלנדו?', variations: ['עובד בכל פלורידה?', 'זה רק מיאמי או גם מקומות אחרים?'] },
+      { role: 'B', delay_min: 2, delay_max: 5, text: 'כן אחי יש שם עבודות בכל פלורידה', variations: ['כן, מכסה את כל פלורידה', 'יש שם בכל מקום, לא רק מיאמי'] },
     ], is_active: true, times_used: 6, last_used_at: new Date(Date.now() - 8 * 3600000).toISOString(), created_at: '2026-03-23T10:00:00Z' },
-    { id: 'sc-5', name: 'מישהו ניסה?', description: 'שאלה תמימה, תשובות חיוביות', category: 'curiosity', lines: [
-      { role: 'A', delay_min: 0, delay_max: 0, text: 'מישהו פה ניסה את masterlead? שווה?' },
-      { role: 'B', delay_min: 5, delay_max: 12, text: 'אני שם כבר חודשיים, מצאתי כמה עבודות טובות' },
-      { role: 'C', delay_min: 3, delay_max: 8, text: 'אני נרשמתי שבוע שעבר, נראה סבבה בינתיים' },
-      { role: 'A', delay_min: 1, delay_max: 3, text: 'וזה בחינם?' },
-      { role: 'B', delay_min: 2, delay_max: 4, text: 'יש גרסה בחינם כן, תנסה ותראה אם מתאים לך' },
+    { id: 'sc-5', name: 'מישהו ניסה?', description: 'שאלה תמימה לגבי masterlead, תשובות חיוביות מנוסים', category: 'curiosity', cooldown_days: 5, placeholders: [], lines: [
+      { role: 'A', delay_min: 0, delay_max: 0, text: 'מישהו פה ניסה את masterlead? שווה?', variations: ['שמעתי על masterlead, מישהו יכול לספר?', 'מה דעתכם על masterlead? ניסיתם?'] },
+      { role: 'B', delay_min: 5, delay_max: 12, text: 'אני שם כבר חודשיים, מצאתי כמה עבודות טובות', variations: ['כן אני רשום, עובד סבבה', 'אני משתמש, מצאתי כמה דברים נחמדים'] },
+      { role: 'C', delay_min: 3, delay_max: 8, text: 'אני נרשמתי שבוע שעבר, נראה סבבה בינתיים', variations: ['גם אני חדש שם, בינתיים נראה טוב', 'נרשמתי לאחרונה, מתרשם לטובה'] },
+      { role: 'A', delay_min: 1, delay_max: 3, text: 'וזה בחינם?', variations: ['כמה זה עולה?', 'צריך לשלם על זה?'] },
+      { role: 'B', delay_min: 2, delay_max: 4, text: 'יש גרסה בחינם כן, תנסה ותראה אם מתאים לך', variations: ['יש חינמי, תתחיל עם זה', 'בחינם אפשר להירשם, תנסה'] },
     ], is_active: true, times_used: 3, last_used_at: null, created_at: '2026-03-24T10:00:00Z' },
   ] : []
 
+  const DEMO_RUNS: ArmyScenarioRun[] = DEMO ? [
+    { id: 'run-1', scenario_id: 'sc-3', group_wa_id: '120363001@g.us', group_name: 'Miami Renovations 🏠', status: 'completed', role_assignments: { A: 'demo-1', B: 'demo-2', C: 'demo-3' }, current_line: 5, scheduled_at: new Date(Date.now() - 3 * 3600000).toISOString(), started_at: new Date(Date.now() - 3 * 3600000).toISOString(), completed_at: new Date(Date.now() - 2.5 * 3600000).toISOString(), error: null, lines_used: null },
+    { id: 'run-2', scenario_id: 'sc-1', group_wa_id: '120363002@g.us', group_name: 'FL Plumbers Network 🔧', status: 'completed', role_assignments: { A: 'demo-2', B: 'demo-1' }, current_line: 4, scheduled_at: new Date(Date.now() - 6 * 3600000).toISOString(), started_at: new Date(Date.now() - 6 * 3600000).toISOString(), completed_at: new Date(Date.now() - 5.5 * 3600000).toISOString(), error: null, lines_used: null },
+    { id: 'run-3', scenario_id: 'sc-2', group_wa_id: '120363001@g.us', group_name: 'Miami Renovations 🏠', status: 'running', role_assignments: { A: 'demo-3', B: 'demo-1', C: 'demo-2' }, current_line: 2, scheduled_at: new Date(Date.now() - 20 * 60000).toISOString(), started_at: new Date(Date.now() - 20 * 60000).toISOString(), completed_at: null, error: null, lines_used: null },
+    { id: 'run-4', scenario_id: 'sc-4', group_wa_id: '120363004@g.us', group_name: 'South FL HVAC Jobs ❄️', status: 'pending', role_assignments: { A: 'demo-1', B: 'demo-6', C: 'demo-3' }, current_line: 0, scheduled_at: new Date(Date.now() + 2 * 3600000).toISOString(), started_at: null, completed_at: null, error: null, lines_used: null },
+    { id: 'run-5', scenario_id: 'sc-1', group_wa_id: '120363003@g.us', group_name: 'Orlando Contractors 🏗️', status: 'failed', role_assignments: { A: 'demo-4', B: 'demo-5' }, current_line: 1, scheduled_at: new Date(Date.now() - 12 * 3600000).toISOString(), started_at: new Date(Date.now() - 12 * 3600000).toISOString(), completed_at: null, error: 'Slave-Tampa-05 disconnected', lines_used: null },
+  ] : []
+
   const scenarios = DEMO ? DEMO_SCENARIOS : realScenarios
+  const scenarioRuns = DEMO ? DEMO_RUNS : [] as ArmyScenarioRun[]
 
   /* ── Selection state ── */
   const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null)
@@ -187,6 +196,7 @@ export default function ArmyCommandCenter() {
   const [allDMsMode, setAllDMsMode] = useState(false)
   const [dmTags, setDmTags] = useState<Record<string, string>>({})
   const [scenariosMode, setScenariosMode] = useState(false)
+  const [scenarioListTab, setScenarioListTab] = useState<'bank' | 'runs'>('bank')
   const [selectedScenarioId, setSelectedScenarioId] = useState<string | null>(null)
   const [scenarioEditing, setScenarioEditing] = useState(false)
   const [editLines, setEditLines] = useState<ScenarioLine[]>([])
@@ -595,25 +605,54 @@ export default function ArmyCommandCenter() {
           /* ═══ SCENARIOS VIEW ═══ */
           <div className="flex-1 flex h-full overflow-hidden">
             {/* Scenario Bank (left side) */}
-            <div className="w-[320px] shrink-0 flex flex-col h-full" style={{ background: '#fff', borderRight: `1px solid ${C.waBorder}` }}>
+            <div className="w-[340px] shrink-0 flex flex-col h-full" style={{ background: '#fff', borderRight: `1px solid ${C.waBorder}` }}>
+              {/* Header with explanation */}
               <div className="px-3 py-3 space-y-2" style={{ borderBottom: `1px solid ${C.waBorder}` }}>
                 <div className="flex items-center justify-between">
                   <span className="text-[14px] font-bold" style={{ color: C.waDark }}>{he ? 'בנק סצנות' : 'Scenario Bank'}</span>
-                  <button
-                    onClick={() => {
-                      setSelectedScenarioId(null)
-                      setScenarioEditing(true)
-                      setEditName('')
-                      setEditDesc('')
-                      setEditCategory('general')
-                      setEditLines([{ role: 'A', delay_min: 0, delay_max: 0, text: '' }, { role: 'B', delay_min: 3, delay_max: 8, text: '' }])
-                    }}
-                    className="flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-bold transition-all hover:bg-[#8b5cf610]"
-                    style={{ color: '#8b5cf6' }}
-                  >
-                    <Plus className="w-3 h-3" />{he ? 'חדש' : 'New'}
-                  </button>
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={() => {
+                        if (selectedScenario) {
+                          setSelectedScenarioId(null)
+                          setScenarioEditing(true)
+                          setEditName(selectedScenario.name + ' (copy)')
+                          setEditDesc(selectedScenario.description ?? '')
+                          setEditCategory(selectedScenario.category)
+                          setEditLines([...selectedScenario.lines])
+                        }
+                      }}
+                      disabled={!selectedScenario}
+                      className="px-2 py-1 rounded-md text-[10px] font-bold transition-all hover:bg-blue-50 disabled:opacity-30"
+                      style={{ color: '#2563eb' }}
+                      title={he ? 'שכפל סצנה' : 'Duplicate'}
+                    >
+                      {he ? 'שכפל' : 'Dup'}
+                    </button>
+                    <button
+                      onClick={() => {
+                        setSelectedScenarioId(null)
+                        setScenarioEditing(true)
+                        setEditName('')
+                        setEditDesc('')
+                        setEditCategory('general')
+                        setEditLines([{ role: 'A', delay_min: 0, delay_max: 0, text: '' }, { role: 'B', delay_min: 3, delay_max: 8, text: '' }])
+                      }}
+                      className="flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-bold transition-all hover:bg-[#8b5cf610]"
+                      style={{ color: '#8b5cf6' }}
+                    >
+                      <Plus className="w-3 h-3" />{he ? 'חדש' : 'New'}
+                    </button>
+                  </div>
                 </div>
+
+                {/* Explanation box */}
+                <div className="px-2.5 py-2 rounded-lg text-[10px] leading-[15px]" style={{ background: '#f8f4ff', color: '#7c3aed', border: '1px solid #ede9fe' }}>
+                  {he
+                    ? '💡 סצנה = שיחה מתוסרטת בין חיילים בקבוצה. המערכת מגרילה וריאציה, מקצה חיילים ל-roles, ושולחת עם דילייים טבעיים. כך masterlead מופיע בטבעיות.'
+                    : '💡 A scenario is a scripted conversation between soldiers in a group. The system picks random variations, assigns soldiers to roles, and sends with natural delays. This makes masterlead appear organically.'}
+                </div>
+
                 {/* Category filter */}
                 <div className="flex gap-1 flex-wrap">
                   {SCENARIO_CATEGORIES.map(cat => (
@@ -630,39 +669,118 @@ export default function ArmyCommandCenter() {
                     </button>
                   ))}
                 </div>
+
+                {/* Scenarios / Runs toggle */}
+                <div className="flex gap-1 p-0.5 rounded-lg" style={{ background: '#f0f2f5' }}>
+                  {([
+                    { key: 'bank' as const, label: he ? 'סצנות' : 'Scenarios' },
+                    { key: 'runs' as const, label: he ? 'היסטוריה' : 'Run History' },
+                  ]).map(tab => (
+                    <button
+                      key={tab.key}
+                      onClick={() => setScenarioListTab(tab.key)}
+                      className="flex-1 py-1 rounded-md text-[10px] font-bold transition-all"
+                      style={{ background: scenarioListTab === tab.key ? '#fff' : 'transparent', color: scenarioListTab === tab.key ? C.waDark : C.waGray, boxShadow: scenarioListTab === tab.key ? '0 1px 2px rgba(0,0,0,0.06)' : 'none' }}
+                    >
+                      {tab.label}
+                    </button>
+                  ))}
+                </div>
               </div>
 
               <div className="flex-1 overflow-y-auto scrollbar-hide">
-                {filteredScenarios.map(sc => {
-                  const active = sc.id === selectedScenarioId
-                  const catColor = SCENARIO_CATEGORIES.find(c => c.key === sc.category)?.color ?? C.waGray
-                  const roles = [...new Set(sc.lines.map(l => l.role))]
-                  return (
-                    <button
-                      key={sc.id}
-                      onClick={() => { setSelectedScenarioId(sc.id); setScenarioEditing(false) }}
-                      className="w-full text-left px-3 py-3 transition-colors"
-                      style={{ background: active ? '#f0f2f5' : 'transparent', borderBottom: `1px solid ${C.waBorder}` }}
-                    >
-                      <div className="flex items-center justify-between">
-                        <span className="text-[14px] font-medium truncate" style={{ color: C.waDark, direction: 'rtl' }}>{sc.name}</span>
-                        <div className="flex items-center gap-1 shrink-0 ml-2">
-                          {roles.map(r => (
-                            <div key={r} className="w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-black text-white" style={{ background: ROLE_COLORS_CHAT[r] ?? '#999' }}>{r}</div>
-                          ))}
+                {scenarioListTab === 'bank' ? (
+                  /* Scenario bank */
+                  filteredScenarios.map(sc => {
+                    const active = sc.id === selectedScenarioId
+                    const catColor = SCENARIO_CATEGORIES.find(c => c.key === sc.category)?.color ?? C.waGray
+                    const roles = [...new Set(sc.lines.map(l => l.role))]
+                    const hasVariations = sc.lines.some(l => l.variations && l.variations.length > 0)
+                    const hasPlaceholders = sc.placeholders && sc.placeholders.length > 0
+                    return (
+                      <button
+                        key={sc.id}
+                        onClick={() => { setSelectedScenarioId(sc.id); setScenarioEditing(false) }}
+                        className="w-full text-left px-3 py-3 transition-colors"
+                        style={{ background: active ? '#f0f2f5' : 'transparent', borderBottom: `1px solid ${C.waBorder}` }}
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="text-[14px] font-medium truncate" style={{ color: C.waDark, direction: 'rtl' }}>{sc.name}</span>
+                          <div className="flex items-center gap-1 shrink-0 ml-2">
+                            {roles.map(r => (
+                              <div key={r} className="w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-black text-white" style={{ background: ROLE_COLORS_CHAT[r] ?? '#999' }}>{r}</div>
+                            ))}
+                          </div>
+                        </div>
+                        <p className="text-[12px] mt-0.5 truncate" style={{ color: C.waGray, direction: 'rtl' }}>{sc.description}</p>
+                        <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
+                          <span className="text-[9px] font-bold px-1.5 py-0.5 rounded" style={{ background: `${catColor}15`, color: catColor }}>
+                            {SCENARIO_CATEGORIES.find(c => c.key === sc.category)?.label}
+                          </span>
+                          <span className="text-[9px] px-1.5 py-0.5 rounded" style={{ background: '#f0f2f5', color: C.waGray }}>
+                            {sc.lines.length} {he ? 'שורות' : 'lines'}
+                          </span>
+                          <span className="text-[9px] px-1.5 py-0.5 rounded" style={{ background: '#f0f2f5', color: C.waGray }}>
+                            x{sc.times_used}
+                          </span>
+                          {hasVariations && (
+                            <span className="text-[9px] px-1.5 py-0.5 rounded" style={{ background: '#dcfce7', color: '#16a34a' }}>
+                              🔀 {he ? 'וריאציות' : 'variations'}
+                            </span>
+                          )}
+                          {hasPlaceholders && (
+                            <span className="text-[9px] px-1.5 py-0.5 rounded" style={{ background: '#fef3c7', color: '#d97706' }}>
+                              📌 {sc.placeholders.join(' ')}
+                            </span>
+                          )}
+                          <span className="text-[9px] px-1.5 py-0.5 rounded" style={{ background: '#f0f2f5', color: C.waGray }}>
+                            ⏸ {sc.cooldown_days}d cooldown
+                          </span>
+                        </div>
+                        {sc.last_used_at && (
+                          <span className="text-[9px] mt-1 block" style={{ color: C.waGray }}>
+                            {he ? 'שימוש אחרון:' : 'Last used:'} {timeAgo(sc.last_used_at)}
+                          </span>
+                        )}
+                      </button>
+                    )
+                  })
+                ) : (
+                  /* Run history */
+                  scenarioRuns.length === 0 ? (
+                    <div className="text-center py-12 text-[12px]" style={{ color: C.waGray }}>{he ? 'אין ריצות' : 'No runs yet'}</div>
+                  ) : scenarioRuns.map(run => {
+                    const sc = scenarios.find(s => s.id === run.scenario_id)
+                    const statusColor = run.status === 'completed' ? '#16a34a' : run.status === 'running' ? '#2563eb' : run.status === 'failed' ? '#dc2626' : '#d97706'
+                    const statusLabel = run.status === 'completed' ? (he ? '✅ הושלם' : '✅ Done') : run.status === 'running' ? (he ? '🔄 רץ' : '🔄 Running') : run.status === 'failed' ? (he ? '❌ נכשל' : '❌ Failed') : (he ? '⏳ ממתין' : '⏳ Pending')
+                    return (
+                      <div key={run.id} className="px-3 py-3" style={{ borderBottom: `1px solid ${C.waBorder}` }}>
+                        <div className="flex items-center justify-between">
+                          <span className="text-[13px] font-medium" style={{ color: C.waDark }}>{sc?.name ?? '?'}</span>
+                          <span className="text-[10px] font-bold" style={{ color: statusColor }}>{statusLabel}</span>
+                        </div>
+                        <span className="text-[11px] block mt-0.5" style={{ color: C.waGray }}>{run.group_name ?? run.group_wa_id}</span>
+                        <div className="flex items-center gap-2 mt-1">
+                          <span className="text-[10px]" style={{ color: C.waGray }}>{he ? 'שורה' : 'Line'} {run.current_line}/{sc?.lines.length ?? '?'}</span>
+                          <span className="text-[10px]" style={{ color: C.waGray }}>{fmtTime(run.scheduled_at)}</span>
+                          {run.error && <span className="text-[10px] text-red-500 truncate">{run.error}</span>}
+                        </div>
+                        {/* Role assignments visual */}
+                        <div className="flex items-center gap-1 mt-1.5">
+                          {Object.entries(run.role_assignments).map(([role, accId]) => {
+                            const acc = accounts.find(a => a.id === accId)
+                            return (
+                              <div key={role} className="flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px]" style={{ background: `${ROLE_COLORS_CHAT[role] ?? '#999'}15`, color: ROLE_COLORS_CHAT[role] ?? '#999' }}>
+                                <span className="font-black">{role}</span>
+                                <span className="font-medium">{acc?.army_alias?.split('-').pop() ?? '?'}</span>
+                              </div>
+                            )
+                          })}
                         </div>
                       </div>
-                      <p className="text-[12px] mt-0.5 truncate" style={{ color: C.waGray, direction: 'rtl' }}>{sc.description}</p>
-                      <div className="flex items-center gap-2 mt-1.5">
-                        <span className="text-[9px] font-bold px-1.5 py-0.5 rounded" style={{ background: `${catColor}15`, color: catColor }}>
-                          {SCENARIO_CATEGORIES.find(c => c.key === sc.category)?.label}
-                        </span>
-                        <span className="text-[10px]" style={{ color: C.waGray }}>{sc.lines.length} {he ? 'שורות' : 'lines'}</span>
-                        <span className="text-[10px]" style={{ color: C.waGray }}>x{sc.times_used}</span>
-                      </div>
-                    </button>
-                  )
-                })}
+                    )
+                  })
+                )}
               </div>
             </div>
 
@@ -678,6 +796,13 @@ export default function ArmyCommandCenter() {
                       <span className="text-[12px] block" style={{ color: C.waGray, direction: 'rtl' }}>{selectedScenario.description}</span>
                     </div>
                     <button
+                      onClick={() => { if (DEMO) alert(he ? 'במצב דמו - ישגר סצנה בפרודקשן' : 'Demo - would run scenario in production'); }}
+                      className="px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all hover:bg-green-50"
+                      style={{ color: '#16a34a' }}
+                    >
+                      ▶ {he ? 'הפעל עכשיו' : 'Run Now'}
+                    </button>
+                    <button
                       onClick={() => {
                         setScenarioEditing(true)
                         setEditName(selectedScenario.name)
@@ -692,10 +817,24 @@ export default function ArmyCommandCenter() {
                     </button>
                   </div>
 
+                  {/* Info bar */}
+                  <div className="shrink-0 flex items-center gap-3 px-4 py-2 text-[10px] flex-wrap" style={{ background: '#faf9f6', borderBottom: `1px solid ${C.waBorder}` }}>
+                    <span style={{ color: C.waGray }}>⏸ Cooldown: <b>{selectedScenario.cooldown_days} {he ? 'ימים' : 'days'}</b></span>
+                    <span style={{ color: C.waGray }}>👥 Roles: <b>{[...new Set(selectedScenario.lines.map(l => l.role))].join(', ')}</b></span>
+                    <span style={{ color: C.waGray }}>📝 {selectedScenario.lines.length} {he ? 'שורות' : 'lines'}</span>
+                    {selectedScenario.lines.some(l => l.variations?.length) && (
+                      <span style={{ color: '#16a34a' }}>🔀 {selectedScenario.lines.filter(l => l.variations?.length).length} {he ? 'שורות עם וריאציות' : 'lines with variations'}</span>
+                    )}
+                    {selectedScenario.placeholders?.length > 0 && (
+                      <span style={{ color: '#d97706' }}>📌 {selectedScenario.placeholders.join(', ')}</span>
+                    )}
+                    <span style={{ color: C.waGray }}>🔁 x{selectedScenario.times_used}</span>
+                  </div>
+
                   {/* WhatsApp-style preview */}
                   <div className="flex-1 overflow-y-auto px-[60px] py-6 space-y-2 scrollbar-hide">
                     {/* Role legend */}
-                    <div className="flex items-center justify-center gap-3 mb-4">
+                    <div className="flex items-center justify-center gap-3 mb-2">
                       {[...new Set(selectedScenario.lines.map(l => l.role))].map(role => (
                         <div key={role} className="flex items-center gap-1">
                           <div className="w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-black text-white" style={{ background: ROLE_COLORS_CHAT[role] ?? '#999' }}>{role}</div>
@@ -704,16 +843,43 @@ export default function ArmyCommandCenter() {
                       ))}
                     </div>
 
+                    {/* Explanation */}
+                    <div className="flex justify-center mb-4">
+                      <span className="text-[10px] px-3 py-1 rounded-full" style={{ background: '#fff8e1', color: '#b45309' }}>
+                        {he ? '👇 ככה זה ייראה בקבוצה. כל שורה עם וריאציות מסומנת ב-🔀' : '👇 This is how it will look in the group. Lines with variations marked with 🔀'}
+                      </span>
+                    </div>
+
                     {selectedScenario.lines.map((line, i) => (
-                      <div key={i} className="flex justify-start">
-                        <div className="max-w-[75%] rounded-lg px-[9px] py-[6px] shadow-sm" style={{ background: C.incoming, borderTopLeftRadius: 0 }}>
-                          {/* Role badge */}
-                          <div className="flex items-center gap-1.5 mb-1">
-                            <div className="w-4 h-4 rounded-full flex items-center justify-center text-[8px] font-black text-white" style={{ background: ROLE_COLORS_CHAT[line.role] ?? '#999' }}>{line.role}</div>
-                            <span className="text-[11px] font-bold" style={{ color: ROLE_COLORS_CHAT[line.role] ?? '#999' }}>{he ? `חייל ${line.role}` : `Soldier ${line.role}`}</span>
-                            {i > 0 && <span className="text-[10px]" style={{ color: C.waGray }}>⏱ {line.delay_min}-{line.delay_max}m</span>}
+                      <div key={i}>
+                        {/* Delay indicator */}
+                        {i > 0 && (
+                          <div className="flex justify-center my-2">
+                            <span className="text-[9px] px-2 py-0.5 rounded-full" style={{ background: 'rgba(0,0,0,0.04)', color: C.waGray }}>
+                              ⏱ {he ? `ימתין ${line.delay_min}-${line.delay_max} דקות` : `waits ${line.delay_min}-${line.delay_max} min`}
+                            </span>
                           </div>
-                          <p className="text-[14.2px] leading-[19px] whitespace-pre-wrap" style={{ color: C.waDark, direction: 'rtl' }}>{line.text}</p>
+                        )}
+                        <div className="flex justify-start">
+                          <div className="max-w-[75%] rounded-lg px-[9px] py-[6px] shadow-sm" style={{ background: C.incoming, borderTopLeftRadius: 0 }}>
+                            <div className="flex items-center gap-1.5 mb-1">
+                              <div className="w-4 h-4 rounded-full flex items-center justify-center text-[8px] font-black text-white" style={{ background: ROLE_COLORS_CHAT[line.role] ?? '#999' }}>{line.role}</div>
+                              <span className="text-[11px] font-bold" style={{ color: ROLE_COLORS_CHAT[line.role] ?? '#999' }}>{he ? `חייל ${line.role}` : `Soldier ${line.role}`}</span>
+                              {line.variations && line.variations.length > 0 && (
+                                <span className="text-[9px] px-1 py-0.5 rounded" style={{ background: '#dcfce7', color: '#16a34a' }}>🔀 +{line.variations.length}</span>
+                              )}
+                            </div>
+                            <p className="text-[14.2px] leading-[19px] whitespace-pre-wrap" style={{ color: C.waDark, direction: 'rtl' }}>{line.text}</p>
+                            {/* Show variations */}
+                            {line.variations && line.variations.length > 0 && (
+                              <div className="mt-2 pt-2 space-y-1" style={{ borderTop: `1px dashed ${C.waBorder}` }}>
+                                <span className="text-[9px] font-bold" style={{ color: '#16a34a' }}>{he ? 'וריאציות (המערכת תגריל):' : 'Variations (system picks randomly):'}</span>
+                                {line.variations.map((v, vi) => (
+                                  <p key={vi} className="text-[12px] leading-[16px] pl-2" style={{ color: C.waGray, direction: 'rtl', borderLeft: `2px solid ${ROLE_COLORS_CHAT[line.role] ?? '#999'}30` }}>{v}</p>
+                                ))}
+                              </div>
+                            )}
+                          </div>
                         </div>
                       </div>
                     ))}
@@ -747,11 +913,20 @@ export default function ArmyCommandCenter() {
                     </button>
                   </div>
 
-                  <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4 scrollbar-hide">
+                  {/* Editor explanation */}
+                  <div className="shrink-0 px-4 py-2" style={{ background: '#faf9f6', borderBottom: `1px solid ${C.waBorder}` }}>
+                    <p className="text-[10px] leading-[14px]" style={{ color: '#7c3aed' }}>
+                      {he
+                        ? '📝 כל שורה = הודעה שחייל שולח בקבוצה. בחר role (A/B/C/D) = חייל שונה. הגדר דיליי = כמה דקות לחכות בין הודעות. הוסף וריאציות = טקסטים חלופיים שהמערכת מגרילה כדי שלא יחזור אותו דבר.'
+                        : '📝 Each line = a message a soldier sends in the group. Pick a role (A/B/C/D) = different soldier. Set delay = minutes to wait between messages. Add variations = alternative texts the system randomly picks so it never repeats.'}
+                    </p>
+                  </div>
+
+                  <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4 scrollbar-hide">
                     {/* Name + Description */}
                     <div className="space-y-2">
                       <input value={editName} onChange={e => setEditName(e.target.value)} placeholder={he ? 'שם הסצנה' : 'Scenario name'} className="w-full px-3 py-2.5 rounded-lg text-[14px] font-bold outline-none" style={{ background: '#fff', direction: 'rtl' }} />
-                      <input value={editDesc} onChange={e => setEditDesc(e.target.value)} placeholder={he ? 'תיאור קצר' : 'Short description'} className="w-full px-3 py-2 rounded-lg text-[13px] outline-none" style={{ background: '#fff', direction: 'rtl' }} />
+                      <input value={editDesc} onChange={e => setEditDesc(e.target.value)} placeholder={he ? 'תיאור קצר - מה קורה בסצנה?' : 'Short description - what happens in the scene?'} className="w-full px-3 py-2 rounded-lg text-[13px] outline-none" style={{ background: '#fff', direction: 'rtl' }} />
                       <div className="flex gap-1.5">
                         {SCENARIO_CATEGORIES.filter(c => c.key !== 'all').map(cat => (
                           <button key={cat.key} onClick={() => setEditCategory(cat.key)} className="px-2.5 py-1 rounded-md text-[10px] font-bold transition-all" style={{ background: editCategory === cat.key ? `${cat.color}15` : '#f0f2f5', color: editCategory === cat.key ? cat.color : C.waGray }}>
@@ -762,60 +937,107 @@ export default function ArmyCommandCenter() {
                     </div>
 
                     {/* Lines editor */}
-                    <div className="space-y-2">
-                      <span className="text-[11px] font-bold uppercase tracking-wider" style={{ color: C.waGray }}>{he ? 'שורות הסצנה' : 'Script Lines'}</span>
+                    <div className="space-y-3">
+                      <span className="text-[11px] font-bold uppercase tracking-wider" style={{ color: C.waGray }}>{he ? 'תסריט הסצנה' : 'Scene Script'}</span>
                       {editLines.map((line, i) => (
-                        <div key={i} className="flex items-start gap-2 p-3 rounded-xl" style={{ background: '#fff' }}>
-                          {/* Role selector */}
-                          <div className="flex flex-col items-center gap-1 shrink-0">
-                            {['A', 'B', 'C', 'D'].map(r => (
-                              <button
-                                key={r}
-                                onClick={() => { const nl = [...editLines]; nl[i] = { ...nl[i], role: r }; setEditLines(nl) }}
-                                className="w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-black text-white transition-all"
-                                style={{ background: line.role === r ? (ROLE_COLORS_CHAT[r] ?? '#999') : '#e5e7eb', color: line.role === r ? '#fff' : '#9ca3af' }}
-                              >
-                                {r}
-                              </button>
-                            ))}
-                          </div>
-
-                          <div className="flex-1 space-y-1.5">
-                            <textarea
-                              value={line.text}
-                              onChange={e => { const nl = [...editLines]; nl[i] = { ...nl[i], text: e.target.value }; setEditLines(nl) }}
-                              placeholder={he ? 'מה החייל אומר...' : 'What the soldier says...'}
-                              rows={2}
-                              className="w-full px-3 py-2 rounded-lg text-[13px] outline-none resize-none"
-                              style={{ background: C.waLightGray, direction: 'rtl' }}
-                            />
+                        <div key={i} className="rounded-xl overflow-hidden" style={{ background: '#fff', border: `1px solid ${ROLE_COLORS_CHAT[line.role] ?? '#999'}25` }}>
+                          {/* Line header */}
+                          <div className="flex items-center gap-2 px-3 py-2" style={{ background: `${ROLE_COLORS_CHAT[line.role] ?? '#999'}08`, borderBottom: `1px solid ${ROLE_COLORS_CHAT[line.role] ?? '#999'}15` }}>
+                            <span className="text-[10px] font-bold" style={{ color: C.waGray }}>{he ? `שורה ${i + 1}` : `Line ${i + 1}`}</span>
+                            {/* Role pills */}
+                            <div className="flex gap-1">
+                              {['A', 'B', 'C', 'D'].map(r => (
+                                <button
+                                  key={r}
+                                  onClick={() => { const nl = [...editLines]; nl[i] = { ...nl[i], role: r }; setEditLines(nl) }}
+                                  className="w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-black text-white transition-all"
+                                  style={{ background: line.role === r ? (ROLE_COLORS_CHAT[r] ?? '#999') : '#e5e7eb', color: line.role === r ? '#fff' : '#9ca3af' }}
+                                >
+                                  {r}
+                                </button>
+                              ))}
+                            </div>
+                            <div className="flex-1" />
                             {i > 0 && (
-                              <div className="flex items-center gap-2">
+                              <div className="flex items-center gap-1">
                                 <Clock className="w-3 h-3" style={{ color: C.waGray }} />
-                                <span className="text-[10px]" style={{ color: C.waGray }}>{he ? 'דיליי:' : 'Delay:'}</span>
-                                <input type="number" value={line.delay_min} onChange={e => { const nl = [...editLines]; nl[i] = { ...nl[i], delay_min: +e.target.value }; setEditLines(nl) }} className="w-12 px-1.5 py-1 rounded text-[11px] text-center outline-none" style={{ background: C.waLightGray }} />
+                                <input type="number" value={line.delay_min} onChange={e => { const nl = [...editLines]; nl[i] = { ...nl[i], delay_min: +e.target.value }; setEditLines(nl) }} className="w-10 px-1 py-0.5 rounded text-[10px] text-center outline-none" style={{ background: C.waLightGray }} />
                                 <span className="text-[10px]" style={{ color: C.waGray }}>-</span>
-                                <input type="number" value={line.delay_max} onChange={e => { const nl = [...editLines]; nl[i] = { ...nl[i], delay_max: +e.target.value }; setEditLines(nl) }} className="w-12 px-1.5 py-1 rounded text-[11px] text-center outline-none" style={{ background: C.waLightGray }} />
-                                <span className="text-[10px]" style={{ color: C.waGray }}>{he ? 'דקות' : 'min'}</span>
+                                <input type="number" value={line.delay_max} onChange={e => { const nl = [...editLines]; nl[i] = { ...nl[i], delay_max: +e.target.value }; setEditLines(nl) }} className="w-10 px-1 py-0.5 rounded text-[10px] text-center outline-none" style={{ background: C.waLightGray }} />
+                                <span className="text-[9px]" style={{ color: C.waGray }}>{he ? 'דק׳' : 'min'}</span>
                               </div>
+                            )}
+                            {editLines.length > 2 && (
+                              <button onClick={() => setEditLines(editLines.filter((_, j) => j !== i))} className="p-0.5 rounded hover:bg-red-50 transition-colors">
+                                <X className="w-3 h-3 text-red-400" />
+                              </button>
                             )}
                           </div>
 
-                          {/* Delete line */}
-                          {editLines.length > 2 && (
-                            <button onClick={() => setEditLines(editLines.filter((_, j) => j !== i))} className="p-1 rounded hover:bg-red-50 transition-colors shrink-0">
-                              <X className="w-3.5 h-3.5 text-red-400" />
+                          {/* Main text */}
+                          <div className="px-3 py-2">
+                            <textarea
+                              value={line.text}
+                              onChange={e => { const nl = [...editLines]; nl[i] = { ...nl[i], text: e.target.value }; setEditLines(nl) }}
+                              placeholder={he ? `מה חייל ${line.role} אומר...` : `What soldier ${line.role} says...`}
+                              rows={2}
+                              className="w-full px-2 py-1.5 rounded-lg text-[13px] outline-none resize-none"
+                              style={{ background: C.waLightGray, direction: 'rtl' }}
+                            />
+                          </div>
+
+                          {/* Variations */}
+                          <div className="px-3 pb-2">
+                            <div className="flex items-center gap-1 mb-1">
+                              <span className="text-[9px] font-bold" style={{ color: '#16a34a' }}>🔀 {he ? 'וריאציות' : 'Variations'}</span>
+                              <span className="text-[9px]" style={{ color: C.waGray }}>({he ? 'המערכת מגרילה טקסט אחר כל פעם' : 'system picks different text each time'})</span>
+                            </div>
+                            {(line.variations ?? []).map((v, vi) => (
+                              <div key={vi} className="flex items-center gap-1 mb-1">
+                                <span className="text-[9px] shrink-0" style={{ color: '#16a34a' }}>#{vi + 1}</span>
+                                <input
+                                  value={v}
+                                  onChange={e => {
+                                    const nl = [...editLines]
+                                    const vars = [...(nl[i].variations ?? [])]
+                                    vars[vi] = e.target.value
+                                    nl[i] = { ...nl[i], variations: vars }
+                                    setEditLines(nl)
+                                  }}
+                                  className="flex-1 px-2 py-1 rounded text-[11px] outline-none"
+                                  style={{ background: '#f0fdf4', direction: 'rtl' }}
+                                />
+                                <button onClick={() => {
+                                  const nl = [...editLines]
+                                  const vars = [...(nl[i].variations ?? [])].filter((_, j) => j !== vi)
+                                  nl[i] = { ...nl[i], variations: vars }
+                                  setEditLines(nl)
+                                }} className="text-red-300 hover:text-red-500">
+                                  <X className="w-3 h-3" />
+                                </button>
+                              </div>
+                            ))}
+                            <button
+                              onClick={() => {
+                                const nl = [...editLines]
+                                nl[i] = { ...nl[i], variations: [...(nl[i].variations ?? []), ''] }
+                                setEditLines(nl)
+                              }}
+                              className="text-[10px] font-bold mt-0.5 transition-all hover:underline"
+                              style={{ color: '#16a34a' }}
+                            >
+                              + {he ? 'הוסף וריאציה' : 'Add variation'}
                             </button>
-                          )}
+                          </div>
                         </div>
                       ))}
 
                       <button
-                        onClick={() => setEditLines([...editLines, { role: editLines.length % 2 === 0 ? 'A' : 'B', delay_min: 2, delay_max: 5, text: '' }])}
-                        className="w-full py-2 rounded-lg text-[12px] font-bold transition-all hover:bg-[#8b5cf610]"
+                        onClick={() => setEditLines([...editLines, { role: editLines.length % 2 === 0 ? 'A' : 'B', delay_min: 2, delay_max: 5, text: '', variations: [] }])}
+                        className="w-full py-2.5 rounded-lg text-[12px] font-bold transition-all hover:bg-[#8b5cf610]"
                         style={{ color: '#8b5cf6', border: `1px dashed #8b5cf630` }}
                       >
-                        + {he ? 'הוסף שורה' : 'Add Line'}
+                        + {he ? 'הוסף שורה לתסריט' : 'Add Script Line'}
                       </button>
                     </div>
                   </div>
@@ -825,7 +1047,9 @@ export default function ArmyCommandCenter() {
                 <div className="flex-1 flex flex-col items-center justify-center" style={{ background: C.waLightGray }}>
                   <FileText className="w-16 h-16 mb-4" style={{ color: '#d1d5db' }} />
                   <p className="text-[18px] font-light" style={{ color: '#41525d' }}>{he ? 'בחר סצנה' : 'Select a Scenario'}</p>
-                  <p className="text-[13px] mt-1" style={{ color: '#8696a0' }}>{he ? 'בחר סצנה מהרשימה או צור חדשה' : 'Pick a scenario from the list or create a new one'}</p>
+                  <p className="text-[13px] mt-1 max-w-[300px] text-center" style={{ color: '#8696a0' }}>
+                    {he ? 'בחר סצנה מהרשימה כדי לראות preview, או צור סצנה חדשה. כל סצנה = שיחה מתוסרטת בין חיילים שמופיעה בקבוצה באופן טבעי.' : 'Pick a scenario to preview, or create a new one. Each scenario = a scripted conversation between soldiers that appears naturally in groups.'}
+                  </p>
                 </div>
               )}
             </div>

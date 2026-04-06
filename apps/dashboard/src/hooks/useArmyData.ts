@@ -305,6 +305,7 @@ export interface ScenarioLine {
   delay_min: number
   delay_max: number
   text: string
+  variations?: string[] // alternative texts the system randomly picks from
 }
 
 export interface ArmyScenario {
@@ -317,16 +318,20 @@ export interface ArmyScenario {
   times_used: number
   last_used_at: string | null
   created_at: string
+  cooldown_days: number
+  placeholders: string[] // e.g. ["{city}", "{profession}"]
 }
 
 export interface ArmyScenarioRun {
   id: string
   scenario_id: string | null
   group_wa_id: string
+  group_name: string | null
   status: 'pending' | 'running' | 'completed' | 'failed'
   role_assignments: Record<string, string>
   current_line: number
   scheduled_at: string
+  lines_used: ScenarioLine[] | null
   started_at: string | null
   completed_at: string | null
   error: string | null
