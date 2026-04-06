@@ -85,7 +85,7 @@ export interface LinkedContractor {
 const detailKey = (id: string) => ['admin', 'prospects', 'detail', id] as const
 const messagesKey = (id: string) => ['admin', 'prospects', 'messages', id] as const
 const eventsKey = (id: string) => ['admin', 'prospects', 'events', id] as const
-const contractorKey = (phone: string) => ['admin', 'prospects', 'contractor', phone] as const
+const contractorKey = (id: string) => ['admin', 'prospects', 'contractor', id] as const
 
 function toListItem(p: ProspectRecord): ProspectListItem {
   return {
@@ -131,38 +131,33 @@ export function useProspectDetailData(id: string | undefined) {
     },
   })
 
-  // Fetch linked contractor profile (by phone number)
-  const prospectPhone = prospectQuery.data?.phone
+  // Fetch linked contractor profile (via direct FK)
+  const contractorId = prospectQuery.data?.contractor_id
   const contractorQuery = useQuery({
-    queryKey: contractorKey(prospectPhone ?? ''),
-    enabled: Boolean(prospectPhone),
+    queryKey: contractorKey(contractorId ?? ''),
+    enabled: Boolean(contractorId),
     queryFn: async () => {
-      // Look up profile by phone, then join contractor data
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('id, full_name, phone, preferred_locale, counties')
-        .eq('phone', prospectPhone)
-        .maybeSingle()
-      if (!profile) return null
-
-      const { data: contractor } = await supabase
+      const { data, error } = await supabase
         .from('contractors')
-        .select('user_id, professions, zip_codes, working_days, wa_notify, is_active')
-        .eq('user_id', profile.id)
-        .maybeSingle()
-      if (!contractor) return null
+        .select(`
+          user_id, professions, zip_codes, working_days, wa_notify, is_active,
+          profiles!inner(full_name, phone, preferred_locale, counties),
+          subscriptions(status, plan)
+        `)
+        .eq('user_id', contractorId)
+        .single()
+      if (error) throw error
+      if (!data) return null
 
-      // Also check subscription status
-      const { data: sub } = await supabase
-        .from('subscriptions')
-        .select('status, plan')
-        .eq('user_id', profile.id)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle()
-
+      const profile = (data as any).profiles
+      const sub = (data as any).subscriptions?.[0]
       return {
-        ...contractor,
+        user_id: data.user_id,
+        professions: data.professions,
+        zip_codes: data.zip_codes,
+        working_days: data.working_days,
+        wa_notify: data.wa_notify,
+        is_active: data.is_active,
         full_name: profile.full_name,
         phone: profile.phone,
         counties: profile.counties ?? [],
