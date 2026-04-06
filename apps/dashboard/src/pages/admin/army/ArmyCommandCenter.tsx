@@ -561,13 +561,22 @@ export default function ArmyCommandCenter() {
                   className="w-full flex items-center gap-3 px-3 py-3 text-left transition-colors"
                   style={{ background: isActive ? '#f0f2f5' : 'transparent', borderBottom: `1px solid ${C.waBorder}` }}
                 >
-                  {/* Avatar */}
-                  <div className="w-[49px] h-[49px] rounded-full shrink-0 flex items-center justify-center text-[18px]" style={{ background: isGroup ? '#00a884' : '#dfe5e7' }}>
+                  {/* Avatar with health indicator */}
+                  <div className="w-[49px] h-[49px] rounded-full shrink-0 flex items-center justify-center text-[18px] relative" style={{ background: isGroup ? '#00a884' : '#dfe5e7' }}>
                     {isGroup ? <Users className="w-6 h-6 text-white" /> : (
                       <span className="font-bold" style={{ color: '#8696a0' }}>
                         {(item.type === 'dm' && item.name) ? item.name.charAt(0).toUpperCase() : '?'}
                       </span>
                     )}
+                    {isGroup && (() => {
+                      const gid = (item as ChatItem & { type: 'group' }).groupId
+                      const hasSent = activityEntries.some(e => e.group_wa_id === gid && e.status === 'sent')
+                      return (
+                        <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full flex items-center justify-center text-[8px] font-bold text-white border-2 border-white" style={{ background: hasSent ? '#16a34a' : '#d97706' }}>
+                          {hasSent ? '✓' : '!'}
+                        </div>
+                      )
+                    })()}
                   </div>
 
                   {/* Content */}
@@ -1234,15 +1243,225 @@ export default function ArmyCommandCenter() {
               </div>
             </>
           ) : (
-            /* No chat selected */
-            <div className="flex-1 flex flex-col items-center justify-center" style={{ background: C.waLightGray }}>
-              <div className="w-[320px] text-center">
-                <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 303 172'%3E%3Cpath fill='%2300a884' d='M151.5 0C68 0 0 38.6 0 86.2c0 28 18.4 52.8 46.6 69.2L42 172l24-12.4c25.8 8.2 55.2 12.8 85.5 12.8 83.5 0 151.5-38.6 151.5-86.2C303 38.6 235 0 151.5 0z'/%3E%3Cpath fill='white' d='M212 65c-3.2-3.2-7.5-5-12-5h-97c-9.4 0-17 7.6-17 17v60c0 4.5 1.8 8.8 5 12 3.2 3.2 7.5 5 12 5h97c9.4 0 17-7.6 17-17V77c0-4.5-1.8-8.8-5-12z' opacity='.15'/%3E%3C/svg%3E" alt="" className="w-[260px] mx-auto mb-6 opacity-30" />
-                <h2 className="text-[28px] font-light mb-2" style={{ color: '#41525d' }}>{he ? 'מרכז שליטה צבאי' : 'Army Command Center'}</h2>
-                <p className="text-[14px] leading-[20px]" style={{ color: '#8696a0' }}>
-                  {he ? 'בחר צ\'אט משמאל כדי לראות הודעות, או בחר חייל מלמעלה' : 'Select a chat from the left to view messages, or pick a soldier from the top bar'}
-                </p>
+            /* ═══ MISSION CONTROL (default view) ═══ */
+            <div className="flex-1 overflow-y-auto p-6 space-y-5 scrollbar-hide" style={{ background: C.waLightGray }}>
+              {/* Title */}
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl flex items-center justify-center" style={{ background: `${C.primary}12` }}>
+                  <Swords className="w-5 h-5" style={{ color: C.primary }} />
+                </div>
+                <div>
+                  <h2 className="text-[20px] font-bold" style={{ color: C.waDark }}>{he ? 'מרכז שליטה' : 'Mission Control'}</h2>
+                  <p className="text-[12px]" style={{ color: C.waGray }}>{he ? 'סקירה כללית של הצבא שלך' : 'Overview of your army operations'}</p>
+                </div>
               </div>
+
+              {/* Slaves Health */}
+              <div className="rounded-2xl p-4 space-y-3" style={{ background: '#fff', border: `1px solid ${C.waBorder}` }}>
+                <div className="flex items-center justify-between">
+                  <span className="text-[12px] font-bold" style={{ color: C.waGreen }}>{he ? '🤖 חיילים' : '🤖 Soldiers'}</span>
+                  <span className="text-[11px] font-bold" style={{ color: stats.connectedSlaves === stats.totalSlaves ? '#16a34a' : '#d97706' }}>
+                    {stats.connectedSlaves}/{stats.totalSlaves} {he ? 'מחוברים' : 'connected'}
+                  </span>
+                </div>
+                <div className="grid grid-cols-3 gap-2">
+                  {accounts.map(acc => {
+                    const role = ROLE_META[acc.army_role ?? 'publisher']
+                    const connected = acc.status === 'connected'
+                    const todayMsgs = activityEntries.filter(e => e.wa_account_id === acc.id && e.status === 'sent').length
+                    return (
+                      <button
+                        key={acc.id}
+                        onClick={() => { setSelectedAccountId(acc.id); setSelectedChatId(null); setSelectedChatType(null) }}
+                        className="flex items-center gap-2 px-3 py-2 rounded-xl transition-all hover:shadow-sm"
+                        style={{ background: connected ? '#f0fdf4' : '#fef2f2', border: `1px solid ${connected ? '#bbf7d0' : '#fecaca'}` }}
+                      >
+                        <div className="w-2 h-2 rounded-full shrink-0" style={{ background: connected ? '#16a34a' : '#dc2626' }} />
+                        <div className="flex-1 min-w-0 text-left">
+                          <span className="text-[11px] font-bold truncate block" style={{ color: C.waDark }}>{acc.army_alias?.split('-').pop()}</span>
+                          <span className="text-[9px]" style={{ color: C.waGray }}>{role.emoji} {todayMsgs > 0 ? `${todayMsgs} ${he ? 'נשלחו' : 'sent'}` : (he ? 'לא שלח' : 'idle')}</span>
+                        </div>
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+
+              {/* Groups Health */}
+              <div className="rounded-2xl p-4 space-y-3" style={{ background: '#fff', border: `1px solid ${C.waBorder}` }}>
+                <div className="flex items-center justify-between">
+                  <span className="text-[12px] font-bold" style={{ color: C.waGreen }}>{he ? '👥 בריאות קבוצות' : '👥 Group Health'}</span>
+                  <span className="text-[11px]" style={{ color: C.waGray }}>
+                    {he ? 'האם כל קבוצה קיבלה פעילות היום?' : 'Did every group get activity today?'}
+                  </span>
+                </div>
+                <div className="space-y-1.5">
+                  {(() => {
+                    const groupIds = [...new Set(assignments.map(a => a.group_wa_id))]
+                    return groupIds.map(gid => {
+                      const groupName = assignments.find(a => a.group_wa_id === gid)?.group_name ?? gid
+                      const todayActivity = activityEntries.filter(e => e.group_wa_id === gid)
+                      const sentCount = todayActivity.filter(e => e.status === 'sent').length
+                      const pendingCount = todayActivity.filter(e => e.status === 'pending').length
+                      const failedCount = todayActivity.filter(e => e.status === 'failed').length
+                      const lastSent = todayActivity.find(e => e.status === 'sent')
+                      const healthy = sentCount > 0
+                      const hasIssue = failedCount > 0
+
+                      return (
+                        <div
+                          key={gid}
+                          className="flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all"
+                          style={{ background: hasIssue ? '#fef2f2' : healthy ? '#f0fdf4' : '#fffbeb', border: `1px solid ${hasIssue ? '#fecaca' : healthy ? '#bbf7d0' : '#fde68a'}` }}
+                        >
+                          <span className="text-[16px]">{hasIssue ? '❌' : healthy ? '✅' : '⚠️'}</span>
+                          <div className="flex-1 min-w-0">
+                            <span className="text-[13px] font-medium truncate block" style={{ color: C.waDark, direction: 'rtl' }}>{groupName}</span>
+                            <div className="flex items-center gap-2 mt-0.5">
+                              {sentCount > 0 && <span className="text-[10px]" style={{ color: '#16a34a' }}>📨 {sentCount} {he ? 'נשלחו' : 'sent'}</span>}
+                              {pendingCount > 0 && <span className="text-[10px]" style={{ color: '#d97706' }}>⏳ {pendingCount} {he ? 'ממתינות' : 'pending'}</span>}
+                              {failedCount > 0 && <span className="text-[10px]" style={{ color: '#dc2626' }}>❌ {failedCount} {he ? 'נכשלו' : 'failed'}</span>}
+                              {sentCount === 0 && pendingCount === 0 && <span className="text-[10px]" style={{ color: '#d97706' }}>{he ? 'אין פעילות היום' : 'No activity today'}</span>}
+                            </div>
+                          </div>
+                          {lastSent && (
+                            <span className="text-[10px] shrink-0" style={{ color: C.waGray }}>{he ? 'אחרון:' : 'Last:'} {timeAgo(lastSent.scheduled_at)}</span>
+                          )}
+                        </div>
+                      )
+                    })
+                  })()}
+                </div>
+              </div>
+
+              {/* Scheduler Timeline */}
+              <div className="rounded-2xl p-4 space-y-3" style={{ background: '#fff', border: `1px solid ${C.waBorder}` }}>
+                <div className="flex items-center justify-between">
+                  <span className="text-[12px] font-bold" style={{ color: C.waGreen }}>{he ? '⏰ לוח זמנים היום' : '⏰ Today\'s Schedule'}</span>
+                  <span className="text-[11px]" style={{ color: C.waGray }}>
+                    {he ? 'מה מתוזמן ומה כבר רץ' : 'What\'s scheduled and what already ran'}
+                  </span>
+                </div>
+                <div className="space-y-1">
+                  {[...activityEntries].sort((a, b) => new Date(a.scheduled_at).getTime() - new Date(b.scheduled_at).getTime()).map(entry => {
+                    const typeEmoji = entry.message_type === 'job_post' ? '📢' : entry.message_type === 'response' ? '💬' : entry.message_type === 'contractor_promo' ? '👷' : '📋'
+                    const statusColor = entry.status === 'sent' ? '#16a34a' : entry.status === 'failed' ? '#dc2626' : '#d97706'
+                    const statusIcon = entry.status === 'sent' ? '✅' : entry.status === 'failed' ? '❌' : '⏳'
+                    const groupName = assignments.find(a => a.group_wa_id === entry.group_wa_id)?.group_name ?? entry.group_wa_id
+                    const slave = accounts.find(a => a.id === entry.wa_account_id)
+                    const isPast = new Date(entry.scheduled_at) < new Date()
+
+                    return (
+                      <div
+                        key={entry.id}
+                        className="flex items-center gap-3 px-3 py-2 rounded-lg transition-all"
+                        style={{ background: isPast ? 'transparent' : '#fffbeb', opacity: entry.status === 'sent' ? 0.6 : 1 }}
+                      >
+                        <span className="text-[12px] font-mono font-bold shrink-0 w-[44px]" style={{ color: entry.status === 'pending' ? '#d97706' : C.waGray }}>
+                          {fmtTime(entry.scheduled_at)}
+                        </span>
+                        <span className="text-[14px] shrink-0">{statusIcon}</span>
+                        <span className="text-[14px] shrink-0">{typeEmoji}</span>
+                        <div className="flex-1 min-w-0">
+                          <span className="text-[12px] font-medium truncate block" style={{ color: C.waDark }}>
+                            {entry.message_type.replace('_', ' ')} → {groupName}
+                          </span>
+                          <span className="text-[10px] truncate block" style={{ color: C.waGray }}>
+                            {slave?.army_alias} · {entry.rendered_message?.slice(0, 40)}...
+                          </span>
+                        </div>
+                        {entry.status === 'pending' && (
+                          <button
+                            onClick={() => { if (DEMO) alert(he ? 'דמו - ישלח בפרודקשן' : 'Demo - would send in production') }}
+                            className="text-[10px] font-bold px-2 py-1 rounded-md transition-all hover:bg-green-50"
+                            style={{ color: '#16a34a' }}
+                          >
+                            ▶ {he ? 'שלח' : 'Send'}
+                          </button>
+                        )}
+                      </div>
+                    )
+                  })}
+                  {/* Scenario runs in timeline */}
+                  {scenarioRuns.filter(r => r.status === 'pending' || r.status === 'running').map(run => {
+                    const sc = scenarios.find(s => s.id === run.scenario_id)
+                    return (
+                      <div key={run.id} className="flex items-center gap-3 px-3 py-2 rounded-lg" style={{ background: run.status === 'running' ? '#eff6ff' : '#fffbeb' }}>
+                        <span className="text-[12px] font-mono font-bold shrink-0 w-[44px]" style={{ color: run.status === 'running' ? '#2563eb' : '#d97706' }}>
+                          {fmtTime(run.scheduled_at)}
+                        </span>
+                        <span className="text-[14px] shrink-0">{run.status === 'running' ? '🔄' : '⏳'}</span>
+                        <span className="text-[14px] shrink-0">📋</span>
+                        <div className="flex-1 min-w-0">
+                          <span className="text-[12px] font-medium truncate block" style={{ color: C.waDark }}>
+                            {he ? 'סצנה' : 'Scenario'}: {sc?.name ?? '?'} → {run.group_name}
+                          </span>
+                          <span className="text-[10px]" style={{ color: C.waGray }}>
+                            {he ? 'שורה' : 'Line'} {run.current_line}/{sc?.lines.length ?? '?'} · {Object.keys(run.role_assignments).length} {he ? 'חיילים' : 'soldiers'}
+                          </span>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+
+              {/* Alerts */}
+              {(() => {
+                const alerts: { type: 'error' | 'warning'; icon: string; text: string; time?: string }[] = []
+                // Disconnected slaves
+                accounts.filter(a => a.status !== 'connected').forEach(a => {
+                  alerts.push({ type: 'error', icon: '🔌', text: `${a.army_alias} ${he ? 'מנותק' : 'disconnected'}` })
+                })
+                // Failed sends
+                activityEntries.filter(e => e.status === 'failed').forEach(e => {
+                  const slave = accounts.find(a => a.id === e.wa_account_id)
+                  alerts.push({ type: 'error', icon: '❌', text: `${he ? 'שליחה נכשלה:' : 'Failed send:'} ${slave?.army_alias} → ${e.error?.slice(0, 30) ?? '?'}`, time: timeAgo(e.scheduled_at) })
+                })
+                // Quiet groups
+                const groupIds = [...new Set(assignments.map(a => a.group_wa_id))]
+                groupIds.forEach(gid => {
+                  const hasSent = activityEntries.some(e => e.group_wa_id === gid && e.status === 'sent')
+                  if (!hasSent) {
+                    const name = assignments.find(a => a.group_wa_id === gid)?.group_name ?? gid
+                    alerts.push({ type: 'warning', icon: '⚠️', text: `${name} - ${he ? 'אין פעילות היום' : 'no activity today'}` })
+                  }
+                })
+                // Failed scenario runs
+                scenarioRuns.filter(r => r.status === 'failed').forEach(r => {
+                  alerts.push({ type: 'error', icon: '📋', text: `${he ? 'סצנה נכשלה:' : 'Scenario failed:'} ${r.group_name} - ${r.error?.slice(0, 30) ?? '?'}`, time: timeAgo(r.scheduled_at) })
+                })
+
+                if (alerts.length === 0) return (
+                  <div className="rounded-2xl p-4 text-center" style={{ background: '#f0fdf4', border: '1px solid #bbf7d0' }}>
+                    <span className="text-[14px]">✅</span>
+                    <span className="text-[13px] font-medium ml-2" style={{ color: '#16a34a' }}>
+                      {he ? 'הכל עובד תקין, אין התראות' : 'All systems operational, no alerts'}
+                    </span>
+                  </div>
+                )
+
+                return (
+                  <div className="rounded-2xl p-4 space-y-3" style={{ background: '#fff', border: `1px solid ${C.waBorder}` }}>
+                    <div className="flex items-center justify-between">
+                      <span className="text-[12px] font-bold" style={{ color: '#dc2626' }}>🚨 {he ? 'התראות' : 'Alerts'} ({alerts.length})</span>
+                    </div>
+                    <div className="space-y-1.5">
+                      {alerts.map((alert, i) => (
+                        <div
+                          key={i}
+                          className="flex items-center gap-2 px-3 py-2 rounded-lg"
+                          style={{ background: alert.type === 'error' ? '#fef2f2' : '#fffbeb', border: `1px solid ${alert.type === 'error' ? '#fecaca' : '#fde68a'}` }}
+                        >
+                          <span className="text-[14px] shrink-0">{alert.icon}</span>
+                          <span className="text-[12px] font-medium flex-1" style={{ color: alert.type === 'error' ? '#dc2626' : '#d97706' }}>{alert.text}</span>
+                          {alert.time && <span className="text-[10px] shrink-0" style={{ color: C.waGray }}>{alert.time}</span>}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )
+              })()}
             </div>
           )}
         </div>
