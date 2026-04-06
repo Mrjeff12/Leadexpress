@@ -30,6 +30,9 @@ import {
   RefreshCw,
   AlertTriangle,
   ShieldAlert,
+  Pencil,
+  Save,
+  Calendar,
 } from 'lucide-react'
 
 /* ── Design tokens ──────────────────────────────────────────────── */
@@ -61,9 +64,11 @@ interface Contractor {
     status?: string
     subscriptions: {
       status: string
+      current_period_end: string | null
       plans: { name: string; slug: string; price_cents: number }
     }[] | {
       status: string
+      current_period_end: string | null
       plans: { name: string; slug: string; price_cents: number }
     }
   }
@@ -99,6 +104,181 @@ const STATUS_COLORS: Record<string, { color: string; bg: string }> = {
 
 function qrUrl(data: string, size = 300): string {
   return `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&data=${encodeURIComponent(data)}&bgcolor=FAFAF8&color=2D6A4F&margin=10`
+}
+
+/* ── Plan Popover ──────────────────────────────────────────────── */
+function PlanPopover({
+  contractor, availablePlans, currentPlanSlug, currentStatus, currentExpiry, onClose, onSaved, he,
+}: {
+  contractor: Contractor
+  availablePlans: { id: string; slug: string; name: string; price_cents: number }[]
+  currentPlanSlug: string
+  currentStatus: string
+  currentExpiry: string | null
+  onClose: () => void
+  onSaved: () => void
+  he: boolean
+}) {
+  const [selPlan, setSelPlan] = useState(currentPlanSlug)
+  const [selStatus, setSelStatus] = useState(currentStatus)
+  const [selExpiry, setSelExpiry] = useState(currentExpiry ? currentExpiry.slice(0, 10) : '')
+  const [saving, setSaving] = useState(false)
+
+  // Close on Escape
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
+    document.addEventListener('keydown', handler)
+    return () => document.removeEventListener('keydown', handler)
+  }, [onClose])
+
+  function addDays(days: number) {
+    const base = selExpiry ? new Date(selExpiry) : new Date()
+    base.setDate(base.getDate() + days)
+    setSelExpiry(base.toISOString().slice(0, 10))
+  }
+
+  async function handleSave() {
+    setSaving(true)
+    try {
+      const body: Record<string, unknown> = { action: 'admin_update_subscription', userId: contractor.user_id }
+      if (selPlan !== currentPlanSlug) body.planSlug = selPlan
+      if (selStatus !== currentStatus) body.status = selStatus
+      if (selExpiry && selExpiry !== (currentExpiry?.slice(0, 10) ?? '')) body.periodEnd = new Date(selExpiry).toISOString()
+      const { data: session } = await supabase.auth.getSession()
+      await supabase.functions.invoke('admin-billing', {
+        body,
+        headers: { Authorization: `Bearer ${session?.session?.access_token}` },
+      })
+      onSaved()
+    } catch (err) {
+      console.error('[PlanPopover] save error:', err)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const statuses = ['active', 'trialing', 'paused', 'canceled'] as const
+
+  return (
+    <>
+      {/* Click-outside overlay */}
+      <div className="fixed inset-0 z-40" onClick={onClose} />
+      <div
+        className="absolute top-full left-0 z-50 mt-1 w-72 rounded-xl shadow-lg border p-4 space-y-4 animate-fade-in"
+        style={{ background: 'white', borderColor: '#E5E7EB' }}
+        onClick={e => e.stopPropagation()}
+      >
+        {/* Plan selector */}
+        <div>
+          <p className="text-[10px] font-semibold uppercase tracking-wider mb-1.5" style={{ color: C.muted }}>
+            {he ? 'חבילה' : 'Plan'}
+          </p>
+          <div className="space-y-1">
+            {availablePlans.map(p => {
+              const conf = PLAN_CONFIG[p.slug]
+              const active = selPlan === p.slug
+              return (
+                <button
+                  key={p.slug}
+                  onClick={() => setSelPlan(p.slug)}
+                  className="w-full flex items-center justify-between px-3 py-2 rounded-lg text-[12px] font-medium transition-all"
+                  style={{
+                    background: active ? (conf?.bg ?? '#F3F4F6') : 'transparent',
+                    color: active ? (conf?.color ?? C.dark) : C.dark,
+                    border: active ? `1.5px solid ${conf?.border ?? '#E5E7EB'}` : '1.5px solid transparent',
+                  }}
+                >
+                  <span>{p.name}</span>
+                  <span style={{ color: C.muted }}>${p.price_cents / 100}/mo</span>
+                </button>
+              )
+            })}
+          </div>
+        </div>
+
+        {/* Status selector */}
+        <div>
+          <p className="text-[10px] font-semibold uppercase tracking-wider mb-1.5" style={{ color: C.muted }}>
+            {he ? 'סטטוס' : 'Status'}
+          </p>
+          <div className="flex flex-wrap gap-1">
+            {statuses.map(s => {
+              const sc = STATUS_COLORS[s]
+              const active = selStatus === s
+              return (
+                <button
+                  key={s}
+                  onClick={() => setSelStatus(s)}
+                  className="text-[10px] font-semibold px-2 py-1 rounded-md transition-all"
+                  style={{
+                    background: active ? sc?.bg : '#F9FAFB',
+                    color: active ? sc?.color : '#9CA3AF',
+                    border: active ? `1px solid ${sc?.color}40` : '1px solid transparent',
+                  }}
+                >
+                  {s}
+                </button>
+              )
+            })}
+          </div>
+        </div>
+
+        {/* Expiry management */}
+        <div>
+          <p className="text-[10px] font-semibold uppercase tracking-wider mb-1.5" style={{ color: C.muted }}>
+            {he ? 'תפוגה' : 'Expiry'}
+          </p>
+          {currentExpiry && (
+            <p className="text-[11px] mb-1.5" style={{ color: C.muted }}>
+              {he ? 'נוכחי:' : 'Current:'} {new Date(currentExpiry).toLocaleDateString()}
+            </p>
+          )}
+          <div className="flex gap-1 mb-2">
+            {[
+              { label: '+30d', days: 30 },
+              { label: '+90d', days: 90 },
+              { label: '+1y', days: 365 },
+            ].map(btn => (
+              <button
+                key={btn.label}
+                onClick={() => addDays(btn.days)}
+                className="text-[10px] font-semibold px-2 py-1 rounded-md transition-all hover:bg-gray-100"
+                style={{ background: '#F3F4F6', color: C.dark }}
+              >
+                {btn.label}
+              </button>
+            ))}
+          </div>
+          <input
+            type="date"
+            value={selExpiry}
+            onChange={e => setSelExpiry(e.target.value)}
+            className="w-full text-[11px] px-2.5 py-1.5 rounded-lg border border-gray-200 outline-none focus:ring-1 focus:ring-indigo-300"
+          />
+        </div>
+
+        {/* Actions */}
+        <div className="flex items-center gap-2 pt-1">
+          <button
+            onClick={handleSave}
+            disabled={saving}
+            className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-[11px] font-semibold text-white transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-40"
+            style={{ background: C.primary }}
+          >
+            {saving ? <Loader2 className="w-3 h-3 animate-spin" /> : <Save className="w-3 h-3" />}
+            {he ? 'שמור' : 'Save'}
+          </button>
+          <button
+            onClick={onClose}
+            className="px-3 py-2 rounded-lg text-[11px] font-semibold transition-all hover:bg-gray-100"
+            style={{ color: C.muted }}
+          >
+            {he ? 'ביטול' : 'Cancel'}
+          </button>
+        </div>
+      </div>
+    </>
+  )
 }
 
 export default function AdminContractors() {
@@ -137,34 +317,8 @@ export default function AdminContractors() {
       .then(({ data }) => { if (data) setAvailablePlans(data) })
   }, [])
 
-  async function quickChangePlan(userId: string, planId: string, e: React.MouseEvent) {
-    e.stopPropagation()
-    // Check if user already has a subscription to update
-    const { data: existing } = await supabase
-      .from('subscriptions')
-      .select('id')
-      .eq('user_id', userId)
-      .in('status', ['active', 'trialing'])
-      .maybeSingle()
-
-    if (existing) {
-      await supabase.from('subscriptions').update({ plan_id: planId }).eq('id', existing.id)
-    } else {
-      await supabase.from('subscriptions').insert({
-        user_id: userId,
-        plan_id: planId,
-        status: 'active',
-        current_period_end: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-      })
-    }
-    await supabase.from('audit_logs').insert({
-      admin_user_id: profile?.id,
-      target_user_id: userId,
-      action: 'plan_change',
-      details: { new_plan_id: planId, source: 'bulk_list' },
-    })
-    fetchContractors()
-  }
+  // State for plan-editing popover
+  const [editingSubId, setEditingSubId] = useState<string | null>(null)
 
   const fetchContractors = useCallback(async () => {
     setFetchError(null)
@@ -172,7 +326,7 @@ export default function AdminContractors() {
       .from('contractors')
       .select(`
         user_id, professions, zip_codes, is_active, created_at, wa_notify,
-        profiles!inner(full_name, phone, whatsapp_phone, status, subscriptions(status, plans(name, slug, price_cents)))
+        profiles!inner(full_name, phone, whatsapp_phone, status, subscriptions(status, current_period_end, plans(name, slug, price_cents)))
       `)
       .order('created_at', { ascending: false })
 
@@ -307,22 +461,12 @@ export default function AdminContractors() {
   async function bulkChangePlan(planId: string) {
     setBulkProcessing(true)
     try {
+      const plan = availablePlans.find(p => p.id === planId)
+      const { data: session } = await supabase.auth.getSession()
       for (const uid of selectedIds) {
-        const { data: existing } = await supabase
-          .from('subscriptions').select('id').eq('user_id', uid).in('status', ['active', 'trialing']).maybeSingle()
-        if (existing) {
-          await supabase.from('subscriptions').update({ plan_id: planId }).eq('id', existing.id)
-        } else {
-          await supabase.from('subscriptions').insert({
-            user_id: uid, plan_id: planId, status: 'active',
-            current_period_end: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-          })
-        }
-        await supabase.from('audit_logs').insert({
-          admin_user_id: profile?.id,
-          target_user_id: uid,
-          action: 'plan_change',
-          details: { new_plan_id: planId, source: 'bulk_action' },
+        await supabase.functions.invoke('admin-billing', {
+          body: { action: 'admin_update_subscription', userId: uid, planSlug: plan?.slug },
+          headers: { Authorization: `Bearer ${session?.session?.access_token}` },
         })
       }
       setShowBulkPlanModal(false)
@@ -661,28 +805,20 @@ export default function AdminContractors() {
                         </div>
                       </td>
 
-                      {/* Plan — clickable dropdown */}
-                      <td className="px-5 py-4" onClick={e => e.stopPropagation()}>
-                        <select
-                          value={c.profiles?.subscriptions?.[0]?.plans?.slug || ''}
-                          onChange={(e) => {
-                            const plan = availablePlans.find(p => p.slug === e.target.value)
-                            if (plan) quickChangePlan(c.user_id, plan.id, e as any)
-                          }}
-                          className="text-[11px] font-semibold rounded-lg px-2 py-1.5 border cursor-pointer appearance-none bg-no-repeat bg-right pr-6 transition-colors hover:border-indigo-300"
+                      {/* Plan — tag + popover */}
+                      <td className="px-5 py-4 relative" onClick={e => e.stopPropagation()}>
+                        <button
+                          onClick={() => setEditingSubId(editingSubId === c.user_id ? null : c.user_id)}
+                          className="group/tag inline-flex items-center gap-1 text-[11px] font-semibold rounded-lg px-2 py-1.5 border cursor-pointer transition-colors hover:border-indigo-300"
                           style={{
                             background: planConf?.bg ?? '#F3F4F6',
                             color: planConf?.color ?? '#9CA3AF',
                             borderColor: planConf?.border ?? '#E5E7EB',
-                            backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%239CA3AF' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E")`,
-                            backgroundPosition: 'right 6px center',
                           }}
                         >
-                          {!planConf && <option value="">None</option>}
-                          {availablePlans.map(p => (
-                            <option key={p.slug} value={p.slug}>{p.name} — ${p.price_cents / 100}/mo</option>
-                          ))}
-                        </select>
+                          {planConf ? `${planConf.label} $${getSub(c)?.plans?.price_cents ? getSub(c)!.plans.price_cents / 100 : 0}/mo` : (he ? 'ללא חבילה' : 'No Plan')}
+                          <Pencil className="w-3 h-3 opacity-0 group-hover/tag:opacity-60 transition-opacity" />
+                        </button>
                         {statusConf && (
                           <span
                             className="block text-[10px] font-medium px-1.5 py-0.5 rounded w-fit mt-1"
@@ -690,6 +826,18 @@ export default function AdminContractors() {
                           >
                             {subStatus}
                           </span>
+                        )}
+                        {editingSubId === c.user_id && (
+                          <PlanPopover
+                            contractor={c}
+                            availablePlans={availablePlans}
+                            currentPlanSlug={planSlug}
+                            currentStatus={subStatus}
+                            currentExpiry={getSub(c)?.current_period_end ?? null}
+                            onClose={() => setEditingSubId(null)}
+                            onSaved={() => { setEditingSubId(null); fetchContractors() }}
+                            he={he}
+                          />
                         )}
                       </td>
 
