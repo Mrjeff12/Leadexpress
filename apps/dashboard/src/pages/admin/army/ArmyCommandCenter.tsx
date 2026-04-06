@@ -10,11 +10,14 @@ import {
   useArmyDMConversations,
   useArmyDMChat,
   useArmyUnreadCounts,
+  useArmyScenarios,
   type ArmyAccount,
   type ArmyAssignment,
   type ArmyDM,
   type DMConversation,
   type ArmyScheduleEntry,
+  type ArmyScenario,
+  type ScenarioLine,
 } from '../../../hooks/useArmyData'
 import {
   Wifi, WifiOff, Megaphone, MessageCircleReply, HardHat,
@@ -131,14 +134,82 @@ export default function ArmyCommandCenter() {
   const unreadCounts = DEMO ? { 'demo-1': 3, 'demo-2': 0, 'demo-4': 1 } as Record<string, number> : realUnreadCounts
   const activityEntries = DEMO ? DEMO_ACTIVITY : realActivityEntries
 
+  /* ── Scenarios ── */
+  const { scenarios: realScenarios, refetch: refetchScenarios } = useArmyScenarios()
+
+  const DEMO_SCENARIOS: ArmyScenario[] = DEMO ? [
+    { id: 'sc-1', name: 'מחפש עבודה', description: 'חייל שואל איפה למצוא עבודות, חבר ממליץ', category: 'job_inquiry', lines: [
+      { role: 'A', delay_min: 0, delay_max: 0, text: 'אחי מישהו יודע איפה למצוא עבודות צבע באזור מיאמי?' },
+      { role: 'B', delay_min: 3, delay_max: 8, text: 'יש אפליקציה חדשה masterlead תיכנס שם, אני נרשמתי שבוע שעבר' },
+      { role: 'A', delay_min: 1, delay_max: 3, text: 'מה זה? טוב?' },
+      { role: 'B', delay_min: 2, delay_max: 5, text: 'כן אחי שם אתה רואה עבודות לפי אזור ומקצוע, תנסה' },
+      { role: 'C', delay_min: 5, delay_max: 15, text: 'גם אני נכנסתי לשם לאחרונה, יש שם המון' },
+    ], is_active: true, times_used: 12, last_used_at: new Date(Date.now() - 2 * 3600000).toISOString(), created_at: '2026-03-20T10:00:00Z' },
+    { id: 'sc-2', name: 'מה זה masterlead?', description: 'מישהו שואל מה זה, שניים מסבירים', category: 'curiosity', lines: [
+      { role: 'A', delay_min: 0, delay_max: 0, text: 'חבר׳ה מישהו מכיר את masterlead? ראיתי את זה כמה פעמים' },
+      { role: 'B', delay_min: 2, delay_max: 6, text: 'כן אחי זה אפליקציה שמחברת בין קבלנים לעבודות, אני שם כבר חודש' },
+      { role: 'C', delay_min: 3, delay_max: 8, text: 'גם אני, יש שם עבודות שלא רואים במקומות אחרים' },
+      { role: 'A', delay_min: 1, delay_max: 3, text: 'אה סבבה ואיך נרשמים?' },
+      { role: 'B', delay_min: 2, delay_max: 4, text: 'תחפש masterlead באינטרנט, יש להם אתר. לוקח דקה' },
+    ], is_active: true, times_used: 8, last_used_at: new Date(Date.now() - 5 * 3600000).toISOString(), created_at: '2026-03-21T10:00:00Z' },
+    { id: 'sc-3', name: 'המלצה לחבר', description: 'חייל מתלונן שאין עבודה, חבר ממליץ', category: 'recommendation', lines: [
+      { role: 'A', delay_min: 0, delay_max: 0, text: 'אין עבודה בכלל השבוע הזה, מישהו עוד ככה?' },
+      { role: 'B', delay_min: 4, delay_max: 10, text: 'אחי תיכנס ל-masterlead, אני מצאתי שם שתי עבודות השבוע' },
+      { role: 'A', delay_min: 1, delay_max: 3, text: 'מה זה בדיוק?' },
+      { role: 'B', delay_min: 2, delay_max: 5, text: 'אתר שבו בעלי בתים מפרסמים עבודות ואתה רואה לפי האזור שלך' },
+      { role: 'A', delay_min: 1, delay_max: 2, text: 'ויש עבודות באזור פלורידה?' },
+      { role: 'B', delay_min: 2, delay_max: 4, text: 'בטח יש שם פול של עבודות בדרום פלורידה, תבדוק' },
+    ], is_active: true, times_used: 15, last_used_at: new Date(Date.now() - 1 * 3600000).toISOString(), created_at: '2026-03-22T10:00:00Z' },
+    { id: 'sc-4', name: 'שיחה על אפליקציות', description: 'דיון טבעי על כלים למציאת עבודה', category: 'general', lines: [
+      { role: 'A', delay_min: 0, delay_max: 0, text: 'באיזה אפליקציות אתם משתמשים למצוא עבודות?' },
+      { role: 'B', delay_min: 3, delay_max: 7, text: 'אני משתמש ב-masterlead, הכי נוח בשבילי' },
+      { role: 'C', delay_min: 2, delay_max: 6, text: 'גם אני, שם הכל מסודר לפי מקצוע ואזור' },
+      { role: 'A', delay_min: 1, delay_max: 3, text: 'יש מצב שזה עובד גם לאזור אורלנדו?' },
+      { role: 'B', delay_min: 2, delay_max: 5, text: 'כן אחי יש שם עבודות בכל פלורידה' },
+    ], is_active: true, times_used: 6, last_used_at: new Date(Date.now() - 8 * 3600000).toISOString(), created_at: '2026-03-23T10:00:00Z' },
+    { id: 'sc-5', name: 'מישהו ניסה?', description: 'שאלה תמימה, תשובות חיוביות', category: 'curiosity', lines: [
+      { role: 'A', delay_min: 0, delay_max: 0, text: 'מישהו פה ניסה את masterlead? שווה?' },
+      { role: 'B', delay_min: 5, delay_max: 12, text: 'אני שם כבר חודשיים, מצאתי כמה עבודות טובות' },
+      { role: 'C', delay_min: 3, delay_max: 8, text: 'אני נרשמתי שבוע שעבר, נראה סבבה בינתיים' },
+      { role: 'A', delay_min: 1, delay_max: 3, text: 'וזה בחינם?' },
+      { role: 'B', delay_min: 2, delay_max: 4, text: 'יש גרסה בחינם כן, תנסה ותראה אם מתאים לך' },
+    ], is_active: true, times_used: 3, last_used_at: null, created_at: '2026-03-24T10:00:00Z' },
+  ] : []
+
+  const scenarios = DEMO ? DEMO_SCENARIOS : realScenarios
+
   /* ── Selection state ── */
   const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null)
   const [selectedChatId, setSelectedChatId] = useState<string | null>(null) // phone or groupId
   const [selectedChatType, setSelectedChatType] = useState<'dm' | 'group' | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
   const [showTemplates, setShowTemplates] = useState(false)
-  const [allDMsMode, setAllDMsMode] = useState(false) // show DMs from ALL slaves
-  const [dmTags, setDmTags] = useState<Record<string, string>>({}) // phone → tag
+  const [allDMsMode, setAllDMsMode] = useState(false)
+  const [dmTags, setDmTags] = useState<Record<string, string>>({})
+  const [scenariosMode, setScenariosMode] = useState(false)
+  const [selectedScenarioId, setSelectedScenarioId] = useState<string | null>(null)
+  const [scenarioEditing, setScenarioEditing] = useState(false)
+  const [editLines, setEditLines] = useState<ScenarioLine[]>([])
+  const [editName, setEditName] = useState('')
+  const [editDesc, setEditDesc] = useState('')
+  const [editCategory, setEditCategory] = useState('general')
+
+  const selectedScenario = useMemo(() => scenarios.find(s => s.id === selectedScenarioId) ?? null, [scenarios, selectedScenarioId])
+
+  const SCENARIO_CATEGORIES = [
+    { key: 'all', label: he ? 'הכל' : 'All', color: C.waGray },
+    { key: 'job_inquiry', label: he ? 'חיפוש עבודה' : 'Job Inquiry', color: '#2563eb' },
+    { key: 'curiosity', label: he ? 'סקרנות' : 'Curiosity', color: '#f59e0b' },
+    { key: 'recommendation', label: he ? 'המלצה' : 'Recommendation', color: '#16a34a' },
+    { key: 'general', label: he ? 'כללי' : 'General', color: '#8b5cf6' },
+  ]
+  const [scenarioFilter, setScenarioFilter] = useState('all')
+  const filteredScenarios = useMemo(() => {
+    if (scenarioFilter === 'all') return scenarios
+    return scenarios.filter(s => s.category === scenarioFilter)
+  }, [scenarios, scenarioFilter])
+
+  const ROLE_COLORS_CHAT: Record<string, string> = { A: '#25d366', B: '#34b7f1', C: '#ff6b6b', D: '#ffd93d' }
 
   /* ── DM data ── */
   const { conversations: realConvos, loading: convoLoading } = useArmyDMConversations(DEMO ? null : selectedAccountId)
@@ -327,7 +398,21 @@ export default function ArmyCommandCenter() {
 
         <div className="flex-1" />
 
-        {/* Add + Master toggle */}
+        {/* Scenarios + Add + Master toggle */}
+        <button
+          onClick={() => { setScenariosMode(!scenariosMode); if (!scenariosMode) { setSelectedChatId(null); setSelectedChatType(null); setAllDMsMode(false) } }}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-bold shrink-0 transition-all"
+          style={{
+            background: scenariosMode ? '#8b5cf615' : 'transparent',
+            color: scenariosMode ? '#8b5cf6' : C.waGray,
+            border: scenariosMode ? '1px solid #8b5cf630' : '1px solid transparent',
+          }}
+        >
+          <FileText className="w-3.5 h-3.5" />
+          {he ? 'סצנות' : 'Scenarios'}
+          <span className="text-[9px] px-1 py-0.5 rounded" style={{ background: '#8b5cf615', color: '#8b5cf6' }}>{scenarios.length}</span>
+        </button>
+        <div className="w-px h-5" style={{ background: C.waBorder }} />
         <button
           onClick={() => updateConfig('enabled', config.enabled ? 'false' : 'true')}
           className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[10px] font-bold shrink-0 transition-all"
@@ -505,7 +590,247 @@ export default function ArmyCommandCenter() {
           </div>
         </div>
 
-        {/* ─── CENTER: Chat ─── */}
+        {/* ─── CENTER: Chat OR Scenarios ─── */}
+        {scenariosMode ? (
+          /* ═══ SCENARIOS VIEW ═══ */
+          <div className="flex-1 flex h-full overflow-hidden">
+            {/* Scenario Bank (left side) */}
+            <div className="w-[320px] shrink-0 flex flex-col h-full" style={{ background: '#fff', borderRight: `1px solid ${C.waBorder}` }}>
+              <div className="px-3 py-3 space-y-2" style={{ borderBottom: `1px solid ${C.waBorder}` }}>
+                <div className="flex items-center justify-between">
+                  <span className="text-[14px] font-bold" style={{ color: C.waDark }}>{he ? 'בנק סצנות' : 'Scenario Bank'}</span>
+                  <button
+                    onClick={() => {
+                      setSelectedScenarioId(null)
+                      setScenarioEditing(true)
+                      setEditName('')
+                      setEditDesc('')
+                      setEditCategory('general')
+                      setEditLines([{ role: 'A', delay_min: 0, delay_max: 0, text: '' }, { role: 'B', delay_min: 3, delay_max: 8, text: '' }])
+                    }}
+                    className="flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-bold transition-all hover:bg-[#8b5cf610]"
+                    style={{ color: '#8b5cf6' }}
+                  >
+                    <Plus className="w-3 h-3" />{he ? 'חדש' : 'New'}
+                  </button>
+                </div>
+                {/* Category filter */}
+                <div className="flex gap-1 flex-wrap">
+                  {SCENARIO_CATEGORIES.map(cat => (
+                    <button
+                      key={cat.key}
+                      onClick={() => setScenarioFilter(cat.key)}
+                      className="px-2 py-1 rounded-md text-[10px] font-bold transition-all"
+                      style={{
+                        background: scenarioFilter === cat.key ? `${cat.color}15` : 'transparent',
+                        color: scenarioFilter === cat.key ? cat.color : C.waGray,
+                      }}
+                    >
+                      {cat.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="flex-1 overflow-y-auto scrollbar-hide">
+                {filteredScenarios.map(sc => {
+                  const active = sc.id === selectedScenarioId
+                  const catColor = SCENARIO_CATEGORIES.find(c => c.key === sc.category)?.color ?? C.waGray
+                  const roles = [...new Set(sc.lines.map(l => l.role))]
+                  return (
+                    <button
+                      key={sc.id}
+                      onClick={() => { setSelectedScenarioId(sc.id); setScenarioEditing(false) }}
+                      className="w-full text-left px-3 py-3 transition-colors"
+                      style={{ background: active ? '#f0f2f5' : 'transparent', borderBottom: `1px solid ${C.waBorder}` }}
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="text-[14px] font-medium truncate" style={{ color: C.waDark, direction: 'rtl' }}>{sc.name}</span>
+                        <div className="flex items-center gap-1 shrink-0 ml-2">
+                          {roles.map(r => (
+                            <div key={r} className="w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-black text-white" style={{ background: ROLE_COLORS_CHAT[r] ?? '#999' }}>{r}</div>
+                          ))}
+                        </div>
+                      </div>
+                      <p className="text-[12px] mt-0.5 truncate" style={{ color: C.waGray, direction: 'rtl' }}>{sc.description}</p>
+                      <div className="flex items-center gap-2 mt-1.5">
+                        <span className="text-[9px] font-bold px-1.5 py-0.5 rounded" style={{ background: `${catColor}15`, color: catColor }}>
+                          {SCENARIO_CATEGORIES.find(c => c.key === sc.category)?.label}
+                        </span>
+                        <span className="text-[10px]" style={{ color: C.waGray }}>{sc.lines.length} {he ? 'שורות' : 'lines'}</span>
+                        <span className="text-[10px]" style={{ color: C.waGray }}>x{sc.times_used}</span>
+                      </div>
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+
+            {/* Scenario Preview / Editor (right side) */}
+            <div className="flex-1 flex flex-col h-full overflow-hidden" style={{ background: C.waChatBg }}>
+              {selectedScenario && !scenarioEditing ? (
+                /* Preview mode */
+                <>
+                  <div className="shrink-0 flex items-center gap-3 px-4 h-[59px]" style={{ background: C.waHeader, borderBottom: `1px solid ${C.waBorder}` }}>
+                    <FileText className="w-5 h-5" style={{ color: '#8b5cf6' }} />
+                    <div className="flex-1">
+                      <span className="text-[15px] font-medium" style={{ color: C.waDark, direction: 'rtl' }}>{selectedScenario.name}</span>
+                      <span className="text-[12px] block" style={{ color: C.waGray, direction: 'rtl' }}>{selectedScenario.description}</span>
+                    </div>
+                    <button
+                      onClick={() => {
+                        setScenarioEditing(true)
+                        setEditName(selectedScenario.name)
+                        setEditDesc(selectedScenario.description ?? '')
+                        setEditCategory(selectedScenario.category)
+                        setEditLines([...selectedScenario.lines])
+                      }}
+                      className="px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all hover:bg-black/[0.05]"
+                      style={{ color: '#8b5cf6' }}
+                    >
+                      {he ? 'ערוך' : 'Edit'}
+                    </button>
+                  </div>
+
+                  {/* WhatsApp-style preview */}
+                  <div className="flex-1 overflow-y-auto px-[60px] py-6 space-y-2 scrollbar-hide">
+                    {/* Role legend */}
+                    <div className="flex items-center justify-center gap-3 mb-4">
+                      {[...new Set(selectedScenario.lines.map(l => l.role))].map(role => (
+                        <div key={role} className="flex items-center gap-1">
+                          <div className="w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-black text-white" style={{ background: ROLE_COLORS_CHAT[role] ?? '#999' }}>{role}</div>
+                          <span className="text-[11px] font-medium" style={{ color: C.waGray }}>{he ? `חייל ${role}` : `Soldier ${role}`}</span>
+                        </div>
+                      ))}
+                    </div>
+
+                    {selectedScenario.lines.map((line, i) => (
+                      <div key={i} className="flex justify-start">
+                        <div className="max-w-[75%] rounded-lg px-[9px] py-[6px] shadow-sm" style={{ background: C.incoming, borderTopLeftRadius: 0 }}>
+                          {/* Role badge */}
+                          <div className="flex items-center gap-1.5 mb-1">
+                            <div className="w-4 h-4 rounded-full flex items-center justify-center text-[8px] font-black text-white" style={{ background: ROLE_COLORS_CHAT[line.role] ?? '#999' }}>{line.role}</div>
+                            <span className="text-[11px] font-bold" style={{ color: ROLE_COLORS_CHAT[line.role] ?? '#999' }}>{he ? `חייל ${line.role}` : `Soldier ${line.role}`}</span>
+                            {i > 0 && <span className="text-[10px]" style={{ color: C.waGray }}>⏱ {line.delay_min}-{line.delay_max}m</span>}
+                          </div>
+                          <p className="text-[14.2px] leading-[19px] whitespace-pre-wrap" style={{ color: C.waDark, direction: 'rtl' }}>{line.text}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              ) : scenarioEditing ? (
+                /* Editor mode */
+                <>
+                  <div className="shrink-0 flex items-center gap-3 px-4 h-[59px]" style={{ background: C.waHeader, borderBottom: `1px solid ${C.waBorder}` }}>
+                    <span className="text-[15px] font-medium" style={{ color: C.waDark }}>{selectedScenarioId ? (he ? 'עריכת סצנה' : 'Edit Scenario') : (he ? 'סצנה חדשה' : 'New Scenario')}</span>
+                    <div className="flex-1" />
+                    <button onClick={() => setScenarioEditing(false)} className="px-3 py-1.5 rounded-lg text-[11px] font-bold hover:bg-black/[0.05]" style={{ color: C.waGray }}>{he ? 'ביטול' : 'Cancel'}</button>
+                    <button
+                      onClick={async () => {
+                        if (!editName || editLines.length < 2) return
+                        const row = { name: editName, description: editDesc, category: editCategory, lines: editLines, is_active: true }
+                        if (DEMO) { setScenarioEditing(false); return }
+                        if (selectedScenarioId) {
+                          await supabase.from('army_scenarios').update(row).eq('id', selectedScenarioId)
+                        } else {
+                          await supabase.from('army_scenarios').insert(row)
+                        }
+                        refetchScenarios()
+                        setScenarioEditing(false)
+                      }}
+                      disabled={!editName || editLines.length < 2}
+                      className="px-4 py-1.5 rounded-lg text-[11px] font-bold text-white disabled:opacity-40 transition-all"
+                      style={{ background: '#8b5cf6' }}
+                    >
+                      {he ? 'שמור' : 'Save'}
+                    </button>
+                  </div>
+
+                  <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4 scrollbar-hide">
+                    {/* Name + Description */}
+                    <div className="space-y-2">
+                      <input value={editName} onChange={e => setEditName(e.target.value)} placeholder={he ? 'שם הסצנה' : 'Scenario name'} className="w-full px-3 py-2.5 rounded-lg text-[14px] font-bold outline-none" style={{ background: '#fff', direction: 'rtl' }} />
+                      <input value={editDesc} onChange={e => setEditDesc(e.target.value)} placeholder={he ? 'תיאור קצר' : 'Short description'} className="w-full px-3 py-2 rounded-lg text-[13px] outline-none" style={{ background: '#fff', direction: 'rtl' }} />
+                      <div className="flex gap-1.5">
+                        {SCENARIO_CATEGORIES.filter(c => c.key !== 'all').map(cat => (
+                          <button key={cat.key} onClick={() => setEditCategory(cat.key)} className="px-2.5 py-1 rounded-md text-[10px] font-bold transition-all" style={{ background: editCategory === cat.key ? `${cat.color}15` : '#f0f2f5', color: editCategory === cat.key ? cat.color : C.waGray }}>
+                            {cat.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Lines editor */}
+                    <div className="space-y-2">
+                      <span className="text-[11px] font-bold uppercase tracking-wider" style={{ color: C.waGray }}>{he ? 'שורות הסצנה' : 'Script Lines'}</span>
+                      {editLines.map((line, i) => (
+                        <div key={i} className="flex items-start gap-2 p-3 rounded-xl" style={{ background: '#fff' }}>
+                          {/* Role selector */}
+                          <div className="flex flex-col items-center gap-1 shrink-0">
+                            {['A', 'B', 'C', 'D'].map(r => (
+                              <button
+                                key={r}
+                                onClick={() => { const nl = [...editLines]; nl[i] = { ...nl[i], role: r }; setEditLines(nl) }}
+                                className="w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-black text-white transition-all"
+                                style={{ background: line.role === r ? (ROLE_COLORS_CHAT[r] ?? '#999') : '#e5e7eb', color: line.role === r ? '#fff' : '#9ca3af' }}
+                              >
+                                {r}
+                              </button>
+                            ))}
+                          </div>
+
+                          <div className="flex-1 space-y-1.5">
+                            <textarea
+                              value={line.text}
+                              onChange={e => { const nl = [...editLines]; nl[i] = { ...nl[i], text: e.target.value }; setEditLines(nl) }}
+                              placeholder={he ? 'מה החייל אומר...' : 'What the soldier says...'}
+                              rows={2}
+                              className="w-full px-3 py-2 rounded-lg text-[13px] outline-none resize-none"
+                              style={{ background: C.waLightGray, direction: 'rtl' }}
+                            />
+                            {i > 0 && (
+                              <div className="flex items-center gap-2">
+                                <Clock className="w-3 h-3" style={{ color: C.waGray }} />
+                                <span className="text-[10px]" style={{ color: C.waGray }}>{he ? 'דיליי:' : 'Delay:'}</span>
+                                <input type="number" value={line.delay_min} onChange={e => { const nl = [...editLines]; nl[i] = { ...nl[i], delay_min: +e.target.value }; setEditLines(nl) }} className="w-12 px-1.5 py-1 rounded text-[11px] text-center outline-none" style={{ background: C.waLightGray }} />
+                                <span className="text-[10px]" style={{ color: C.waGray }}>-</span>
+                                <input type="number" value={line.delay_max} onChange={e => { const nl = [...editLines]; nl[i] = { ...nl[i], delay_max: +e.target.value }; setEditLines(nl) }} className="w-12 px-1.5 py-1 rounded text-[11px] text-center outline-none" style={{ background: C.waLightGray }} />
+                                <span className="text-[10px]" style={{ color: C.waGray }}>{he ? 'דקות' : 'min'}</span>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Delete line */}
+                          {editLines.length > 2 && (
+                            <button onClick={() => setEditLines(editLines.filter((_, j) => j !== i))} className="p-1 rounded hover:bg-red-50 transition-colors shrink-0">
+                              <X className="w-3.5 h-3.5 text-red-400" />
+                            </button>
+                          )}
+                        </div>
+                      ))}
+
+                      <button
+                        onClick={() => setEditLines([...editLines, { role: editLines.length % 2 === 0 ? 'A' : 'B', delay_min: 2, delay_max: 5, text: '' }])}
+                        className="w-full py-2 rounded-lg text-[12px] font-bold transition-all hover:bg-[#8b5cf610]"
+                        style={{ color: '#8b5cf6', border: `1px dashed #8b5cf630` }}
+                      >
+                        + {he ? 'הוסף שורה' : 'Add Line'}
+                      </button>
+                    </div>
+                  </div>
+                </>
+              ) : (
+                /* No scenario selected */
+                <div className="flex-1 flex flex-col items-center justify-center" style={{ background: C.waLightGray }}>
+                  <FileText className="w-16 h-16 mb-4" style={{ color: '#d1d5db' }} />
+                  <p className="text-[18px] font-light" style={{ color: '#41525d' }}>{he ? 'בחר סצנה' : 'Select a Scenario'}</p>
+                  <p className="text-[13px] mt-1" style={{ color: '#8696a0' }}>{he ? 'בחר סצנה מהרשימה או צור חדשה' : 'Pick a scenario from the list or create a new one'}</p>
+                </div>
+              )}
+            </div>
+          </div>
+        ) : (
         <div className="flex-1 flex flex-col h-full overflow-hidden" style={{ background: C.waChatBg, backgroundImage: 'url("data:image/svg+xml,%3Csvg width=\'400\' height=\'400\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cdefs%3E%3Cpattern id=\'p\' width=\'80\' height=\'80\' patternUnits=\'userSpaceOnUse\'%3E%3Cpath d=\'M0 0h80v80H0z\' fill=\'none\'/%3E%3Ccircle cx=\'40\' cy=\'40\' r=\'1\' fill=\'rgba(0,0,0,0.03)\'/%3E%3C/pattern%3E%3C/defs%3E%3Crect fill=\'url(%23p)\' width=\'100%25\' height=\'100%25\'/%3E%3C/svg%3E")' }}>
           {selectedChatId && selectedChatType === 'dm' ? (
             <>
@@ -697,6 +1022,7 @@ export default function ArmyCommandCenter() {
             </div>
           )}
         </div>
+      )}
 
         {/* ─── RIGHT: Slave Profile ─── */}
         {selectedAccount && (
@@ -864,3 +1190,4 @@ export default function ArmyCommandCenter() {
     </div>
   )
 }
+

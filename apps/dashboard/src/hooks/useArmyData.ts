@@ -297,3 +297,80 @@ export function useArmyUnreadCounts() {
 
   return { counts, refetch: fetch }
 }
+
+/* ─── Scenario Types ─── */
+
+export interface ScenarioLine {
+  role: string
+  delay_min: number
+  delay_max: number
+  text: string
+}
+
+export interface ArmyScenario {
+  id: string
+  name: string
+  description: string | null
+  category: string
+  lines: ScenarioLine[]
+  is_active: boolean
+  times_used: number
+  last_used_at: string | null
+  created_at: string
+}
+
+export interface ArmyScenarioRun {
+  id: string
+  scenario_id: string | null
+  group_wa_id: string
+  status: 'pending' | 'running' | 'completed' | 'failed'
+  role_assignments: Record<string, string>
+  current_line: number
+  scheduled_at: string
+  started_at: string | null
+  completed_at: string | null
+  error: string | null
+}
+
+/* ─── useArmyScenarios ─── */
+
+export function useArmyScenarios() {
+  const [scenarios, setScenarios] = useState<ArmyScenario[]>([])
+  const [loading, setLoading] = useState(true)
+
+  const fetch = useCallback(async () => {
+    setLoading(true)
+    const { data } = await supabase
+      .from('army_scenarios')
+      .select('*')
+      .order('created_at', { ascending: false })
+    setScenarios((data as ArmyScenario[]) ?? [])
+    setLoading(false)
+  }, [])
+
+  useEffect(() => { fetch() }, [fetch])
+
+  return { scenarios, loading, refetch: fetch }
+}
+
+/* ─── useArmyScenarioRuns ─── */
+
+export function useArmyScenarioRuns(limit = 20) {
+  const [runs, setRuns] = useState<ArmyScenarioRun[]>([])
+  const [loading, setLoading] = useState(true)
+
+  const fetch = useCallback(async () => {
+    setLoading(true)
+    const { data } = await supabase
+      .from('army_scenario_runs')
+      .select('*')
+      .order('scheduled_at', { ascending: false })
+      .limit(limit)
+    setRuns((data as ArmyScenarioRun[]) ?? [])
+    setLoading(false)
+  }, [limit])
+
+  useEffect(() => { fetch() }, [fetch])
+
+  return { runs, loading, refetch: fetch }
+}
