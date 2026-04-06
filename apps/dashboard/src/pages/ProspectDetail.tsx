@@ -8,13 +8,14 @@ import {
   type Message,
   type ProspectEvent,
   type ProspectListItem,
+  type LinkedContractor,
 } from '../hooks/useProspectDetailData'
 import {
   ArrowRight, Phone, MessageCircle, Send, Clock, Loader2,
   ChevronDown, Check, CheckCheck, CircleDot, Sparkles, DollarSign,
   XCircle, PhoneCall, Edit3, Calendar, X, Plus,
   AlertTriangle, Zap, Copy, ExternalLink,
-  Search, Inbox,
+  Search, Inbox, Link2, Unlink,
 } from 'lucide-react'
 
 /* ── Design tokens ─────────────────────────────────────────────────── */
@@ -87,10 +88,18 @@ export default function ProspectDetail() {
   const [showQR, setShowQR] = useState(false)
   const [copied, setCopied] = useState(false)
 
+  // Contractor link/unlink
+  const [linkSearch, setLinkSearch] = useState('')
+  const [linkResults, setLinkResults] = useState<{ user_id: string; full_name: string; phone: string | null }[]>([])
+  const [linkLoading, setLinkLoading] = useState(false)
+  const [showLinkUI, setShowLinkUI] = useState(false)
+  const [unlinking, setUnlinking] = useState(false)
+
   // Prospect list
   const [listSearch, setListSearch] = useState('')
   const {
     prospect,
+    contractor,
     messages,
     events,
     prospectList,
@@ -125,6 +134,36 @@ export default function ProspectDetail() {
   async function saveFU() { if (!prospect) return; const v = fuDraft || null; await supabase.from('prospects').update({ next_followup_at: v }).eq('id', prospect.id); setShowFU(false); await refetchDetail() }
   async function clearFU() { if (!prospect) return; await supabase.from('prospects').update({ next_followup_at: null }).eq('id', prospect.id); setShowFU(false); await refetchDetail() }
   function copyPhone() { if (!prospect) return; navigator.clipboard.writeText(prospect.phone); setCopied(true); setTimeout(() => setCopied(false), 2000) }
+
+  async function searchContractors() {
+    if (!linkSearch.trim()) return
+    setLinkLoading(true)
+    try {
+      const q = linkSearch.trim()
+      const { data } = await supabase
+        .from('contractors')
+        .select('user_id, full_name, phone')
+        .or(`full_name.ilike.%${q}%,phone.ilike.%${q}%`)
+        .limit(5)
+      setLinkResults(data ?? [])
+    } finally { setLinkLoading(false) }
+  }
+
+  async function linkContractor(contractorId: string) {
+    if (!prospect) return
+    await supabase.rpc('admin_link_prospect_contractor', { p_prospect_id: prospect.id, p_contractor_id: contractorId })
+    setShowLinkUI(false); setLinkSearch(''); setLinkResults([])
+    await refetchDetail()
+  }
+
+  async function unlinkContractor() {
+    if (!prospect) return
+    setUnlinking(true)
+    try {
+      await supabase.rpc('admin_link_prospect_contractor', { p_prospect_id: prospect.id, p_contractor_id: null })
+      await refetchDetail()
+    } finally { setUnlinking(false) }
+  }
 
   const nxtStg = () => { if (!prospect) return null; const i = STAGES.findIndex(s => s.key === prospect.stage); return i >= 0 && i < STAGES.length - 1 ? STAGES[i + 1] : null }
   const ns = prospect ? nxtStg() : null
@@ -480,6 +519,84 @@ export default function ProspectDetail() {
                 <p className="text-xs whitespace-pre-wrap leading-relaxed" style={{ color: prospect.notes ? C.gray : '#d1d5db' }}>
                   {prospect.notes || (he ? 'אין הערות עדיין...' : 'No notes yet...')}
                 </p>
+              )}
+            </div>
+
+            {/* Contractor link */}
+            <div className="px-4 py-3 border-t" style={{ borderColor: C.border }}>
+              <div className="text-[10px] font-bold uppercase tracking-wider mb-2" style={{ color: C.muted }}>{he ? 'קבלן מקושר' : 'Linked Contractor'}</div>
+              {contractor ? (
+                <div className="rounded-xl border p-3 space-y-2" style={{ borderColor: C.border, background: C.cream }}>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-semibold" style={{ color: C.dark }}>{contractor.full_name}</span>
+                    <span className="text-[10px] px-2 py-0.5 rounded-full font-medium" style={{
+                      background: contractor.subscription_status === 'active' ? '#ecfdf5' : '#fef2f2',
+                      color: contractor.subscription_status === 'active' ? '#059669' : '#dc2626',
+                    }}>
+                      {contractor.subscription_status ?? 'none'}
+                    </span>
+                  </div>
+                  {contractor.phone && <div className="text-[11px]" style={{ color: C.muted }}>{contractor.phone}</div>}
+                  {contractor.professions.length > 0 && (
+                    <div className="flex flex-wrap gap-1">
+                      {contractor.professions.map(p => <span key={p} className="text-[10px] px-1.5 py-0.5 rounded-full" style={{ background: `${C.primary}10`, color: C.primary }}>{p}</span>)}
+                    </div>
+                  )}
+                  <button
+                    onClick={unlinkContractor}
+                    disabled={unlinking}
+                    className="w-full flex items-center justify-center gap-1.5 h-7 rounded-full text-[11px] font-medium border border-red-200 text-red-500 hover:bg-red-50 transition-all"
+                  >
+                    {unlinking ? <Loader2 className="w-3 h-3 animate-spin" /> : <Unlink className="w-3 h-3" />}
+                    {he ? 'בטל קישור' : 'Unlink'}
+                  </button>
+                </div>
+              ) : showLinkUI ? (
+                <div className="space-y-2">
+                  <div className="flex gap-1">
+                    <input
+                      value={linkSearch}
+                      onChange={e => setLinkSearch(e.target.value)}
+                      onKeyDown={e => { if (e.key === 'Enter') searchContractors() }}
+                      placeholder={he ? 'שם או טלפון...' : 'Name or phone...'}
+                      className="flex-1 h-8 text-xs rounded-lg border px-2 outline-none"
+                      style={{ borderColor: C.border }}
+                      autoFocus
+                    />
+                    <button onClick={searchContractors} disabled={linkLoading} className="h-8 px-3 rounded-lg text-xs font-medium text-white" style={{ background: C.dark }}>
+                      {linkLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Search className="w-3 h-3" />}
+                    </button>
+                  </div>
+                  {linkResults.length > 0 && (
+                    <div className="rounded-lg border overflow-hidden" style={{ borderColor: C.border }}>
+                      {linkResults.map(r => (
+                        <button
+                          key={r.user_id}
+                          onClick={() => linkContractor(r.user_id)}
+                          className="w-full flex items-center justify-between px-3 py-2 text-xs hover:bg-gray-50 transition-colors"
+                          style={{ borderBottom: `1px solid ${C.border}` }}
+                        >
+                          <span className="font-medium" style={{ color: C.dark }}>{r.full_name}</span>
+                          <span style={{ color: C.muted }}>{r.phone}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  {linkResults.length === 0 && linkSearch && !linkLoading && (
+                    <div className="text-[11px] text-center py-2" style={{ color: C.muted }}>{he ? 'לא נמצאו תוצאות' : 'No results'}</div>
+                  )}
+                  <button onClick={() => { setShowLinkUI(false); setLinkSearch(''); setLinkResults([]) }} className="w-full h-6 text-[11px] rounded-full border hover:bg-gray-50" style={{ borderColor: C.border, color: C.muted }}>
+                    {he ? 'ביטול' : 'Cancel'}
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={() => setShowLinkUI(true)}
+                  className="w-full flex items-center justify-center gap-1.5 h-8 rounded-xl border border-dashed text-xs font-medium hover:bg-gray-50 transition-all"
+                  style={{ borderColor: C.border, color: C.muted }}
+                >
+                  <Link2 className="w-3 h-3" /> {he ? 'קשר קבלן' : 'Link Contractor'}
+                </button>
               )}
             </div>
           </div>
