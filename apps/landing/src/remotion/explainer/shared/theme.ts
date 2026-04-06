@@ -34,10 +34,12 @@ export const SHADOW = {
 } as const
 
 export const PHOTOS = {
-  gc: 'https://randomuser.me/api/portraits/men/32.jpg',
-  sub1: 'https://randomuser.me/api/portraits/men/45.jpg',
-  sub2: 'https://randomuser.me/api/portraits/women/44.jpg',
-  sub3: 'https://randomuser.me/api/portraits/men/67.jpg',
+  gc: '/hero-contractor.jpg',
+  sub1: '/reviews-technician-v3.jpg',
+  sub2: '/verify-profile.jpg',
+  sub3: '/locksmith-transfer.jpg',
+  team: '/ourteam.jpg',
+  rebeca: '/rebeca.jpg',
 } as const
 
 export const GRADIENT = {
