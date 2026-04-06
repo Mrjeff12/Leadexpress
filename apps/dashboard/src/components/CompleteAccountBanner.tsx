@@ -17,6 +17,9 @@ export default function CompleteAccountBanner() {
     supabase.auth.getUser().then(({ data, error }) => {
       if (error || !data?.user) return
       const email = data.user.email || ''
+      const hasOAuth = data.user.app_metadata?.provider && data.user.app_metadata.provider !== 'email'
+      // OAuth users (Google/Apple) don't need to set email+password
+      if (hasOAuth) return
       if (!email || (email.startsWith('wa-') && email.includes('@app.masterleadflow.com'))) {
         setNeedsCompletion(true)
       }

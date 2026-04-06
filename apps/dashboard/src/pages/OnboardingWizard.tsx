@@ -94,9 +94,21 @@ export default function OnboardingWizard() {
 
   const maxProf = maxProfessions
 
-  // Check if credentials already set — skip step 0 if so
+  // Check if credentials already set or user signed in via OAuth — skip step 0 if so
+  const isOAuthUser = user?.app_metadata?.provider && user.app_metadata.provider !== 'email'
+
   useEffect(() => {
     if (!user) return
+
+    // OAuth users (Google/Apple) already have a session — skip credentials step
+    if (isOAuthUser) {
+      // Mark credentials as set so they don't get stuck
+      supabase.from('contractors').update({ onboarding_step: 'credentials_set' }).eq('user_id', user.id).then(() => {})
+      setStep(1)
+      setVisibleStep(1)
+      return
+    }
+
     supabase
       .from('contractors')
       .select('onboarding_step')
@@ -108,7 +120,7 @@ export default function OnboardingWizard() {
           setVisibleStep(1)
         }
       })
-  }, [user])
+  }, [user, isOAuthUser])
 
   // Detect beforeinstallprompt
   useEffect(() => {
@@ -472,7 +484,7 @@ export default function OnboardingWizard() {
         <div
           className="h-full transition-all duration-500 ease-out"
           style={{
-            width: `${((step + 1) / steps.length) * 100}%`,
+            width: `${((step - (isOAuthUser ? 1 : 0) + 1) / (steps.length - (isOAuthUser ? 1 : 0))) * 100}%`,
             background: 'linear-gradient(90deg, #fe5b25, #ff8a5c)',
           }}
         />
@@ -484,19 +496,22 @@ export default function OnboardingWizard() {
           {he ? 'בוא נגדיר את החשבון שלך' : "Let's set up your account"}
         </h2>
         <p className="text-xs text-zinc-400 mt-0.5">
-          {he ? '5 שלבים קצרים — תסיים תוך שניות' : "Just 5 quick steps — you'll be done in seconds"}
+          {he
+            ? `${isOAuthUser ? 4 : 5} שלבים קצרים — תסיים תוך שניות`
+            : `Just ${isOAuthUser ? 4 : 5} quick steps — you'll be done in seconds`}
         </p>
       </div>
 
       {/* ── Step indicator ── */}
       <div className="flex items-center justify-center gap-0 py-3 px-4">
-        {steps.map((s, i) => {
+        {steps.filter((_, i) => !(isOAuthUser && i === 0)).map((s, _filteredIdx) => {
+          const i = isOAuthUser ? _filteredIdx + 1 : _filteredIdx
           const Icon = s.icon
           const done = i < step
           const active = i === step
           return (
             <div key={i} className="flex items-center">
-              {i > 0 && (
+              {_filteredIdx > 0 && (
                 <div
                   className="h-[2px] w-4 md:w-12 transition-all duration-500"
                   style={{
@@ -828,7 +843,7 @@ export default function OnboardingWizard() {
       {/* ── Bottom nav ── */}
       <div className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-sm border-t border-zinc-100 px-4 md:px-6 py-3 md:py-4 pb-[calc(0.75rem+env(safe-area-inset-bottom))] md:pb-[calc(1rem+env(safe-area-inset-bottom))]">
         <div className="max-w-2xl mx-auto flex items-center justify-between">
-          {step > 0 ? (
+          {step > (isOAuthUser ? 1 : 0) ? (
             <button
               type="button"
               onClick={() => goToStep(step - 1)}
