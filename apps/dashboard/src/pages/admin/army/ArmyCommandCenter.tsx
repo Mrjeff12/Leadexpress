@@ -22,6 +22,8 @@ import {
   MessageCircle, Users, Power, PowerOff,
   Check, CheckCheck, Clock, Image, Mic, FileText,
   Swords, Activity, ChevronRight, Calendar,
+  AlertTriangle, Inbox, Tag, UserPlus, Flame, HelpCircle, Ban,
+  BarChart3, Zap,
 } from 'lucide-react'
 
 /* ── Design tokens (WhatsApp-inspired) ─── */
@@ -135,6 +137,8 @@ export default function ArmyCommandCenter() {
   const [selectedChatType, setSelectedChatType] = useState<'dm' | 'group' | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
   const [showTemplates, setShowTemplates] = useState(false)
+  const [allDMsMode, setAllDMsMode] = useState(false) // show DMs from ALL slaves
+  const [dmTags, setDmTags] = useState<Record<string, string>>({}) // phone → tag
 
   /* ── DM data ── */
   const { conversations: realConvos, loading: convoLoading } = useArmyDMConversations(DEMO ? null : selectedAccountId)
@@ -174,6 +178,32 @@ export default function ArmyCommandCenter() {
     items.sort((a, b) => new Date(b.lastAt || 0).getTime() - new Date(a.lastAt || 0).getTime())
     return items
   }, [DEMO, selectedAccountId, realConvos, accountAssignments, activityEntries, DEMO_CHATLIST])
+
+  // All DMs across all slaves (for All DMs mode)
+  const DEMO_ALL_DMS: (DMConversation & { slaveAlias: string; slaveId: string })[] = DEMO ? [
+    { sender_phone: '+1 (305) 444-1234', sender_name: 'Carlos Rivera', last_message: 'I can start as early as next Monday!', last_message_at: new Date(Date.now() - 12 * 60000).toISOString(), unread_count: 2, slaveAlias: 'Slave-Miami-01', slaveId: 'demo-1' },
+    { sender_phone: '+1 (786) 333-5678', sender_name: 'Mike Thompson', last_message: 'Is the HVAC job still available?', last_message_at: new Date(Date.now() - 45 * 60000).toISOString(), unread_count: 1, slaveAlias: 'Slave-Miami-01', slaveId: 'demo-1' },
+    { sender_phone: '+1 (954) 222-9012', sender_name: 'David Cohen', last_message: 'Thanks, I signed up on masterlead', last_message_at: new Date(Date.now() - 3 * 3600000).toISOString(), unread_count: 0, slaveAlias: 'Slave-Miami-01', slaveId: 'demo-1' },
+    { sender_phone: '+1 (407) 111-3456', sender_name: null, last_message: 'Hi, I need a painter for my house...', last_message_at: new Date(Date.now() - 5 * 3600000).toISOString(), unread_count: 1, slaveAlias: 'Slave-Orlando-04', slaveId: 'demo-4' },
+  ] : []
+
+  // Stats
+  const stats = useMemo(() => {
+    const sentToday = activityEntries.filter(e => e.status === 'sent').length
+    const pendingToday = activityEntries.filter(e => e.status === 'pending').length
+    const failedToday = activityEntries.filter(e => e.status === 'failed').length
+    const connectedSlaves = accounts.filter(a => a.status === 'connected').length
+    const totalDMs = DEMO ? 4 : Object.values(unreadCounts).reduce((s, n) => s + n, 0)
+    const totalGroups = [...new Set(assignments.map(a => a.group_wa_id))].length
+    return { sentToday, pendingToday, failedToday, connectedSlaves, totalSlaves: accounts.length, totalDMs, totalGroups }
+  }, [activityEntries, accounts, unreadCounts, assignments, DEMO])
+
+  const DM_TAGS = [
+    { key: 'hot', label: '🔥 Hot Lead', labelHe: '🔥 ליד חם', color: '#dc2626' },
+    { key: 'interested', label: '👀 Interested', labelHe: '👀 מתעניין', color: '#f59e0b' },
+    { key: 'signed_up', label: '✅ Signed Up', labelHe: '✅ נרשם', color: '#16a34a' },
+    { key: 'spam', label: '🚫 Spam', labelHe: '🚫 ספאם', color: '#6b7280' },
+  ]
 
   // Next scheduled action for selected account
   const nextAction = useMemo(() => {
@@ -311,6 +341,41 @@ export default function ArmyCommandCenter() {
         </button>
       </div>
 
+      {/* ═══ STATS BAR ═══════════════════════════════════════════ */}
+      <div className="shrink-0 flex items-center gap-4 px-4 h-[38px]" style={{ background: '#fff', borderBottom: `1px solid ${C.waBorder}` }}>
+        {[
+          { icon: Send, label: he ? 'נשלחו' : 'Sent', value: stats.sentToday, color: '#16a34a' },
+          { icon: Clock, label: he ? 'ממתינות' : 'Pending', value: stats.pendingToday, color: '#d97706' },
+          { icon: AlertTriangle, label: he ? 'נכשלו' : 'Failed', value: stats.failedToday, color: stats.failedToday > 0 ? '#dc2626' : '#d1d5db' },
+          { icon: MessageCircle, label: he ? 'DMs חדשים' : 'New DMs', value: stats.totalDMs, color: stats.totalDMs > 0 ? '#2563eb' : '#d1d5db' },
+          { icon: Wifi, label: he ? 'מחוברים' : 'Connected', value: `${stats.connectedSlaves}/${stats.totalSlaves}`, color: stats.connectedSlaves === stats.totalSlaves ? '#16a34a' : '#d97706' },
+          { icon: Users, label: he ? 'קבוצות' : 'Groups', value: stats.totalGroups, color: '#8b5cf6' },
+        ].map((s, i) => {
+          const Icon = s.icon
+          return (
+            <div key={i} className="flex items-center gap-1.5">
+              <Icon className="w-3 h-3" style={{ color: s.color }} />
+              <span className="text-[11px] font-bold" style={{ color: s.color }}>{s.value}</span>
+              <span className="text-[10px]" style={{ color: C.waGray }}>{s.label}</span>
+            </div>
+          )
+        })}
+        <div className="flex-1" />
+        {/* All DMs toggle */}
+        <button
+          onClick={() => { setAllDMsMode(!allDMsMode); setSelectedChatId(null); setSelectedChatType(null) }}
+          className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[10px] font-bold transition-all"
+          style={{
+            background: allDMsMode ? '#2563eb15' : 'transparent',
+            color: allDMsMode ? '#2563eb' : C.waGray,
+            border: allDMsMode ? '1px solid #2563eb30' : '1px solid transparent',
+          }}
+        >
+          <Inbox className="w-3 h-3" />
+          {he ? 'כל ההודעות' : 'All DMs'}
+        </button>
+      </div>
+
       {/* ═══ MAIN CONTENT: 3 columns ════════════════════════════ */}
       <div className="flex flex-1 overflow-hidden">
 
@@ -332,7 +397,59 @@ export default function ArmyCommandCenter() {
 
           {/* Chat items */}
           <div className="flex-1 overflow-y-auto scrollbar-hide">
-            {chatList.length === 0 ? (
+            {/* All DMs mode */}
+            {allDMsMode ? (
+              <>
+                <div className="px-3 py-2" style={{ borderBottom: `1px solid ${C.waBorder}` }}>
+                  <span className="text-[12px] font-bold" style={{ color: C.waGreen }}>{he ? 'כל ההודעות הפרטיות' : 'All Private Messages'}</span>
+                </div>
+                {DEMO_ALL_DMS.map(dm => {
+                  const tag = dmTags[dm.sender_phone]
+                  const tagDef = DM_TAGS.find(t => t.key === tag)
+                  return (
+                    <button
+                      key={dm.sender_phone}
+                      onClick={() => {
+                        setSelectedAccountId(dm.slaveId)
+                        setSelectedChatId(dm.sender_phone)
+                        setSelectedChatType('dm')
+                      }}
+                      className="w-full flex items-center gap-3 px-3 py-3 text-left transition-colors"
+                      style={{ background: selectedChatId === dm.sender_phone ? '#f0f2f5' : 'transparent', borderBottom: `1px solid ${C.waBorder}` }}
+                    >
+                      <div className="w-[49px] h-[49px] rounded-full shrink-0 flex items-center justify-center" style={{ background: '#dfe5e7' }}>
+                        <span className="font-bold text-[18px]" style={{ color: '#8696a0' }}>{(dm.sender_name ?? '?').charAt(0).toUpperCase()}</span>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between">
+                          <span className={`text-[15px] truncate ${dm.unread_count > 0 ? 'font-bold' : 'font-normal'}`} style={{ color: C.waDark }}>
+                            {dm.sender_name ?? dm.sender_phone}
+                          </span>
+                          <span className="text-[11px] shrink-0 ml-2" style={{ color: dm.unread_count > 0 ? C.waUnread : C.waGray }}>
+                            {timeAgo(dm.last_message_at)}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-1.5 mt-0.5">
+                          <span className="text-[10px] font-bold px-1 py-0.5 rounded" style={{ background: '#f0f2f5', color: C.waGray }}>{dm.slaveAlias}</span>
+                          {tagDef && <span className="text-[10px] font-bold px-1 py-0.5 rounded" style={{ background: `${tagDef.color}15`, color: tagDef.color }}>{he ? tagDef.labelHe : tagDef.label}</span>}
+                        </div>
+                        <p className={`text-[13px] truncate mt-0.5 ${dm.unread_count > 0 ? 'font-medium' : ''}`} style={{ color: C.waGray }}>
+                          {dm.last_message.substring(0, 45)}
+                        </p>
+                      </div>
+                      {dm.unread_count > 0 && (
+                        <span className="w-5 h-5 rounded-full flex items-center justify-center text-[11px] font-bold text-white shrink-0" style={{ background: C.waUnread }}>
+                          {dm.unread_count}
+                        </span>
+                      )}
+                    </button>
+                  )
+                })}
+                {DEMO_ALL_DMS.length === 0 && (
+                  <div className="text-center py-16 text-[13px]" style={{ color: C.waGray }}>{he ? 'אין הודעות' : 'No DMs yet'}</div>
+                )}
+              </>
+            ) : chatList.length === 0 ? (
               <div className="text-center py-16 text-[13px]" style={{ color: C.waGray }}>
                 {he ? 'אין צ\'אטים' : 'No chats yet'}
               </div>
@@ -407,6 +524,39 @@ export default function ArmyCommandCenter() {
                     {(() => { const c = chatList.find(x => x.type === 'dm' && x.phone === selectedChatId) as (ChatItem & { type: 'dm' }) | undefined; return c?.name ?? selectedChatId })()}
                   </span>
                   <span className="text-[12px] block" style={{ color: C.waGray }}>{selectedChatId}</span>
+                </div>
+
+                {/* Tag + CRM buttons */}
+                <div className="flex items-center gap-1.5">
+                  {DM_TAGS.map(tag => {
+                    const active = selectedChatId && dmTags[selectedChatId] === tag.key
+                    return (
+                      <button
+                        key={tag.key}
+                        onClick={() => setDmTags(prev => ({ ...prev, [selectedChatId!]: active ? '' : tag.key }))}
+                        className="px-2 py-1 rounded-md text-[10px] font-bold transition-all"
+                        style={{
+                          background: active ? `${tag.color}20` : 'transparent',
+                          color: active ? tag.color : C.waGray,
+                          border: `1px solid ${active ? `${tag.color}40` : 'transparent'}`,
+                        }}
+                      >
+                        {he ? tag.labelHe : tag.label}
+                      </button>
+                    )
+                  })}
+                  <div className="w-px h-5 mx-1" style={{ background: C.waBorder }} />
+                  <button
+                    onClick={() => {
+                      if (DEMO) { alert(he ? 'במצב דמו - יעביר ל-CRM בפרודקשן' : 'Demo mode - would push to CRM in production'); return }
+                      // TODO: push to prospects table
+                    }}
+                    className="flex items-center gap-1 px-2.5 py-1 rounded-md text-[10px] font-bold transition-all hover:bg-[#16a34a15]"
+                    style={{ color: '#16a34a' }}
+                  >
+                    <UserPlus className="w-3 h-3" />
+                    {he ? 'העבר ל-CRM' : 'Push to CRM'}
+                  </button>
                 </div>
               </div>
 
