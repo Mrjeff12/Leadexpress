@@ -6,6 +6,7 @@ import {
   Bot,
   DollarSign,
   TrendingUp,
+  Swords,
   type LucideIcon,
 } from 'lucide-react'
 
@@ -77,10 +78,10 @@ export const departments: DepartmentDef[] = [
     basePath: 'clients',
     tabs: [
       { key: 'contractors', labelEn: 'Contractors', labelHe: 'קבלנים', path: '' },
+      { key: 'performance', labelEn: 'Performance', labelHe: 'ביצועים', path: 'performance' },
       { key: 'prospects', labelEn: 'Prospects', labelHe: 'פרוספקטים', path: 'prospects' },
       { key: 'subscriptions', labelEn: 'Subscriptions', labelHe: 'מנויים', path: 'subscriptions' },
       { key: 'service-areas', labelEn: 'Service Areas', labelHe: 'אזורי שירות', path: 'service-areas' },
-      { key: 'performance', labelEn: 'Performance', labelHe: 'ביצועים', path: 'performance', fullBleed: true },
     ],
     kpis: [
       { key: 'activeContractors', labelEn: 'Active Contractors', labelHe: 'קבלנים פעילים' },
@@ -160,6 +161,25 @@ export const departments: DepartmentDef[] = [
       { key: 'mrr', labelEn: 'MRR', labelHe: 'MRR', format: 'currency' },
       { key: 'conversion', labelEn: 'Conversion', labelHe: 'המרה', format: 'percent' },
       { key: 'groups', labelEn: 'Groups', labelHe: 'קבוצות', format: 'number' },
+    ],
+  },
+  {
+    id: 'army',
+    nameEn: 'Army',
+    nameHe: 'צבא',
+    color: '#DC2626',
+    icon: Swords,
+    basePath: 'army',
+    tabs: [
+      { key: 'accounts', labelEn: 'Accounts', labelHe: 'חשבונות', path: '' },
+      { key: 'assignments', labelEn: 'Assignments', labelHe: 'הקצאות', path: 'assignments' },
+      { key: 'templates', labelEn: 'Templates', labelHe: 'תבניות', path: 'templates' },
+      { key: 'activity', labelEn: 'Activity', labelHe: 'פעילות', path: 'activity' },
+    ],
+    kpis: [
+      { key: 'armyAccounts', labelEn: 'Accounts', labelHe: 'חשבונות' },
+      { key: 'armyGroups', labelEn: 'Groups Covered', labelHe: 'קבוצות מכוסות' },
+      { key: 'messagesToday', labelEn: 'Sent Today', labelHe: 'נשלחו היום' },
     ],
   },
   {

@@ -16,12 +16,12 @@ const LeadReview = lazy(() => import('../../pages/admin/LeadReview'))
 // Clients
 const AdminContractors = lazy(() => import('../../pages/AdminContractors'))
 const ContractorDetail = lazy(() => import('../../pages/admin/ContractorDetail'))
+const ContractorPerformance = lazy(() => import('../../pages/admin/ContractorPerformance'))
 const AdminProspects = lazy(() => import('../../pages/AdminProspects'))
 const ProspectDetail = lazy(() => import('../../pages/ProspectDetail'))
 const AdminLeads = lazy(() => import('../../pages/AdminLeads'))
 const Subscriptions = lazy(() => import('../../pages/admin/Subscriptions'))
 const ServiceAreas = lazy(() => import('../../pages/admin/ServiceAreas'))
-const ContractorPerformance = lazy(() => import('../../pages/admin/ContractorPerformance'))
 
 // Partners
 const PartnerOverview = lazy(() => import('../../pages/admin/PartnerOverview'))
@@ -41,6 +41,12 @@ const Products = lazy(() => import('../../pages/admin/Products'))
 // Growth
 const GrowthDashboard = lazy(() => import('../../pages/admin/GrowthDashboard'))
 
+// Army
+const ArmyAccounts = lazy(() => import('../../pages/admin/army/ArmyAccounts'))
+const ArmyAssignments = lazy(() => import('../../pages/admin/army/ArmyAssignments'))
+const ArmyTemplates = lazy(() => import('../../pages/admin/army/ArmyTemplates'))
+const ArmyActivity = lazy(() => import('../../pages/admin/army/ArmyActivity'))
+
 // Settings
 const Professions = lazy(() => import('../../pages/admin/Professions'))
 const SystemSettings = lazy(() => import('../../pages/admin/SystemSettings'))
@@ -58,10 +64,10 @@ const TAB_COMPONENTS: Record<string, React.LazyExoticComponent<() => React.JSX.E
   'channels/lead-review': LeadReview,
   // Clients
   'clients/contractors': AdminContractors,
+  'clients/performance': ContractorPerformance,
   'clients/prospects': AdminProspects,
   'clients/subscriptions': Subscriptions,
   'clients/service-areas': ServiceAreas,
-  'clients/performance': ContractorPerformance,
   // Partners
   'partners/overview': PartnerOverview,
   'partners/list': PartnerList,
@@ -76,6 +82,11 @@ const TAB_COMPONENTS: Record<string, React.LazyExoticComponent<() => React.JSX.E
   'finance/products': Products,
   // Growth
   'growth/dashboard': GrowthDashboard,
+  // Army
+  'army/accounts': ArmyAccounts,
+  'army/assignments': ArmyAssignments,
+  'army/templates': ArmyTemplates,
+  'army/activity': ArmyActivity,
   // Settings
   'settings/professions': Professions,
   'settings/system': SystemSettings,
