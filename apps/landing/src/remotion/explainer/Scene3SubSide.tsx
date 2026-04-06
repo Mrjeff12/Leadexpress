@@ -1,7 +1,7 @@
 // apps/landing/src/remotion/explainer/Scene3SubSide.tsx
 import { useMemo } from 'react'
-import { AbsoluteFill, useCurrentFrame, useVideoConfig, interpolate } from 'remotion'
-import { COLORS, FONT, sp, SCENE_3_START, SCENE_4_START } from './shared/theme'
+import { AbsoluteFill, useCurrentFrame, useVideoConfig, interpolate, Img } from 'remotion'
+import { COLORS, FONT, sp, SCENE_3_START, SCENE_4_START, PHOTOS, GRADIENT } from './shared/theme'
 import { PhoneMockup } from './shared/PhoneMockup'
 import { WhatsAppMessageAd } from './shared/WhatsAppMessageAd'
 
@@ -43,14 +43,20 @@ export function Scene3SubSide() {
   })
   const acceptScale = sp(frame, fps, SCENE_3_START + PHASE_ACCEPT + 5, { damping: 8, stiffness: 200 })
 
-  // Confetti
+  // Green flash
+  const greenFlash = interpolate(local, [PHASE_ACCEPT + 5, PHASE_ACCEPT + 15, PHASE_ACCEPT + 30], [0, 0.3, 0], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  })
+
+  // Confetti - more particles with bigger spread
   const confetti = useMemo(
     () =>
-      Array.from({ length: 24 }, () => ({
-        x: Math.random() * 300 - 150,
-        y: Math.random() * -200 - 50,
-        size: Math.random() * 6 + 3,
-        color: Math.random() > 0.5 ? COLORS.primary : COLORS.whatsapp,
+      Array.from({ length: 48 }, () => ({
+        x: Math.random() * 500 - 250,
+        y: Math.random() * -300 - 80,
+        size: Math.random() * 8 + 3,
+        color: [COLORS.primary, COLORS.whatsapp, COLORS.blue, COLORS.amber, COLORS.purple][Math.floor(Math.random() * 5)],
         rotation: Math.random() * 360,
         speed: Math.random() * 2 + 1,
       })),
@@ -66,11 +72,11 @@ export function Scene3SubSide() {
   let phaseSub = 'A WhatsApp notification with all the details.'
   if (local >= PHASE_OPEN - 10) {
     phaseTitle = 'See the deal'
-    phaseSub = 'Clear terms — profession, location, your cut.'
+    phaseSub = 'Clear terms \u2014 profession, location, your cut.'
   }
   if (local >= PHASE_ACCEPT - 10) {
     phaseTitle = 'Accept instantly'
-    phaseSub = "One tap — you're on the job."
+    phaseSub = "One tap \u2014 you\u2019re on the job."
   }
 
   const titleIn = sp(frame, fps, SCENE_3_START + 5)
@@ -79,7 +85,7 @@ export function Scene3SubSide() {
   return (
     <AbsoluteFill
       style={{
-        background: COLORS.cream,
+        background: GRADIENT.coolBg,
         fontFamily: FONT.family,
         opacity: vis,
         display: 'flex',
@@ -97,7 +103,47 @@ export function Scene3SubSide() {
         }}
       />
 
-      {/* Left — blurred GC hint (40%) */}
+      {/* Green flash overlay */}
+      {greenFlash > 0 && (
+        <AbsoluteFill
+          style={{
+            background: COLORS.whatsapp,
+            opacity: greenFlash,
+            pointerEvents: 'none',
+            zIndex: 20,
+          }}
+        />
+      )}
+
+      {/* Sub header avatar - top right */}
+      <div
+        style={{
+          position: 'absolute',
+          top: 50,
+          right: 60,
+          display: 'flex',
+          alignItems: 'center',
+          gap: 12,
+          opacity: titleIn,
+        }}
+      >
+        <div>
+          <div style={{ fontSize: 16, fontWeight: 700, color: COLORS.dark, textAlign: 'right' }}>Mike Johnson</div>
+          <div style={{ fontSize: 11, color: COLORS.graySubtle, opacity: 0.6, textAlign: 'right' }}>Subcontractor</div>
+        </div>
+        <Img
+          src={PHOTOS.sub1}
+          style={{
+            width: 48,
+            height: 48,
+            borderRadius: 24,
+            objectFit: 'cover',
+            border: `2px solid ${COLORS.whatsapp}`,
+          }}
+        />
+      </div>
+
+      {/* Left \u2014 blurred GC hint (40%) */}
       <div
         style={{
           flex: 4,
@@ -131,7 +177,7 @@ export function Scene3SubSide() {
         </PhoneMockup>
       </div>
 
-      {/* Right — Sub Phone (60%) */}
+      {/* Right \u2014 Sub Phone (60%) */}
       <div
         style={{
           flex: 6,
@@ -157,7 +203,7 @@ export function Scene3SubSide() {
           }}
         />
 
-        <PhoneMockup width={300} y={floatY}>
+        <PhoneMockup width={320} y={floatY}>
           <div style={{ background: COLORS.waDark, height: '100%', position: 'relative' }}>
             {/* WA Header */}
             <div
@@ -174,16 +220,17 @@ export function Scene3SubSide() {
                   width: 30,
                   height: 30,
                   borderRadius: 15,
-                  background: `${COLORS.whatsapp}20`,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: COLORS.whatsapp,
-                  fontSize: 14,
-                  fontWeight: 700,
+                  overflow: 'hidden',
                 }}
               >
-                M
+                <Img
+                  src={PHOTOS.gc}
+                  style={{
+                    width: 30,
+                    height: 30,
+                    objectFit: 'cover',
+                  }}
+                />
               </div>
               <div>
                 <div style={{ color: '#e9edef', fontSize: 11, fontWeight: 600 }}>MasterLeadFlow</div>
@@ -215,20 +262,18 @@ export function Scene3SubSide() {
                   style={{
                     width: 28,
                     height: 28,
-                    borderRadius: 7,
-                    background: COLORS.whatsapp,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    color: '#fff',
-                    fontSize: 14,
+                    borderRadius: 14,
+                    overflow: 'hidden',
                   }}
                 >
-                  💬
+                  <Img
+                    src={PHOTOS.gc}
+                    style={{ width: 28, height: 28, objectFit: 'cover' }}
+                  />
                 </div>
                 <div>
                   <div style={{ fontSize: 10, fontWeight: 700, color: COLORS.dark }}>MasterLeadFlow</div>
-                  <div style={{ fontSize: 8, color: COLORS.graySubtle }}>🔔 New job in your area!</div>
+                  <div style={{ fontSize: 8, color: COLORS.graySubtle }}>{'\uD83D\uDD14'} New job in your area!</div>
                 </div>
               </div>
             )}
@@ -242,7 +287,7 @@ export function Scene3SubSide() {
                     transform: `translateY(${interpolate(msgIn, [0, 1], [15, 0])}px)`,
                   }}
                 >
-                  <WhatsAppMessageAd width={250} />
+                  <WhatsAppMessageAd width={270} />
                 </div>
               )}
             </div>
@@ -276,11 +321,11 @@ export function Scene3SubSide() {
                       fontSize: 16,
                     }}
                   >
-                    🏠
+                    {'\uD83C\uDFE0'}
                   </div>
                   <div>
-                    <div style={{ fontSize: 13, fontWeight: 700, color: COLORS.dark }}>Roofing — Hurricane Damage</div>
-                    <div style={{ fontSize: 9, color: COLORS.graySubtle, opacity: 0.6 }}>📍 Homestead, FL 33033</div>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: COLORS.dark }}>Roofing {'\u2014'} Hurricane Damage</div>
+                    <div style={{ fontSize: 9, color: COLORS.graySubtle, opacity: 0.6 }}>{'\uD83D\uDCCD'} Homestead, FL 33033</div>
                   </div>
                 </div>
                 {/* Deal terms */}
@@ -312,16 +357,17 @@ export function Scene3SubSide() {
                         ? COLORS.success
                         : COLORS.dark,
                     borderRadius: 50,
-                    padding: '10px 0',
+                    padding: '12px 0',
                     textAlign: 'center',
                     color: '#fff',
-                    fontSize: 13,
+                    fontSize: 14,
                     fontWeight: 700,
-                    transform: acceptProgress > 0.5 ? `scale(${acceptScale * 0.1 + 0.95})` : 'scale(1)',
+                    transform: acceptProgress > 0.5 ? `scale(${acceptScale * 0.15 + 0.9})` : 'scale(1)',
+                    boxShadow: acceptProgress > 0.5 ? '0 6px 24px rgba(16,185,129,0.4)' : 'none',
                     transition: 'background 0.2s',
                   }}
                 >
-                  {acceptProgress > 0.5 ? '✅ Accepted!' : 'Accept Job →'}
+                  {acceptProgress > 0.5 ? '\u2705 Accepted!' : 'Accept Job \u2192'}
                 </div>
               </div>
             )}

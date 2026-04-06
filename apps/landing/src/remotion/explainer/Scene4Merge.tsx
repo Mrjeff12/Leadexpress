@@ -1,6 +1,6 @@
 // apps/landing/src/remotion/explainer/Scene4Merge.tsx
-import { AbsoluteFill, useCurrentFrame, useVideoConfig, interpolate } from 'remotion'
-import { COLORS, FONT, sp, SCENE_4_START, SCENE_5_START } from './shared/theme'
+import { AbsoluteFill, useCurrentFrame, useVideoConfig, interpolate, Img } from 'remotion'
+import { COLORS, FONT, sp, SCENE_4_START, SCENE_5_START, PHOTOS, GRADIENT } from './shared/theme'
 import { KpiCardAd } from './shared/KpiCardAd'
 
 const KPIS = [
@@ -11,9 +11,9 @@ const KPIS = [
 ]
 
 const TABLE_ROWS = [
-  { job: '🏠 Roofing', loc: 'Homestead, FL', sub: 'Mike J.', deal: '20%', status: 'Accepted', statusBg: '#dbeafe', statusColor: '#1d4ed8', earned: '$480' },
-  { job: '🔧 Plumbing', loc: 'Miami, FL', sub: 'Carlos R.', deal: '15%', status: 'Done', statusBg: '#dcfce7', statusColor: '#15803d', earned: '$320' },
-  { job: '⚡ Electrical', loc: 'Boca Raton, FL', sub: 'Sarah C.', deal: '$500', status: 'Active', statusBg: '#fef3c7', statusColor: '#b45309', earned: '$500' },
+  { job: '\uD83C\uDFE0 Roofing', loc: 'Homestead, FL', sub: 'Mike J.', deal: '20%', status: 'Accepted', statusBg: '#dbeafe', statusColor: '#1d4ed8', earned: '$480' },
+  { job: '\uD83D\uDD27 Plumbing', loc: 'Miami, FL', sub: 'Carlos R.', deal: '15%', status: 'Done', statusBg: '#dcfce7', statusColor: '#15803d', earned: '$320' },
+  { job: '\u26A1 Electrical', loc: 'Boca Raton, FL', sub: 'Sarah C.', deal: '$500', status: 'Active', statusBg: '#fef3c7', statusColor: '#b45309', earned: '$500' },
 ]
 
 export function Scene4Merge() {
@@ -47,13 +47,16 @@ export function Scene4Merge() {
   // "Everyone wins" text
   const textIn = sp(frame, fps, SCENE_4_START + 220, { damping: 10 })
 
-  // Arrow pulse
-  const arrowPulse = Math.sin(frame * 0.08) * 0.15 + 0.85
+  // Arrow animation - dashed line filling with green
+  const arrowFill = interpolate(local, [180, 220], [0, 1], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  })
 
   return (
     <AbsoluteFill
       style={{
-        background: COLORS.cream,
+        background: GRADIENT.mergeBg,
         fontFamily: FONT.family,
         opacity: vis,
         display: 'flex',
@@ -72,7 +75,7 @@ export function Scene4Merge() {
         }}
       />
 
-      {/* "Everyone wins" title */}
+      {/* "Everyone wins." title */}
       <div
         style={{
           opacity: textIn,
@@ -81,7 +84,15 @@ export function Scene4Merge() {
           textAlign: 'center',
         }}
       >
-        <h2 style={{ fontSize: 48, margin: 0, color: COLORS.dark, ...FONT.heading }}>
+        <h2 style={{
+          fontSize: 56,
+          margin: 0,
+          ...FONT.heading,
+          background: `linear-gradient(180deg, ${COLORS.dark} 0%, ${COLORS.primary} 100%)`,
+          WebkitBackgroundClip: 'text',
+          WebkitTextFillColor: 'transparent',
+          backgroundClip: 'text',
+        }}>
           Everyone wins.
         </h2>
       </div>
@@ -181,7 +192,7 @@ export function Scene4Merge() {
         </div>
       </div>
 
-      {/* Avatars on sides */}
+      {/* GC Avatar - left */}
       <div
         style={{
           position: 'absolute',
@@ -195,60 +206,57 @@ export function Scene4Merge() {
           gap: 8,
         }}
       >
-        <div
-          style={{
-            width: 56,
-            height: 56,
-            borderRadius: 28,
-            background: '#fff',
-            border: `3px solid ${COLORS.primary}`,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: 20,
-            fontWeight: 800,
-            color: COLORS.primary,
-            boxShadow: `0 4px 20px rgba(254,91,37,0.2)`,
-          }}
-        >
-          GC
+        <div style={{
+          width: 72,
+          height: 72,
+          borderRadius: 36,
+          border: `3px solid ${COLORS.primary}`,
+          overflow: 'hidden',
+          boxShadow: `0 4px 20px rgba(254,91,37,0.2)`,
+        }}>
+          <Img src={PHOTOS.gc} style={{ width: 72, height: 72, objectFit: 'cover' }} />
         </div>
+        <span style={{ fontSize: 12, fontWeight: 700, color: COLORS.dark }}>David Miller</span>
         <span style={{ fontSize: 10, fontWeight: 600, color: COLORS.graySubtle }}>General Contractor</span>
       </div>
 
-      {/* Arrow left */}
+      {/* Arrow left - animated dashed fill */}
       <div
         style={{
           position: 'absolute',
           top: '50%',
-          left: 160,
+          left: 170,
           transform: 'translateY(-50%)',
-          opacity: avatarIn * arrowPulse,
+          opacity: avatarIn,
         }}
       >
         <svg width={60} height={24} viewBox="0 0 60 24">
-          <line x1={0} y1={12} x2={48} y2={12} stroke={COLORS.success} strokeWidth={2} strokeDasharray="6 4" />
-          <polygon points="48,6 60,12 48,18" fill={COLORS.success} />
+          {/* Dashed background line */}
+          <line x1={0} y1={12} x2={48} y2={12} stroke="#e0e0e0" strokeWidth={2} strokeDasharray="6 4" />
+          {/* Filled green line */}
+          <line x1={0} y1={12} x2={48 * arrowFill} y2={12} stroke={COLORS.success} strokeWidth={2} />
+          <polygon points="48,6 60,12 48,18" fill={COLORS.success} opacity={arrowFill} />
         </svg>
       </div>
 
-      {/* Arrow right */}
+      {/* Arrow right - animated dashed fill */}
       <div
         style={{
           position: 'absolute',
           top: '50%',
-          right: 160,
+          right: 170,
           transform: 'translateY(-50%) scaleX(-1)',
-          opacity: avatarIn * arrowPulse,
+          opacity: avatarIn,
         }}
       >
         <svg width={60} height={24} viewBox="0 0 60 24">
-          <line x1={0} y1={12} x2={48} y2={12} stroke={COLORS.success} strokeWidth={2} strokeDasharray="6 4" />
-          <polygon points="48,6 60,12 48,18" fill={COLORS.success} />
+          <line x1={0} y1={12} x2={48} y2={12} stroke="#e0e0e0" strokeWidth={2} strokeDasharray="6 4" />
+          <line x1={0} y1={12} x2={48 * arrowFill} y2={12} stroke={COLORS.success} strokeWidth={2} />
+          <polygon points="48,6 60,12 48,18" fill={COLORS.success} opacity={arrowFill} />
         </svg>
       </div>
 
-      {/* Sub avatar */}
+      {/* Sub Avatar - right */}
       <div
         style={{
           position: 'absolute',
@@ -262,24 +270,17 @@ export function Scene4Merge() {
           gap: 8,
         }}
       >
-        <div
-          style={{
-            width: 56,
-            height: 56,
-            borderRadius: 28,
-            background: '#fff',
-            border: `3px solid ${COLORS.whatsapp}`,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: 20,
-            fontWeight: 800,
-            color: COLORS.whatsapp,
-            boxShadow: `0 4px 20px rgba(37,211,102,0.2)`,
-          }}
-        >
-          SC
+        <div style={{
+          width: 72,
+          height: 72,
+          borderRadius: 36,
+          border: `3px solid ${COLORS.whatsapp}`,
+          overflow: 'hidden',
+          boxShadow: `0 4px 20px rgba(37,211,102,0.2)`,
+        }}>
+          <Img src={PHOTOS.sub1} style={{ width: 72, height: 72, objectFit: 'cover' }} />
         </div>
+        <span style={{ fontSize: 12, fontWeight: 700, color: COLORS.dark }}>Mike Johnson</span>
         <span style={{ fontSize: 10, fontWeight: 600, color: COLORS.graySubtle }}>Subcontractor</span>
       </div>
     </AbsoluteFill>

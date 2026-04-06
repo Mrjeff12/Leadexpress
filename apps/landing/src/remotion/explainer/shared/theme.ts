@@ -33,6 +33,20 @@ export const SHADOW = {
   phone: '0 25px 80px rgba(0,0,0,0.25)',
 } as const
 
+export const PHOTOS = {
+  gc: 'https://randomuser.me/api/portraits/men/32.jpg',
+  sub1: 'https://randomuser.me/api/portraits/men/45.jpg',
+  sub2: 'https://randomuser.me/api/portraits/women/44.jpg',
+  sub3: 'https://randomuser.me/api/portraits/men/67.jpg',
+} as const
+
+export const GRADIENT = {
+  warmBg: 'linear-gradient(135deg, #faf9f6 0%, #fff4ef 50%, #fef3e2 100%)',
+  coolBg: 'linear-gradient(135deg, #faf9f6 0%, #eff6ff 50%, #e8f5e9 100%)',
+  mergeBg: 'linear-gradient(180deg, #faf9f6 0%, #f0fdf4 50%, #faf9f6 100%)',
+  ctaBg: 'linear-gradient(180deg, #faf9f6 0%, #f0f9ff 30%, #f0fdf4 70%, #faf9f6 100%)',
+} as const
+
 /* ─── Timing ─── */
 export const FPS = 30
 export const SCENE_1_START = 0

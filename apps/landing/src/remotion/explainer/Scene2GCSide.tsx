@@ -1,15 +1,15 @@
 // apps/landing/src/remotion/explainer/Scene2GCSide.tsx
-import { AbsoluteFill, useCurrentFrame, useVideoConfig, interpolate } from 'remotion'
-import { COLORS, FONT, sp, SCENE_2_START, SCENE_3_START } from './shared/theme'
+import { AbsoluteFill, useCurrentFrame, useVideoConfig, interpolate, Img } from 'remotion'
+import { COLORS, FONT, sp, SCENE_2_START, SCENE_3_START, PHOTOS, GRADIENT } from './shared/theme'
 import { PhoneMockup } from './shared/PhoneMockup'
 import { LeadCardAd } from './shared/LeadCardAd'
 import { SubCardAd } from './shared/SubCardAd'
 import { WhatsAppMessageAd } from './shared/WhatsAppMessageAd'
 
 const SUBS = [
-  { initials: 'MJ', name: 'Mike Johnson', trade: 'Roofing', jobs: 12, rating: 5 },
-  { initials: 'SC', name: 'Sarah Chen', trade: 'Roofing', jobs: 8, rating: 4 },
-  { initials: 'CR', name: 'Carlos Rivera', trade: 'Roofing', jobs: 5, rating: 4 },
+  { initials: 'MJ', name: 'Mike Johnson', trade: 'Roofing', jobs: 12, rating: 5, photo: PHOTOS.sub1 },
+  { initials: 'SC', name: 'Sarah Chen', trade: 'Roofing', jobs: 8, rating: 4, photo: PHOTOS.sub2 },
+  { initials: 'CR', name: 'Carlos Rivera', trade: 'Roofing', jobs: 5, rating: 4, photo: PHOTOS.sub3 },
 ]
 
 export function Scene2GCSide() {
@@ -60,21 +60,18 @@ export function Scene2GCSide() {
     extrapolateRight: 'clamp',
   })
 
-  // Phase text
-  let phaseTitle = 'A lead comes in'
-  let phaseSub = "A job you can't take — but someone in your network can."
-  if (local >= PHASE_SUBS - 10) {
-    phaseTitle = 'Pick your sub'
-    phaseSub = 'Choose from your trusted network.'
-  }
-  if (local >= PHASE_SELECT - 10) {
-    phaseTitle = 'Pick your sub'
-    phaseSub = 'Mike Johnson — perfect match.'
-  }
-  if (local >= PHASE_SEND - 10) {
-    phaseTitle = 'Send with one tap'
-    phaseSub = 'WhatsApp message with all the details.'
-  }
+  // Phase text with crossfade
+  let phaseIndex = 0
+  if (local >= PHASE_SEND - 10) phaseIndex = 3
+  else if (local >= PHASE_SELECT - 10) phaseIndex = 2
+  else if (local >= PHASE_SUBS - 10) phaseIndex = 1
+
+  const phases = [
+    { title: 'A lead comes in', sub: "A job you can\u2019t take \u2014 but someone in your network can." },
+    { title: 'Pick your sub', sub: 'Choose from your trusted network.' },
+    { title: 'Pick your sub', sub: 'Mike Johnson \u2014 perfect match.' },
+    { title: 'Send with one tap', sub: 'WhatsApp message with all the details.' },
+  ]
 
   const titleIn = sp(frame, fps, SCENE_2_START + 5)
 
@@ -83,7 +80,7 @@ export function Scene2GCSide() {
   return (
     <AbsoluteFill
       style={{
-        background: COLORS.cream,
+        background: GRADIENT.warmBg,
         fontFamily: FONT.family,
         opacity: vis,
         display: 'flex',
@@ -101,7 +98,35 @@ export function Scene2GCSide() {
         }}
       />
 
-      {/* Left — GC Phone (60%) */}
+      {/* GC header avatar */}
+      <div
+        style={{
+          position: 'absolute',
+          top: 50,
+          left: 60,
+          display: 'flex',
+          alignItems: 'center',
+          gap: 12,
+          opacity: titleIn,
+        }}
+      >
+        <Img
+          src={PHOTOS.gc}
+          style={{
+            width: 48,
+            height: 48,
+            borderRadius: 24,
+            objectFit: 'cover',
+            border: `2px solid ${COLORS.primary}`,
+          }}
+        />
+        <div>
+          <div style={{ fontSize: 16, fontWeight: 700, color: COLORS.dark }}>David Miller</div>
+          <div style={{ fontSize: 11, color: COLORS.graySubtle, opacity: 0.6 }}>General Contractor</div>
+        </div>
+      </div>
+
+      {/* Left \u2014 GC Phone (60%) */}
       <div
         style={{
           flex: 6,
@@ -127,13 +152,13 @@ export function Scene2GCSide() {
           }}
         />
 
-        <PhoneMockup width={300} y={floatY}>
+        <PhoneMockup width={320} y={floatY}>
           <div style={{ padding: 10, display: 'flex', flexDirection: 'column', gap: 8 }}>
             {/* Lead card */}
             <div style={{ opacity: leadIn, transform: `translateY(${interpolate(leadIn, [0, 1], [20, 0])}px)` }}>
               <LeadCardAd
                 profession="Roofing"
-                icon="🏠"
+                icon={'\uD83C\uDFE0'}
                 color="#dc2626"
                 summary="Hurricane damage on tile roof, multiple leaks in master bedroom and garage."
                 location="Homestead, FL 33033"
@@ -167,14 +192,14 @@ export function Scene2GCSide() {
                   marginTop: 6,
                 }}
               >
-                <WhatsAppMessageAd opacity={waScale} scale={waScale} width={260} />
+                <WhatsAppMessageAd opacity={waScale} scale={waScale} width={280} />
               </div>
             )}
           </div>
         </PhoneMockup>
       </div>
 
-      {/* Right — blurred hint (40%) */}
+      {/* Right \u2014 blurred hint (40%) */}
       <div
         style={{
           flex: 4,
@@ -221,10 +246,10 @@ export function Scene2GCSide() {
             ...FONT.heading,
           }}
         >
-          {phaseTitle}
+          {phases[phaseIndex].title}
         </h2>
         <p style={{ fontSize: 16, color: COLORS.graySubtle, opacity: 0.6, marginTop: 8 }}>
-          {phaseSub}
+          {phases[phaseIndex].sub}
         </p>
       </div>
     </AbsoluteFill>
