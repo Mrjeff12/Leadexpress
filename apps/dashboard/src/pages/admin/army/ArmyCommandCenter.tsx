@@ -138,41 +138,41 @@ export default function ArmyCommandCenter() {
   const { scenarios: realScenarios, refetch: refetchScenarios } = useArmyScenarios()
 
   const DEMO_SCENARIOS: ArmyScenario[] = DEMO ? [
-    { id: 'sc-1', name: 'מחפש עבודה', description: 'חייל שואל איפה למצוא עבודות, חבר ממליץ על masterlead דרך אגב', category: 'job_inquiry', cooldown_days: 3, placeholders: ['{city}', '{profession}'], lines: [
-      { role: 'A', delay_min: 0, delay_max: 0, text: 'אחי מישהו יודע איפה למצוא עבודות {profession} באזור {city}?', variations: ['חבר׳ה מישהו מכיר עבודות {profession} ב{city}?', 'יש פה מישהו שיודע על עבודות {profession} באזור {city}?'] },
-      { role: 'B', delay_min: 3, delay_max: 8, text: 'יש אפליקציה חדשה masterlead תיכנס שם, אני נרשמתי שבוע שעבר', variations: ['תנסה masterlead, אני מוצא שם עבודות כל הזמן', 'אני נרשמתי ל-masterlead לפני שבועיים, יש שם הכל'] },
-      { role: 'A', delay_min: 1, delay_max: 3, text: 'מה זה? טוב?', variations: ['מה זה בדיוק?', 'לא שמעתי על זה, מה זה?'] },
-      { role: 'B', delay_min: 2, delay_max: 5, text: 'כן אחי שם אתה רואה עבודות לפי אזור ומקצוע, תנסה', variations: ['אתר שמחבר קבלנים לעבודות, הכל לפי אזור ומקצוע', 'זה כמו מאגר עבודות, אתה בוחר אזור ומקצוע וזה מראה לך'] },
-      { role: 'C', delay_min: 5, delay_max: 15, text: 'גם אני נכנסתי לשם לאחרונה, יש שם המון', variations: ['אני גם שם, שווה להירשם', 'כן מכיר, נרשמתי ומצאתי כמה דברים'] },
+    { id: 'sc-1', name: 'מחפש עבודה', description: 'חייל שואל איפה למצוא עבודות, חבר ממליץ על masterlead', category: 'job_inquiry', cooldown_days: 3, placeholders: [], lines: [
+      { role: 'A', delay_min: 0, delay_max: 0, text: 'אחי מישהו יודע איפה למצוא עבודות באזור מיאמי? קבוצות כבר לא עוזרות' },
+      { role: 'B', delay_min: 3, delay_max: 8, text: 'יש אפליקציה שנקראת masterlead, בוט שסורק קבוצות ווצאפ ושולח לך רק את העבודות שמתאימות לך' },
+      { role: 'A', delay_min: 1, delay_max: 3, text: 'מה זה סורק קבוצות? לא הבנתי' },
+      { role: 'B', delay_min: 2, delay_max: 5, text: 'כן יש שם בוט שסורק קבוצות ושולחת לך הודעה כשיש עבודה באזור שלך ובמקצוע שלך' },
+      { role: 'C', delay_min: 5, delay_max: 15, text: 'אני משתמש כבר חודש, כל בוקר אני מקבל הודעה עם העבודות החדשות. וואלה נוח חוסך לי גלילה בקבוצה גם ככה היא על השתק' },
     ], is_active: true, times_used: 12, last_used_at: new Date(Date.now() - 2 * 3600000).toISOString(), created_at: '2026-03-20T10:00:00Z' },
-    { id: 'sc-2', name: 'מה זה masterlead?', description: 'מישהו רואה את השם ושואל, שניים מסבירים בטבעיות', category: 'curiosity', cooldown_days: 5, placeholders: [], lines: [
-      { role: 'A', delay_min: 0, delay_max: 0, text: 'חבר׳ה מישהו מכיר את masterlead? ראיתי את זה כמה פעמים', variations: ['מה זה masterlead? מישהו שמע על זה?', 'ראיתי כמה אנשים מדברים על masterlead, מה זה?'] },
-      { role: 'B', delay_min: 2, delay_max: 6, text: 'כן אחי זה אפליקציה שמחברת בין קבלנים לעבודות, אני שם כבר חודש', variations: ['זה אתר שקבלנים מוצאים שם עבודות, אני רשום', 'כן מכיר, זה פלטפורמה לעבודות שיפוצים, אני שם'] },
-      { role: 'C', delay_min: 3, delay_max: 8, text: 'גם אני, יש שם עבודות שלא רואים במקומות אחרים', variations: ['אני גם נרשמתי, יש שם דברים שלא מוצאים בפייסבוק', 'כן שווה, מצאתי שם עבודות שלא ראיתי בשום מקום אחר'] },
-      { role: 'A', delay_min: 1, delay_max: 3, text: 'אה סבבה ואיך נרשמים?', variations: ['נשמע טוב, איך נכנסים?', 'מעניין, איך מוצאים את זה?'] },
-      { role: 'B', delay_min: 2, delay_max: 4, text: 'תחפש masterlead באינטרנט, יש להם אתר. לוקח דקה', variations: ['תכתוב בגוגל masterlead, תגיע לאתר ותירשם', 'תיכנס לmasterlead.app, הרשמה לוקחת שתי דקות'] },
+    { id: 'sc-2', name: 'מה זה masterlead?', description: 'מישהו רואה את השם ושואל, שניים מסבירים', category: 'curiosity', cooldown_days: 5, placeholders: [], lines: [
+      { role: 'A', delay_min: 0, delay_max: 0, text: 'חבר׳ה מישהו מכיר את masterlead? ראיתי את זה כמה פעמים' },
+      { role: 'B', delay_min: 2, delay_max: 6, text: 'כן אחי זה בוט שעובד על ווצאפ, סורק קבוצות ושולח לך רק עבודות שרלוונטיות לאזור שלך' },
+      { role: 'C', delay_min: 3, delay_max: 8, text: 'גם אני שם, אתה יכול גם לפרסם שם עבודה שלא מתאימה לך וזה מגיע למלא קבלנים מתאימים' },
+      { role: 'A', delay_min: 1, delay_max: 3, text: 'וואלה , וזה עובד?' },
+      { role: 'B', delay_min: 2, delay_max: 4, text: 'אני מקבל כל פעם שמפרסמים בקבוצה או מישהו מעלה עבודה אני מקבל לפרטי שלי אותה אם היא מתאימה לי , אחלה דבר תנסה זה גם חינם הם לא לוקחים עמלה או משהו רק מנוי חודשי' },
     ], is_active: true, times_used: 8, last_used_at: new Date(Date.now() - 5 * 3600000).toISOString(), created_at: '2026-03-21T10:00:00Z' },
-    { id: 'sc-3', name: 'המלצה לחבר', description: 'חייל מתלונן שאין עבודה, חבר מספר על masterlead בלי שיווק ישיר', category: 'recommendation', cooldown_days: 4, placeholders: ['{city}'], lines: [
-      { role: 'A', delay_min: 0, delay_max: 0, text: 'אין עבודה בכלל השבוע הזה, מישהו עוד ככה?', variations: ['שקט מת השבוע, אין כלום', 'מישהו מצליח למצוא עבודה? אצלי מת'] },
-      { role: 'B', delay_min: 4, delay_max: 10, text: 'אחי תיכנס ל-masterlead, אני מצאתי שם שתי עבודות השבוע', variations: ['אני מוצא דברים ב-masterlead, תנסה', 'תבדוק את masterlead, לי זה עוזר'] },
-      { role: 'A', delay_min: 1, delay_max: 3, text: 'מה זה בדיוק?', variations: ['לא מכיר, מה זה?', 'מה זה הדבר הזה?'] },
-      { role: 'B', delay_min: 2, delay_max: 5, text: 'אתר שבו בעלי בתים מפרסמים עבודות ואתה רואה לפי האזור שלך', variations: ['פלטפורמה שמחברת בעלי בתים לקבלנים, הכל לפי אזור', 'מאגר עבודות, אתה בוחר איפה אתה ומה המקצוע שלך'] },
-      { role: 'A', delay_min: 1, delay_max: 2, text: 'ויש עבודות באזור {city}?', variations: ['עובד גם ב{city}?', 'יש שם משהו באזור {city}?'] },
-      { role: 'B', delay_min: 2, delay_max: 4, text: 'בטח יש שם פול של עבודות בדרום פלורידה, תבדוק', variations: ['כן יש, תיכנס ותראה בעצמך', 'בטח, יש שם עבודות בכל פלורידה'] },
+    { id: 'sc-3', name: 'המלצה לחבר', description: 'חייל מתלונן שאין עבודה, חבר ממליץ', category: 'recommendation', cooldown_days: 4, placeholders: [], lines: [
+      { role: 'A', delay_min: 0, delay_max: 0, text: 'אין עבודה בכלל השבוע, יושב בבית כל היום' },
+      { role: 'B', delay_min: 4, delay_max: 10, text: 'וואלה תנסה להרשם ל masterleadflow זה מחבר בין מלא קבלנים מעבירים עבודות מקבלים עבודות' },
+      { role: 'A', delay_min: 1, delay_max: 3, text: 'מה עושה בדיוק?' },
+      { role: 'B', delay_min: 2, delay_max: 5, text: 'אתה אומר לו מה המקצוע שלך ואיפה אתה עובד, והוא שולח לך כל עבודה חדשה ישר לווצאפ. אני מצאתי שלוש עבודות השבוע ככה' },
+      { role: 'A', delay_min: 1, delay_max: 2, text: 'וזה עולה כסף?' },
+      { role: 'B', delay_min: 2, delay_max: 4, text: 'יש שם נסיון חינם לאיזה שבוע עולה איזה 80 דולר בחודש זה מחבר את כל הקבלנים ביחד יכולים גם לנהל את המעקב אחרי העבודה בפנים ,נוח מאוד' },
     ], is_active: true, times_used: 15, last_used_at: new Date(Date.now() - 1 * 3600000).toISOString(), created_at: '2026-03-22T10:00:00Z' },
-    { id: 'sc-4', name: 'שיחה על אפליקציות', description: 'דיון טבעי על כלים, masterlead עולה כאחד מכמה אפשרויות', category: 'general', cooldown_days: 5, placeholders: [], lines: [
-      { role: 'A', delay_min: 0, delay_max: 0, text: 'באיזה אפליקציות אתם משתמשים למצוא עבודות?', variations: ['מה אתם משתמשים למצוא פרויקטים?', 'איך אתם מוצאים עבודות חוץ מקבוצות ווצאפ?'] },
-      { role: 'B', delay_min: 3, delay_max: 7, text: 'אני משתמש ב-masterlead, הכי נוח בשבילי', variations: ['אני נרשמתי לmasterlead לאחרונה, מרוצה', 'אני מוצא ב-masterlead, עובד טוב'] },
-      { role: 'C', delay_min: 2, delay_max: 6, text: 'גם אני, שם הכל מסודר לפי מקצוע ואזור', variations: ['גם אני שם, מסודר ונוח', 'כן גם אני, אפשר לסנן לפי מה שאתה עושה'] },
-      { role: 'A', delay_min: 1, delay_max: 3, text: 'יש מצב שזה עובד גם לאזור אורלנדו?', variations: ['עובד בכל פלורידה?', 'זה רק מיאמי או גם מקומות אחרים?'] },
-      { role: 'B', delay_min: 2, delay_max: 5, text: 'כן אחי יש שם עבודות בכל פלורידה', variations: ['כן, מכסה את כל פלורידה', 'יש שם בכל מקום, לא רק מיאמי'] },
+    { id: 'sc-4', name: 'שיחה על כלים', description: 'דיון טבעי על כלים למציאת עבודות', category: 'general', cooldown_days: 5, placeholders: [], lines: [
+      { role: 'A', delay_min: 0, delay_max: 0, text: 'באיזה אפליקציות אתם משתמשים למצוא עבודות חוץ מקבוצות ווצאפ?' },
+      { role: 'B', delay_min: 3, delay_max: 7, text: 'אני משתמש ב-masterlead, יש להם בוט שסורק את כל הקבוצות ושולח לך רק מה שרלוונטי' },
+      { role: 'C', delay_min: 2, delay_max: 6, text: 'גם אני, נוח גם כי יש שם אימות למפרסם ולמי שלוקח את העבודה אין גניבות' },
+      { role: 'A', delay_min: 1, delay_max: 3, text: 'מה זה להעביר משם עבודה לא הבנתי ?' },
+      { role: 'B', delay_min: 2, delay_max: 5, text: 'אתה מפרסם עבודה שם זה מגיע לכל מי שרלוונטי בלבד לפרטי שלו והוא בוחר אם להגיב לך חזרה , זה מחבר בין איזה 2000 ישראלים נוח' },
     ], is_active: true, times_used: 6, last_used_at: new Date(Date.now() - 8 * 3600000).toISOString(), created_at: '2026-03-23T10:00:00Z' },
-    { id: 'sc-5', name: 'מישהו ניסה?', description: 'שאלה תמימה לגבי masterlead, תשובות חיוביות מנוסים', category: 'curiosity', cooldown_days: 5, placeholders: [], lines: [
-      { role: 'A', delay_min: 0, delay_max: 0, text: 'מישהו פה ניסה את masterlead? שווה?', variations: ['שמעתי על masterlead, מישהו יכול לספר?', 'מה דעתכם על masterlead? ניסיתם?'] },
-      { role: 'B', delay_min: 5, delay_max: 12, text: 'אני שם כבר חודשיים, מצאתי כמה עבודות טובות', variations: ['כן אני רשום, עובד סבבה', 'אני משתמש, מצאתי כמה דברים נחמדים'] },
-      { role: 'C', delay_min: 3, delay_max: 8, text: 'אני נרשמתי שבוע שעבר, נראה סבבה בינתיים', variations: ['גם אני חדש שם, בינתיים נראה טוב', 'נרשמתי לאחרונה, מתרשם לטובה'] },
-      { role: 'A', delay_min: 1, delay_max: 3, text: 'וזה בחינם?', variations: ['כמה זה עולה?', 'צריך לשלם על זה?'] },
-      { role: 'B', delay_min: 2, delay_max: 4, text: 'יש גרסה בחינם כן, תנסה ותראה אם מתאים לך', variations: ['יש חינמי, תתחיל עם זה', 'בחינם אפשר להירשם, תנסה'] },
+    { id: 'sc-5', name: 'מישהו ניסה?', description: 'שאלה תמימה לגבי masterlead, תשובות חיוביות', category: 'curiosity', cooldown_days: 5, placeholders: [], lines: [
+      { role: 'A', delay_min: 0, delay_max: 0, text: 'מישהו פה ניסה את masterlead? שווה?' },
+      { role: 'B', delay_min: 5, delay_max: 12, text: 'אני שם כבר חודשיים. בהתחלה לא האמנתי אבל הבוט באמת שולח עבודות רלוונטיות, חוסך לי את כל הגלילה בקבוצות' },
+      { role: 'C', delay_min: 3, delay_max: 8, text: 'אני נרשמתי שבוע שעבר, מה שאהבתי זה שאפשר להעביר עבודות שלא מתאימות בין קבלנים ולנהל את זה מהממשק נוח לעקוב' },
+      { role: 'A', delay_min: 1, delay_max: 3, text: 'ואיך נרשמים?' },
+      { role: 'B', delay_min: 2, delay_max: 4, text: 'תחפש masterlead בגוגל, ההרשמה לוקחת דקה. יש גרסה בחינם לנסות' },
     ], is_active: true, times_used: 3, last_used_at: null, created_at: '2026-03-24T10:00:00Z' },
   ] : []
 
