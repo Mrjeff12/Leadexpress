@@ -83,6 +83,7 @@ const PLAN_CONFIG: Record<string, { label: string; color: string; bg: string; bo
   starter: { label: 'Starter', color: '#6B7280', bg: '#F3F4F6', border: '#E5E7EB', icon: Zap },
   pro: { label: 'Pro', color: '#2563EB', bg: '#EFF6FF', border: '#BFDBFE', icon: Crown },
   unlimited: { label: 'Unlimited', color: '#7C3AED', bg: '#F5F3FF', border: '#DDD6FE', icon: Crown },
+  premium: { label: 'Premium', color: '#D97706', bg: '#FFFBEB', border: '#FDE68A', icon: Crown },
 }
 
 const STATUS_COLORS: Record<string, { color: string; bg: string }> = {
