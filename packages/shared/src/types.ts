@@ -171,6 +171,7 @@ export interface Prospect {
   wa_sender_id: string | null
   profession_tags: string[]
   group_ids: string[]
+  contractor_id: string | null
   stage: ProspectStage
   assigned_wa_account_id: string | null
   notes: string

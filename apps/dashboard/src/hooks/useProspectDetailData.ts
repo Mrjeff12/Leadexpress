@@ -11,6 +11,7 @@ export interface Prospect {
   profile_pic_url: string | null
   profession_tags: string[]
   group_ids: string[]
+  contractor_id: string | null
   stage: string
   assigned_wa_account_id: string | null
   notes: string
