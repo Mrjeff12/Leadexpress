@@ -335,6 +335,114 @@ async function handleToggleProduct(params: Record<string, unknown>) {
 }
 
 // ---------------------------------------------------------------------------
+// Admin Subscription Management
+// ---------------------------------------------------------------------------
+
+async function handleAdminUpdateSubscription(params: Record<string, unknown>) {
+  const userId = params.userId as string;
+  if (!userId) throw new Error("userId is required");
+
+  // Get current subscription
+  const { data: sub } = await supabase
+    .from("subscriptions")
+    .select("id, stripe_subscription_id, plan_id, status, current_period_end, plans(slug, stripe_price_id)")
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  const newPlanSlug = params.planSlug as string | undefined;
+  const newStatus = params.status as string | undefined;
+  const newPeriodEnd = params.periodEnd as string | undefined;
+
+  const updates: Record<string, unknown> = {};
+  const auditDetails: Record<string, unknown> = {};
+
+  // --- Plan change ---
+  if (newPlanSlug && newPlanSlug !== (sub?.plans as any)?.slug) {
+    const { data: newPlan } = await supabase
+      .from("plans")
+      .select("id, stripe_price_id")
+      .eq("slug", newPlanSlug)
+      .single();
+    if (!newPlan) throw new Error(`Plan not found: ${newPlanSlug}`);
+
+    // Sync to Stripe if subscription exists
+    if (sub?.stripe_subscription_id && newPlan.stripe_price_id) {
+      try {
+        const stripeSub = await stripe.subscriptions.retrieve(sub.stripe_subscription_id);
+        const currentItemId = stripeSub.items.data[0]?.id;
+        if (currentItemId) {
+          await stripe.subscriptions.update(sub.stripe_subscription_id, {
+            items: [{ id: currentItemId, price: newPlan.stripe_price_id }],
+            proration_behavior: "create_prorations",
+          });
+        }
+      } catch (e) {
+        console.error("[admin-billing] Stripe plan update failed:", e);
+        // Continue with local update even if Stripe fails
+      }
+    }
+
+    updates.plan_id = newPlan.id;
+    auditDetails.plan_change = { from: (sub?.plans as any)?.slug, to: newPlanSlug };
+  }
+
+  // --- Status change ---
+  if (newStatus && sub && newStatus !== sub.status) {
+    if (newStatus === "canceled" && sub.stripe_subscription_id) {
+      try {
+        await stripe.subscriptions.cancel(sub.stripe_subscription_id);
+      } catch (e) {
+        console.error("[admin-billing] Stripe cancel failed:", e);
+      }
+    }
+    updates.status = newStatus;
+    auditDetails.status_change = { from: sub.status, to: newStatus };
+  }
+
+  // --- Period end change ---
+  if (newPeriodEnd) {
+    updates.current_period_end = newPeriodEnd;
+    auditDetails.period_end_change = newPeriodEnd;
+  }
+
+  if (Object.keys(updates).length === 0) {
+    return { ok: true, message: "No changes" };
+  }
+
+  // Apply updates
+  if (sub) {
+    await supabase.from("subscriptions").update(updates).eq("id", sub.id);
+  } else {
+    // No subscription exists — create one
+    const { data: plan } = await supabase
+      .from("plans")
+      .select("id")
+      .eq("slug", newPlanSlug || "pro")
+      .single();
+
+    await supabase.from("subscriptions").insert({
+      user_id: userId,
+      plan_id: plan?.id || updates.plan_id,
+      status: (newStatus as string) || "active",
+      current_period_end: newPeriodEnd || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+      stripe_customer_id: "manual_admin",
+    });
+  }
+
+  // Audit log
+  await supabase.from("audit_logs").insert({
+    admin_user_id: params._adminUserId as string || null,
+    target_user_id: userId,
+    action: "admin_subscription_update",
+    details: auditDetails,
+  });
+
+  return { ok: true, updates: auditDetails };
+}
+
+// ---------------------------------------------------------------------------
 // Main handler
 // ---------------------------------------------------------------------------
 
@@ -413,6 +521,9 @@ Deno.serve(async (req: Request) => {
         break;
       case "toggle_product":
         result = await handleToggleProduct(params);
+        break;
+      case "admin_update_subscription":
+        result = await handleAdminUpdateSubscription({ ...params, _adminUserId: user.id });
         break;
       default:
         return json({ error: `Unknown action: ${action}` }, corsHeaders, 400);
