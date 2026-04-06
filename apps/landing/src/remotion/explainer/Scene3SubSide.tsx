@@ -70,7 +70,7 @@ export function Scene3SubSide() {
   }
   if (local >= PHASE_ACCEPT - 10) {
     phaseTitle = 'Accept instantly'
-    phaseSub = 'One tap — you're on the job.'
+    phaseSub = "One tap — you're on the job."
   }
 
   const titleIn = sp(frame, fps, SCENE_3_START + 5)
