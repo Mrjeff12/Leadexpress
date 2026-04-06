@@ -64,12 +64,60 @@ export default function ArmyCommandCenter() {
   const he = locale === 'he'
 
   /* ── Data ── */
-  const { accounts, loading: accLoading, refetch: refetchAccounts } = useArmyAccounts()
-  const { assignments, refetch: refetchAssignments } = useArmyAssignments()
+  const { accounts: realAccounts, loading: accLoading, refetch: refetchAccounts } = useArmyAccounts()
+  const { assignments: realAssignments, refetch: refetchAssignments } = useArmyAssignments()
   const { config, update: updateConfig } = useArmyConfig()
-  const { entries: activityEntries } = useArmyActivity(20)
+  const { entries: realActivityEntries } = useArmyActivity(20)
   const { templates } = useArmyTemplates()
-  const { counts: unreadCounts, refetch: refetchUnread } = useArmyUnreadCounts()
+  const { counts: realUnreadCounts, refetch: refetchUnread } = useArmyUnreadCounts()
+
+  /* ── Demo mode: show mock data when no real accounts exist ── */
+  const DEMO = realAccounts.length === 0 && !accLoading
+
+  const DEMO_ACCOUNTS: ArmyAccount[] = DEMO ? [
+    { id: 'demo-1', green_api_id: '1101000001', green_api_token: 'demo', green_api_url: 'https://api.green-api.com', phone_number: '+1 (305) 555-0101', status: 'connected', qr_code: null, is_army: true, army_role: 'publisher', army_alias: 'Slave-Miami-01', connected_since: '2026-03-20T10:00:00Z' },
+    { id: 'demo-2', green_api_id: '1101000002', green_api_token: 'demo', green_api_url: 'https://api.green-api.com', phone_number: '+1 (305) 555-0102', status: 'connected', qr_code: null, is_army: true, army_role: 'responder', army_alias: 'Slave-Miami-02', connected_since: '2026-03-21T10:00:00Z' },
+    { id: 'demo-3', green_api_id: '1101000003', green_api_token: 'demo', green_api_url: 'https://api.green-api.com', phone_number: '+1 (786) 555-0103', status: 'connected', qr_code: null, is_army: true, army_role: 'responder', army_alias: 'Slave-FTL-03', connected_since: '2026-03-22T10:00:00Z' },
+    { id: 'demo-4', green_api_id: '1101000004', green_api_token: 'demo', green_api_url: 'https://api.green-api.com', phone_number: '+1 (954) 555-0104', status: 'connected', qr_code: null, is_army: true, army_role: 'contractor', army_alias: 'Slave-Orlando-04', connected_since: '2026-03-23T10:00:00Z' },
+    { id: 'demo-5', green_api_id: '1101000005', green_api_token: 'demo', green_api_url: 'https://api.green-api.com', phone_number: '+1 (407) 555-0105', status: 'disconnected', qr_code: null, is_army: true, army_role: 'publisher', army_alias: 'Slave-Tampa-05', connected_since: null },
+    { id: 'demo-6', green_api_id: '1101000006', green_api_token: 'demo', green_api_url: 'https://api.green-api.com', phone_number: '+1 (813) 555-0106', status: 'connected', qr_code: null, is_army: true, army_role: 'responder', army_alias: 'Slave-Jax-06', connected_since: '2026-03-25T10:00:00Z' },
+  ] : []
+
+  const DEMO_ASSIGNMENTS: ArmyAssignment[] = DEMO ? [
+    { id: 'da-1', wa_account_id: 'demo-1', group_wa_id: '120363001@g.us', group_name: 'Miami Renovations', role_in_group: 'publisher', is_active: true },
+    { id: 'da-2', wa_account_id: 'demo-2', group_wa_id: '120363001@g.us', group_name: 'Miami Renovations', role_in_group: 'responder', is_active: true },
+    { id: 'da-3', wa_account_id: 'demo-1', group_wa_id: '120363002@g.us', group_name: 'FL Plumbers Network', role_in_group: 'publisher', is_active: true },
+    { id: 'da-4', wa_account_id: 'demo-3', group_wa_id: '120363002@g.us', group_name: 'FL Plumbers Network', role_in_group: 'responder', is_active: true },
+    { id: 'da-5', wa_account_id: 'demo-4', group_wa_id: '120363003@g.us', group_name: 'Orlando Contractors', role_in_group: 'contractor', is_active: true },
+    { id: 'da-6', wa_account_id: 'demo-1', group_wa_id: '120363004@g.us', group_name: 'South FL HVAC Jobs', role_in_group: 'publisher', is_active: true },
+  ] : []
+
+  const DEMO_CONVERSATIONS: DMConversation[] = DEMO ? [
+    { sender_phone: '+1 (305) 444-1234', sender_name: 'Carlos Rivera', last_message: 'Hey I saw the plumbing job in Miami Beach, I\'m interested! I have 8 years experience', last_message_at: new Date(Date.now() - 12 * 60000).toISOString(), unread_count: 2 },
+    { sender_phone: '+1 (786) 333-5678', sender_name: 'Mike Thompson', last_message: 'Is the HVAC job still available? I can start next week', last_message_at: new Date(Date.now() - 45 * 60000).toISOString(), unread_count: 1 },
+    { sender_phone: '+1 (954) 222-9012', sender_name: 'David Cohen', last_message: 'Thanks for the info, I signed up on masterlead', last_message_at: new Date(Date.now() - 3 * 3600000).toISOString(), unread_count: 0 },
+    { sender_phone: '+1 (407) 111-3456', sender_name: null, last_message: 'Hi, I need a painter for my house renovation. Budget around $3k', last_message_at: new Date(Date.now() - 5 * 3600000).toISOString(), unread_count: 1 },
+  ] : []
+
+  const DEMO_CHAT: ArmyDM[] = DEMO ? [
+    { id: 'dm-1', wa_account_id: 'demo-1', sender_phone: '+1 (305) 444-1234', sender_name: 'Carlos Rivera', direction: 'incoming', content: 'Hey, saw your post about the plumbing job in Miami Beach. Is it still available?', wa_message_id: null, sent_at: new Date(Date.now() - 30 * 60000).toISOString(), read: true },
+    { id: 'dm-2', wa_account_id: 'demo-1', sender_phone: '+1 (305) 444-1234', sender_name: 'Carlos Rivera', direction: 'outgoing', content: 'Hi Carlos! Yes it\'s available. Check out the full details here: masterlead.app/jobs/abc123', wa_message_id: null, sent_at: new Date(Date.now() - 25 * 60000).toISOString(), read: true },
+    { id: 'dm-3', wa_account_id: 'demo-1', sender_phone: '+1 (305) 444-1234', sender_name: 'Carlos Rivera', direction: 'incoming', content: 'Great, I just signed up on the platform. I have 8 years experience in residential plumbing', wa_message_id: null, sent_at: new Date(Date.now() - 15 * 60000).toISOString(), read: true },
+    { id: 'dm-4', wa_account_id: 'demo-1', sender_phone: '+1 (305) 444-1234', sender_name: 'Carlos Rivera', direction: 'incoming', content: 'I can start as early as next Monday. Let me know!', wa_message_id: null, sent_at: new Date(Date.now() - 12 * 60000).toISOString(), read: false },
+  ] : []
+
+  const DEMO_ACTIVITY = DEMO ? [
+    { id: 'act-1', group_wa_id: '120363001@g.us', wa_account_id: 'demo-1', template_id: null, message_type: 'job_post', scheduled_at: new Date(Date.now() - 2 * 3600000).toISOString(), sent_at: new Date(Date.now() - 2 * 3600000).toISOString(), status: 'sent' as const, rendered_message: '🔨 Kitchen renovation job | Miami, FL\n💰 $3,500 - $5,000\n📍 Miami Beach area\n\nFull details: masterlead.app/jobs/abc123', error: null, created_at: new Date().toISOString() },
+    { id: 'act-2', group_wa_id: '120363001@g.us', wa_account_id: 'demo-2', template_id: null, message_type: 'response', scheduled_at: new Date(Date.now() - 1.5 * 3600000).toISOString(), sent_at: new Date(Date.now() - 1.5 * 3600000).toISOString(), status: 'sent' as const, rendered_message: 'Wow just signed up through the link, amazing platform! 🔥', error: null, created_at: new Date().toISOString() },
+    { id: 'act-3', group_wa_id: '120363002@g.us', wa_account_id: 'demo-1', template_id: null, message_type: 'job_post', scheduled_at: new Date(Date.now() - 1 * 3600000).toISOString(), sent_at: new Date(Date.now() - 1 * 3600000).toISOString(), status: 'sent' as const, rendered_message: '🔧 Looking for experienced plumber | Fort Lauderdale, FL\n💰 $2,000 - $4,000\n\nApply here: masterlead.app/jobs/def456', error: null, created_at: new Date().toISOString() },
+    { id: 'act-4', group_wa_id: '120363003@g.us', wa_account_id: 'demo-4', template_id: null, message_type: 'contractor_promo', scheduled_at: new Date(Date.now() - 0.5 * 3600000).toISOString(), sent_at: new Date(Date.now() - 0.5 * 3600000).toISOString(), status: 'sent' as const, rendered_message: '👋 Hi, I\'m Mike - 12 years experience in general contracting\n⭐ 4.9 rating | 47 jobs completed\n\nMy profile: masterlead.app/pro/mike-r', error: null, created_at: new Date().toISOString() },
+    { id: 'act-5', group_wa_id: '120363004@g.us', wa_account_id: 'demo-1', template_id: null, message_type: 'job_post', scheduled_at: new Date(Date.now() + 1 * 3600000).toISOString(), sent_at: null, status: 'pending' as const, rendered_message: '❄️ HVAC maintenance needed | Tampa, FL\n💰 $500 - $1,500\n\nDetails: masterlead.app/jobs/ghi789', error: null, created_at: new Date().toISOString() },
+  ] : []
+
+  const accounts = DEMO ? DEMO_ACCOUNTS : realAccounts
+  const assignments = DEMO ? DEMO_ASSIGNMENTS : realAssignments
+  const unreadCounts = DEMO ? { 'demo-1': 3, 'demo-2': 0, 'demo-4': 1 } : realUnreadCounts
+  const activityEntries = DEMO ? DEMO_ACTIVITY : realActivityEntries
 
   /* ── Selection state ── */
   const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null)
@@ -78,8 +126,10 @@ export default function ArmyCommandCenter() {
   const [searchQuery, setSearchQuery] = useState('')
 
   /* ── DM data ── */
-  const { conversations, loading: convoLoading, refetch: refetchConvos } = useArmyDMConversations(selectedAccountId)
-  const { messages: dmMessages, loading: chatLoading, refetch: refetchChat } = useArmyDMChat(selectedAccountId, selectedDMPhone)
+  const { conversations: realConvos, loading: convoLoading, refetch: refetchConvos } = useArmyDMConversations(DEMO ? null : selectedAccountId)
+  const { messages: realDmMessages, loading: chatLoading, refetch: refetchChat } = useArmyDMChat(DEMO ? null : selectedAccountId, DEMO ? null : selectedDMPhone)
+  const conversations = DEMO && selectedAccountId === 'demo-1' ? DEMO_CONVERSATIONS : DEMO ? [] : realConvos
+  const dmMessages = DEMO && selectedDMPhone ? DEMO_CHAT.filter(m => m.sender_phone === selectedDMPhone) : realDmMessages
 
   /* ── Composer ── */
   const [newMessage, setNewMessage] = useState('')
