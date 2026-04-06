@@ -68,6 +68,27 @@ function formatSender(senderId: string | null): string {
   return '+' + senderId.replace(/@.*$/, '')
 }
 
+// Deterministic avatar photos — real construction-industry profile pics
+const LEAD_AVATARS = [
+  'https://images.unsplash.com/photo-1621905252507-b35492cc74b4?w=80&h=80&fit=crop&crop=face', // construction worker w/ helmet
+  'https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=80&h=80&fit=crop&crop=face', // contractor w/ blueprint
+  'https://images.unsplash.com/photo-1581092918056-0c4c3acd3789?w=80&h=80&fit=crop&crop=face', // electrician
+  'https://images.unsplash.com/photo-1558618666-fcd25c85f82e?w=80&h=80&fit=crop&crop=face', // plumber/tradesman
+  'https://images.unsplash.com/photo-1540479859555-17af45c78602?w=80&h=80&fit=crop&crop=face', // worker w/ tools
+  'https://images.unsplash.com/photo-1615460549969-36fa19521a4f?w=80&h=80&fit=crop&crop=face', // painter
+  'https://images.unsplash.com/photo-1572021335469-31706a17ber?w=80&h=80&fit=crop&crop=face',  // roofer
+  'https://images.unsplash.com/photo-1597524678053-5e5bae5fc94a?w=80&h=80&fit=crop&crop=face', // handyman
+] as const
+
+function getLeadAvatar(leadId: string): string {
+  // Simple hash from lead ID to pick a consistent avatar
+  let hash = 0
+  for (let i = 0; i < leadId.length; i++) {
+    hash = ((hash << 5) - hash + leadId.charCodeAt(i)) | 0
+  }
+  return LEAD_AVATARS[Math.abs(hash) % LEAD_AVATARS.length]
+}
+
 /* ───────────────────── Animated Counter ───────────────────── */
 
 function AnimatedNumber({ value, duration = 800 }: { value: number; duration?: number }) {
@@ -788,6 +809,44 @@ export default function ContractorDashboard() {
         }}
       />
 
+      {/* ════════ TOP KPI BANNER — Desktop only ════════ */}
+      <div
+        className="hidden md:flex fixed top-4 left-1/2 -translate-x-1/2 z-[5] items-center gap-1 px-2 py-2 rounded-2xl animate-fade-in"
+        style={{ background: 'rgba(255,255,255,0.85)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', border: '1px solid rgba(255,255,255,0.7)', boxShadow: '0 4px 24px rgba(0,0,0,0.08)' }}
+      >
+        {[
+          { value: leadsToday, label: locale === 'he' ? 'היום' : 'Today', icon: Zap, gradient: 'from-amber-400 to-orange-500' },
+          { value: leadsWeek, label: locale === 'he' ? 'השבוע' : 'Week', icon: CalendarDays, gradient: 'from-blue-400 to-indigo-500' },
+          { value: leadsTotal, label: locale === 'he' ? 'סה"כ' : 'Total', icon: Hash, gradient: 'from-violet-400 to-purple-500' },
+          { value: contactedCount, label: locale === 'he' ? 'פניות שלי' : 'Contacts', icon: Phone, gradient: 'from-[#fe5b25] to-[#e04d1c]' },
+        ].map((kpi, i) => (
+          <div key={kpi.label} className="flex items-center gap-2.5 px-4 py-1.5">
+            <div className={`w-8 h-8 rounded-xl bg-gradient-to-br ${kpi.gradient} flex items-center justify-center`}>
+              <kpi.icon className="w-4 h-4 text-white" strokeWidth={2.5} />
+            </div>
+            <div>
+              <p className="text-xl font-extrabold text-stone-900 tracking-tight leading-none">
+                <AnimatedNumber value={kpi.value} duration={600} />
+              </p>
+              <p className="text-[10px] font-semibold text-stone-400 uppercase tracking-wide">{kpi.label}</p>
+            </div>
+            {i < 3 && <div className="w-px h-8 bg-stone-200/60 ml-3" />}
+          </div>
+        ))}
+
+        {/* Plan badge */}
+        <div className="ml-2 mr-1 flex items-center gap-2">
+          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-semibold bg-gradient-to-r from-[#fff4ef] to-[#fff4ef] text-[#c43d10] border border-[#fee8df]">
+            <Sparkles className="w-3 h-3" />
+            {planName}
+          </span>
+          <span className={`inline-flex items-center gap-1 px-2.5 py-1.5 rounded-full text-[10px] font-semibold ${pushStatus === 'granted' ? 'bg-[#fff4ef] text-[#e04d1c]' : 'bg-stone-100 text-stone-400'}`}>
+            {pushStatus === 'granted' ? <Wifi className="w-3 h-3" /> : <WifiOff className="w-3 h-3" />}
+            {pushStatus === 'granted' ? 'Push' : 'Off'}
+          </span>
+        </div>
+      </div>
+
       {/* ════════ MAIN PANEL — Desktop only ════════ */}
       <div
         className="hidden md:block floating-panel p-5 animate-fade-in no-scrollbar overflow-y-auto"
@@ -802,17 +861,7 @@ export default function ContractorDashboard() {
               {t('dash.welcome')}, {firstName}
             </span>
           </h1>
-          {/* Plan badge — hidden on mobile (shown in header instead) */}
-          <div className="hidden md:flex items-center gap-2 mt-2">
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-semibold bg-gradient-to-r from-[#fff4ef] to-[#fff4ef] text-[#c43d10] border border-[#fee8df]">
-              <Sparkles className="w-3 h-3" />
-              {planName}
-            </span>
-            <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold ${pushStatus === 'granted' ? 'bg-[#fff4ef] text-[#e04d1c]' : 'bg-stone-100 text-stone-400'}`}>
-              {pushStatus === 'granted' ? <Wifi className="w-3 h-3" /> : <WifiOff className="w-3 h-3" />}
-              {pushStatus === 'granted' ? 'Push Active' : 'Push Off'}
-            </span>
-          </div>
+          {/* Plan badge moved to top banner on desktop */}
         </div>
 
         {/* Push Notification Banner */}
@@ -857,25 +906,8 @@ export default function ContractorDashboard() {
           </div>
         )}
 
-        {/* KPI Strip */}
-        <div className="grid grid-cols-4 gap-1.5 md:gap-2 mb-4 md:mb-5">
-          {[
-            { value: leadsToday, label: locale === 'he' ? 'היום' : 'Today', icon: Zap, gradient: 'from-amber-400 to-orange-500' },
-            { value: leadsWeek, label: locale === 'he' ? 'השבוע' : 'Week', icon: CalendarDays, gradient: 'from-blue-400 to-indigo-500' },
-            { value: leadsTotal, label: locale === 'he' ? 'סה"כ' : 'Total', icon: Hash, gradient: 'from-violet-400 to-purple-500' },
-            { value: contactedCount, label: locale === 'he' ? 'פניות שלי' : 'My Contacts', icon: Phone, gradient: 'from-[#fe5b25] to-[#e04d1c]' },
-          ].map((kpi) => (
-            <div key={kpi.label} className="rounded-xl md:rounded-2xl bg-white/60 border border-white/80 p-2 md:p-3 text-center">
-              <div className={`w-6 h-6 md:w-7 md:h-7 rounded-lg md:rounded-xl bg-gradient-to-br ${kpi.gradient} flex items-center justify-center mx-auto mb-1`}>
-                <kpi.icon className="w-3 h-3 md:w-3.5 md:h-3.5 text-white" strokeWidth={2.5} />
-              </div>
-              <p className="text-lg md:text-xl font-extrabold text-stone-900 tracking-tight leading-none">
-                <AnimatedNumber value={kpi.value} duration={600} />
-              </p>
-              <p className="text-[9px] md:text-[10px] font-semibold text-stone-400 uppercase tracking-wide mt-0.5">{kpi.label}</p>
-            </div>
-          ))}
-        </div>
+        {/* KPI Strip — hidden on desktop (moved to top banner) */}
+        {/* KPIs are now in the top map banner on desktop */}
 
         {/* Profile Completion + Views */}
         <div className="mb-5 space-y-4">
@@ -1184,15 +1216,16 @@ export default function ContractorDashboard() {
         <div className="h-20 md:hidden" />
       </div>
 
-      {/* ════════ RECENT LEADS — inside bottom sheet on mobile, floating on desktop ════════ */}
+      {/* ════════ RECENT LEADS — WhatsApp-style feed, floating on desktop ════════ */}
       <div
-        className="hidden md:block floating-panel p-5 animate-fade-in"
-        style={{ bottom: 24, right: 24, width: 560, maxHeight: 340, animationDelay: '150ms' }}
+        className="hidden md:flex flex-col floating-panel animate-fade-in"
+        style={{ bottom: 24, right: 24, width: 420, maxHeight: 'calc(100vh - 100px)', animationDelay: '150ms' }}
       >
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="text-sm font-bold text-stone-800 flex items-center gap-2">
-            <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-stone-100 to-stone-50 flex items-center justify-center border border-stone-100">
-              <Send size={12} className="text-stone-500" />
+        {/* Header */}
+        <div className="flex items-center justify-between px-5 py-3.5 border-b border-stone-100/80">
+          <h2 className="text-[15px] font-bold text-stone-800 flex items-center gap-2">
+            <div className="w-7 h-7 rounded-full bg-[#25D366] flex items-center justify-center">
+              <Send size={13} className="text-white -rotate-45" />
             </div>
             {t('dash.recent_leads')}
           </h2>
@@ -1205,81 +1238,81 @@ export default function ContractorDashboard() {
           </Link>
         </div>
 
-        {/* Horizontal scroll — dual-layer lead cards */}
-        <div className="flex gap-3 overflow-x-auto pb-2 no-scrollbar">
+        {/* WhatsApp-style message feed */}
+        <div className="flex-1 overflow-y-auto no-scrollbar px-4 py-3 space-y-3" style={{ background: 'linear-gradient(180deg, #f0ebe3 0%, #eae6df 100%)' }}>
           {leads.slice(0, 8).map((lead) => {
             const prof = profLookup[lead.profession]
+            const senderPhone = formatSender(lead.sender_id)
             return (
-              <div
-                key={lead.id}
-                className="shrink-0 w-[260px] rounded-2xl bg-white/70 border border-white/80 overflow-hidden hover:bg-white hover:shadow-md transition-all cursor-pointer group"
-              >
-                {/* ─── Top layer: AI Summary ─── */}
-                <div className="p-3.5 pb-2.5">
-                  <div className="flex items-center gap-2 mb-1.5">
-                    <span className="text-base">{prof?.emoji ?? '📋'}</span>
-                    <span className="text-[11px] font-semibold text-stone-600 truncate">
-                      {prof ? (locale === 'he' ? prof.he : prof.en) : lead.profession}
-                    </span>
-                    <span className={`ml-auto text-[9px] font-bold px-1.5 py-0.5 rounded-full ${urgencyColors[lead.urgency]}`}>
-                      {lead.urgency === 'hot' ? '🔥' : lead.urgency === 'warm' ? '⏰' : '❄️'}
-                    </span>
-                  </div>
-                  <p className="text-[12px] text-stone-700 font-medium line-clamp-2 leading-snug mb-2">
-                    {lead.parsed_summary ?? lead.raw_message?.slice(0, 80) ?? '—'}
-                  </p>
-                  <div className="flex items-center gap-2 text-[10px] text-stone-400">
-                    {lead.city && (
-                      <span className="flex items-center gap-0.5">
-                        <MapPin size={10} />
-                        {lead.city}
-                      </span>
-                    )}
-                    {lead.budget_range && (
-                      <span className="font-semibold text-stone-500">{lead.budget_range}</span>
-                    )}
-                    <span className="ml-auto flex items-center gap-0.5">
-                      <Clock size={10} />
-                      {timeAgo(lead.created_at)}
-                    </span>
-                  </div>
-                </div>
+              <div key={lead.id} className="flex gap-2.5 items-start">
+                {/* Advertiser avatar — real profile photo */}
+                <img
+                  src={getLeadAvatar(lead.id)}
+                  alt=""
+                  className="w-10 h-10 rounded-full object-cover shrink-0 mt-0.5 shadow-sm border-2 border-white"
+                  onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
+                />
 
-                {/* ─── Bottom layer: Original WhatsApp message + metadata ─── */}
-                <div className="border-t border-stone-100 bg-stone-50/60 px-3.5 py-2.5">
-                  {lead.raw_message && (
-                    <p className="text-[10px] text-stone-400 line-clamp-2 leading-relaxed mb-1.5 font-mono whitespace-pre-line">
-                      {lead.raw_message}
-                    </p>
-                  )}
-                  <div className="flex items-center justify-between text-[9px] text-stone-400">
-                    <div className="flex items-center gap-2">
+                {/* Message bubble */}
+                <div className="flex-1 min-w-0">
+                  <div className="bg-white rounded-2xl rounded-tl-md shadow-sm overflow-hidden border border-black/[0.04]">
+                    {/* Sender info */}
+                    <div className="px-3.5 pt-3 pb-1 flex items-center gap-2">
+                      <span className="text-[12px] font-bold text-[#fe5b25] truncate">
+                        {lead.group_name || (prof ? (locale === 'he' ? prof.he : prof.en) : lead.profession)}
+                      </span>
+                      {lead.urgency === 'hot' && (
+                        <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-red-50 text-red-500 shrink-0">🔥 URGENT</span>
+                      )}
+                    </div>
+
+                    {/* Message content */}
+                    <div className="px-3.5 pb-2">
+                      <p className="text-[13px] text-stone-800 leading-relaxed line-clamp-3">
+                        {lead.parsed_summary ?? lead.raw_message?.slice(0, 120) ?? '—'}
+                      </p>
+                    </div>
+
+                    {/* Location + time row */}
+                    <div className="px-3.5 pb-2 flex items-center gap-2 text-[10px] text-stone-400">
+                      {lead.city && (
+                        <span className="flex items-center gap-0.5">
+                          <MapPin size={10} />
+                          {lead.city}{lead.zip_code ? `, ${lead.zip_code}` : ''}
+                        </span>
+                      )}
+                      {lead.budget_range && (
+                        <span className="font-bold text-green-600">{lead.budget_range}</span>
+                      )}
+                      <span className="ml-auto flex items-center gap-0.5 text-[9px]">
+                        {timeAgo(lead.created_at)}
+                      </span>
+                    </div>
+
+                    {/* Advertiser profile row */}
+                    <div className="border-t border-stone-100 px-3.5 py-2 flex items-center gap-2">
+                      <img
+                        src={getLeadAvatar(lead.id)}
+                        alt=""
+                        className="w-5 h-5 rounded-full object-cover"
+                      />
+                      <span className="text-[10px] text-stone-500 font-medium truncate flex-1">
+                        {senderPhone || (locale === 'he' ? 'מפרסם' : 'Advertiser')}
+                      </span>
                       {lead.group_name && (
-                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-[#fff4ef] text-[#e04d1c] font-semibold truncate max-w-[120px]">
+                        <span className="text-[9px] px-1.5 py-0.5 rounded bg-[#25D366]/10 text-[#25D366] font-semibold truncate max-w-[100px]">
                           💬 {lead.group_name}
                         </span>
                       )}
-                      {lead.sender_id && (
-                        <span className="text-stone-400 truncate max-w-[100px]">
-                          {formatSender(lead.sender_id)}
-                        </span>
-                      )}
                     </div>
-                    
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        if (canManageSubs) {
-                          setForwardLead(lead)
-                        } else {
-                          setShowUpsell(true)
-                        }
-                      }}
-                      className="p-1.5 rounded-lg bg-white border border-stone-200 text-stone-500 hover:text-[#e04d1c] hover:border-[#fdd5c5] hover:bg-[#fff4ef] transition-colors"
-                      title={locale === 'he' ? 'העבר לקבלן משנה' : 'Forward to Subcontractor'}
+
+                    {/* Claim button */}
+                    <Link
+                      to={`/leads/${lead.id}`}
+                      className="block border-t border-stone-100 px-3.5 py-2.5 bg-gradient-to-r from-[#fe5b25] to-[#e04d1c] text-white text-center text-[13px] font-bold hover:brightness-110 transition-all"
                     >
-                      <Send size={12} />
-                    </button>
+                      ⚡ Claim Lead
+                    </Link>
                   </div>
                 </div>
               </div>
@@ -1287,8 +1320,12 @@ export default function ContractorDashboard() {
           })}
 
           {leads.length === 0 && (
-            <div className="flex items-center justify-center w-full py-6 text-sm text-stone-400">
-              {locale === 'he' ? 'אין לידים עדיין' : 'No leads yet'}
+            <div className="flex flex-col items-center justify-center py-12 text-stone-400">
+              <div className="w-12 h-12 rounded-full bg-white/60 flex items-center justify-center mb-3">
+                <Send size={20} className="text-stone-300" />
+              </div>
+              <p className="text-[13px] font-medium">{locale === 'he' ? 'אין לידים עדיין' : 'No leads yet'}</p>
+              <p className="text-[11px] mt-1">{locale === 'he' ? 'הוסף שירותים ואזורים' : 'Add services & areas to start'}</p>
             </div>
           )}
         </div>

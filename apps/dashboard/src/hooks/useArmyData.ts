@@ -180,3 +180,120 @@ export function useArmyConfig() {
 
   return { config, loading, update, refetch: fetch }
 }
+
+/* ─── DM Types ─── */
+
+export interface ArmyDM {
+  id: string
+  wa_account_id: string
+  sender_phone: string
+  sender_name: string | null
+  direction: 'incoming' | 'outgoing'
+  content: string
+  wa_message_id: string | null
+  sent_at: string
+  read: boolean
+}
+
+export interface DMConversation {
+  sender_phone: string
+  sender_name: string | null
+  last_message: string
+  last_message_at: string
+  unread_count: number
+}
+
+/* ─── useArmyDMConversations ─── */
+
+export function useArmyDMConversations(accountId: string | null) {
+  const [conversations, setConversations] = useState<DMConversation[]>([])
+  const [loading, setLoading] = useState(false)
+
+  const fetch = useCallback(async () => {
+    if (!accountId) { setConversations([]); return }
+    setLoading(true)
+    const { data } = await supabase
+      .from('army_dms')
+      .select('*')
+      .eq('wa_account_id', accountId)
+      .order('sent_at', { ascending: false })
+
+    if (data) {
+      const byPhone = new Map<string, { msgs: ArmyDM[] }>()
+      for (const m of data as ArmyDM[]) {
+        if (!byPhone.has(m.sender_phone)) byPhone.set(m.sender_phone, { msgs: [] })
+        byPhone.get(m.sender_phone)!.msgs.push(m)
+      }
+      const convos: DMConversation[] = [...byPhone.entries()].map(([phone, { msgs }]) => ({
+        sender_phone: phone,
+        sender_name: msgs.find(m => m.sender_name)?.sender_name ?? null,
+        last_message: msgs[0].content,
+        last_message_at: msgs[0].sent_at,
+        unread_count: msgs.filter(m => !m.read && m.direction === 'incoming').length,
+      }))
+      convos.sort((a, b) => new Date(b.last_message_at).getTime() - new Date(a.last_message_at).getTime())
+      setConversations(convos)
+    }
+    setLoading(false)
+  }, [accountId])
+
+  useEffect(() => { fetch() }, [fetch])
+
+  return { conversations, loading, refetch: fetch }
+}
+
+/* ─── useArmyDMChat ─── */
+
+export function useArmyDMChat(accountId: string | null, senderPhone: string | null) {
+  const [messages, setMessages] = useState<ArmyDM[]>([])
+  const [loading, setLoading] = useState(false)
+
+  const fetch = useCallback(async () => {
+    if (!accountId || !senderPhone) { setMessages([]); return }
+    setLoading(true)
+    const { data } = await supabase
+      .from('army_dms')
+      .select('*')
+      .eq('wa_account_id', accountId)
+      .eq('sender_phone', senderPhone)
+      .order('sent_at', { ascending: true })
+    setMessages((data as ArmyDM[]) ?? [])
+    // Mark as read
+    await supabase
+      .from('army_dms')
+      .update({ read: true })
+      .eq('wa_account_id', accountId)
+      .eq('sender_phone', senderPhone)
+      .eq('read', false)
+    setLoading(false)
+  }, [accountId, senderPhone])
+
+  useEffect(() => { fetch() }, [fetch])
+
+  return { messages, loading, refetch: fetch }
+}
+
+/* ─── useArmyUnreadCounts ─── */
+
+export function useArmyUnreadCounts() {
+  const [counts, setCounts] = useState<Record<string, number>>({})
+
+  const fetch = useCallback(async () => {
+    const { data } = await supabase
+      .from('army_dms')
+      .select('wa_account_id')
+      .eq('read', false)
+      .eq('direction', 'incoming')
+    if (data) {
+      const map: Record<string, number> = {}
+      for (const r of data) {
+        map[r.wa_account_id] = (map[r.wa_account_id] || 0) + 1
+      }
+      setCounts(map)
+    }
+  }, [])
+
+  useEffect(() => { fetch() }, [fetch])
+
+  return { counts, refetch: fetch }
+}

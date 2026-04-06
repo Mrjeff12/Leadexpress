@@ -59,6 +59,7 @@ const RebecaChat = lazyRetry(() => import('./pages/RebecaChat'))
 const DirectChat = lazyRetry(() => import('./pages/DirectChat'))
 const PartnerOnboarding = lazyRetry(() => import('./pages/partner/PartnerOnboarding'))
 const PartnerGroupChat = lazyRetry(() => import('./pages/partner/PartnerGroupChat'))
+const GroupLeads = lazyRetry(() => import('./pages/GroupLeads'))
 const PartnerLayout = lazyRetry(() => import('./pages/partner/PartnerLayout'))
 const NotificationsPage = lazyRetry(() => import('./pages/NotificationsPage'))
 const PublicProfileView = lazyRetry(() => import('./pages/PublicProfileView'))
@@ -274,6 +275,7 @@ function App() {
                   <Route path="/claim/:leadId" element={<ClaimLead />} />
                   <Route path="/claim-followup" element={<ClaimFollowup />} />
                   <Route path="/partner/chat-demo" element={<PartnerGroupChat />} />
+                  <Route path="/group-leads" element={<GroupLeads />} />
                   <Route path="/login" element={<Login />} />
                   <Route path="/auto-login" element={<AutoLogin />} />
                   <Route path="/complete-account" element={<RequireAuth><CompleteAccount /></RequireAuth>} />

@@ -171,10 +171,7 @@ export const departments: DepartmentDef[] = [
     icon: Swords,
     basePath: 'army',
     tabs: [
-      { key: 'accounts', labelEn: 'Accounts', labelHe: 'חשבונות', path: '' },
-      { key: 'assignments', labelEn: 'Assignments', labelHe: 'הקצאות', path: 'assignments' },
-      { key: 'templates', labelEn: 'Templates', labelHe: 'תבניות', path: 'templates' },
-      { key: 'activity', labelEn: 'Activity', labelHe: 'פעילות', path: 'activity' },
+      { key: 'command', labelEn: 'Command Center', labelHe: 'מרכז שליטה', path: '', fullBleed: true },
     ],
     kpis: [
       { key: 'armyAccounts', labelEn: 'Accounts', labelHe: 'חשבונות' },

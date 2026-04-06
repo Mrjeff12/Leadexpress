@@ -42,10 +42,7 @@ const Products = lazy(() => import('../../pages/admin/Products'))
 const GrowthDashboard = lazy(() => import('../../pages/admin/GrowthDashboard'))
 
 // Army
-const ArmyAccounts = lazy(() => import('../../pages/admin/army/ArmyAccounts'))
-const ArmyAssignments = lazy(() => import('../../pages/admin/army/ArmyAssignments'))
-const ArmyTemplates = lazy(() => import('../../pages/admin/army/ArmyTemplates'))
-const ArmyActivity = lazy(() => import('../../pages/admin/army/ArmyActivity'))
+const ArmyCommandCenter = lazy(() => import('../../pages/admin/army/ArmyCommandCenter'))
 
 // Settings
 const Professions = lazy(() => import('../../pages/admin/Professions'))
@@ -83,10 +80,7 @@ const TAB_COMPONENTS: Record<string, React.LazyExoticComponent<() => React.JSX.E
   // Growth
   'growth/dashboard': GrowthDashboard,
   // Army
-  'army/accounts': ArmyAccounts,
-  'army/assignments': ArmyAssignments,
-  'army/templates': ArmyTemplates,
-  'army/activity': ArmyActivity,
+  'army/command': ArmyCommandCenter,
   // Settings
   'settings/professions': Professions,
   'settings/system': SystemSettings,
