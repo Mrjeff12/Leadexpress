@@ -1,5 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+import { checkRateLimit, rateLimitResponse } from "../_shared/rate-limit.ts";
 
 /**
  * record-claim: Records a lead_claimed event when contractor clicks
@@ -37,6 +38,12 @@ Deno.serve(async (req: Request) => {
     "Content-Type": "application/json",
     "Access-Control-Allow-Origin": "*",
   };
+
+  // Rate limit: 10 requests per minute per IP
+  const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
+  if (!checkRateLimit(ip, 10, 60_000)) {
+    return rateLimitResponse(corsHeaders);
+  }
 
   try {
     const { leadId, contractorId, contractorPhone } = await req.json();
