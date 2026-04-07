@@ -199,16 +199,12 @@ Deno.serve(async (req: Request) => {
     // Link job order to this publisher + save extra details
     if (job_order_id) {
       const updatePayload: Record<string, unknown> = {
-        subcontractor_id: userId,
+        publisher_user_id: userId, // Publisher who posted the original job in WhatsApp
       };
-      // Store additional job details if provided
-      if (lead_address || lead_phone || commission_pct) {
-        updatePayload.publisher_details = {
-          lead_address: lead_address || null,
-          lead_phone: lead_phone || null,
-          commission_pct: commission_pct || null,
-        };
-      }
+      if (lead_address) updatePayload.customer_address = lead_address;
+      if (lead_phone) updatePayload.customer_phone = lead_phone;
+      if (commission_pct) updatePayload.commission_pct = Number(commission_pct) || null;
+
       await supabase
         .from("job_orders")
         .update(updatePayload)
