@@ -222,6 +222,34 @@ Deno.serve(async (req: Request) => {
           is_new: isNew,
         },
       });
+
+      // ── Notify the sub-contractor (Moti) that publisher signed up ──
+      try {
+        const { data: jobOrder } = await supabase
+          .from("job_orders")
+          .select("contractor_id")
+          .eq("id", job_order_id)
+          .single();
+
+        if (jobOrder?.contractor_id) {
+          const { data: contractorProfile } = await supabase
+            .from("profiles")
+            .select("whatsapp_phone, full_name")
+            .eq("id", jobOrder.contractor_id)
+            .single();
+
+          if (contractorProfile?.whatsapp_phone) {
+            await loadTwilioSecrets();
+            const notifyMsg = isNew
+              ? `🎉 ${userName} just signed up through your job link!\n\nThe publisher of the job is now on MasterLeadFlow. You'll both be able to track and manage the job from the dashboard.`
+              : `👍 ${userName} confirmed the job through your link!\n\nEverything is set up in the dashboard.`;
+            await sendWhatsApp(contractorProfile.whatsapp_phone, notifyMsg);
+          }
+        }
+      } catch (notifyErr) {
+        // Non-blocking — don't fail the signup if notification fails
+        console.error("[portal-signup] Contractor notification error:", notifyErr);
+      }
     }
 
     // Create a prospect record for CRM tracking
