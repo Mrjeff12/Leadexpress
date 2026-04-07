@@ -307,94 +307,15 @@ export default function JobPortal() {
               )}
             </p>
 
-            {/* Scroll hint */}
-            <button onClick={scrollToForm} className="mt-5 mx-auto flex flex-col items-center gap-1 portal-bounce" style={{ color: 'rgba(255,255,255,0.4)' }}>
-              <span className="text-[10px] uppercase tracking-widest">{t(lang, 'Scroll', 'גלול')}</span>
-              <ChevronDown className="w-4 h-4" />
-            </button>
-          </div>
-        </div>
-
-        {/* ── Section 2: Value Cards — horizontal scroll ── */}
-        <div className="-mt-5 max-w-md mx-auto portal-fade-up-2">
-          <div className="flex gap-3 overflow-x-auto px-5 pb-2 snap-x snap-mandatory"
-            style={{ scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' }}>
-            {[
-              {
-                icon: <ClipboardList className="w-5 h-5" style={{ color: BRAND }} />,
-                bg: '#fff4ef',
-                titleEn: 'Track this job',
-                titleHe: 'עקוב אחרי העבודה',
-                descEn: 'Status, commission, contacts — one place',
-                descHe: 'סטטוס, עמלה, פרטי קשר — הכל ביחד',
-              },
-              {
-                icon: <RefreshCw className="w-5 h-5" style={{ color: '#3b82f6' }} />,
-                bg: '#eff6ff',
-                titleEn: 'Auto next time',
-                titleHe: 'אוטומטי בפעם הבאה',
-                descEn: 'AI finds you a sub-contractor in minutes',
-                descHe: 'AI מוצא לך קבלן משנה תוך דקות',
-              },
-              {
-                icon: <Award className="w-5 h-5" style={{ color: '#16a34a' }} />,
-                bg: '#ecfdf5',
-                titleEn: 'Build reputation',
-                titleHe: 'בנה מוניטין',
-                descEn: 'Ratings help you get better subs',
-                descHe: 'דירוגים עוזרים לך למצוא קבלני משנה טובים',
-              },
-            ].map((card, i) => (
-              <div key={i} className="flex-shrink-0 w-[260px] snap-center rounded-2xl p-4"
-                style={{ background: '#fff', border: '1px solid #efece8', boxShadow: '0 4px 16px rgba(26,22,20,0.06)' }}>
-                <div className="w-10 h-10 rounded-xl flex items-center justify-center mb-3" style={{ background: card.bg }}>
-                  {card.icon}
-                </div>
-                <p className="text-[14px] font-bold mb-1" style={{ color: '#1a1614' }}>
-                  {t(lang, card.titleEn, card.titleHe)}
-                </p>
-                <p className="text-[12px]" style={{ color: '#7a7570', lineHeight: 1.5 }}>
-                  {t(lang, card.descEn, card.descHe)}
-                </p>
-              </div>
-            ))}
-          </div>
-          {/* Scroll dots hint */}
-          <div className="flex items-center justify-center gap-1.5 mt-2">
-            <div className="w-5 h-1 rounded-full" style={{ background: BRAND }} />
-            <div className="w-1.5 h-1 rounded-full" style={{ background: '#ddd' }} />
-            <div className="w-1.5 h-1 rounded-full" style={{ background: '#ddd' }} />
-          </div>
-        </div>
-
-        {/* ── Section 3: Trust — compact ── */}
-        <div className="px-5 mt-6 max-w-md mx-auto">
-          <div className="rounded-2xl overflow-hidden" style={{ border: '1px solid #efece8' }}>
-            <img
-              src="/contractors-team.webp"
-              alt="Contractor team"
-              className="w-full h-36 object-cover"
-              style={{ objectPosition: 'center 30%' }}
-            />
-            <div className="px-4 py-3 flex items-center justify-between" style={{ background: '#fff' }}>
-              <div>
-                <p className="text-[13px] font-bold" style={{ color: '#1a1614' }}>MasterLeadFlow</p>
-                <p className="text-[11px]" style={{ color: '#9a9590' }}>
-                  {t(lang, 'Connecting GCs with subs', 'מחברים קבלנים ראשיים וקבלני משנה')}
-                </p>
-              </div>
-              <div className="flex items-center gap-1">
-                {[1,2,3,4,5].map(i => (
-                  <Star key={i} className="w-3 h-3 fill-amber-400 text-amber-400" />
-                ))}
-                <span className="text-[10px] ml-0.5" style={{ color: '#b5b0ab' }}>4.9</span>
-              </div>
+            {/* Subtle down arrow — card is right below */}
+            <div className="mt-4 flex justify-center portal-bounce" style={{ color: 'rgba(255,255,255,0.3)' }}>
+              <ChevronDown className="w-5 h-5" />
             </div>
           </div>
         </div>
 
-        {/* ── Section 4: iOS Contact Card ── */}
-        <div ref={formRef} className="px-5 mt-6 pb-4 max-w-md mx-auto">
+        {/* ── Section 2: iOS Contact Card — immediately after hero ── */}
+        <div ref={formRef} className="px-5 -mt-5 pb-4 max-w-md mx-auto">
 
           {/* Card header — like iOS contact top */}
           <div className="rounded-t-2xl px-5 pt-5 pb-4 text-center" style={{
@@ -431,7 +352,15 @@ export default function JobPortal() {
               accent="emerald"
             />
 
-            {/* ─ Editable fields — same visual language ─ */}
+            {/* ─ Editable fields with motivation text ─ */}
+            <div className="px-5 py-2.5" style={{ background: '#f5f3f0' }}>
+              <p className="text-[11px]" style={{ color: '#7a7570', lineHeight: 1.5 }}>
+                {t(lang,
+                  'Fill in the details so you and ' + contractorName + ' have everything in one place. No more digging through WhatsApp.',
+                  'מלא את הפרטים כדי שלך ול' + contractorName + ' יהיה הכל במקום אחד. בלי לחפש בוואטסאפ.'
+                )}
+              </p>
+            </div>
             <ContactRowInput
               label={t(lang, 'address', 'כתובת')}
               value={leadAddress}
@@ -512,6 +441,27 @@ export default function JobPortal() {
             )}
           </div>
         </div>
+
+        {/* ── Section 3: Why MasterLeadFlow — compact trust strip ── */}
+        <div className="px-5 mt-5 pb-4 max-w-md mx-auto">
+          <div className="flex items-center gap-3 rounded-2xl p-3.5" style={{ background: '#fff', border: '1px solid #efece8' }}>
+            <img src="/contractors-team.webp" alt="Team" className="w-12 h-12 rounded-xl object-cover shrink-0" style={{ objectPosition: 'center 30%' }} />
+            <div className="min-w-0 flex-1">
+              <p className="text-[12px] font-bold" style={{ color: '#1a1614' }}>MasterLeadFlow</p>
+              <p className="text-[11px]" style={{ color: '#9a9590', lineHeight: 1.4 }}>
+                {t(lang,
+                  'Used by 500+ contractors · Free forever',
+                  'בשימוש 500+ קבלנים · חינם לנצח'
+                )}
+              </p>
+            </div>
+            <div className="flex items-center gap-0.5 shrink-0">
+              {[1,2,3,4,5].map(i => (
+                <Star key={i} className="w-2.5 h-2.5 fill-amber-400 text-amber-400" />
+              ))}
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* ── Sticky bottom CTA ── */}
@@ -538,8 +488,8 @@ export default function JobPortal() {
               ? <Loader2 className="w-5 h-5 animate-spin mx-auto" />
               : <span className="flex items-center justify-center gap-2">
                   {isExistingUser
-                    ? t(lang, 'Send me a WhatsApp link 💬', 'שלח לי לינק בוואטסאפ 💬')
-                    : t(lang, 'Get a WhatsApp link to manage this job 💬', 'קבל לינק בוואטסאפ לניהול העבודה 💬')
+                    ? t(lang, 'Open my dashboard →', 'פתח את הדשבורד שלי →')
+                    : t(lang, 'Save & send me a login link 💬', 'שמור ושלח לי לינק כניסה 💬')
                   }
                 </span>}
           </button>

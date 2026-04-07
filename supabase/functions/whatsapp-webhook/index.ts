@@ -1400,7 +1400,7 @@ async function handleFollowupButton(phone: string, payload: string, userId: stri
     if (publisherProfile) {
       // Link job to publisher's account
       await supabase.from('job_orders').update({
-        subcontractor_id: publisherProfile.id,
+        publisher_user_id: publisherProfile.id,
         status: 'accepted',
       }).eq('id', jobId);
 
@@ -1420,8 +1420,8 @@ async function handleFollowupButton(phone: string, payload: string, userId: stri
     // TRACK B: Publisher is NOT our user → send portal link via contractor
     // ══════════════════════════════════════════════════════════════════════
     } else {
-      // Build Hebrew message for contractor to forward to publisher
-      const publisherMsg = `היי! אני ${contractorName}.\nלקחתי את העבודה (${profession} ב-${location}) שפרסמת.\n\nאשר את העבודה כאן ונתחיל:\n👉 ${portalUrl}`;
+      // Build message for contractor to forward to publisher
+      const publisherMsg = `Hey! It's ${contractorName} 👋\nI took the ${profession} job in ${location} you posted.\n\nI use an app to keep jobs organized — tap here so we're both on the same page:\n👉 ${portalUrl}\n\nIt takes 30 seconds and it's free.`;
 
       // Message 1: the ready-to-send text
       await sendText(phone,
