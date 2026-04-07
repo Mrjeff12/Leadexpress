@@ -174,6 +174,7 @@ export default function ContractorDashboard() {
   } = useContractorSettings()
 
   const [leads, setLeads] = useState<Lead[]>([])
+  const [leadsTotalCount, setLeadsTotalCount] = useState(0)
   const [contactedCount, setContactedCount] = useState(0)
   const [counties, setCounties] = useState<string[]>([])
   const [forwardLead, setForwardLead] = useState<Lead | null>(null)
@@ -328,44 +329,38 @@ export default function ContractorDashboard() {
     let cancelled = false
 
     async function fetchData() {
-      let query = supabase
+      let leadsQuery = supabase
         .from('leads')
         .select('id, profession, parsed_summary, raw_message, city, zip_code, urgency, budget_range, sender_id, created_at, groups ( name )')
         .order('created_at', { ascending: false })
         .limit(50)
 
-      // Apply same filters as My Leads page so counts stay in sync
-      if (selectedProfs.length > 0) query = query.in('profession', selectedProfs)
-      if (zipCodes.length > 0) query = query.in('zip_code', zipCodes)
+      if (selectedProfs.length > 0) leadsQuery = leadsQuery.in('profession', selectedProfs)
+      if (zipCodes.length > 0) leadsQuery = leadsQuery.in('zip_code', zipCodes)
 
-      const { data: leadsData } = await query
+      let countQuery = supabase.from('leads').select('id', { count: 'exact', head: true })
+      if (selectedProfs.length > 0) countQuery = countQuery.in('profession', selectedProfs)
+      if (zipCodes.length > 0) countQuery = countQuery.in('zip_code', zipCodes)
 
-      if (leadsData && !cancelled) {
-        setLeads(leadsData.map((row: any) => ({
+      // Fire all 4 queries in parallel
+      const [leadsRes, countRes, profRes, contactedRes] = await Promise.all([
+        leadsQuery,
+        countQuery,
+        supabase.from('profiles').select('counties').eq('id', effectiveUserId).maybeSingle(),
+        supabase.from('lead_contact_events').select('*', { count: 'exact', head: true }).eq('user_id', effectiveUserId),
+      ])
+
+      if (cancelled) return
+
+      if (leadsRes.data) {
+        setLeads(leadsRes.data.map((row: any) => ({
           ...row,
           group_name: row.groups?.name ?? null,
         })))
       }
-
-      const { data: profData } = await supabase
-        .from('profiles')
-        .select('counties')
-        .eq('id', effectiveUserId)
-        .maybeSingle()
-
-      if (profData && !cancelled) {
-        if (profData.counties) setCounties(profData.counties)
-      }
-
-      // Fetch how many leads this user contacted
-      const { count } = await supabase
-        .from('lead_contact_events')
-        .select('*', { count: 'exact', head: true })
-        .eq('user_id', effectiveUserId)
-
-      if (!cancelled && count !== null) {
-        setContactedCount(count)
-      }
+      if (countRes.count !== null) setLeadsTotalCount(countRes.count)
+      if (profRes.data?.counties) setCounties(profRes.data.counties)
+      if (contactedRes.count !== null) setContactedCount(contactedRes.count)
     }
 
     fetchData()
@@ -378,7 +373,7 @@ export default function ContractorDashboard() {
   const weekStart = todayStart - 6 * 86_400_000
   const leadsToday = leads.filter((l) => new Date(l.created_at).getTime() >= todayStart).length
   const leadsWeek = leads.filter((l) => new Date(l.created_at).getTime() >= weekStart).length
-  const leadsTotal = leads.length
+  const leadsTotal = leadsTotalCount
 
   const hour = now.getHours()
   const greeting = locale === 'he'

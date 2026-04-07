@@ -451,6 +451,7 @@ async function processNotification(notif: GreenNotification): Promise<void> {
     await logPipelineEvent(chatId, messageId, senderId, filterResult.stage, {
       reason: filterResult.reason,
       signals: filterResult.signals,
+      text: text.slice(0, 500),
     });
 
     // Still update sender stats (track even filtered messages)

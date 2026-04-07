@@ -252,6 +252,19 @@ export default function RebecaChat() {
           </div>
         </div>
 
+        {/* Coming Soon Banner — Mobile */}
+        <div className="mx-4 mt-3 rounded-2xl bg-purple-50 border border-purple-200 p-3 flex items-start gap-2.5">
+          <Sparkles size={16} className="text-purple-500 mt-0.5 flex-shrink-0" />
+          <div>
+            <p className="text-[13px] font-semibold text-purple-800">
+              {isHe ? 'Rebeca AI בקרוב!' : 'Rebeca AI coming soon!'}
+            </p>
+            <p className="text-[11px] text-purple-600 mt-0.5">
+              {isHe ? 'זו תצוגה מקדימה. בינתיים, דברו עם Rebeca דרך WhatsApp.' : 'This is a preview. Chat with Rebeca via WhatsApp for now.'}
+            </p>
+          </div>
+        </div>
+
         {/* Messages scroll area */}
         <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 pt-4 pb-3 space-y-1">
 

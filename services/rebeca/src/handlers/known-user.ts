@@ -69,8 +69,9 @@ export async function handleKnownUser(
     return;
   }
 
-  // Daily check-in positive response
-  if ([...POSITIVE_RESPONSES].some(w => lower.includes(w))) {
+  // Daily check-in positive response — only match short messages that ARE a positive word
+  // (prevents "I need help with plumbing yesterday" matching on "y" or "ok")
+  if (lower.length <= 20 && [...POSITIVE_RESPONSES].some(w => lower === w || lower === w + '!')) {
     await markAvailable(phone, profile.id);
     return;
   }

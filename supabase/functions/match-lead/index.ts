@@ -75,6 +75,10 @@ Deno.serve(async (req: Request) => {
       }
 
       if (!lead.zip_code) {
+        await supabase.from("leads").update({ status: "no_match" }).eq("id", leadId);
+        await supabase.from("pipeline_events").insert({
+          stage: "no_match", detail: { lead_id: leadId, reason: "no_zip_code" },
+        });
         await supabase.rpc("complete_job", { p_job_id: job.id });
         results.push(`no_zip:${leadId}`);
         continue;

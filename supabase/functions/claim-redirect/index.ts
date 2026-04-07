@@ -167,23 +167,26 @@ Deno.serve(async (req: Request) => {
       .eq("stage", "lead_claimed")
       .filter("detail->>lead_id", "eq", leadId);
 
-    // Record page view (non-blocking) — actual claim is recorded when they click WhatsApp
-    supabase.from("pipeline_events").insert({
+    // Record page view — must complete before redirect so record-claim can verify it
+    const { error: evtErr } = await supabase.from("pipeline_events").insert({
       stage: "lead_page_viewed",
       detail: { lead_id: leadId, contractor_id: userId, channel: "whatsapp_cta", ...(contractorPhone ? { contractor_phone: contractorPhone } : {}) },
-    }).then(({ error: evtErr }) => {
-      if (evtErr) console.error("[claim-redirect] pipeline_events insert error:", evtErr);
     });
+    if (evtErr) console.error("[claim-redirect] pipeline_events insert error:", evtErr);
 
     console.log(`[claim-redirect] Lead page viewed: ${leadId} by ${userId}`);
 
     // Encode lead + publisher data as base64 URL param (avoids RLS issue on frontend)
+    // Truncate large text fields to prevent URL length issues
+    const safeLead = lead
+      ? { ...lead, parsed_summary: lead.parsed_summary?.slice(0, 500) || null, raw_message: lead.raw_message?.slice(0, 300) || null }
+      : { id: leadId, profession: "unknown", city: null };
     const pageData = {
-      lead: lead || { id: leadId, profession: "unknown", city: null },
+      lead: safeLead,
       publisher,
       claimCount: (claimCount ?? 0) + 1,
       senderPhone: phone,
-      introMsg: msg,
+      introMsg: msg?.slice(0, 300) || "",
       contractorId: userId,
       contractorPhone: contractorPhone || null,
       isRegistered,

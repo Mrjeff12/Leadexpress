@@ -465,6 +465,7 @@ async function processNotification(notif: GreenNotification, account: WaAccount)
   if (filterResult.action === "skip") {
     await logPipelineEvent(chatId, messageId, senderId, filterResult.stage, {
       reason: filterResult.reason, signals: filterResult.signals,
+      text: text.slice(0, 500),
     });
     return `filtered:${filterResult.reason}`;
   }
@@ -524,12 +525,18 @@ async function pollAccount(account: WaAccount): Promise<string[]> {
       });
       results.push(`${account.green_api_id}:${result}`);
 
-      const delRes = await fetch(
-        greenUrl(account, "deleteNotification") + `/${notif.receiptId}`,
-        { method: "DELETE" },
-      );
-      if (!delRes.ok) {
-        console.warn(`[poll-greenapi][${account.green_api_id}] delete ${notif.receiptId} failed: ${delRes.status}`);
+      // Only delete from Green API if processing succeeded — don't lose messages on errors
+      if (result !== "error") {
+        const delRes = await fetch(
+          greenUrl(account, "deleteNotification") + `/${notif.receiptId}`,
+          { method: "DELETE" },
+        );
+        if (!delRes.ok) {
+          console.warn(`[poll-greenapi][${account.green_api_id}] delete ${notif.receiptId} failed: ${delRes.status}`);
+        }
+      } else {
+        console.warn(`[poll-greenapi][${account.green_api_id}] skipping delete for receipt ${notif.receiptId} due to processing error`);
+        break; // Stop polling this account to avoid stuck loop on persistent errors
       }
     } catch (err) {
       console.error(`[poll-greenapi][${account.green_api_id}] poll error:`, err);

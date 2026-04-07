@@ -103,7 +103,8 @@ export default function OnboardingWizard() {
     // OAuth users (Google/Apple) already have a session — skip credentials step
     if (isOAuthUser) {
       // Mark credentials as set so they don't get stuck
-      supabase.from('contractors').update({ onboarding_step: 'credentials_set' }).eq('user_id', user.id).then(() => {})
+      supabase.from('contractors').update({ onboarding_step: 'credentials_set' }).eq('user_id', user.id)
+        .then(({ error }) => { if (error) console.error('Failed to mark OAuth onboarding step:', error) })
       setStep(1)
       setVisibleStep(1)
       return
@@ -195,7 +196,7 @@ export default function OnboardingWizard() {
         setCredSaving(false)
         return false
       }
-      supabase.from('profiles').update({ email }).eq('id', user!.id).then(() => {})
+      await supabase.from('profiles').update({ email }).eq('id', user!.id)
       await supabase.auth.signInWithPassword({ email, password }).catch(() => {})
       await supabase.from('contractors').update({ onboarding_step: 'credentials_set' }).eq('user_id', user!.id)
       setCredSaving(false)
@@ -259,7 +260,7 @@ export default function OnboardingWizard() {
       // Save county names to profiles.counties if any were selected
       if (user && selectedAreas.length > 0) {
         const countyNames = selectedAreas.map((a) => a.county)
-        supabase.from('profiles').update({ counties: countyNames }).eq('id', user.id).then(() => {})
+        await supabase.from('profiles').update({ counties: countyNames }).eq('id', user.id)
       }
       // Go to completion phases
       if (pushStatus === 'granted' || pushStatus === 'unsupported') {

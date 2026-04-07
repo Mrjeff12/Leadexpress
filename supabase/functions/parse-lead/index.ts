@@ -175,8 +175,9 @@ function formatBudgetRange(min: number | null, max: number | null): string | nul
 }
 
 // ── Content hash for dedup ───────────────────────────────────────────────────
-async function contentHash(text: string): Promise<string> {
-  const normalized = text.toLowerCase().trim().replace(/\s+/g, " ");
+async function contentHash(text: string, senderId?: string): Promise<string> {
+  // Include senderId: same text + same sender = duplicate, same text + different sender = different lead
+  const normalized = (senderId ? senderId + ":" : "") + text.toLowerCase().trim().replace(/\s+/g, " ");
   const encoded = new TextEncoder().encode(normalized);
   const hashBuffer = await crypto.subtle.digest("SHA-256", encoded);
   return Array.from(new Uint8Array(hashBuffer))
@@ -210,8 +211,8 @@ Deno.serve(async (req: Request) => {
     const payload = job.payload as RawMessagePayload;
 
     try {
-      // Content-based dedup
-      const hash = await contentHash(payload.body);
+      // Content-based dedup (per-sender: same text + same person = duplicate, different person = new lead)
+      const hash = await contentHash(payload.body, payload.senderId ?? undefined);
       const { data: existingLead } = await supabase
         .from("leads").select("id").eq("content_hash", hash).maybeSingle();
 
@@ -253,7 +254,7 @@ Deno.serve(async (req: Request) => {
         await supabase.from("pipeline_events").insert({
           group_id: group?.id, wa_message_id: payload.messageId,
           sender_id: payload.senderId, stage: "no_lead",
-          detail: { reason: parsed.message_type, profession: parsed.profession },
+          detail: { reason: parsed.message_type, profession: parsed.profession, text: (payload.body || "").slice(0, 500) },
         });
         await supabase.rpc("complete_job", { p_job_id: job.id });
         results.push(`no_lead:${payload.messageId}`);

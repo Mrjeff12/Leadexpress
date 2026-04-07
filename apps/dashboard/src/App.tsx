@@ -16,8 +16,10 @@ import RequireSubscription from './components/Paywall'
 import SubscriptionBanner from './components/SubscriptionBanner'
 import CompleteAccountBanner from './components/CompleteAccountBanner'
 import { supabase } from './lib/supabase'
+import { ContractorContext, useContractorData, useContractor } from './lib/useContractor'
 import PushBanner from './components/PushBanner'
 import WhatsAppReconnectBanner from './components/WhatsAppReconnectBanner'
+import RebecaConnectPopup from './components/RebecaConnectPopup'
 import { PWAInstallBanner } from './components/PWAInstallBanner'
 import { OnboardingOverlayContext } from './components/OnboardingOverlayContext'
 import PushPermissionPopup from './components/PushPermissionPopup'
@@ -92,35 +94,41 @@ function RequireAdmin({ children }: { children: ReactNode }) {
 /* ─── Setup guard — redirects to /onboarding if contractor has no professions/zips ─── */
 function RequireSetup({ children }: { children: ReactNode }) {
   const { effectiveUserId, isAdmin } = useAuth()
-  const location = useLocation()
+  const { contractor, loading: cLoading } = useContractor()
   const [ready, setReady] = useState<boolean | null>(null)
 
   useEffect(() => {
-    if (!effectiveUserId || isAdmin) {
-      setReady(true)
+    if (!effectiveUserId || isAdmin) { setReady(true); return }
+    if (cLoading) return
+
+    const data = contractor
+    if (!data) { setReady(false); return }
+
+    const hasProfs = data.professions && data.professions.length > 0
+    const hasZips = data.zip_codes && data.zip_codes.length > 0
+    if (hasProfs && hasZips) { setReady(true); return }
+
+    // Also check if user has counties set (web signup stores counties, not zips)
+    if (hasProfs && !hasZips) {
+      supabase
+        .from('profiles')
+        .select('counties')
+        .eq('id', effectiveUserId)
+        .maybeSingle()
+        .then(({ data: profile }) => {
+          const hasCounties = profile?.counties && (profile.counties as string[]).length > 0
+          setReady(!!hasCounties)
+        })
       return
     }
-
-    supabase
-      .from('contractors')
-      .select('professions, zip_codes')
-      .eq('user_id', effectiveUserId)
-      .maybeSingle()
-      .then(({ data, error }) => {
-        if (error) {
-          console.error('RequireSetup: failed to check contractor setup', error)
-          // Assume user is set up to avoid blocking access
-          setReady(true)
-          return
-        }
-        const hasProfs = data?.professions && (data.professions as string[]).length > 0
-        const hasZips = data?.zip_codes && (data.zip_codes as string[]).length > 0
-        setReady(!!(hasProfs && hasZips))
-      })
-  }, [effectiveUserId, isAdmin])
+    setReady(false)
+  }, [effectiveUserId, isAdmin, contractor, cLoading])
 
   if (ready === null) return <LoadingScreen />
-  if (!ready && location.pathname !== '/onboarding') return <Navigate to="/onboarding" replace />
+  if (!ready) {
+    window.location.href = 'https://masterleadflow.com/signup'
+    return <LoadingScreen />
+  }
   return <>{children}</>
 }
 
@@ -175,16 +183,14 @@ function AppShell() {
   const location = useLocation()
   const isFullBleed = location.pathname === '/'
   const [onboardingActive, setOnboardingActive] = useState(false)
+  const contractorCtx = useContractorData()
 
   if (isAdmin && !impersonatedUserId) return <Navigate to="/admin" replace />
 
-  // Onboarding wizard is full-screen, no sidebar
+  // Redirect old onboarding path to web signup
   if (location.pathname === '/onboarding') {
-    return (
-      <RequireSubscription>
-        <OnboardingWizard />
-      </RequireSubscription>
-    )
+    window.location.href = 'https://masterleadflow.com/signup'
+    return <div className="min-h-screen flex items-center justify-center"><div className="w-8 h-8 border-[3px] border-gray-200 border-t-[#fe5b25] rounded-full animate-spin" /></div>
   }
 
   // Partner onboarding is full-screen, no sidebar
@@ -193,8 +199,9 @@ function AppShell() {
   }
 
   return (
-    <OnboardingOverlayContext.Provider value={{ active: onboardingActive, setActive: setOnboardingActive }}>
-    <div className="min-h-screen">
+    <ContractorContext.Provider value={contractorCtx}>
+      <OnboardingOverlayContext.Provider value={{ active: onboardingActive, setActive: setOnboardingActive }}>
+        <div className="min-h-screen">
       <div className="le-bg" />
       <div className="le-grain" />
       {!onboardingActive && <WhatsAppReconnectBanner />}
@@ -206,6 +213,8 @@ function AppShell() {
       {!onboardingActive && <Sidebar />}
       {!onboardingActive && <MobileTabBar />}
       {!onboardingActive && <PushPermissionPopup />}
+      {!onboardingActive && <RebecaConnectPopup />}
+      <GlobalNotificationListener />
       <main className="relative contractor-main-content">
         {isFullBleed ? (
           <div className="h-screen">
@@ -247,8 +256,9 @@ function AppShell() {
           </div>
         )}
       </main>
-    </div>
-    </OnboardingOverlayContext.Provider>
+        </div>
+      </OnboardingOverlayContext.Provider>
+    </ContractorContext.Provider>
   )
 }
 
@@ -286,7 +296,6 @@ function App() {
                 </Routes>
               </Suspense>
               <Toaster />
-              <GlobalNotificationListener />
               <AdminClaimListener />
             </BrowserRouter>
           </AuthProvider>

@@ -398,9 +398,13 @@ export default function Profile() {
                 {contractorData?.profile?.years_experience ? ` · ${contractorData.profile.years_experience} yrs` : ''}
               </p>
               <div className="flex items-center gap-2 mt-1">
-                <span className="flex items-center gap-0.5 text-[11px] text-amber-400 font-semibold">
-                  <Star size={10} fill="#fbbf24" /> {contractorData?.profile?.avg_rating?.toFixed(1) ?? '4.8'} <span className="text-white/25 font-normal">({contractorData?.profile?.review_count ?? 0})</span>
-                </span>
+                {contractorData?.profile?.avg_rating ? (
+                  <span className="flex items-center gap-0.5 text-[11px] text-amber-400 font-semibold">
+                    <Star size={10} fill="#fbbf24" /> {contractorData.profile.avg_rating.toFixed(1)} <span className="text-white/25 font-normal">({contractorData.profile.review_count ?? 0})</span>
+                  </span>
+                ) : (
+                  <span className="text-[11px] text-white/30">{isHe ? 'אין דירוג עדיין' : 'No rating yet'}</span>
+                )}
               </div>
               {identityVerified && (
                 <span className="inline-flex items-center gap-1 text-[10px] font-bold text-green-400 mt-1">
@@ -563,35 +567,26 @@ export default function Profile() {
             {/* Reviews */}
             <div className="bg-white rounded-[20px] border border-black/[0.04] shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-4">
               <div className="flex items-center justify-between mb-3">
-                <p className="text-[14px] font-semibold text-zinc-900">Reviews</p>
-                <span className="text-[11px] text-[#737373]">{contractorData?.profile?.review_count ?? 0} total</span>
+                <p className="text-[14px] font-semibold text-zinc-900">{isHe ? 'ביקורות' : 'Reviews'}</p>
+                <span className="text-[11px] text-[#737373]">{contractorData?.profile?.review_count ?? 0} {isHe ? 'סה״כ' : 'total'}</span>
               </div>
-              <div className="flex items-center gap-4 mb-3">
-                <div>
-                  <p className="text-[26px] font-bold tracking-tight">{contractorData?.profile?.avg_rating?.toFixed(1) ?? '4.8'}</p>
-                  <div className="flex gap-0.5">
-                    {[1,2,3,4,5].map(i => <Star key={i} size={9} className="text-amber-400" fill="#fbbf24" />)}
+              {contractorData?.profile?.avg_rating ? (
+                <div className="flex items-center gap-4 mb-3">
+                  <div>
+                    <p className="text-[26px] font-bold tracking-tight">{contractorData.profile.avg_rating.toFixed(1)}</p>
+                    <div className="flex gap-0.5">
+                      {[1,2,3,4,5].map(i => (
+                        <Star key={i} size={9} className={i <= Math.round(contractorData.profile!.avg_rating!) ? 'text-amber-400' : 'text-gray-200'} fill={i <= Math.round(contractorData.profile!.avg_rating!) ? '#fbbf24' : '#e5e7eb'} />
+                      ))}
+                    </div>
                   </div>
                 </div>
-                <div className="flex-1 space-y-1">
-                  {[{n:5,w:72},{n:4,w:18},{n:3,w:6},{n:2,w:3},{n:1,w:1}].map(r => (
-                    <div key={r.n} className="flex items-center gap-1.5">
-                      <span className="text-[9px] text-[#737373] w-2">{r.n}</span>
-                      <div className="flex-1 h-1 rounded-full bg-[#f5f5f5]">
-                        <div className="h-full rounded-full bg-amber-400" style={{width:`${r.w}%`}} />
-                      </div>
-                    </div>
-                  ))}
+              ) : (
+                <div className="text-center py-4">
+                  <Star size={24} className="text-gray-200 mx-auto mb-2" />
+                  <p className="text-[12px] text-[#737373]">{isHe ? 'אין ביקורות עדיין' : 'No reviews yet'}</p>
                 </div>
-              </div>
-              <div className="bg-[#fafafa] rounded-xl p-3">
-                <div className="flex items-center gap-2 mb-1">
-                  <div className="w-5 h-5 rounded-full bg-zinc-900 flex items-center justify-center text-white text-[7px] font-bold">JK</div>
-                  <span className="text-[11px] font-semibold">James K.</span>
-                  <div className="flex gap-0.5 ml-auto">{[1,2,3,4,5].map(i => <Star key={i} size={7} className="text-amber-400" fill="#fbbf24" />)}</div>
-                </div>
-                <p className="text-[10px] text-[#737373] leading-relaxed">"Great work. Fast, professional, fair price."</p>
-              </div>
+              )}
             </div>
           </div>
         ) : (

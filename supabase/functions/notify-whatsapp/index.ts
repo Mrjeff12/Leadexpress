@@ -114,6 +114,9 @@ Deno.serve(async (req: Request) => {
 
       const sent = await sendWhatsApp(p.whatsappPhone, p.message);
       if (sent) {
+        await supabase.from("lead_notifications")
+          .update({ delivery_status: "sent", delivered_at: new Date().toISOString() })
+          .eq("lead_id", p.leadId).eq("contractor_id", p.contractorId).eq("channel", "whatsapp");
         await supabase.rpc("complete_job", { p_job_id: job.id });
         results.push(`wa_sent:${p.contractorId}`);
       } else {
@@ -212,6 +215,9 @@ Deno.serve(async (req: Request) => {
           { contractor_id: p.contractorId, channel: "whatsapp_template", sent_at: new Date().toISOString() },
           { onConflict: "contractor_id,channel" },
         );
+        await supabase.from("lead_notifications")
+          .update({ delivery_status: "sent", delivered_at: new Date().toISOString() })
+          .eq("lead_id", p.leadId).eq("contractor_id", p.contractorId).eq("channel", "whatsapp_template");
         await supabase.rpc("complete_job", { p_job_id: job.id });
         results.push(`tpl_sent:${p.contractorId}`);
       } else {

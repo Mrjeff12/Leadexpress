@@ -142,6 +142,19 @@ export default function DirectChat() {
           </div>
         </div>
 
+        {/* Coming Soon Banner — Mobile */}
+        <div className="mx-4 mt-3 rounded-2xl bg-amber-50 border border-amber-200 p-3 flex items-start gap-2.5">
+          <Info size={16} className="text-amber-500 mt-0.5 flex-shrink-0" />
+          <div>
+            <p className="text-[13px] font-semibold text-amber-800">
+              {isHe ? 'הודעות בזמן אמת בקרוב!' : 'Real-time messaging coming soon!'}
+            </p>
+            <p className="text-[11px] text-amber-600 mt-0.5">
+              {isHe ? 'זו תצוגה מקדימה. בינתיים, פנה לקבלנים דרך WhatsApp.' : 'This is a preview. For now, contact contractors via WhatsApp.'}
+            </p>
+          </div>
+        </div>
+
         {/* Messages scroll area */}
         <div className="flex-1 overflow-y-auto px-4 py-3 space-y-3">
           {/* Date separator */}

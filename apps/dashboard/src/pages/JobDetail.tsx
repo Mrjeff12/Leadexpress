@@ -74,15 +74,18 @@ export default function JobDetail() {
     if (!id) return
     supabase
       .from('job_orders')
-      .select('*, subcontractors(full_name, phone), leads(profession, city, zip_code, parsed_summary)')
+      .select('*, subcontractors(full_name, phone), contractors(full_name, whatsapp_phone), leads(profession, city, zip_code, parsed_summary)')
       .eq('id', id)
       .maybeSingle()
       .then(({ data }) => {
         if (data) {
+          // Prefer subcontractor info; fall back to contractor (for claim-originated jobs where subcontractor_id is null)
+          const sub = (data as any).subcontractors;
+          const ctr = (data as any).contractors;
           setJob({
             ...data,
-            sub_name: (data as any).subcontractors?.full_name || '',
-            sub_phone: (data as any).subcontractors?.phone || '',
+            sub_name: sub?.full_name || ctr?.full_name || '',
+            sub_phone: sub?.phone || ctr?.whatsapp_phone || '',
             lead_profession: (data as any).leads?.profession || null,
             lead_city: (data as any).leads?.city || null,
             lead_zip: (data as any).leads?.zip_code || null,

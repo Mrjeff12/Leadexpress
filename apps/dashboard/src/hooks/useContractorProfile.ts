@@ -73,32 +73,20 @@ export function useContractorProfile() {
     queryFn: async (): Promise<FullContractorProfile | null> => {
       if (!effectiveUserId) return null
 
-      // Fetch joined data
-      const { data: cp } = await supabase
-        .from('contractor_profiles')
-        .select('*')
-        .eq('user_id', effectiveUserId)
-        .maybeSingle()
+      // Fire all 5 queries in parallel instead of sequentially
+      const [cpRes, profileRes, contractorRes, statsRes, completenessRes] = await Promise.all([
+        supabase.from('contractor_profiles').select('*').eq('user_id', effectiveUserId).maybeSingle(),
+        supabase.from('profiles').select('full_name, phone, whatsapp_phone, counties').eq('id', effectiveUserId).maybeSingle(),
+        supabase.from('contractors').select('professions, zip_codes').eq('user_id', effectiveUserId).maybeSingle(),
+        supabase.rpc('calculate_contractor_stats', { p_user_id: effectiveUserId }),
+        supabase.rpc('calculate_profile_completeness', { p_user_id: effectiveUserId }),
+      ])
 
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('full_name, phone, whatsapp_phone, counties')
-        .eq('id', effectiveUserId)
-        .maybeSingle()
-
-      const { data: contractor } = await supabase
-        .from('contractors')
-        .select('professions, zip_codes')
-        .eq('user_id', effectiveUserId)
-        .maybeSingle()
-
-      // Get stats via RPC
-      const { data: stats } = await supabase
-        .rpc('calculate_contractor_stats', { p_user_id: effectiveUserId })
-
-      // Get completeness via RPC
-      const { data: completeness } = await supabase
-        .rpc('calculate_profile_completeness', { p_user_id: effectiveUserId })
+      const cp = cpRes.data
+      const profile = profileRes.data
+      const contractor = contractorRes.data
+      const stats = statsRes.data
+      const completeness = completenessRes.data
 
       if (!cp || !profile) return null
 

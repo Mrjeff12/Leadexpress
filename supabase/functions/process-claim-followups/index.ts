@@ -13,8 +13,7 @@ const supabase = createClient(
   Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
 );
 
-const FOLLOWUP_TEMPLATE_SID = Deno.env.get("TWILIO_CONTENT_CLAIM_FOLLOWUP") || "HXb17a13f65f92c9409c153552bcfc2252";
-const CLAIM_SECRET = Deno.env.get("CLAIM_TOKEN_SECRET") || Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+const FOLLOWUP_TEMPLATE_SID = Deno.env.get("TWILIO_CONTENT_CLAIM_FOLLOWUP") || "HXdf326dee63c6f2aabf8af4bd2c5f6f2d";
 
 let TWILIO_SID = "", TWILIO_TOKEN = "", TWILIO_FROM = "";
 let _secretsLoaded = false;
@@ -29,19 +28,6 @@ async function loadSecrets() {
   _secretsLoaded = true;
 }
 
-async function signFollowupToken(payload: Record<string, string>): Promise<string> {
-  const json = JSON.stringify(payload);
-  const token = btoa(json).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
-  const encoder = new TextEncoder();
-  const key = await crypto.subtle.importKey(
-    "raw", encoder.encode(CLAIM_SECRET),
-    { name: "HMAC", hash: "SHA-256" }, false, ["sign"],
-  );
-  const sig = await crypto.subtle.sign("HMAC", key, encoder.encode(token));
-  const sigB64 = btoa(String.fromCharCode(...new Uint8Array(sig)))
-    .replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
-  return `${token}.${sigB64}`;
-}
 
 Deno.serve(async (_req: Request) => {
   await loadSecrets();
@@ -49,14 +35,16 @@ Deno.serve(async (_req: Request) => {
     return new Response(JSON.stringify({ error: "no_secrets" }), { status: 500 });
   }
 
-  // Find lead_claimed events older than 10 minutes
+  // Find lead_claimed events older than 10 minutes but not older than 7 days
   const tenMinAgo = new Date(Date.now() - 10 * 60 * 1000).toISOString();
+  const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
 
   const { data: claimEvents, error: queryErr } = await supabase
     .from("pipeline_events")
     .select("id, detail, created_at")
     .eq("stage", "lead_claimed")
     .lt("created_at", tenMinAgo)
+    .gt("created_at", sevenDaysAgo)
     .order("created_at", { ascending: true })
     .limit(20);
 
@@ -109,13 +97,15 @@ Deno.serve(async (_req: Request) => {
 
     const profession = (lead?.profession || "").replace(/_/g, " ").replace(/\b\w/g, (c: string) => c.toUpperCase());
     const location = [lead?.city, lead?.zip_code].filter(Boolean).join(", ") || "Your area";
-    const toWa = `whatsapp:${contractorPhone.startsWith("+") ? contractorPhone : "+" + contractorPhone}`;
+    const normalizedPhone = contractorPhone.startsWith("+") ? contractorPhone : "+" + contractorPhone;
+    const toWa = `whatsapp:${normalizedPhone}`;
 
-    // Create signed follow-up token
-    const followupToken = await signFollowupToken({
-      l: leadId,
-      c: contractorId,
-      ts: String(Date.now()),
+    // Store followup context so the webhook knows which claim the button press refers to
+    await supabase.from("wa_onboard_state").upsert({
+      phone: normalizedPhone,
+      step: "claim_followup",
+      data: { leadId, contractorId },
+      updated_at: new Date().toISOString(),
     });
 
     try {
@@ -134,7 +124,6 @@ Deno.serve(async (_req: Request) => {
             ContentVariables: JSON.stringify({
               "1": profession || "Job",
               "2": location,
-              "3": followupToken,
             }),
           }).toString(),
         },
@@ -157,6 +146,65 @@ Deno.serve(async (_req: Request) => {
       console.error("[process-claim-followups] Error:", msg);
       results.push(`error:${msg}`);
     }
+  }
+
+  // ── Publisher no-show reminders (24h after job created, not viewed) ──
+  const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+  const threeDaysAgo = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString();
+
+  const { data: pendingJobs } = await supabase
+    .from("job_orders")
+    .select("id, access_token, contractor_id, customer_name, lead_id")
+    .eq("status", "pending")
+    .is("viewed_at", null)
+    .lt("created_at", oneDayAgo)
+    .gt("created_at", threeDaysAgo)
+    .limit(10);
+
+  for (const job of pendingJobs ?? []) {
+    // Check if reminder already sent
+    const { count: reminderCount } = await supabase
+      .from("pipeline_events")
+      .select("id", { count: "exact", head: true })
+      .eq("stage", "publisher_noshow_reminder")
+      .filter("detail->>job_id", "eq", job.id);
+
+    if (reminderCount && reminderCount > 0) continue;
+
+    // Get contractor phone
+    const { data: contractor } = await supabase
+      .from("contractors")
+      .select("whatsapp_phone")
+      .eq("user_id", job.contractor_id)
+      .maybeSingle();
+
+    if (!contractor?.whatsapp_phone) continue;
+
+    const portalUrl = `https://app.masterleadflow.com/portal/job/${job.access_token}`;
+    const toWa = `whatsapp:${contractor.whatsapp_phone.startsWith("+") ? contractor.whatsapp_phone : "+" + contractor.whatsapp_phone}`;
+
+    await fetch(
+      `https://api.twilio.com/2010-04-01/Accounts/${TWILIO_SID}/Messages.json`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+          Authorization: "Basic " + btoa(`${TWILIO_SID}:${TWILIO_TOKEN}`),
+        },
+        body: new URLSearchParams({
+          From: TWILIO_FROM,
+          To: toWa,
+          Body: `⏳ המפרסם עדיין לא אישר את העבודה שלקחת.\n\nשלח לו שוב את הלינק:\n👉 ${portalUrl}`,
+        }).toString(),
+      },
+    );
+
+    await supabase.from("pipeline_events").insert({
+      stage: "publisher_noshow_reminder",
+      detail: { job_id: job.id, contractor_id: job.contractor_id },
+    });
+
+    results.push(`noshow_reminder:${job.id.slice(0, 8)}`);
   }
 
   return new Response(

@@ -162,17 +162,31 @@ const HEALTH_INTERVAL_MS = 30 * 1000           // 30s heartbeat
 // ─── Daily join counter ──────────────────────────────────
 let joinsToday = 0
 let lastJoinDate = new Date().toDateString()
+let _joinsLoadedFromDb = false
 
-function resetDailyCounter() {
+async function loadJoinsFromDb() {
+  if (_joinsLoadedFromDb) return
+  try {
+    const { data } = await supabase
+      .from('scanner_accounts')
+      .select('joins_today')
+      .eq('account_id', ACCOUNT_ID)
+      .single()
+    if (data?.joins_today) joinsToday = data.joins_today
+    _joinsLoadedFromDb = true
+  } catch { /* will default to 0 */ }
+}
+
+async function resetDailyCounter() {
   const today = new Date().toDateString()
   if (today !== lastJoinDate) {
     joinsToday = 0
     lastJoinDate = today
     // Also reset in DB
-    supabase.from('scanner_accounts')
+    const { error } = await supabase.from('scanner_accounts')
       .update({ joins_today: 0, joins_today_reset_at: new Date().toISOString() })
       .eq('account_id', ACCOUNT_ID)
-      .then(() => {})
+    if (error) log('error', `Failed to reset daily counter: ${error.message}`)
   }
 }
 
@@ -345,7 +359,8 @@ client.on('message', async (msg) => {
 
 // ─── Poll for pending groups to join ─────────────────────
 async function pollPendingGroups() {
-  resetDailyCounter()
+  await loadJoinsFromDb()
+  await resetDailyCounter()
 
   if (joinsToday >= MAX_JOINS_PER_DAY) return
 

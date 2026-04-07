@@ -222,6 +222,14 @@ export default function ProfileEdit() {
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file || !effectiveUserId) return
+    if (file.size > 5 * 1024 * 1024) {
+      toast({
+        title: isHe ? 'הקובץ גדול מדי' : 'File too large',
+        description: isHe ? 'גודל מקסימלי 5MB' : 'Maximum file size is 5MB',
+        variant: 'destructive',
+      })
+      return
+    }
     setAvatarUploading(true)
     try {
       const path = `avatars/${effectiveUserId}.webp`
@@ -732,7 +740,7 @@ export default function ProfileEdit() {
       </Section>
 
       {/* ── Sticky save bar ── */}
-      <div className="fixed bottom-0 left-0 right-0 z-40 p-4 bg-white/80 backdrop-blur-lg border-t border-gray-200/50 safe-bottom">
+      <div className="fixed bottom-0 left-0 right-0 z-[60] p-4 pb-[max(1rem,env(safe-area-inset-bottom))] mb-16 md:mb-0 bg-white/80 backdrop-blur-lg border-t border-gray-200/50">
         <div className="max-w-2xl mx-auto">
           <button
             type="button"

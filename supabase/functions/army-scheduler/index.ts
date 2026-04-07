@@ -39,9 +39,11 @@ Deno.serve(async (_req: Request) => {
       })
     }
 
-    // 2. Check activity window
+    // 2. Check activity window (in target timezone, default US Eastern)
     const now = new Date()
-    const currentHHMM = `${String(now.getUTCHours()).padStart(2, "0")}:${String(now.getUTCMinutes()).padStart(2, "0")}`
+    const tz = config.timezone ?? "America/New_York"
+    const localTime = new Intl.DateTimeFormat("en-US", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: tz }).format(now)
+    const currentHHMM = localTime.replace(/^24:/, "00:")
     const windowStart = config.activity_window_start ?? "07:00"
     const windowEnd = config.activity_window_end ?? "21:00"
 
@@ -164,7 +166,7 @@ Deno.serve(async (_req: Request) => {
         const delayMs = (delayMin + Math.random() * (delayMax - delayMin)) * 60 * 1000
         await sleep(Math.min(delayMs, 5000)) // cap at 5s in edge function context
 
-        const message = tpl.body
+        const message = fillPlaceholders(tpl.body)
         const result = await sendMessage(account, groupId, message)
 
         await supabase.from("army_schedule").insert({

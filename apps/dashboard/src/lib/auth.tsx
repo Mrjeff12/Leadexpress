@@ -134,6 +134,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           return
         }
 
+        // Skip INITIAL_SESSION — already handled by getSession() above
+        if (event === 'INITIAL_SESSION') return
+
         const user = session?.user ?? null
         let profile: Profile | null = null
         if (user) profile = await fetchProfile(user.id)

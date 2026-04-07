@@ -1,31 +1,36 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useToast } from './hooks/use-toast'
 import { useI18n } from '../lib/i18n'
 import { Bell } from 'lucide-react'
 import { useAuth } from '../lib/auth'
-import { useContractorProfile } from '../hooks/useContractorProfile'
+import { useContractor } from '../lib/useContractor'
 
 export function GlobalNotificationListener() {
   const { toast } = useToast()
   const { locale } = useI18n()
   const { user } = useAuth()
-  const { data: contractorData, isLoading: profileLoading } = useContractorProfile()
+  const { contractor } = useContractor()
   const navigate = useNavigate()
   const isHe = locale === 'he'
+  const [deferred, setDeferred] = useState(false)
 
-  const professions = contractorData?.professions ?? []
-  const zipCodes = contractorData?.zip_codes ?? []
+  // Defer realtime subscription — wait 3s after mount so dashboard renders first
+  useEffect(() => {
+    const t = setTimeout(() => setDeferred(true), 3000)
+    return () => clearTimeout(t)
+  }, [])
+
+  const professions = contractor?.professions ?? []
+  const zipCodes = contractor?.zip_codes ?? []
 
   // Listen for service worker messages (notification clicks)
   useEffect(() => {
     function handleSWMessage(event: MessageEvent) {
       if (event.data?.type === 'NOTIFICATION_CLICK' && event.data.url) {
-        // Navigate to the target URL and force a page reload to refresh data
         const url = event.data.url
         if (window.location.pathname === url) {
-          // Already on the page — reload to get fresh data
           window.location.reload()
         } else {
           navigate(url)
@@ -40,8 +45,7 @@ export function GlobalNotificationListener() {
   }, [navigate])
 
   useEffect(() => {
-    // Only subscribe when user is logged in and profile is loaded with professions/zips
-    if (!user || profileLoading || professions.length === 0 || zipCodes.length === 0) return
+    if (!user || !deferred || professions.length === 0 || zipCodes.length === 0) return
 
     const ch = supabase
       .channel('global-leads-rt')
@@ -80,7 +84,7 @@ export function GlobalNotificationListener() {
     return () => {
       supabase.removeChannel(ch)
     }
-  }, [toast, isHe, user, profileLoading, professions, zipCodes])
+  }, [toast, isHe, user, deferred, professions, zipCodes])
 
   return null
 }

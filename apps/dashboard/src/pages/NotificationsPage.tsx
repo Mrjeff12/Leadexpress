@@ -172,7 +172,7 @@ export default function NotificationsPage() {
   const handleNotificationClick = (n: Notification) => {
     setNotifications(prev => prev.map(item => item.id === n.id ? { ...item, read: true } : item))
     switch (n.type) {
-      case 'lead':   navigate('/leads'); break
+      case 'lead':   navigate(n.lead_id ? `/leads/${n.lead_id}` : '/leads'); break
       case 'job':    navigate('/jobs'); break
       case 'message': navigate('/messages'); break
       default:       break
@@ -225,11 +225,11 @@ export default function NotificationsPage() {
         {/* Desktop Header */}
         <div className="hidden md:flex items-center justify-between mb-6">
           <div>
-            <h1 className="text-xl md:text-2xl font-bold text-white tracking-tight">
+            <h1 className="text-xl md:text-2xl font-bold text-[#1d1d1f] tracking-tight">
               {isHe ? 'התראות' : 'Notifications'}
             </h1>
             {unreadCount > 0 && (
-              <p className="text-sm text-white/50 mt-0.5">
+              <p className="text-sm text-[#737373] mt-0.5">
                 {isHe ? `${unreadCount} לא נקראו` : `${unreadCount} unread`}
               </p>
             )}
@@ -252,10 +252,10 @@ export default function NotificationsPage() {
             <div className="w-16 h-16 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center mx-auto mb-4">
               <AlertCircle size={28} className="text-amber-400" />
             </div>
-            <h3 className="text-base font-semibold text-[#1d1d1f] md:text-white/80 mb-1">
+            <h3 className="text-base font-semibold text-[#1d1d1f] md:text-[#1d1d1f] mb-1">
               {isHe ? 'הגדר את הפרופיל שלך' : 'Set up your profile'}
             </h3>
-            <p className="text-sm text-[#737373] md:text-white/40 max-w-xs mx-auto mb-4">
+            <p className="text-sm text-[#737373] md:text-[#737373] max-w-xs mx-auto mb-4">
               {isHe
                 ? 'הוסף מקצועות ומיקודים כדי לקבל התראות על לידים רלוונטיים'
                 : 'Add your professions and zip codes to receive relevant lead notifications.'}
@@ -272,7 +272,7 @@ export default function NotificationsPage() {
         {/* Loading state */}
         {loading && profileReady && (
           <div className="flex items-center justify-center py-20">
-            <Loader2 size={28} className="animate-spin text-[#a3a3a3] md:text-white/30" />
+            <Loader2 size={28} className="animate-spin text-[#a3a3a3] md:text-[#a3a3a3]" />
           </div>
         )}
 
@@ -280,12 +280,12 @@ export default function NotificationsPage() {
         {!loading && notifications.length === 0 && (
           <div className="bg-white md:bg-transparent md:glass-panel rounded-[20px] md:rounded-2xl border border-black/[0.04] md:border-0 shadow-[0_1px_3px_rgba(0,0,0,0.04)] md:shadow-none p-10 text-center">
             <div className="w-16 h-16 rounded-2xl bg-black/[0.04] md:bg-white/5 border border-black/[0.06] md:border-white/10 flex items-center justify-center mx-auto mb-4">
-              <BellOff size={28} className="text-[#c7c7cc] md:text-white/20" />
+              <BellOff size={28} className="text-[#c7c7cc] md:text-[#c7c7cc]" />
             </div>
-            <h3 className="text-base font-semibold text-[#1d1d1f] md:text-white/80 mb-1">
+            <h3 className="text-base font-semibold text-[#1d1d1f] md:text-[#1d1d1f] mb-1">
               {isHe ? 'אין התראות' : 'No notifications yet'}
             </h3>
-            <p className="text-sm text-[#737373] md:text-white/40 max-w-xs mx-auto">
+            <p className="text-sm text-[#737373] md:text-[#737373] max-w-xs mx-auto">
               {isHe
                 ? 'כשתקבלו לידים חדשים, הם יופיעו כאן'
                 : "When new leads and updates come in, they'll appear here."}
@@ -323,15 +323,15 @@ export default function NotificationsPage() {
                   {/* Content */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-start justify-between gap-2">
-                      <p className={`text-sm leading-tight ${n.read ? 'text-[#737373] md:text-white/60 font-medium' : 'text-[#1d1d1f] md:text-white font-bold'}`}>
+                      <p className={`text-sm leading-tight ${n.read ? 'text-[#737373] md:text-[#737373] font-medium' : 'text-[#1d1d1f] md:text-[#1d1d1f] font-bold'}`}>
                         {n.title}
                       </p>
                       {!n.read && (
                         <span className="w-2.5 h-2.5 rounded-full bg-[#fe5b25] flex-shrink-0 mt-1 shadow-lg shadow-[#fe5b25]/30" />
                       )}
                     </div>
-                    <p className="text-xs text-[#737373] md:text-white/40 mt-0.5 truncate">{n.description}</p>
-                    <p className="text-[10px] text-[#a3a3a3] md:text-white/25 mt-1">{timeAgo(n.time, isHe)}</p>
+                    <p className="text-xs text-[#737373] md:text-[#737373] mt-0.5 truncate">{n.description}</p>
+                    <p className="text-[10px] text-[#a3a3a3] md:text-[#a3a3a3] mt-1">{timeAgo(n.time, isHe)}</p>
                   </div>
                 </div>
               )

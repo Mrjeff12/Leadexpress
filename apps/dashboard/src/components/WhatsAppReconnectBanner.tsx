@@ -1,36 +1,22 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { MessageCircle, X } from 'lucide-react'
 import { useAuth } from '../lib/auth'
-import { supabase } from '../lib/supabase'
+import { useContractor } from '../lib/useContractor'
 
 const REBECA_PHONE = '14155238886'
 const WA_LINK = `https://wa.me/${REBECA_PHONE}?text=${encodeURIComponent('👋')}`
 
 export default function WhatsAppReconnectBanner() {
   const { profile } = useAuth()
-  const [show, setShow] = useState(false)
+  const { contractor } = useContractor()
   const [dismissed, setDismissed] = useState(() => sessionStorage.getItem('wa_reconnect_dismissed') === '1')
 
-  useEffect(() => {
-    if (!profile?.id || dismissed) return
-    // Only relevant for contractor role
-    if (!profile.role || !['contractor', 'admin'].includes(profile.role)) return
+  if (dismissed || !profile?.id) return null
+  if (!profile.role || !['contractor', 'admin'].includes(profile.role)) return null
+  if (!contractor?.wa_notify) return null
 
-    supabase
-      .from('contractors')
-      .select('wa_notify, wa_window_until')
-      .eq('user_id', profile.id)
-      .maybeSingle()
-      .then(({ data }) => {
-        if (!data) return
-        if (!data.wa_notify) return // Not opted in to WhatsApp
-
-        const windowExpired = !data.wa_window_until || new Date(data.wa_window_until) < new Date()
-        if (windowExpired) setShow(true)
-      })
-  }, [profile?.id, dismissed])
-
-  if (!show || dismissed) return null
+  const windowExpired = !contractor.wa_window_until || new Date(contractor.wa_window_until) < new Date()
+  if (!windowExpired) return null
 
   function handleDismiss() {
     sessionStorage.setItem('wa_reconnect_dismissed', '1')

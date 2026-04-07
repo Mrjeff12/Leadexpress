@@ -47,6 +47,7 @@ export default function Navbar() {
           <a href="#solution-share" className="text-sm text-gray-subtle hover:text-primary transition-colors">{t.nav.postJobs}</a>
           <a href="#solution-protect" className="text-sm text-gray-subtle hover:text-primary transition-colors">{t.nav.protection}</a>
           <a href="#pricing" className="text-sm text-gray-subtle hover:text-primary transition-colors">{t.nav.pricing}</a>
+          <a href="/group-leads" className="text-sm text-gray-subtle hover:text-primary transition-colors">{t.nav.groupLeads}</a>
         </div>
 
         <div className="hidden md:flex items-center gap-3">
@@ -69,6 +70,7 @@ export default function Navbar() {
           <a href="#solution-share" className="block text-sm py-2" onClick={() => setMobileOpen(false)}>{t.nav.postJobs}</a>
           <a href="#solution-protect" className="block text-sm py-2" onClick={() => setMobileOpen(false)}>{t.nav.protection}</a>
           <a href="#pricing" className="block text-sm py-2" onClick={() => setMobileOpen(false)}>{t.nav.pricing}</a>
+          <a href="/group-leads" className="block text-sm py-2" onClick={() => setMobileOpen(false)}>{t.nav.groupLeads}</a>
           <a href="https://app.masterleadflow.com/login" className="block text-sm py-2 font-medium text-gray-subtle">
             Log in
           </a>

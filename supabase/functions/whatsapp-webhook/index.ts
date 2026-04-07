@@ -252,6 +252,7 @@ Deno.serve(async (req: Request) => {
     return twiml();
   }
 
+  let _fromPhone = '';
   try {
     // Parse form data into a plain object for both signature verification and field access
     const formData = await req.formData();
@@ -275,6 +276,7 @@ Deno.serve(async (req: Request) => {
     }
 
     const from = params['From'] ?? '';
+    _fromPhone = from;
     let body = params['Body'] ?? '';
     const messageSid = params['MessageSid'] ?? '';
     const buttonPayload = params['ButtonPayload'] || params['ListId'] || '';
@@ -398,7 +400,8 @@ Deno.serve(async (req: Request) => {
     console.error('[webhook] Error:', err);
     // Send fallback so the user always gets a response
     try {
-      if (phone) await sendText(phone, `Sorry, something went wrong. Please try again.`);
+      const fallbackPhone = normalizePhone(_fromPhone);
+      if (fallbackPhone) await sendText(fallbackPhone, `Sorry, something went wrong. Please try again.`);
     } catch (_) { /* best effort */ }
   }
 
@@ -418,8 +421,9 @@ async function routeMessage(phone: string, text: string, textLower: string, butt
   // Log incoming message + update last inbound timestamp (for nudge suppression)
   if (prospectId && text) {
     await logMessage(prospectId, 'incoming', text);
-    supabase.from('prospects').update({ last_wa_inbound_at: new Date().toISOString() })
-      .eq('id', prospectId).then(({ error: e }) => { if (e) console.error('[routeMessage] Failed to update last_wa_inbound_at:', e.message); });
+    const { error: tsErr } = await supabase.from('prospects').update({ last_wa_inbound_at: new Date().toISOString() })
+      .eq('id', prospectId);
+    if (tsErr) console.error('[routeMessage] Failed to update last_wa_inbound_at:', tsErr.message);
   }
 
   // 0. Handle button payloads first (from Quick Reply clicks)
@@ -459,7 +463,7 @@ async function routeMessage(phone: string, text: string, textLower: string, butt
     .eq('phone', phone)
     .maybeSingle();
 
-  if (onboardState) {
+  if (onboardState && onboardState.step !== 'claim_followup') {
     await handleOnboardingStep(phone, text, textLower, onboardState);
     return;
   }
@@ -690,6 +694,14 @@ async function handleButtonPayload(phone: string, payload: string, _text: string
       } else {
         await sendText(phone, `No pending lead to skip.`);
       }
+      break;
+    }
+
+    /* ── Claim follow-up Quick Reply handlers ── */
+    case 'followup_took':
+    case 'followup_talking':
+    case 'followup_pass': {
+      await handleFollowupButton(phone, payload, profile.id);
       break;
     }
 
@@ -1263,6 +1275,177 @@ async function sendLeadNotification(
 }
 
 // Step 2: After Claim → send CTA button that opens WhatsApp chat with customer
+// ── Claim Follow-up Button Handler ──────────────────────────────────────────
+
+async function handleFollowupButton(phone: string, payload: string, userId: string): Promise<void> {
+  // Load context from wa_onboard_state (set by process-claim-followups)
+  const { data: ctx } = await supabase
+    .from('wa_onboard_state')
+    .select('data')
+    .eq('phone', phone)
+    .eq('step', 'claim_followup')
+    .maybeSingle();
+
+  if (!ctx?.data) {
+    await sendText(phone, 'This follow-up has expired. Send *MENU* for options.');
+    return;
+  }
+
+  const { leadId, contractorId } = ctx.data as { leadId: string; contractorId: string };
+
+  // Clean up the state
+  await supabase.from('wa_onboard_state').delete().eq('phone', phone).eq('step', 'claim_followup');
+
+  // Dedup: check if action already recorded
+  const { count: existingAction } = await supabase
+    .from('pipeline_events')
+    .select('id', { count: 'exact', head: true })
+    .eq('stage', 'claim_followup_response')
+    .filter('detail->>lead_id', 'eq', leadId)
+    .filter('detail->>contractor_id', 'eq', contractorId);
+
+  if (existingAction && existingAction > 0) {
+    await sendText(phone, '✅ Already recorded, thanks!');
+    return;
+  }
+
+  const actionMap: Record<string, string> = {
+    followup_took: 'took',
+    followup_talking: 'still_talking',
+    followup_pass: 'not_relevant',
+  };
+  const action = actionMap[payload] || 'not_relevant';
+
+  // Record the response
+  await supabase.from('pipeline_events').insert({
+    stage: 'claim_followup_response',
+    detail: { lead_id: leadId, contractor_id: contractorId, action },
+  });
+
+  if (action === 'took') {
+    // Get lead + contractor details
+    const [{ data: lead }, { data: contractorProfile }] = await Promise.all([
+      supabase
+        .from('leads')
+        .select('id, profession, city, zip_code, sender_id, sender_name, parsed_summary')
+        .eq('id', leadId)
+        .maybeSingle(),
+      supabase
+        .from('profiles')
+        .select('full_name')
+        .eq('id', contractorId)
+        .maybeSingle(),
+    ]);
+
+    if (!lead) {
+      await sendText(phone, '✅ נרשם! לצערנו פרטי הליד כבר לא זמינים.');
+      return;
+    }
+
+    const profession = (lead.profession || '').replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase());
+    const location = [lead.city, lead.zip_code].filter(Boolean).join(', ') || 'Your area';
+    const contractorName = contractorProfile?.full_name?.split(' ')[0] || 'A contractor';
+
+    // Extract publisher phone from sender_id (format: 1234567890@c.us)
+    const publisherPhone = lead.sender_id?.replace(/@.*$/, '') || '';
+    const publisherPhoneNorm = publisherPhone.startsWith('+') ? publisherPhone : `+${publisherPhone}`;
+
+    // ── Check if publisher is already a registered user ──
+    let publisherProfile: { id: string; full_name?: string } | null = null;
+    if (publisherPhone) {
+      const { data: byWa } = await supabase
+        .from('profiles')
+        .select('id, full_name')
+        .eq('whatsapp_phone', publisherPhoneNorm)
+        .maybeSingle();
+      if (!byWa) {
+        // Also check phone field format variants
+        const { data: byPhone } = await supabase
+          .from('profiles')
+          .select('id, full_name')
+          .or(`whatsapp_phone.eq.${publisherPhone},whatsapp_phone.eq.${publisherPhoneNorm}`)
+          .maybeSingle();
+        publisherProfile = byPhone;
+      } else {
+        publisherProfile = byWa;
+      }
+    }
+
+    // Create job order (status depends on whether publisher is known)
+    const { data: job, error: jobErr } = await supabase.rpc('create_job_from_claim', {
+      p_lead_id: leadId,
+      p_contractor_id: contractorId,
+      p_customer_name: lead.sender_name || null,
+      p_customer_address: location,
+      p_notes: lead.parsed_summary || null,
+    });
+
+    if (jobErr) {
+      console.error('[followup-btn] create_job_from_claim error:', jobErr.message);
+      await sendText(phone, '✅ נרשם! הייתה בעיה ביצירת העבודה — נסדר את זה.');
+      return;
+    }
+
+    if (!job || job.length === 0) {
+      await sendText(phone, '✅ לקחת את העבודה! בהצלחה 💪');
+      return;
+    }
+
+    const jobId = job[0].id;
+    const portalUrl = `https://app.masterleadflow.com/portal/job/${job[0].access_token}`;
+
+    // ══════════════════════════════════════════════════════════════════════
+    // TRACK A: Publisher is already our user → link job + notify directly
+    // ══════════════════════════════════════════════════════════════════════
+    if (publisherProfile) {
+      // Link job to publisher's account
+      await supabase.from('job_orders').update({
+        subcontractor_id: publisherProfile.id,
+        status: 'accepted',
+      }).eq('id', jobId);
+
+      // Notify publisher via WhatsApp
+      const publisherName = publisherProfile.full_name?.split(' ')[0] || '';
+      const dashboardUrl = `https://app.masterleadflow.com/jobs`;
+      await sendText(`whatsapp:${publisherPhoneNorm}`,
+        `היי${publisherName ? ' ' + publisherName : ''}! 👋\n\n${contractorName} לקח את העבודה (${profession} ב-${location}) שפרסמת.\n\nהעבודה כבר מופיעה אצלך בממשק:\n👉 ${dashboardUrl}`);
+
+      // Tell our contractor it's done
+      await sendText(phone,
+        `🎉 *מעולה!*\n\nהמפרסם ${publisherName || ''} כבר לקוח שלנו — העבודה נוצרה ונשלחה אליו ישירות לממשק!\n\nבהצלחה 💪`);
+
+      console.log(`[followup-btn] TRACK A: Publisher ${publisherProfile.id} is existing user. Job ${jobId} linked + notified.`);
+
+    // ══════════════════════════════════════════════════════════════════════
+    // TRACK B: Publisher is NOT our user → send portal link via contractor
+    // ══════════════════════════════════════════════════════════════════════
+    } else {
+      // Build Hebrew message for contractor to forward to publisher
+      const publisherMsg = `היי! אני ${contractorName}.\nלקחתי את העבודה (${profession} ב-${location}) שפרסמת.\n\nאשר את העבודה כאן ונתחיל:\n👉 ${portalUrl}`;
+
+      // Message 1: the ready-to-send text
+      await sendText(phone,
+        `🎉 *מעולה! העבודה נוצרה.*\n\nהעבר את ההודעה הזאת למפרסם:\n\n─────────\n${publisherMsg}\n─────────`);
+
+      // Message 2: direct wa.me link to the specific publisher
+      const encoded = encodeURIComponent(publisherMsg);
+      if (publisherPhone) {
+        await sendText(phone, `📤 לחץ לשלוח למפרסם:\nhttps://wa.me/${publisherPhone}?text=${encoded}`);
+      } else {
+        await sendText(phone, `📤 לחץ לשלוח:\nhttps://wa.me/?text=${encoded}`);
+      }
+
+      console.log(`[followup-btn] TRACK B: Publisher not a user. Job ${jobId}, portal: ${portalUrl}`);
+    }
+  } else if (action === 'still_talking') {
+    await sendText(phone, '💬 בהצלחה! נבדוק שוב מאוחר יותר.');
+  } else {
+    await sendText(phone, '👍 בסדר. נמשיך לשלוח לידים רלוונטיים.');
+  }
+
+  console.log(`[followup-btn] ${phone} action=${action} lead=${leadId.slice(0, 8)}`);
+}
+
 async function handleClaim(phone: string, leadId: string, userId: string, senderPhone: string, profession: string, city: string): Promise<void> {
   // Log claim event (non-blocking) — multiple contractors can claim the same lead
   supabase.from('pipeline_events').insert({
@@ -1407,16 +1590,294 @@ async function handleOnboardingStep(
     return;
   }
 
-  // ── AI-driven onboarding ──────────────────────────────────────────────
+  // ── Step-based onboarding (fallback from AI) ──────────────────────────
+  const stepBasedSteps = ['profession', 'state_select', 'city', 'working_days', 'confirm', 'name', 'welcome'];
+  if (stepBasedSteps.includes(state.step)) {
+    await handleStepBasedOnboarding(phone, text, textLower, state);
+    return;
+  }
+
+  // ── AI-driven onboarding (step = 'ai') ──────────────────────────────
   await handleAIOnboarding(phone, text, state.data);
 }
 
+// ── Step-based Onboarding (fallback when AI is unavailable) ─────────────────
+
+const STEP_PROFESSIONS = [
+  { key: 'hvac', en: 'HVAC & AC', emoji: '❄️' },
+  { key: 'air_duct', en: 'Air Duct Cleaning', emoji: '💨' },
+  { key: 'renovation', en: 'Renovation & Remodeling', emoji: '🔨' },
+  { key: 'fencing', en: 'Fencing & Gates', emoji: '🧱' },
+  { key: 'locksmith', en: 'Locksmith', emoji: '🔑' },
+  { key: 'chimney', en: 'Chimney Sweep', emoji: '🧹' },
+  { key: 'garage', en: 'Garage Doors', emoji: '🚪' },
+  { key: 'windows', en: 'Windows & Doors', emoji: '🪟' },
+  { key: 'cleaning', en: 'Cleaning', emoji: '✨' },
+  { key: 'plumbing', en: 'Plumbing', emoji: '🚰' },
+  { key: 'electrical', en: 'Electrical', emoji: '⚡' },
+  { key: 'roofing', en: 'Roofing', emoji: '🏠' },
+  { key: 'painting', en: 'Painting', emoji: '🎨' },
+  { key: 'landscaping', en: 'Landscaping', emoji: '🌳' },
+  { key: 'carpet_cleaning', en: 'Carpet & Upholstery Cleaning', emoji: '🛋️' },
+];
+
+const STEP_PROF_KEYWORDS: Record<string, string[]> = {
+  hvac: ['hvac', 'ac', 'air condition', 'מיזוג', 'מזגן'],
+  air_duct: ['duct', 'air duct', 'ניקוי צנרת', 'דאקט'],
+  renovation: ['renovation', 'remodel', 'שיפוץ', 'שיפוצ'],
+  fencing: ['fence', 'fencing', 'gate', 'railing', 'גדר', 'מעקה', 'שער'],
+  locksmith: ['locksmith', 'lock', 'מנעול'],
+  chimney: ['chimney', 'ארובה'],
+  garage: ['garage', 'גראז'],
+  windows: ['window', 'door', 'חלון', 'דלת'],
+  cleaning: ['clean', 'ניקיון', 'ניקוי'],
+  carpet_cleaning: ['carpet', 'upholster', 'ספות', 'ספה', 'שטיח', 'ריפוד'],
+  plumbing: ['plumb', 'אינסטל'],
+  electrical: ['electr', 'חשמל'],
+  roofing: ['roof', 'גג'],
+  painting: ['paint', 'צבע', 'צביע'],
+  landscaping: ['landscape', 'garden', 'גינ', 'גינון'],
+};
+
+async function handleStepBasedOnboarding(
+  phone: string,
+  text: string,
+  textLower: string,
+  state: { step: string; data: Record<string, unknown> },
+): Promise<void> {
+  const data = state.data;
+  const collected = (data.collected as Record<string, unknown>) || {};
+  const lang = (data.language as string) || (phone.startsWith('+972') ? 'he' : 'en');
+
+  // ── Welcome step (new user said yes) ──
+  if (state.step === 'welcome') {
+    const positives = ['yes', 'y', 'yeah', 'ok', 'sure', 'כן', 'בטח', 'כמובן', 'אוקי', 'בסדר', '1', '👍', 'יאללה'];
+    if (!positives.some(w => textLower.includes(w))) {
+      await sendText(phone, lang === 'he' ? 'שלח *כן* כדי להתחיל!' : 'Reply *YES* to start!');
+      return;
+    }
+    state.step = 'name';
+    await supabase.from('wa_onboard_state').upsert({ phone, step: 'name', data, updated_at: new Date().toISOString() });
+    await sendText(phone, lang === 'he' ? 'מעולה! 🚀 מה השם המלא שלך?' : 'Awesome! 🚀 What is your full name?');
+    return;
+  }
+
+  // ── Name step ──
+  if (state.step === 'name') {
+    const name = text.trim().replace(/<[^>]*>/g, '').replace(/[^\p{L}\p{M}\s'.\-]/gu, '').trim();
+    if (name.length < 2) {
+      await sendText(phone, lang === 'he' ? 'שלח את השם המלא שלך.' : 'Please enter your full name.');
+      return;
+    }
+    collected.name = name;
+    data.collected = collected;
+    // Update prospect display_name
+    const pId = data.prospectId as string | null;
+    if (pId) await supabase.from('prospects').update({ display_name: name }).eq('id', pId);
+    await supabase.from('wa_onboard_state').upsert({ phone, step: 'profession', data, updated_at: new Date().toISOString() });
+    const shortList = STEP_PROFESSIONS.slice(0, 6).map(p => `${p.emoji} ${p.en}`).join('\n');
+    await sendText(phone,
+      `נעים להכיר, ${name}! ⚡\n\nStep 1/5 — What services do you offer?\n\n${shortList}\n\n📋 Type MORE to see all services\n\n✏️ Type or 🎙️ record what you do.\nYou can pick from the list or describe your own.`);
+    return;
+  }
+
+  // ── Profession step ──
+  if (state.step === 'profession') {
+    if (textLower === 'more' || textLower === 'עוד') {
+      const fullList = STEP_PROFESSIONS.map((p, i) => `${i + 1}. ${p.emoji} ${p.en}`).join('\n');
+      await sendText(phone, `📋 All services:\n\n${fullList}\n\n✏️ Type the numbers.\nExample: *1, 4, 5*`);
+      return;
+    }
+
+    // Try number parsing
+    const numbers = text.match(/\d+/g)?.map(Number) ?? [];
+    const valid = numbers.filter(n => n >= 1 && n <= STEP_PROFESSIONS.length);
+    let selected: string[] = [];
+
+    if (valid.length > 0) {
+      selected = [...new Set(valid.map(n => STEP_PROFESSIONS[n - 1].key))];
+    } else {
+      // Keyword matching
+      for (const [key, words] of Object.entries(STEP_PROF_KEYWORDS)) {
+        if (words.some(w => textLower.includes(w))) selected.push(key);
+      }
+    }
+
+    if (selected.length === 0) {
+      await sendText(phone, lang === 'he'
+        ? 'לא הצלחתי לזהות. ספר לי מה אתה עושה — למשל "ניקיון" או "חשמל"\n\nאו שלח MORE לרשימה מלאה.'
+        : 'I didn\'t catch that. Tell me what you do — e.g. "HVAC" or "plumbing"\n\nOr type MORE for full list.');
+      return;
+    }
+
+    collected.professions = selected;
+    data.collected = collected;
+    await supabase.from('wa_onboard_state').upsert({ phone, step: 'state_select', data, updated_at: new Date().toISOString() });
+    const labels = selected.map(k => { const p = STEP_PROFESSIONS.find(pr => pr.key === k); return p ? `${p.emoji} ${p.en}` : k; }).join(', ');
+    await sendText(phone, `Got it: ${labels} 🔧\n\nStep 2/5 — Which state do you serve?\n\n🌴 Florida\n🗽 New York\n🤠 Texas\n\n✏️ Type or 🎙️ record your answer.`);
+    return;
+  }
+
+  // ── State selection ──
+  if (state.step === 'state_select') {
+    const stateMap: Record<string, string> = {
+      '1': 'FL', 'fl': 'FL', 'florida': 'FL', 'פלורידה': 'FL',
+      '2': 'NY', 'ny': 'NY', 'new york': 'NY', 'ניו יורק': 'NY',
+      '3': 'TX', 'tx': 'TX', 'texas': 'TX', 'טקסס': 'TX',
+    };
+    const selectedState = stateMap[textLower];
+    if (!selectedState) {
+      await sendText(phone, 'Reply *1* for Florida, *2* for New York, or *3* for Texas.');
+      return;
+    }
+    collected.state = selectedState;
+    data.collected = collected;
+    await supabase.from('wa_onboard_state').upsert({ phone, step: 'city', data, updated_at: new Date().toISOString() });
+
+    // City lists per state
+    const cityLists: Record<string, string[]> = {
+      FL: ['Miami', 'Fort Lauderdale', 'Hollywood', 'Hialeah', 'Coral Gables', 'Boca Raton', 'West Palm Beach', 'Pompano Beach', 'Delray Beach', 'Homestead', 'Doral', 'Pembroke Pines', 'Miramar', 'Plantation', 'Sunrise', 'Weston', 'Aventura', 'Miami Beach'],
+      NY: ['Manhattan', 'Brooklyn', 'Queens', 'Bronx', 'Staten Island', 'Yonkers', 'White Plains', 'New Rochelle', 'Hempstead', 'Huntington'],
+      TX: ['Houston', 'Dallas', 'Fort Worth', 'San Antonio', 'Austin', 'Plano', 'Arlington'],
+    };
+    const cities = cityLists[selectedState] || [];
+    const cityList = cities.map((c, i) => `${String(i + 1).padStart(2, ' ')}. ${c}`).join('\n');
+    const stateName = { FL: 'Florida', NY: 'New York', TX: 'Texas' }[selectedState];
+    await sendText(phone, `Step 3/5 — Pick your service areas in ${stateName}:\n\n${cityList}\n\nType numbers (e.g. *1, 3, 5*) or *0* for all.`);
+    return;
+  }
+
+  // ── City selection ──
+  if (state.step === 'city') {
+    const selectedState = collected.state as string;
+    const cityKeys: Record<string, string[]> = {
+      FL: ['miami', 'fort_lauderdale', 'hollywood', 'hialeah', 'coral_gables', 'boca_raton', 'west_palm_beach', 'pompano_beach', 'delray_beach', 'homestead', 'doral', 'pembroke_pines', 'miramar', 'plantation', 'sunrise', 'weston', 'aventura', 'miami_beach'],
+      NY: ['manhattan', 'brooklyn', 'queens', 'bronx', 'staten_island', 'yonkers', 'white_plains', 'new_rochelle', 'hempstead', 'huntington'],
+      TX: ['houston', 'dallas', 'fort_worth', 'san_antonio', 'austin', 'plano', 'arlington'],
+    };
+    const keys = cityKeys[selectedState] || [];
+    const numbers = text.match(/\d+/g)?.map(Number) ?? [];
+
+    let selectedCities: string[];
+    if (numbers.includes(0)) {
+      selectedCities = keys;
+    } else {
+      const valid = numbers.filter(n => n >= 1 && n <= keys.length);
+      if (valid.length === 0) {
+        await sendText(phone, `Reply with city numbers (1-${keys.length}), or *0* for all areas.`);
+        return;
+      }
+      selectedCities = [...new Set(valid.map(n => keys[n - 1]))];
+    }
+
+    collected.cities = selectedCities;
+    data.collected = collected;
+    await supabase.from('wa_onboard_state').upsert({ phone, step: 'working_days', data, updated_at: new Date().toISOString() });
+    await sendText(phone, `📍 ${selectedCities.length} areas selected\n\nStep 4/5 — When do you work?\n\n1. Mon–Fri\n2. Every day\n3. Custom`);
+    return;
+  }
+
+  // ── Working days ──
+  if (state.step === 'working_days') {
+    let days: number[];
+    if (textLower === '1' || textLower.includes('mon-fri') || textLower.includes('mon–fri')) {
+      days = [1, 2, 3, 4, 5];
+    } else if (textLower === '2' || textLower.includes('every') || textLower.includes('כל יום')) {
+      days = [0, 1, 2, 3, 4, 5, 6];
+    } else if (textLower === '3' || textLower.includes('custom')) {
+      await sendText(phone, 'Send day numbers:\n0=Sun, 1=Mon, 2=Tue, 3=Wed, 4=Thu, 5=Fri, 6=Sat\n\nExample: *1,2,3,4,5*');
+      return;
+    } else {
+      const nums = text.match(/\d/g)?.map(Number).filter(n => n >= 0 && n <= 6) ?? [];
+      if (nums.length === 0) {
+        await sendText(phone, 'Reply *1* (Mon-Fri), *2* (every day), or *3* (custom).');
+        return;
+      }
+      days = [...new Set(nums)];
+    }
+
+    collected.working_days = days;
+    data.collected = collected;
+
+    // Build summary
+    const profLabels = ((collected.professions as string[]) || []).map(k => {
+      const p = STEP_PROFESSIONS.find(pr => pr.key === k);
+      return p ? `${p.emoji} ${p.en}` : k;
+    }).join(', ');
+    const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const dayLabels = days.sort().map(d => dayNames[d]).join(', ');
+
+    await supabase.from('wa_onboard_state').upsert({ phone, step: 'confirm', data, updated_at: new Date().toISOString() });
+    await sendText(phone, `✅ Step 5/5 — Here's your profile:\n\n👤 ${collected.name || '(not set)'}\n🔧 ${profLabels}\n📍 ${collected.state} — ${((collected.cities as string[]) || []).length} areas\n📅 ${dayLabels}\n\nReply *YES* to confirm or *REDO* to start over.`);
+    return;
+  }
+
+  // ── Confirm ──
+  if (state.step === 'confirm') {
+    const positives = ['yes', 'y', 'yeah', 'ok', 'כן', 'בטח', 'כמובן', 'אוקי', 'בסדר', '1', '👍'];
+    if (textLower === 'redo' || textLower === 'מחדש') {
+      data.collected = { name: collected.name };
+      await supabase.from('wa_onboard_state').upsert({ phone, step: 'profession', data, updated_at: new Date().toISOString() });
+      const shortList = STEP_PROFESSIONS.slice(0, 6).map(p => `${p.emoji} ${p.en}`).join('\n');
+      await sendText(phone, `OK, starting over.\n\nWhat services do you offer?\n\n${shortList}\n\n📋 Type MORE to see all`);
+      return;
+    }
+    if (!positives.some(w => textLower === w || textLower === w + '!')) {
+      await sendText(phone, 'Reply *YES* to confirm or *REDO* to start over.');
+      return;
+    }
+
+    // ── Create full account (same as AI onboarding completion) ──
+    await executeOnboardingCompletion(phone, data);
+    console.log(`[step-onboard] Completed for ${phone}`);
+    return;
+  }
+}
+
 // ── AI Onboarding Agent ─────────────────────────────────────────────────────
+
+/** When AI onboarding fails, switch to step-based flow so the user isn't stuck */
+async function fallbackToStepOnboarding(phone: string, data: Record<string, unknown>): Promise<void> {
+  const lang = (data.language as string) || (phone.startsWith('+972') ? 'he' : 'en');
+  const collected = (data.collected as Record<string, unknown>) || {};
+  const name = collected.name as string | undefined;
+
+  // Determine which step to start from based on what's already collected
+  let step = 'profession';
+  if ((collected.professions as string[])?.length) step = 'state_select';
+  if (collected.state) step = 'city';
+  if ((collected.cities as string[])?.length) step = 'working_days';
+
+  await supabase.from('wa_onboard_state').upsert({
+    phone,
+    step,
+    data: { ...data, collected },
+    updated_at: new Date().toISOString(),
+  });
+
+  // Send the appropriate step prompt
+  if (step === 'profession') {
+    const profList = [
+      '1. ❄️ HVAC & AC', '2. 💨 Air Duct Cleaning', '3. 🔨 Renovation',
+      '4. 🧱 Fencing', '5. 🔑 Locksmith', '6. 🧹 Chimney Sweep',
+    ].join('\n');
+    const intro = name ? `${name}, ` : '';
+    await sendText(phone, lang === 'he'
+      ? `${intro}מה השירותים שלך?\n\n${profList}\n\n📋 שלח MORE לרשימה מלאה\n✏️ כתוב או הקלט 🎙️`
+      : `${intro}What services do you offer?\n\n${profList}\n\n📋 Type MORE to see all\n✏️ Type or record 🎙️`);
+  } else {
+    await sendText(phone, lang === 'he'
+      ? 'בוא נמשיך — באיזה מדינה אתה עובד?\n\n🌴 Florida\n🗽 New York\n🤠 Texas'
+      : 'Let\'s continue — which state do you serve?\n\n🌴 Florida\n🗽 New York\n🤠 Texas');
+  }
+  console.log(`[onboard-ai] Fell back to step-based onboarding: step=${step}`);
+}
+
 async function handleAIOnboarding(phone: string, text: string, data: Record<string, unknown>): Promise<void> {
   const OPENAI_KEY = getOpenAIKey();
   if (!OPENAI_KEY) {
-    // Fallback: can't call AI, ask user to type profession
-    await sendText(phone, `מה המקצוע שלך? (למשל: אינסטלציה, חשמל, ניקוי צנרות)`);
+    console.error('[onboard-ai] No OpenAI key — falling back to step-based onboarding');
+    await fallbackToStepOnboarding(phone, data);
     return;
   }
 
@@ -1509,14 +1970,16 @@ ProspectId: ${data.prospectId || 'unknown'}
           clearTimeout(retryTimeout);
         }
         if (!retry.ok) {
-          await sendText(phone, `מה המקצוע שלך? (למשל: אינסטלציה, חשמל, ניקוי צנרות)`);
+          console.error('[onboard-ai] OpenAI retry also failed — falling back to step-based');
+          await fallbackToStepOnboarding(phone, data);
           return;
         }
         const retryData = await retry.json();
         await processOnboardingAIResponse(phone, retryData, data);
         return;
       }
-      await sendText(phone, `מה המקצוע שלך? (למשל: אינסטלציה, חשמל, ניקוי צנרות)`);
+      console.error('[onboard-ai] OpenAI call failed — falling back to step-based');
+      await fallbackToStepOnboarding(phone, data);
       return;
     }
 
@@ -1525,7 +1988,7 @@ ProspectId: ${data.prospectId || 'unknown'}
 
   } catch (err) {
     console.error('[onboard-ai] Error:', err);
-    await sendText(phone, `מה המקצוע שלך? (למשל: אינסטלציה, חשמל, ניקוי צנרות)`);
+    await fallbackToStepOnboarding(phone, data);
   }
 }
 
@@ -2823,19 +3286,37 @@ ${stageGuidance}
                 .update({ stage: 'onboarding', last_contact_at: new Date().toISOString() })
                 .eq('id', prospectId);
             }
-            // Start AI onboarding
+            // Start step-based onboarding
             const lang: 'he' | 'en' = phone.startsWith('+972') ? 'he' : 'en';
             const collected: Record<string, unknown> = {};
-            if (prospectName && prospectName !== 'there') collected.name = prospectName;
-            await supabase.from('wa_onboard_state').upsert({
-              phone,
-              step: 'ai',
-              data: { prospectId, userId: null, collected, language: lang },
-              updated_at: new Date().toISOString(),
-            });
-            await sendText(phone, lang === 'he'
-              ? `מעולה! 🚀 ספר לי — מה אתה עושה ואיפה אתה עובד?`
-              : `Awesome! 🚀 Tell me — what do you do and where do you work?`);
+            const hasName = prospectName && prospectName !== 'there' && prospectName.length >= 2;
+            if (hasName) collected.name = prospectName;
+            // Clear sales agent session
+            await supabase.from('wa_agent_sessions').delete().eq('wa_id', phone);
+
+            if (hasName) {
+              // Has name → go to profession step
+              await supabase.from('wa_onboard_state').upsert({
+                phone,
+                step: 'profession',
+                data: { prospectId, userId: null, collected, language: lang },
+                updated_at: new Date().toISOString(),
+              });
+              const shortList = STEP_PROFESSIONS.slice(0, 6).map(p => `${p.emoji} ${p.en}`).join('\n');
+              await sendText(phone,
+                `נעים להכיר, ${prospectName}! ⚡\n\nStep 1/5 — What services do you offer?\n\n${shortList}\n\n📋 Type MORE to see all services\n\n✏️ Type or 🎙️ record what you do.\nYou can pick from the list or describe your own.`);
+            } else {
+              // No name → ask for name first
+              await supabase.from('wa_onboard_state').upsert({
+                phone,
+                step: 'name',
+                data: { prospectId, userId: null, collected, language: lang },
+                updated_at: new Date().toISOString(),
+              });
+              await sendText(phone, lang === 'he'
+                ? 'מעולה! 🚀 בוא נתחיל — לוקח דקה.\n\nמה השם המלא שלך?'
+                : `Awesome! 🚀 Let's get started — takes a minute.\n\nWhat is your full name?`);
+            }
             return;
           }
         } catch {}

@@ -175,7 +175,7 @@ async function processJob(job: Job<RawMessagePayload>): Promise<void> {
         waMessageId: messageId,
         senderId,
         accountId,
-        detail: { reason: 'ai_classified_not_lead', durationMs },
+        detail: { reason: 'ai_classified_not_lead', durationMs, text: text.slice(0, 500) },
       });
     }
     return;

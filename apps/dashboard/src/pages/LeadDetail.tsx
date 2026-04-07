@@ -49,16 +49,20 @@ export default function LeadDetail() {
 
   useEffect(() => {
     if (!id) return
+    // Only select fields safe for all users — sender_id only for premium
+    const columns = canSeeLeadDetails
+      ? 'id, profession, parsed_summary, raw_message, city, zip_code, urgency, budget_range, sender_id, created_at, group_name'
+      : 'id, profession, parsed_summary, city, zip_code, urgency, budget_range, created_at, group_name'
     supabase
       .from('leads')
-      .select('*')
+      .select(columns)
       .eq('id', id)
       .maybeSingle()
       .then(({ data }) => {
         setLead(data as Lead | null)
         setLoading(false)
       })
-  }, [id])
+  }, [id, canSeeLeadDetails])
 
   useEffect(() => {
     if (!lead?.sender_id || !canSeeLeadDetails) return
