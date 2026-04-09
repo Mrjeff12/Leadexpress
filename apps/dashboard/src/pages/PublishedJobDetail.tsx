@@ -40,6 +40,7 @@ interface BroadcastDetail {
   expires_at: string
   created_at: string
   updated_at: string
+  min_tier: string | null
   // Joined from lead
   lead_profession: string | null
   lead_city: string | null
@@ -149,7 +150,7 @@ export default function PublishedJobDetail() {
           .from('job_broadcasts')
           .select(`
             id, lead_id, publisher_id, deal_type, deal_value, description,
-            status, max_recipients, sent_count, expires_at, created_at, updated_at,
+            status, max_recipients, sent_count, expires_at, created_at, updated_at, min_tier,
             leads!inner ( profession, city, zip_code, parsed_summary )
           `)
           .eq('id', id)
@@ -334,6 +335,17 @@ export default function PublishedJobDetail() {
               <p className="text-[10px] text-stone-500 uppercase tracking-wide">{isHe ? 'זמן' : 'Time'}</p>
             </div>
           </div>
+          {broadcast.min_tier && (
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center">
+                <ShieldCheck size={14} className="text-blue-600" />
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-blue-700 capitalize">{broadcast.min_tier}+</p>
+                <p className="text-[10px] text-stone-500 uppercase tracking-wide">{isHe ? 'דרגה מינימלית' : 'Min Tier'}</p>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
