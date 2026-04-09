@@ -91,10 +91,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [state.user])
 
   useEffect(() => {
+    // Safety timeout — never stay stuck on loading screen (e.g. notification cold-start on mobile)
+    const safetyTimer = setTimeout(() => {
+      setState((prev) => {
+        if (prev.loading) {
+          console.warn('[Auth] Safety timeout — forcing loading=false after 8s')
+          return { ...prev, loading: false }
+        }
+        return prev
+      })
+    }, 8000)
+
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       const user = session?.user ?? null
       let profile: Profile | null = null
-      if (user) profile = await fetchProfile(user.id)
+      if (user) {
+        try {
+          profile = await fetchProfile(user.id)
+        } catch (err) {
+          console.error('[Auth] fetchProfile failed during init:', err)
+        }
+      }
 
       // Block suspended/banned users (admins are exempt)
       if (profile && profile.role !== 'admin' && profile.status && profile.status !== 'active') {
@@ -116,6 +133,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         impersonatedUserId: null,
         impersonatedProfile: null,
       })
+    }).catch((err) => {
+      console.error('[Auth] getSession failed:', err)
+      setState((prev) => ({ ...prev, loading: false }))
     })
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
@@ -163,7 +183,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     )
 
-    return () => subscription.unsubscribe()
+    return () => {
+      clearTimeout(safetyTimer)
+      subscription.unsubscribe()
+    }
   }, [])
 
   const signIn = async (email: string, password: string) => {
