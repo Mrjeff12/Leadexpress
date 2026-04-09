@@ -337,9 +337,9 @@ export default function PublicProfile() {
                 </div>
               )}
 
-              {/* CTA — Send Job Offer */}
+              {/* CTA — Send Job Offer → goes directly to job form */}
               <button
-                onClick={() => setShowJobOffer(true)}
+                onClick={() => window.location.href = `/jobs/new?contractor=${data.user_id}&name=${encodeURIComponent(data.full_name)}`}
                 style={{ marginTop: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, width: '100%', padding: '12px 16px', borderRadius: 12, fontSize: 14, fontWeight: 700, color: '#fff', background: '#ff6b35', border: 'none', cursor: 'pointer', boxShadow: '0 0 24px rgba(255,107,53,0.25)', transition: 'transform 0.1s' }}
                 onMouseDown={e => (e.currentTarget.style.transform = 'scale(0.97)')}
                 onMouseUp={e => (e.currentTarget.style.transform = 'scale(1)')}
@@ -565,59 +565,7 @@ export default function PublicProfile() {
         </div>
       </div>
 
-      {/* ═══════ Job Offer Bottom Sheet ═══════ */}
-      {showJobOffer && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 50, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }} className="lg:items-center">
-          <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)' }} onClick={() => setShowJobOffer(false)} />
-          <div style={{ position: 'relative', background: '#141414', width: '100%', borderRadius: '24px 24px 0 0', padding: '24px 24px 32px', border: '1px solid rgba(255,255,255,0.08)', borderBottom: 'none' }} className="lg:max-w-md lg:!rounded-2xl lg:!pb-6 lg:!border-b">
-            <div style={{ width: 40, height: 4, borderRadius: 2, background: '#2c2c2e', margin: '0 auto 20px' }} className="lg:hidden" />
-            <h3 style={{ fontSize: 18, fontWeight: 700, color: '#fff', marginBottom: 4, letterSpacing: '-0.03em' }}>Send Job Offer</h3>
-            <p style={{ fontSize: 14, color: '#636366', marginBottom: 20 }}>Choose how to reach {data.full_name}</p>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              <a
-                href={`https://wa.me/${PLATFORM_WA}?text=${encodeURIComponent(`Hi, I'd like to send a job offer to ${data.full_name} (${data.professions?.join(', ') ?? 'contractor'}) — found on MasterLeadFlow profile: ${profileUrl}`)}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                style={{ display: 'flex', alignItems: 'center', gap: 16, width: '100%', padding: 16, borderRadius: 16, border: '1px solid rgba(255,255,255,0.08)', background: '#1c1c1e', textDecoration: 'none', transition: 'background 0.15s' }}
-              >
-                <div style={{ width: 44, height: 44, borderRadius: 12, background: '#25D366', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', flexShrink: 0 }}>
-                  <MessageCircle size={20} />
-                </div>
-                <div style={{ flex: 1, textAlign: 'left' }}>
-                  <p style={{ fontSize: 14, fontWeight: 600, color: '#fff', margin: 0 }}>Quick via WhatsApp</p>
-                  <p style={{ fontSize: 12, color: '#636366', margin: '2px 0 0' }}>Message our team to coordinate the job</p>
-                </div>
-                <ExternalLink size={14} style={{ color: '#48484a' }} />
-              </a>
-
-              <button
-                onClick={() => {
-                  setShowJobOffer(false)
-                  window.location.href = `/jobs/new?contractor=${data.user_id}&name=${encodeURIComponent(data.full_name)}`
-                }}
-                style={{ display: 'flex', alignItems: 'center', gap: 16, width: '100%', padding: 16, borderRadius: 16, border: '1px solid rgba(255,255,255,0.08)', background: '#1c1c1e', cursor: 'pointer', textAlign: 'left', transition: 'background 0.15s' }}
-              >
-                <div style={{ width: 44, height: 44, borderRadius: 12, background: '#ff6b35', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', flexShrink: 0 }}>
-                  <Briefcase size={20} />
-                </div>
-                <div style={{ flex: 1 }}>
-                  <p style={{ fontSize: 14, fontWeight: 600, color: '#fff', margin: 0 }}>Submit Job Details</p>
-                  <p style={{ fontSize: 12, color: '#636366', margin: '2px 0 0' }}>Fill out a form with job specifics</p>
-                </div>
-                <ExternalLink size={14} style={{ color: '#48484a' }} />
-              </button>
-            </div>
-
-            <button
-              onClick={() => setShowJobOffer(false)}
-              style={{ marginTop: 16, width: '100%', padding: '10px 0', fontSize: 14, fontWeight: 600, color: '#636366', background: 'transparent', border: 'none', cursor: 'pointer' }}
-            >
-              Cancel
-            </button>
-          </div>
-        </div>
-      )}
+      {/* Job offer bottom sheet removed — button goes directly to form */}
     </div>
   )
 }
