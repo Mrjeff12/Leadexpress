@@ -578,8 +578,8 @@ export default function JobPortal() {
               <p className="text-[12px] font-bold" style={{ color: '#fff' }}>MasterLeadFlow</p>
               <p className="text-[11px]" style={{ color: '#a1a1a6', lineHeight: 1.4 }}>
                 {t(lang,
-                  'Used by 500+ contractors',
-                  'בשימוש 500+ קבלנים'
+                  'Job management for contractors',
+                  'ניהול עבודות לקבלנים'
                 )}
               </p>
             </div>
