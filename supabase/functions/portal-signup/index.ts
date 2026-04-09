@@ -213,6 +213,66 @@ Deno.serve(async (req: Request) => {
       userName = name.trim();
     }
 
+    // ── Claim pending contractor_invites for this phone ──
+    try {
+      const { data: pendingInvites } = await supabase
+        .from("contractor_invites")
+        .select("id, invited_by, lead_id, deal_type, deal_value")
+        .eq("phone", cleanPhone)
+        .eq("status", "pending");
+
+      if (pendingInvites && pendingInvites.length > 0) {
+        for (const invite of pendingInvites) {
+          // Create a job_order linking the contractor to the lead
+          const { error: jobErr } = await supabase.from("job_orders").insert({
+            lead_id: invite.lead_id,
+            contractor_id: invite.invited_by,       // publisher who sent the invite
+            assigned_user_id: userId,                // the newly signed-up contractor
+            publisher_user_id: invite.invited_by,
+            deal_type: invite.deal_type,
+            deal_value: invite.deal_value,
+            status: "pending",
+            token_expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+          });
+
+          if (jobErr) {
+            console.error("[portal-signup] Failed to create job_order from invite:", jobErr.message);
+            continue;
+          }
+
+          // Mark invite as accepted
+          await supabase
+            .from("contractor_invites")
+            .update({ status: "accepted" })
+            .eq("id", invite.id);
+
+          // Notify the publisher who sent the invite
+          try {
+            const { data: pubProfile } = await supabase
+              .from("profiles")
+              .select("whatsapp_phone, full_name")
+              .eq("id", invite.invited_by)
+              .single();
+            if (pubProfile?.whatsapp_phone) {
+              await loadTwilioSecrets();
+              const msg = `🎉 ${userName} just signed up and accepted your invite!\n\nThe job is now linked in your dashboard.`;
+              await sendWhatsApp(pubProfile.whatsapp_phone, msg);
+            }
+          } catch (e) {
+            console.error("[portal-signup] Invite publisher notification error:", e);
+          }
+
+          await supabase.from("pipeline_events").insert({
+            stage: "contractor_claimed_invite",
+            detail: { user_id: userId, invite_id: invite.id, lead_id: invite.lead_id, invited_by: invite.invited_by, is_new: isNew },
+          });
+        }
+        console.log(`[portal-signup] Claimed ${pendingInvites.length} invite(s) for ${cleanPhone}`);
+      }
+    } catch (e) {
+      console.error("[portal-signup] Invite claim error:", e);
+    }
+
     // Link job order — mode-aware
     const signupMode = body.mode || "publisher_signup";
 
