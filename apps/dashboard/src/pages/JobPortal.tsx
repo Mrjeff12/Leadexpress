@@ -303,85 +303,45 @@ export default function JobPortal() {
       <style>{DARK_ANIM}</style>
       <div className="flex-1 pb-28">
 
-        {/* ── Section 1: Hero ── */}
-        <div className="relative overflow-hidden" style={{
-          background: '#0a0a0a',
-          padding: '36px 20px 56px',
-        }}>
-          {/* Subtle radial glow */}
+        {/* ── Section 1: Compact Hero ── */}
+        <div className="relative" style={{ background: '#0a0a0a', padding: '20px 20px 24px' }}>
           <div className="absolute inset-0" style={{
-            background: 'radial-gradient(ellipse at 50% 0%, rgba(255,107,53,0.12) 0%, transparent 60%)',
+            background: 'radial-gradient(ellipse at 50% 0%, rgba(255,107,53,0.1) 0%, transparent 50%)',
           }} />
-
-          <div className="relative max-w-md mx-auto text-center">
-            {/* Avatar */}
-            <div className="relative w-[72px] h-[72px] mx-auto mb-5">
-              <div className="absolute inset-0 rounded-2xl opacity-20" style={{ background: BRAND, filter: 'blur(16px)' }} />
-              <div className="relative w-full h-full rounded-2xl flex items-center justify-center text-2xl font-bold animate-in"
-                style={{ background: '#141414', color: '#fff', border: '2px solid rgba(255,107,53,0.3)' }}>
-                {contractorName.charAt(0).toUpperCase()}
-              </div>
-            </div>
-
-            <h1 className="text-[24px] font-bold mb-1 animate-in-1" style={{ color: '#fff', fontFamily: "'Outfit', sans-serif", letterSpacing: '-0.03em', lineHeight: 1.25 }}>
-              {t(lang,
-                `${contractorName} took your job ✅`,
-                `${contractorName} לקח את העבודה שלך ✅`
-              )}
-            </h1>
-
-            {/* Job badges */}
-            <div className="flex flex-wrap items-center justify-center gap-2 mt-3 animate-in-2">
-              {profession && (
-                <div className="inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5"
-                  style={{ background: 'rgba(255,255,255,0.08)' }}>
-                  <Wrench className="w-3.5 h-3.5" style={{ color: 'rgba(255,255,255,0.5)' }} />
-                  <span className="text-[13px] font-semibold" style={{ color: 'rgba(255,255,255,0.8)' }}>{profession}</span>
+          <div className="relative max-w-md mx-auto">
+            {/* Avatar + title inline */}
+            <div className="flex items-center gap-3.5 mb-3 animate-in">
+              <div className="relative w-12 h-12 shrink-0">
+                <div className="absolute inset-0 rounded-xl opacity-20" style={{ background: BRAND, filter: 'blur(10px)' }} />
+                <div className="relative w-full h-full rounded-xl flex items-center justify-center text-lg font-bold"
+                  style={{ background: '#141414', color: '#fff', border: '1.5px solid rgba(255,107,53,0.3)' }}>
+                  {contractorName.charAt(0).toUpperCase()}
                 </div>
-              )}
-              <div className="inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5"
-                style={{ background: 'rgba(255,255,255,0.08)' }}>
-                <MapPin className="w-3.5 h-3.5" style={{ color: 'rgba(255,255,255,0.5)' }} />
-                <span className="text-[13px] font-medium" style={{ color: 'rgba(255,255,255,0.8)' }}>{location}</span>
               </div>
-            </div>
-
-            <p className="text-[13px] mt-4 animate-in-3" style={{ color: '#636366', lineHeight: 1.6 }}>
-              {t(lang,
-                "The deal is set. Let's manage it in one place.",
-                'העבודה סגורה. בוא ננהל אותה במקום אחד.'
-              )}
-            </p>
-
-            {/* Subtle down arrow */}
-            <div className="mt-4 flex justify-center animate-bounce-subtle" style={{ color: 'rgba(255,255,255,0.15)' }}>
-              <ChevronDown className="w-5 h-5" />
+              <div>
+                <h1 className="text-[18px] font-bold" style={{ color: '#fff', fontFamily: "'Outfit', sans-serif", letterSpacing: '-0.03em', lineHeight: 1.2 }}>
+                  {t(lang,
+                    `${contractorName} took your job ✅`,
+                    `${contractorName} לקח את העבודה שלך ✅`
+                  )}
+                </h1>
+                <div className="flex items-center gap-2 mt-1">
+                  {profession && (
+                    <span className="text-[12px] font-medium" style={{ color: BRAND }}>{profession}</span>
+                  )}
+                  {profession && <span style={{ color: '#2c2c2e' }}>·</span>}
+                  <span className="text-[12px]" style={{ color: '#636366' }}>{location}</span>
+                </div>
+              </div>
             </div>
           </div>
         </div>
 
-        {/* ── Section 2: iOS Contact Card — immediately after hero ── */}
-        <div ref={formRef} className="px-5 -mt-5 pb-4 max-w-md mx-auto">
-
-          {/* Card header */}
-          <div className="rounded-t-2xl px-5 pt-5 pb-4 text-center" style={{
+        {/* ── Section 2: Contact Card — no redundant header ── */}
+        <div ref={formRef} className="px-5 pb-4 max-w-md mx-auto">
+          <div className="rounded-2xl overflow-hidden" style={{
             background: '#141414',
-            borderLeft: '1px solid rgba(255,255,255,0.08)', borderRight: '1px solid rgba(255,255,255,0.08)', borderTop: '1px solid rgba(255,255,255,0.08)',
-          }}>
-            <div className="w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-2 text-xl font-bold"
-              style={{ background: 'rgba(255,107,53,0.15)', color: BRAND }}>
-              <ClipboardList className="w-6 h-6" />
-            </div>
-            <p className="text-[15px] font-bold" style={{ color: '#fff', fontFamily: "'Outfit', sans-serif", letterSpacing: '-0.03em' }}>
-              {profession || t(lang, 'Job', 'עבודה')}
-            </p>
-            <p className="text-[12px]" style={{ color: '#636366' }}>{location}</p>
-          </div>
-
-          {/* Unified contact-card rows */}
-          <div className="rounded-b-2xl overflow-hidden" style={{
-            background: '#141414',
-            border: '1px solid rgba(255,255,255,0.08)', borderTop: 'none',
+            border: '1px solid rgba(255,255,255,0.08)',
           }}>
             {/* ─ Known info ─ */}
             {(lead.summary || lead.description) && (

@@ -140,69 +140,62 @@ export default function JobDetail() {
 
   return (
     <div className="min-h-[100dvh] bg-[#0a0a0a] flex flex-col max-w-[480px] mx-auto" style={{ fontFamily: 'Outfit, sans-serif' }}>
-      {/* Dark header */}
-      <div className="bg-[#0a0a0a] px-5 pt-5 pb-4 relative">
-        <div className="flex items-center justify-between mb-3 relative">
+      {/* Compact header — single row nav + inline title */}
+      <div className="bg-[#0a0a0a] px-5 pt-4 pb-3">
+        {/* Nav row */}
+        <div className="flex items-center justify-between mb-3">
           <button
             onClick={() => nav(-1)}
-            className="w-9 h-9 rounded-full flex items-center justify-center active:scale-95 transition-transform"
-            style={{ background: 'rgba(255,255,255,0.1)' }}
+            className="w-8 h-8 rounded-full flex items-center justify-center active:scale-95 transition-transform"
+            style={{ background: 'rgba(255,255,255,0.08)' }}
           >
-            <ArrowLeft size={17} className="text-white" />
+            <ArrowLeft size={16} className="text-white" />
           </button>
           <div className="flex items-center gap-2">
-            <span className="flex items-center gap-1 text-[11px] text-[#636366]">
-              <Timer size={10} />{getJobDuration(job)}
+            <span className="flex items-center gap-1 text-[10px] text-[#636366]">
+              <Timer size={9} />{getJobDuration(job)}
             </span>
             <span
-              className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full"
+              className="text-[10px] font-semibold px-2 py-0.5 rounded-full"
               style={{
                 background: isCompleted ? 'rgba(48,209,88,0.15)' : 'rgba(255,107,53,0.15)',
                 color: isCompleted ? '#30d158' : '#ff6b35',
               }}
             >
-              {isCompleted ? 'Completed' : 'Active'}
+              {isCompleted ? 'Done' : 'Active'}
             </span>
           </div>
         </div>
 
-        <div className="flex items-center justify-between mb-4 relative">
+        {/* Title + amount inline */}
+        <div className="flex items-center justify-between mb-3">
           <div>
-            <h1 className="text-[20px] font-bold text-white" style={{ letterSpacing: '-0.03em' }}>{profLabel}</h1>
+            <h1 className="text-[18px] font-bold text-white" style={{ letterSpacing: '-0.03em' }}>{profLabel}</h1>
             {job.lead_city && (
-              <p className="text-[11px] text-[#a1a1a6]">{job.lead_city}{job.lead_zip ? `, ${job.lead_zip}` : ''}</p>
+              <p className="text-[10px] text-[#636366]">{job.lead_city}{job.lead_zip ? `, ${job.lead_zip}` : ''}</p>
             )}
           </div>
           {amount && (
-            <span className="text-[22px] font-bold text-white" style={{ letterSpacing: '-0.03em' }}>${amount}</span>
+            <span className="text-[20px] font-bold text-[#30d158]" style={{ letterSpacing: '-0.03em' }}>${amount}</span>
           )}
         </div>
 
-        {/* Progress steps */}
-        <div className="flex items-center">
+        {/* Compact inline stepper — dots only */}
+        <div className="flex items-center gap-1 mb-3">
           {STATUS_STEPS.map((s, i) => (
-            <div key={i} className="flex items-center flex-1">
-              <div className="flex flex-col items-center flex-1">
-                <div
-                  className="w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-bold"
-                  style={{
-                    background: i <= currentStep ? '#ff6b35' : '#2c2c2e',
-                    color: i <= currentStep ? '#fff' : '#636366',
-                    boxShadow: i === currentStep ? '0 0 0 4px rgba(255,107,53,0.2)' : 'none',
-                  }}
-                >
-                  {i < currentStep ? '✓' : i + 1}
-                </div>
-                <span
-                  className="text-[8px] font-medium mt-1"
-                  style={{ color: i <= currentStep ? '#fff' : '#636366' }}
-                >{s}</span>
+            <div key={i} className="flex items-center flex-1 gap-1">
+              <div
+                className="w-5 h-5 rounded-full flex items-center justify-center text-[8px] font-bold shrink-0"
+                style={{
+                  background: i <= currentStep ? '#ff6b35' : '#2c2c2e',
+                  color: i <= currentStep ? '#fff' : '#636366',
+                  boxShadow: i === currentStep ? '0 0 0 3px rgba(255,107,53,0.2)' : 'none',
+                }}
+              >
+                {i < currentStep ? '✓' : i + 1}
               </div>
               {i < STATUS_STEPS.length - 1 && (
-                <div
-                  className="h-[2px] w-full mt-[-14px]"
-                  style={{ background: i < currentStep ? '#ff6b35' : 'rgba(255,255,255,0.08)' }}
-                />
+                <div className="h-[1.5px] flex-1" style={{ background: i < currentStep ? '#ff6b35' : 'rgba(255,255,255,0.06)' }} />
               )}
             </div>
           ))}
@@ -212,33 +205,12 @@ export default function JobDetail() {
           <button
             onClick={markAsDone}
             disabled={updating}
-            className="w-full mt-4 py-3 rounded-xl text-[14px] font-bold flex items-center justify-center gap-2 active:scale-[0.97] transition-transform disabled:opacity-60 text-white"
+            className="w-full py-3 rounded-xl text-[14px] font-bold flex items-center justify-center gap-2 active:scale-[0.97] transition-transform disabled:opacity-60 text-white"
             style={{ background: '#ff6b35', boxShadow: '0 0 20px rgba(255,107,53,0.3)' }}
           >
             {updating ? <Loader2 size={16} className="animate-spin" /> : <CheckCircle2 size={16} />}
             Mark as Done
           </button>
-        )}
-      </div>
-
-      {/* Map placeholder */}
-      <div className="h-[90px] relative overflow-hidden" style={{ background: 'linear-gradient(135deg, #141414, #1c1c1e)' }}>
-        <div className="absolute inset-0 opacity-10">
-          {[0,1,2,3,4].map(i => <div key={`h${i}`} className="absolute left-0 right-0" style={{top:`${i*25}%`, borderBottom: '1px solid rgba(255,255,255,0.08)'}} />)}
-          {[0,1,2,3,4].map(i => <div key={`v${i}`} className="absolute top-0 bottom-0" style={{left:`${i*25}%`, borderRight: '1px solid rgba(255,255,255,0.08)'}} />)}
-        </div>
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
-          <div className="w-6 h-6 rounded-full flex items-center justify-center" style={{ background: 'rgba(255,107,53,0.2)' }}>
-            <div className="w-2.5 h-2.5 rounded-full bg-[#ff6b35] border-2 border-[#0a0a0a]" />
-          </div>
-        </div>
-        {job.customer_address && (
-          <div className="absolute bottom-2 left-3 right-3">
-            <div className="rounded-lg px-3 py-1.5 flex items-center gap-2" style={{ background: 'rgba(20,20,20,0.9)', backdropFilter: 'blur(8px)', border: '1px solid rgba(255,255,255,0.08)' }}>
-              <Navigation size={10} className="text-[#ff6b35]" />
-              <span className="text-[10px] font-medium truncate text-[#a1a1a6]">{job.customer_address}</span>
-            </div>
-          </div>
         )}
       </div>
 
