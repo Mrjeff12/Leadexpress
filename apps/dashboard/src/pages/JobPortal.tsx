@@ -629,7 +629,7 @@ export default function JobPortal() {
                   {isExistingUser
                     ? t(lang, 'Open my dashboard →', 'פתח את הדשבורד שלי →')
                     : isContractorSignup
-                      ? t(lang, 'Sign up & unlock details 🔓', 'הירשם וגלה את הפרטים 🔓')
+                      ? t(lang, 'Sign up, unlock details & get more jobs 🔓', 'הירשם, גלה פרטים וקבל עוד עבודות 🔓')
                       : t(lang, 'Save & send me a login link 💬', 'שמור ושלח לי לינק כניסה 💬')
                   }
                 </span>}
