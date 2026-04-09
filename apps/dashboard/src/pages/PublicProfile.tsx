@@ -222,6 +222,17 @@ export default function PublicProfile() {
   const hasPortfolio = portfolio.length > 0
   const hasMap = (data.zip_codes?.length ?? 0) > 0
 
+  // Filter out "other" from professions, limit to 6
+  const filteredProfessions = (data.professions ?? []).filter(p => p.toLowerCase() !== 'other')
+  const visibleProfessions = filteredProfessions.slice(0, 6)
+  const hiddenProfessionCount = filteredProfessions.length - visibleProfessions.length
+
+  // Stats that are non-zero
+  const jobsValue = stats?.job_orders_completed ?? stats?.successful_jobs ?? 0
+  const networkValue = stats?.groups_active ?? 0
+  const responseValue = responseTimeLabel(stats?.avg_response_mins)
+  const memberSinceValue = formatMemberSince(data.member_since ?? stats?.member_since)
+
   const PLATFORM_WA = '13058516498' // Rebecca / MasterLeadFlow US number
 
   function handleShare() {
@@ -232,6 +243,263 @@ export default function PublicProfile() {
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
   }
+
+  const ctaButton = (
+    <button
+      onClick={() => window.location.href = `/jobs/new?contractor=${data.user_id}&name=${encodeURIComponent(data.full_name)}`}
+      style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, width: '100%', padding: '12px 16px', borderRadius: 12, fontSize: 14, fontWeight: 700, color: '#fff', background: '#ff6b35', border: 'none', cursor: 'pointer', boxShadow: '0 0 24px rgba(255,107,53,0.25)', transition: 'transform 0.1s' }}
+      onMouseDown={e => (e.currentTarget.style.transform = 'scale(0.97)')}
+      onMouseUp={e => (e.currentTarget.style.transform = 'scale(1)')}
+      onMouseLeave={e => (e.currentTarget.style.transform = 'scale(1)')}
+    >
+      <Briefcase size={16} /> Send Job Offer
+    </button>
+  )
+
+  /* ═══════ Hero block (shared between mobile & desktop left col) ═══════ */
+  const heroContent = (
+    <>
+      <div className="flex items-center gap-4 lg:flex-col lg:items-center lg:text-center">
+        <div style={{ position: 'relative', flexShrink: 0 }}>
+          <div style={{ width: 80, height: 80, borderRadius: '50%', background: '#1c1c1e', border: '3px solid #141414', boxShadow: '0 0 0 2px rgba(255,107,53,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, fontWeight: 700, color: '#fff', overflow: 'hidden' }} className="lg:!w-28 lg:!h-28 lg:!text-3xl">
+            {data.avatar_url ? (
+              <img src={data.avatar_url} alt={data.full_name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            ) : (
+              getInitials(data.full_name)
+            )}
+          </div>
+          {data.available_today && (
+            <div style={{ position: 'absolute', bottom: -2, left: '50%', transform: 'translateX(-50%)', display: 'flex', alignItems: 'center', gap: 4, padding: '2px 8px', borderRadius: 999, background: 'rgba(48,209,88,0.15)', color: '#30d158', fontSize: 9, fontWeight: 700, whiteSpace: 'nowrap' as const }}>
+              <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#30d158', animation: 'pulse 2s infinite' }} /> Available
+            </div>
+          )}
+        </div>
+        <div style={{ flex: 1, minWidth: 0 }} className="lg:mt-3">
+          <h1 style={{ fontSize: 20, fontWeight: 800, color: '#fff', letterSpacing: '-0.03em', display: 'flex', alignItems: 'center', gap: 6 }} className="lg:text-2xl lg:justify-center truncate lg:truncate-none">
+            {data.full_name}
+            {data.background_check && (
+              <svg viewBox="0 0 22 22" style={{ width: 20, height: 20, flexShrink: 0 }} fill="none">
+                <circle cx="11" cy="11" r="11" fill="#ff6b35" />
+                <path d="M9.5 14.25L6.75 11.5l1.06-1.06 1.69 1.69 4.19-4.19L14.75 9l-5.25 5.25z" fill="white" />
+              </svg>
+            )}
+          </h1>
+          {data.business_name && <p style={{ fontSize: 12, color: '#636366', marginTop: 2, fontWeight: 500 }} className="truncate">{data.business_name}</p>}
+          {data.headline && <p style={{ fontSize: 12, color: '#a1a1a6', marginTop: 4, lineHeight: 1.5 }} className="line-clamp-2 lg:line-clamp-none">{data.headline}</p>}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 8, flexWrap: 'wrap' as const }} className="lg:justify-center">
+            {/* Tier badge — hide "new" tier (internal info) */}
+            {data.tier !== 'new' && (
+              <span style={{ display: 'inline-flex', alignItems: 'center', padding: '3px 10px', borderRadius: 999, background: 'rgba(255,107,53,0.15)', color: '#ff6b35', fontSize: 10, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.04em' }}>{data.tier}</span>
+            )}
+            {hasReviews && data.avg_rating != null ? (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '3px 10px', borderRadius: 999, background: 'rgba(255,107,53,0.1)', border: '1px solid rgba(255,107,53,0.15)' }}>
+                <StarRating rating={data.avg_rating} size="sm" showValue />
+                <span style={{ fontSize: 10, color: '#ff6b35', fontWeight: 500 }}>({data.review_count})</span>
+              </div>
+            ) : (
+              /* Hide "New Member" and "Getting Started" labels — internal info */
+              activity.label !== 'New Member' && activity.label !== 'Getting Started' ? (
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '3px 10px', borderRadius: 999, background: '#1c1c1e', border: '1px solid rgba(255,255,255,0.08)', fontSize: 10, fontWeight: 600, color: activity.color }}>
+                  <span style={{ width: 6, height: 6, borderRadius: '50%', background: activity.dotColor }} />
+                  {activity.label}
+                </span>
+              ) : null
+            )}
+            {(stats?.avg_response_mins ?? 0) > 0 && stats!.avg_response_mins < 30 && (
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '3px 10px', borderRadius: 999, background: 'rgba(48,209,88,0.15)', color: '#30d158', fontSize: 10, fontWeight: 600 }}>
+                <Zap size={10} /> Fast
+              </span>
+            )}
+          </div>
+          {location && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 6, fontSize: 12, color: '#636366' }} className="lg:justify-center">
+              <MapPin size={12} style={{ color: '#48484a' }} /> {location}
+            </div>
+          )}
+        </div>
+      </div>
+    </>
+  )
+
+  /* ═══════ Stats grid (hide 0-value items) ═══════ */
+  const statsItems: { label: string; value: string | number; icon: React.ReactNode }[] = []
+  if (jobsValue > 0) statsItems.push({ label: 'Jobs', value: jobsValue, icon: <Briefcase size={15} style={{ color: '#48484a' }} /> })
+  if (responseValue !== '--') statsItems.push({ label: 'Response', value: responseValue, icon: <Zap size={15} style={{ color: '#48484a' }} /> })
+  if (networkValue > 0) statsItems.push({ label: 'Network', value: networkValue, icon: <Users size={15} style={{ color: '#48484a' }} /> })
+  if (memberSinceValue !== '--') statsItems.push({ label: 'Since', value: memberSinceValue, icon: <CalendarDays size={15} style={{ color: '#48484a' }} /> })
+
+  const statsGrid = statsItems.length > 0 ? (
+    <div style={{ display: 'grid', gap: 8 }} className={`grid-cols-${Math.min(statsItems.length, 4)} lg:grid-cols-2`}>
+      {statsItems.map(s => <MiniStat key={s.label} label={s.label} value={s.value} icon={s.icon} />)}
+    </div>
+  ) : null
+
+  /* ═══════ Services + Work Preferences combined ═══════ */
+  const servicesAndPrefs = filteredProfessions.length > 0 ? (
+    <Section icon={<Briefcase size={16} style={{ color: '#48484a' }} />} title="Services & Preferences">
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }} className="lg:!grid-cols-3">
+        {visibleProfessions.map((p) => (
+          <div key={p} style={{
+            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8,
+            padding: '16px 4px 12px', borderRadius: 14,
+            background: '#1c1c1e', border: '1px solid rgba(255,255,255,0.06)',
+            transition: 'border-color 0.2s, background 0.2s',
+            cursor: 'default',
+          }}
+            onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(255,107,53,0.2)'; e.currentTarget.style.background = '#222' }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.06)'; e.currentTarget.style.background = '#1c1c1e' }}
+          >
+            <div style={{
+              width: 32, height: 32,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              color: '#ff6b35',
+            }}>
+              {PROFESSION_ICONS[p] || PROFESSION_ICONS.other}
+            </div>
+            <span style={{ fontSize: 10, fontWeight: 600, color: '#a1a1a6', textAlign: 'center', lineHeight: 1.2 }}>
+              {formatProfession(p)}
+            </span>
+          </div>
+        ))}
+        {hiddenProfessionCount > 0 && (
+          <div style={{
+            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4,
+            padding: '16px 4px 12px', borderRadius: 14,
+            background: '#1c1c1e', border: '1px solid rgba(255,255,255,0.06)',
+          }}>
+            <span style={{ fontSize: 16, fontWeight: 700, color: '#636366' }}>+{hiddenProfessionCount}</span>
+            <span style={{ fontSize: 10, fontWeight: 600, color: '#636366', textAlign: 'center' }}>more</span>
+          </div>
+        )}
+      </div>
+      {/* Work Preferences inline */}
+      <div style={{ marginTop: 16, paddingTop: 14, borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+          <WorkPref accepted={data.accepts_percentage} icon={<Percent size={13} />} label="Percentage" />
+          <WorkPref accepted={data.accepts_fixed} icon={<DollarSign size={13} />} label="Fixed Price" />
+          <WorkPref accepted={data.accepts_subwork} icon={<Users size={13} />} label="Sub Work" />
+        </div>
+        {(data.min_job_value || data.max_job_value) && (
+          <p style={{ fontSize: 12, color: '#636366', marginTop: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
+            <DollarSign size={13} style={{ color: '#48484a' }} />
+            {data.min_job_value && data.max_job_value
+              ? `$${data.min_job_value.toLocaleString()} – $${data.max_job_value.toLocaleString()}`
+              : data.min_job_value
+                ? `From $${data.min_job_value.toLocaleString()}`
+                : `Up to $${data.max_job_value!.toLocaleString()}`}
+          </p>
+        )}
+      </div>
+    </Section>
+  ) : (
+    /* If no professions, still show work prefs */
+    <Section icon={<Wrench size={16} style={{ color: '#48484a' }} />} title="Work Preferences">
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+        <WorkPref accepted={data.accepts_percentage} icon={<Percent size={13} />} label="Percentage" />
+        <WorkPref accepted={data.accepts_fixed} icon={<DollarSign size={13} />} label="Fixed Price" />
+        <WorkPref accepted={data.accepts_subwork} icon={<Users size={13} />} label="Sub Work" />
+      </div>
+      {(data.min_job_value || data.max_job_value) && (
+        <p style={{ fontSize: 12, color: '#636366', marginTop: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
+          <DollarSign size={13} style={{ color: '#48484a' }} />
+          {data.min_job_value && data.max_job_value
+            ? `$${data.min_job_value.toLocaleString()} – $${data.max_job_value.toLocaleString()}`
+            : data.min_job_value
+              ? `From $${data.min_job_value.toLocaleString()}`
+              : `Up to $${data.max_job_value!.toLocaleString()}`}
+        </p>
+      )}
+    </Section>
+  )
+
+  /* ═══════ Reviews block ═══════ */
+  const reviewsBlock = (
+    <div style={{ background: '#141414', border: '1px solid rgba(255,255,255,0.08)', padding: '16px 20px' }} className="rounded-none lg:rounded-2xl border-0 lg:border lg:p-5">
+      <h3 style={{ fontSize: 13, fontWeight: 700, color: '#fff', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
+        <Star size={16} style={{ color: '#48484a' }} /> Reviews
+        {hasReviews && <span style={{ marginLeft: 'auto', fontSize: 12, fontWeight: 400, color: '#48484a' }}>{data.review_count} review{data.review_count !== 1 ? 's' : ''}</span>}
+      </h3>
+      {hasReviews ? (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 16, padding: 16, borderRadius: 12, background: '#1c1c1e', border: '1px solid rgba(255,255,255,0.06)' }}>
+            <div style={{ textAlign: 'center' }}>
+              <div style={{ fontSize: 28, fontWeight: 800, color: '#fff', letterSpacing: '-0.03em' }}>{(data.avg_rating ?? 0).toFixed(1)}</div>
+              <StarRating rating={data.avg_rating ?? 0} size="sm" />
+              <div style={{ fontSize: 10, color: '#48484a', marginTop: 4 }}>{data.review_count} review{data.review_count !== 1 ? 's' : ''}</div>
+            </div>
+            <div style={{ flex: 1, height: 1, background: 'rgba(255,255,255,0.06)' }} />
+            <div style={{ textAlign: 'center' }}>
+              <div style={{ fontSize: 24, fontWeight: 800, color: '#30d158' }}>100%</div>
+              <div style={{ fontSize: 10, color: '#48484a' }}>would hire again</div>
+            </div>
+          </div>
+          <ReviewsList userId={data.user_id} avgRating={data.avg_rating ?? undefined} reviewCount={data.review_count} />
+        </div>
+      ) : (
+        <div style={{ padding: '32px 0', textAlign: 'center' }}>
+          <div style={{ margin: '0 auto', width: 64, height: 64, borderRadius: '50%', background: '#1c1c1e', border: '2px dashed rgba(255,255,255,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
+            <Star size={24} style={{ color: '#2c2c2e' }} />
+          </div>
+          <p style={{ color: '#636366', fontWeight: 600, fontSize: 14 }}>No reviews yet</p>
+          <p style={{ color: '#48484a', fontSize: 12, marginTop: 4, maxWidth: 260, margin: '4px auto 0', lineHeight: 1.5 }}>
+            Reviews will appear here after completed jobs. This professional is verified and active on MasterLeadFlow.
+          </p>
+
+          {stats && (
+            <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 8, marginTop: 20 }}>
+              {(stats.groups_active ?? 0) > 0 && (
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 12px', borderRadius: 999, background: '#1c1c1e', border: '1px solid rgba(255,255,255,0.06)', color: '#636366', fontSize: 12 }}>
+                  <Users size={12} /> {stats.groups_active} group{stats.groups_active !== 1 ? 's' : ''}
+                </span>
+              )}
+              {(stats.leads_contacted ?? 0) > 0 && (
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 12px', borderRadius: 999, background: '#1c1c1e', border: '1px solid rgba(255,255,255,0.06)', color: '#636366', fontSize: 12 }}>
+                  <MessageCircle size={12} /> {stats.leads_contacted} leads
+                </span>
+              )}
+              {stats.member_since && (
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 12px', borderRadius: 999, background: '#1c1c1e', border: '1px solid rgba(255,255,255,0.06)', color: '#636366', fontSize: 12 }}>
+                  <CalendarDays size={12} /> Since {formatMemberSince(stats.member_since)}
+                </span>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  )
+
+  /* ═══════ Service Areas block ═══════ */
+  const serviceAreasBlock = hasMap ? (
+    <div style={{ background: '#141414', border: '1px solid rgba(255,255,255,0.08)', overflow: 'hidden' }} className="rounded-none lg:rounded-2xl border-0 lg:border">
+      <div style={{ padding: '12px 20px' }} className="lg:p-4 lg:pb-2">
+        <h3 style={{ fontSize: 13, fontWeight: 700, color: '#fff', display: 'flex', alignItems: 'center', gap: 8 }}>
+          <MapPin size={16} style={{ color: '#48484a' }} /> Service Areas
+        </h3>
+        {(countyLabel || derivedState) && (
+          <p style={{ fontSize: 12, color: '#a1a1a6', marginTop: 4 }}>
+            {[countyLabel, derivedState].filter(Boolean).join(' · ')}
+            {data.zip_codes && <span style={{ color: '#636366' }}> · {data.zip_codes.length} ZIP{data.zip_codes.length !== 1 ? 's' : ''}</span>}
+          </p>
+        )}
+      </div>
+      {/* Map: hidden on mobile, shown on desktop */}
+      <div className="hidden lg:block">
+        <Suspense fallback={<div style={{ height: 240, background: '#1c1c1e' }} />}>
+          <ServiceAreaMap zipCodes={data.zip_codes!} height="240px" className="rounded-none" />
+        </Suspense>
+      </div>
+      {data.counties && data.counties.length > 0 && (
+        <div style={{ padding: '12px 20px', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+            {data.counties.map((c) => (
+              <span key={c} style={{ padding: '4px 10px', borderRadius: 8, fontSize: 12, color: '#a1a1a6', background: '#1c1c1e', border: '1px solid rgba(255,255,255,0.06)' }}>{c}</span>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  ) : null
 
   return (
     <div style={{ minHeight: '100vh', background: '#0a0a0a', fontFamily: 'Outfit, sans-serif' }}>
@@ -263,73 +531,21 @@ export default function PublicProfile() {
       </div>
 
       {/* ═══════════ MAIN ═══════════ */}
-      <div style={{ maxWidth: 1100, margin: '0 auto', padding: '0 0 24px' }} className="lg:px-6">
+      <div style={{ maxWidth: 1100, margin: '0 auto', paddingBottom: 24 }} className="pb-24 lg:pb-6 lg:px-6">
         <div className="lg:grid lg:grid-cols-[380px_1fr] lg:gap-6 lg:items-start" style={{ paddingTop: 24 }}>
 
-          {/* ═══════ LEFT: Profile Card ═══════ */}
-          <div className="lg:sticky lg:top-16">
+          {/* ═══════ LEFT COLUMN (Desktop: sticky sidebar) ═══════ */}
+          <div className="lg:sticky" style={{}} >
+            <style>{`.lg\\:sticky { position: relative; } @media (min-width: 1024px) { .lg\\:sticky { position: sticky !important; top: 80px !important; } }`}</style>
             <div style={{ background: '#141414', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 16, padding: 24 }} className="rounded-none lg:rounded-2xl border-0 lg:border">
-              <div className="flex items-center gap-4 lg:flex-col lg:items-center lg:text-center">
-                <div style={{ position: 'relative', flexShrink: 0 }}>
-                  <div style={{ width: 80, height: 80, borderRadius: '50%', background: '#1c1c1e', border: '3px solid #141414', boxShadow: '0 0 0 2px rgba(255,107,53,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, fontWeight: 700, color: '#fff', overflow: 'hidden' }} className="lg:!w-28 lg:!h-28 lg:!text-3xl">
-                    {data.avatar_url ? (
-                      <img src={data.avatar_url} alt={data.full_name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                    ) : (
-                      getInitials(data.full_name)
-                    )}
-                  </div>
-                  {data.available_today && (
-                    <div style={{ position: 'absolute', bottom: -2, left: '50%', transform: 'translateX(-50%)', display: 'flex', alignItems: 'center', gap: 4, padding: '2px 8px', borderRadius: 999, background: 'rgba(48,209,88,0.15)', color: '#30d158', fontSize: 9, fontWeight: 700, whiteSpace: 'nowrap' as const }}>
-                      <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#30d158', animation: 'pulse 2s infinite' }} /> Available
-                    </div>
-                  )}
-                </div>
-                <div style={{ flex: 1, minWidth: 0 }} className="lg:mt-3">
-                  <h1 style={{ fontSize: 20, fontWeight: 800, color: '#fff', letterSpacing: '-0.03em', display: 'flex', alignItems: 'center', gap: 6 }} className="lg:text-2xl lg:justify-center truncate lg:truncate-none">
-                    {data.full_name}
-                    {data.background_check && (
-                      <svg viewBox="0 0 22 22" style={{ width: 20, height: 20, flexShrink: 0 }} fill="none">
-                        <circle cx="11" cy="11" r="11" fill="#ff6b35" />
-                        <path d="M9.5 14.25L6.75 11.5l1.06-1.06 1.69 1.69 4.19-4.19L14.75 9l-5.25 5.25z" fill="white" />
-                      </svg>
-                    )}
-                  </h1>
-                  {data.business_name && <p style={{ fontSize: 12, color: '#636366', marginTop: 2, fontWeight: 500 }} className="truncate">{data.business_name}</p>}
-                  {data.headline && <p style={{ fontSize: 12, color: '#a1a1a6', marginTop: 4, lineHeight: 1.5 }} className="line-clamp-2 lg:line-clamp-none">{data.headline}</p>}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 8, flexWrap: 'wrap' as const }} className="lg:justify-center">
-                    <span style={{ display: 'inline-flex', alignItems: 'center', padding: '3px 10px', borderRadius: 999, background: 'rgba(255,107,53,0.15)', color: '#ff6b35', fontSize: 10, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.04em' }}>{data.tier}</span>
-                    {hasReviews && data.avg_rating != null ? (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '3px 10px', borderRadius: 999, background: 'rgba(255,107,53,0.1)', border: '1px solid rgba(255,107,53,0.15)' }}>
-                        <StarRating rating={data.avg_rating} size="sm" showValue />
-                        <span style={{ fontSize: 10, color: '#ff6b35', fontWeight: 500 }}>({data.review_count})</span>
-                      </div>
-                    ) : (
-                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '3px 10px', borderRadius: 999, background: '#1c1c1e', border: '1px solid rgba(255,255,255,0.08)', fontSize: 10, fontWeight: 600, color: activity.color }}>
-                        <span style={{ width: 6, height: 6, borderRadius: '50%', background: activity.dotColor }} />
-                        {activity.label}
-                      </span>
-                    )}
-                    {(stats?.avg_response_mins ?? 0) > 0 && stats!.avg_response_mins < 30 && (
-                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '3px 10px', borderRadius: 999, background: 'rgba(48,209,88,0.15)', color: '#30d158', fontSize: 10, fontWeight: 600 }}>
-                        <Zap size={10} /> Fast
-                      </span>
-                    )}
-                  </div>
-                  {location && (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 6, fontSize: 12, color: '#636366' }} className="lg:justify-center">
-                      <MapPin size={12} style={{ color: '#48484a' }} /> {location}
-                    </div>
-                  )}
-                </div>
-              </div>
+              {heroContent}
 
-              {/* Stats */}
-              <div style={{ marginTop: 16, display: 'grid', gap: 8 }} className="grid-cols-4 lg:grid-cols-2">
-                <MiniStat label="Jobs" value={stats?.job_orders_completed ?? stats?.successful_jobs ?? 0} icon={<Briefcase size={15} style={{ color: '#48484a' }} />} />
-                <MiniStat label="Response" value={responseTimeLabel(stats?.avg_response_mins)} icon={<Zap size={15} style={{ color: '#48484a' }} />} />
-                <MiniStat label="Network" value={stats?.groups_active ?? 0} icon={<Users size={15} style={{ color: '#48484a' }} />} />
-                <MiniStat label="Since" value={formatMemberSince(data.member_since ?? stats?.member_since)} icon={<CalendarDays size={15} style={{ color: '#48484a' }} />} />
-              </div>
+              {/* Stats — desktop only (mobile shows below) */}
+              {statsGrid && (
+                <div className="hidden lg:block" style={{ marginTop: 16 }}>
+                  {statsGrid}
+                </div>
+              )}
 
               {/* Trust badges */}
               {(data.license_number || data.insurance_verified) && (
@@ -339,16 +555,10 @@ export default function PublicProfile() {
                 </div>
               )}
 
-              {/* CTA — Send Job Offer → goes directly to job form */}
-              <button
-                onClick={() => window.location.href = `/jobs/new?contractor=${data.user_id}&name=${encodeURIComponent(data.full_name)}`}
-                style={{ marginTop: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, width: '100%', padding: '12px 16px', borderRadius: 12, fontSize: 14, fontWeight: 700, color: '#fff', background: '#ff6b35', border: 'none', cursor: 'pointer', boxShadow: '0 0 24px rgba(255,107,53,0.25)', transition: 'transform 0.1s' }}
-                onMouseDown={e => (e.currentTarget.style.transform = 'scale(0.97)')}
-                onMouseUp={e => (e.currentTarget.style.transform = 'scale(1)')}
-                onMouseLeave={e => (e.currentTarget.style.transform = 'scale(1)')}
-              >
-                <Briefcase size={16} /> Send Job Offer
-              </button>
+              {/* CTA — desktop only (mobile has sticky bottom) */}
+              <div className="hidden lg:block" style={{ marginTop: 16 }}>
+                {ctaButton}
+              </div>
               <div className="hidden lg:flex" style={{ gap: 8, marginTop: 8 }}>
                 <button onClick={handleShare} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '8px 12px', borderRadius: 12, fontSize: 12, fontWeight: 600, color: '#a1a1a6', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.08)', cursor: 'pointer' }}>
                   <Share2 size={13} /> Share
@@ -374,67 +584,29 @@ export default function PublicProfile() {
             </div>
           </div>
 
-          {/* ═══════ RIGHT: All Content (scrollable) ═══════ */}
+          {/* ═══════ RIGHT COLUMN (scrollable content) ═══════ */}
           <div className="mt-0 lg:mt-0 space-y-0 lg:space-y-3">
 
-            {/* Services — Angi-style icon grid */}
-            {data.professions && data.professions.length > 0 && (
-              <Section icon={<Briefcase size={16} style={{ color: '#48484a' }} />} title="Services">
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10 }} className="lg:!grid-cols-5">
-                  {data.professions.map((p) => (
-                    <div key={p} style={{
-                      display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8,
-                      padding: '16px 4px 12px', borderRadius: 14,
-                      background: '#1c1c1e', border: '1px solid rgba(255,255,255,0.06)',
-                      transition: 'border-color 0.2s, background 0.2s',
-                      cursor: 'default',
-                    }}
-                      onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(255,107,53,0.2)'; e.currentTarget.style.background = '#222' }}
-                      onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.06)'; e.currentTarget.style.background = '#1c1c1e' }}
-                    >
-                      <div style={{
-                        width: 32, height: 32,
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        color: '#ff6b35',
-                      }}>
-                        {PROFESSION_ICONS[p] || PROFESSION_ICONS.other}
-                      </div>
-                      <span style={{ fontSize: 10, fontWeight: 600, color: '#a1a1a6', textAlign: 'center', lineHeight: 1.2 }}>
-                        {formatProfession(p)}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </Section>
+            {/* 1. Services + Work Preferences (combined) */}
+            {servicesAndPrefs}
+
+            {/* 2. Stats grid — mobile only */}
+            {statsGrid && (
+              <div className="lg:hidden">
+                <Section>
+                  {statsGrid}
+                </Section>
+              </div>
             )}
 
-            {/* Work Preferences */}
-            <Section icon={<Wrench size={16} style={{ color: '#48484a' }} />} title="Work Preferences">
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                <WorkPref accepted={data.accepts_percentage} icon={<Percent size={13} />} label="Percentage" />
-                <WorkPref accepted={data.accepts_fixed} icon={<DollarSign size={13} />} label="Fixed Price" />
-                <WorkPref accepted={data.accepts_subwork} icon={<Users size={13} />} label="Sub Work" />
-              </div>
-              {(data.min_job_value || data.max_job_value) && (
-                <p style={{ fontSize: 12, color: '#636366', marginTop: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <DollarSign size={13} style={{ color: '#48484a' }} />
-                  {data.min_job_value && data.max_job_value
-                    ? `$${data.min_job_value.toLocaleString()} – $${data.max_job_value.toLocaleString()}`
-                    : data.min_job_value
-                      ? `From $${data.min_job_value.toLocaleString()}`
-                      : `Up to $${data.max_job_value!.toLocaleString()}`}
-                </p>
-              )}
-            </Section>
-
-            {/* Bio */}
+            {/* 3. Bio */}
             {data.bio && (
               <Section title="About">
                 <p style={{ fontSize: 14, color: '#a1a1a6', lineHeight: 1.6, whiteSpace: 'pre-line' }}>{data.bio}</p>
               </Section>
             )}
 
-            {/* Details */}
+            {/* 4. Details */}
             {(data.years_experience || data.team_size || data.languages?.length) && (
               <Section>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, textAlign: 'center' }}>
@@ -463,96 +635,18 @@ export default function PublicProfile() {
               </Section>
             )}
 
-            {/* Map */}
-            {hasMap && (
-              <div style={{ background: '#141414', border: '1px solid rgba(255,255,255,0.08)', overflow: 'hidden' }} className="rounded-none lg:rounded-2xl border-0 lg:border">
-                <div style={{ padding: '12px 20px' }} className="lg:p-4 lg:pb-2">
-                  <h3 style={{ fontSize: 13, fontWeight: 700, color: '#fff', display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <MapPin size={16} style={{ color: '#48484a' }} /> Service Areas
-                  </h3>
-                  {(countyLabel || derivedState) && (
-                    <p style={{ fontSize: 12, color: '#a1a1a6', marginTop: 4 }}>
-                      {[countyLabel, derivedState].filter(Boolean).join(' · ')}
-                      {data.zip_codes && <span style={{ color: '#636366' }}> · {data.zip_codes.length} ZIP{data.zip_codes.length !== 1 ? 's' : ''}</span>}
-                    </p>
-                  )}
-                </div>
-                <Suspense fallback={<div style={{ height: 240, background: '#1c1c1e' }} />}>
-                  <ServiceAreaMap zipCodes={data.zip_codes!} height="240px" className="rounded-none" />
-                </Suspense>
-                {data.counties && data.counties.length > 0 && (
-                  <div style={{ padding: '12px 20px', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                      {data.counties.map((c) => (
-                        <span key={c} style={{ padding: '4px 10px', borderRadius: 8, fontSize: 12, color: '#a1a1a6', background: '#1c1c1e', border: '1px solid rgba(255,255,255,0.06)' }}>{c}</span>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
+            {/* 5. Reviews */}
+            {reviewsBlock}
 
-            {/* Portfolio */}
+            {/* 6. Portfolio */}
             {hasPortfolio && (
               <Section icon={<Image size={16} style={{ color: '#48484a' }} />} title="Portfolio" extra={<span style={{ fontSize: 12, color: '#48484a' }}>{portfolio.length} project{portfolio.length !== 1 ? 's' : ''}</span>}>
                 <PortfolioGallery items={portfolio} />
               </Section>
             )}
 
-            {/* Reviews */}
-            <div style={{ background: '#141414', border: '1px solid rgba(255,255,255,0.08)', padding: '16px 20px' }} className="rounded-none lg:rounded-2xl border-0 lg:border lg:p-5">
-              <h3 style={{ fontSize: 13, fontWeight: 700, color: '#fff', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
-                <Star size={16} style={{ color: '#48484a' }} /> Reviews
-                {hasReviews && <span style={{ marginLeft: 'auto', fontSize: 12, fontWeight: 400, color: '#48484a' }}>{data.review_count} review{data.review_count !== 1 ? 's' : ''}</span>}
-              </h3>
-              {hasReviews ? (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 16, padding: 16, borderRadius: 12, background: '#1c1c1e', border: '1px solid rgba(255,255,255,0.06)' }}>
-                    <div style={{ textAlign: 'center' }}>
-                      <div style={{ fontSize: 28, fontWeight: 800, color: '#fff', letterSpacing: '-0.03em' }}>{(data.avg_rating ?? 0).toFixed(1)}</div>
-                      <StarRating rating={data.avg_rating ?? 0} size="sm" />
-                      <div style={{ fontSize: 10, color: '#48484a', marginTop: 4 }}>{data.review_count} review{data.review_count !== 1 ? 's' : ''}</div>
-                    </div>
-                    <div style={{ flex: 1, height: 1, background: 'rgba(255,255,255,0.06)' }} />
-                    <div style={{ textAlign: 'center' }}>
-                      <div style={{ fontSize: 24, fontWeight: 800, color: '#30d158' }}>100%</div>
-                      <div style={{ fontSize: 10, color: '#48484a' }}>would hire again</div>
-                    </div>
-                  </div>
-                  <ReviewsList userId={data.user_id} avgRating={data.avg_rating ?? undefined} reviewCount={data.review_count} />
-                </div>
-              ) : (
-                <div style={{ padding: '32px 0', textAlign: 'center' }}>
-                  <div style={{ margin: '0 auto', width: 64, height: 64, borderRadius: '50%', background: '#1c1c1e', border: '2px dashed rgba(255,255,255,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
-                    <Star size={24} style={{ color: '#2c2c2e' }} />
-                  </div>
-                  <p style={{ color: '#636366', fontWeight: 600, fontSize: 14 }}>No reviews yet</p>
-                  <p style={{ color: '#48484a', fontSize: 12, marginTop: 4, maxWidth: 260, margin: '4px auto 0', lineHeight: 1.5 }}>
-                    Reviews will appear here after completed jobs. This professional is verified and active on MasterLeadFlow.
-                  </p>
-
-                  {stats && (
-                    <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 8, marginTop: 20 }}>
-                      {(stats.groups_active ?? 0) > 0 && (
-                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 12px', borderRadius: 999, background: '#1c1c1e', border: '1px solid rgba(255,255,255,0.06)', color: '#636366', fontSize: 12 }}>
-                          <Users size={12} /> {stats.groups_active} group{stats.groups_active !== 1 ? 's' : ''}
-                        </span>
-                      )}
-                      {(stats.leads_contacted ?? 0) > 0 && (
-                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 12px', borderRadius: 999, background: '#1c1c1e', border: '1px solid rgba(255,255,255,0.06)', color: '#636366', fontSize: 12 }}>
-                          <MessageCircle size={12} /> {stats.leads_contacted} leads
-                        </span>
-                      )}
-                      {stats.member_since && (
-                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 12px', borderRadius: 999, background: '#1c1c1e', border: '1px solid rgba(255,255,255,0.06)', color: '#636366', fontSize: 12 }}>
-                          <CalendarDays size={12} /> Since {formatMemberSince(stats.member_since)}
-                        </span>
-                      )}
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
+            {/* 7. Service Areas (counties only on mobile, + map on desktop) */}
+            {serviceAreasBlock}
 
             {/* Website — mobile */}
             {data.website_url && (
@@ -562,17 +656,6 @@ export default function PublicProfile() {
                 </a>
               </Section>
             )}
-
-            {/* Share — mobile */}
-            <div className="lg:hidden" style={{ display: 'flex', gap: 8, padding: '12px 16px' }}>
-              <button onClick={handleShare} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '10px 16px', borderRadius: 12, fontSize: 12, fontWeight: 600, color: '#a1a1a6', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.08)', cursor: 'pointer' }}>
-                <Share2 size={13} /> Share
-              </button>
-              <button onClick={handleCopy} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '10px 16px', borderRadius: 12, fontSize: 12, fontWeight: 600, color: '#a1a1a6', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.08)', cursor: 'pointer' }}>
-                {copied ? <Check size={13} style={{ color: '#30d158' }} /> : <Copy size={13} />}
-                {copied ? 'Copied' : 'Copy Link'}
-              </button>
-            </div>
 
             {/* Footer — mobile */}
             <div className="lg:hidden" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '24px 0' }}>
@@ -585,6 +668,16 @@ export default function PublicProfile() {
 
           </div>
         </div>
+      </div>
+
+      {/* ═══════════ STICKY MOBILE CTA ═══════════ */}
+      <div className="lg:hidden" style={{
+        position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 50,
+        background: 'linear-gradient(to top, #0a0a0a 60%, transparent)',
+        padding: '24px 16px 16px',
+        paddingBottom: 'max(16px, env(safe-area-inset-bottom))',
+      }}>
+        {ctaButton}
       </div>
 
       {/* Job offer bottom sheet removed — button goes directly to form */}

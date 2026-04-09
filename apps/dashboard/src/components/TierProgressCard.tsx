@@ -47,27 +47,21 @@ function buildCriteria(
   const next = NEXT_TIER[tier]
 
   if (next === 'verified') {
-    return [
-      { icon: Briefcase, label: 'Completed jobs', current: completed, required: 1, met: completed >= 1 },
-      { icon: Clock, label: 'Days as member', current: tenureDays, required: 7, met: tenureDays >= 7 },
-    ]
+    // Verified requires Stripe Identity only — no performance criteria
+    return []
   }
 
   if (next === 'trusted') {
     return [
-      { icon: Briefcase, label: 'Completed jobs', current: completed, required: 5, met: completed >= 5 },
+      { icon: Briefcase, label: 'Completed jobs', current: completed, required: 10, met: completed >= 10 },
       { icon: Star, label: 'Average rating', current: rating, required: 4.0, met: rating >= 4.0 },
-      { icon: Zap, label: 'Response rate', current: responseRate, required: 70, unit: '%', met: responseRate >= 70 },
-      { icon: Clock, label: 'Days as member', current: tenureDays, required: 30, met: tenureDays >= 30 },
     ]
   }
 
   if (next === 'elite') {
     return [
-      { icon: Briefcase, label: 'Completed jobs', current: completed, required: 20, met: completed >= 20 },
+      { icon: Briefcase, label: 'Completed jobs', current: completed, required: 30, met: completed >= 30 },
       { icon: Star, label: 'Average rating', current: rating, required: 4.5, met: rating >= 4.5 },
-      { icon: Zap, label: 'Response rate', current: responseRate, required: 85, unit: '%', met: responseRate >= 85 },
-      { icon: Clock, label: 'Days as member', current: tenureDays, required: 90, met: tenureDays >= 90 },
       { icon: MessageSquare, label: 'Reviews received', current: reviewCount, required: 10, met: reviewCount >= 10 },
     ]
   }

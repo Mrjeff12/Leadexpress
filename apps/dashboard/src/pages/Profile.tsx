@@ -390,7 +390,13 @@ export default function Profile() {
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-1.5">
                 <h2 className="text-[18px] font-bold text-white tracking-tight truncate">{fullName || 'Your Name'}</h2>
-                <Shield size={14} className="text-[#fe5b25] flex-shrink-0" />
+                {identityVerified ? (
+                  <div className="flex-shrink-0 w-5 h-5 rounded-full bg-blue-500 flex items-center justify-center">
+                    <CheckCircle2 size={12} className="text-white" />
+                  </div>
+                ) : (
+                  <Shield size={14} className="text-[#fe5b25] flex-shrink-0" />
+                )}
               </div>
               <p className="text-[12px] text-white/40 truncate">
                 {contractorData?.professions?.[0] ?? 'Contractor'}
@@ -407,12 +413,12 @@ export default function Profile() {
                 )}
               </div>
               {identityVerified && (
-                <span className="inline-flex items-center gap-1 text-[10px] font-bold text-green-400 mt-1">
+                <span className="inline-flex items-center gap-1 mt-1.5 px-2 py-0.5 rounded-full bg-blue-500/15 text-[10px] font-bold text-blue-400 border border-blue-500/20">
                   <CheckCircle2 size={10} /> {isHe ? 'זהות מאומתת' : 'Identity Verified'}
                 </span>
               )}
               {identityPending && (
-                <span className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-400 mt-1">
+                <span className="inline-flex items-center gap-1 mt-1.5 px-2 py-0.5 rounded-full bg-amber-500/15 text-[10px] font-bold text-amber-400 border border-amber-500/20">
                   <Loader2 size={10} className="animate-spin" /> {isHe ? 'בבדיקה' : 'Verification pending'}
                 </span>
               )}
@@ -422,32 +428,61 @@ export default function Profile() {
           {/* Tier journey */}
           {(() => {
             const tierDefs = [
-              { name: 'New', Icon: UserCircle, reached: true },
-              { name: 'Verified', Icon: BadgeCheck, reached: identityVerified },
-              { name: 'Trusted', Icon: Award, reached: false, current: !identityVerified },
-              { name: 'Elite', Icon: Crown, reached: false },
+              { name: 'New', Icon: UserCircle, reached: true, color: '#9ca3af', bg: 'rgba(156,163,175,0.15)' },
+              { name: 'Verified', Icon: BadgeCheck, reached: identityVerified, color: '#3b82f6', bg: 'rgba(59,130,246,0.15)' },
+              { name: 'Trusted', Icon: Award, reached: false, color: '#22c55e', bg: 'rgba(34,197,94,0.15)' },
+              { name: 'Elite', Icon: Crown, reached: false, color: '#f59e0b', bg: 'rgba(245,158,11,0.15)' },
             ]
+            // Find current tier index
+            const currentIdx = identityVerified ? 1 : 0
             return (
-              <div className="flex items-center gap-1 mb-4">
-                {tierDefs.map((t, i, arr) => (
-                  <div key={i} className="flex items-center flex-1">
-                    <div className="flex flex-col items-center flex-1">
-                      <div className={`w-8 h-8 rounded-full flex items-center justify-center mb-1 ${
-                        t.reached ? 'bg-green-500/20' : t.current ? 'bg-[#fe5b25]/20 ring-[1.5px] ring-[#fe5b25]' : 'bg-white/5'
-                      }`}>
-                        <t.Icon size={15} strokeWidth={1.8} className={
-                          t.reached ? 'text-green-400' : t.current ? 'text-[#fe5b25]' : 'text-white/15'
-                        } />
+              <div className="flex items-center gap-0 mb-4">
+                {tierDefs.map((t, i, arr) => {
+                  const isActive = i === currentIdx
+                  const isPast = i < currentIdx || t.reached
+                  const isFuture = i > currentIdx && !t.reached
+                  return (
+                    <div key={i} className="flex items-center flex-1">
+                      <div className="flex flex-col items-center flex-1">
+                        <div
+                          className={`w-9 h-9 rounded-xl flex items-center justify-center mb-1 transition-all ${
+                            isActive ? 'ring-2 shadow-lg scale-110' : ''
+                          }`}
+                          style={{
+                            background: isPast || isActive ? t.bg : 'rgba(255,255,255,0.04)',
+                            ringColor: isActive ? t.color : undefined,
+                            boxShadow: isActive ? `0 0 16px ${t.color}33` : undefined,
+                            '--tw-ring-color': isActive ? t.color : 'transparent',
+                          } as React.CSSProperties}
+                        >
+                          <t.Icon
+                            size={16}
+                            strokeWidth={1.8}
+                            style={{ color: isPast || isActive ? t.color : 'rgba(255,255,255,0.12)' }}
+                          />
+                        </div>
+                        <span
+                          className="text-[9px] font-semibold"
+                          style={{ color: isPast || isActive ? t.color : 'rgba(255,255,255,0.12)' }}
+                        >
+                          {t.name}
+                        </span>
                       </div>
-                      <span className={`text-[9px] font-medium ${
-                        t.reached ? 'text-green-400' : t.current ? 'text-[#fe5b25]' : 'text-white/15'
-                      }`}>{t.name}</span>
+                      {i < arr.length - 1 && (
+                        <div
+                          className="h-[2px] w-full mt-[-14px] rounded-full"
+                          style={{
+                            background: isPast && tierDefs[i + 1]?.reached
+                              ? `linear-gradient(90deg, ${t.color}66, ${tierDefs[i + 1].color}66)`
+                              : isPast
+                                ? `${t.color}44`
+                                : 'rgba(255,255,255,0.05)',
+                          }}
+                        />
+                      )}
                     </div>
-                    {i < arr.length - 1 && (
-                      <div className={`h-0.5 w-full mt-[-14px] ${t.reached ? 'bg-green-500/30' : 'bg-white/5'}`} />
-                    )}
-                  </div>
-                ))}
+                  )
+                })}
               </div>
             )
           })()}
@@ -471,21 +506,20 @@ export default function Profile() {
           </button>
         </div>
 
-        {/* ---- UNLOCK TRUSTED CARD ---- */}
+        {/* ---- NEXT TIER CARD ---- */}
         <div className="bg-white rounded-[20px] border border-black/[0.04] shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-4 mb-5">
-          <div className="flex items-center gap-3 mb-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-400 to-amber-500 flex items-center justify-center">
-              <Sparkles size={18} className="text-white" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-[14px] font-semibold text-zinc-900">Unlock <span className="text-green-600">Trusted</span></p>
-              <p className="text-[11px] text-[#737373]">3x more leads & featured placement</p>
-            </div>
-          </div>
-
-          {/* Incomplete steps */}
-          <div className="space-y-2">
-            {!identityVerified && (
+          {!identityVerified ? (
+            <>
+              {/* Not verified yet — show verification CTA */}
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center">
+                  <BadgeCheck size={18} className="text-white" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[14px] font-semibold text-zinc-900">{isHe ? 'אמת את הזהות שלך' : 'Get Verified'}</p>
+                  <p className="text-[11px] text-[#737373]">{isHe ? 'קבלנים מאומתים מקבלים עדיפות בלידים' : 'Verified contractors get lead priority'}</p>
+                </div>
+              </div>
               <button
                 onClick={() => navigate('/verify-identity')}
                 className="w-full flex items-center gap-3 p-3 rounded-xl bg-[#fafafa] active:scale-[0.97] transition-transform"
@@ -494,29 +528,63 @@ export default function Profile() {
                   <Fingerprint size={15} className="text-zinc-900" />
                 </div>
                 <div className="flex-1 text-left">
-                  <p className="text-[13px] font-semibold text-zinc-900">Identity Verification</p>
-                  <p className="text-[10px] text-[#737373]">ID + selfie · Get verified badge ✓</p>
+                  <p className="text-[13px] font-semibold text-zinc-900">{isHe ? 'אימות זהות' : 'Identity Verification'}</p>
+                  <p className="text-[10px] text-[#737373]">{isHe ? 'תעודה + סלפי · באדג\' מאומת' : 'ID + selfie · Verified badge ✓'}</p>
                 </div>
                 <div className="flex flex-col items-end gap-1">
-                  <span className="text-[10px] font-bold text-green-600">+30% more leads</span>
+                  <span className="text-[10px] font-bold text-green-600">+30% {isHe ? 'יותר לידים' : 'more leads'}</span>
                   <ArrowRight size={12} className="text-[#a3a3a3]" />
                 </div>
               </button>
-            )}
-            <button className="w-full flex items-center gap-3 p-3 rounded-xl bg-[#fafafa] active:scale-[0.97] transition-transform">
-              <div className="w-9 h-9 rounded-lg bg-white flex items-center justify-center shadow-sm">
-                <Shield size={15} className="text-zinc-900" />
+            </>
+          ) : (
+            <>
+              {/* Verified — show progress to Trusted */}
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-green-500 to-green-600 flex items-center justify-center">
+                  <Award size={18} className="text-white" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[14px] font-semibold text-zinc-900">{isHe ? 'קדם לרמת' : 'Unlock'} <span className="text-green-600">Trusted</span></p>
+                  <p className="text-[11px] text-[#737373]">{isHe ? '10 עבודות + דירוג 4.0+' : '10 completed jobs + 4.0+ rating'}</p>
+                </div>
               </div>
-              <div className="flex-1 text-left">
-                <p className="text-[13px] font-semibold text-zinc-900">Trade License</p>
-                <p className="text-[10px] text-[#737373]">Upload license (optional)</p>
-              </div>
-              <div className="flex flex-col items-end gap-1">
-                <span className="text-[10px] font-bold text-green-600">+10% more leads</span>
-                <ArrowRight size={12} className="text-[#a3a3a3]" />
-              </div>
-            </button>
-          </div>
+              {(() => {
+                const jobs = contractorData?.stats?.job_orders_completed ?? 0
+                const rating = contractorData?.profile?.avg_rating ?? 0
+                return (
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-3 p-3 rounded-xl bg-[#fafafa]">
+                      <div className={`w-9 h-9 rounded-lg flex items-center justify-center shadow-sm ${jobs >= 10 ? 'bg-green-100' : 'bg-white'}`}>
+                        <Briefcase size={15} className={jobs >= 10 ? 'text-green-600' : 'text-zinc-900'} />
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-[13px] font-semibold text-zinc-900">{isHe ? 'עבודות שהושלמו' : 'Completed Jobs'}</p>
+                        <div className="flex items-center gap-2 mt-1">
+                          <div className="flex-1 h-1.5 rounded-full bg-zinc-100 overflow-hidden">
+                            <div className="h-full rounded-full bg-green-500 transition-all" style={{ width: `${Math.min(100, (jobs / 10) * 100)}%` }} />
+                          </div>
+                          <span className="text-[11px] font-bold text-zinc-500">{jobs}/10</span>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3 p-3 rounded-xl bg-[#fafafa]">
+                      <div className={`w-9 h-9 rounded-lg flex items-center justify-center shadow-sm ${rating >= 4.0 ? 'bg-green-100' : 'bg-white'}`}>
+                        <Star size={15} className={rating >= 4.0 ? 'text-green-600' : 'text-zinc-900'} />
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-[13px] font-semibold text-zinc-900">{isHe ? 'דירוג ממוצע' : 'Average Rating'}</p>
+                        <p className="text-[11px] text-[#737373]">{rating > 0 ? `${rating.toFixed(1)} / 4.0` : isHe ? 'אין דירוג עדיין' : 'No rating yet'}</p>
+                      </div>
+                    </div>
+                  </div>
+                )
+              })()}
+            </>
+          )}
+
+          {/* Existing completed items */}
+          <div className="space-y-2 mt-2">
 
           {/* Done items */}
           <div className="flex items-center gap-2 mt-3 px-1">
