@@ -30,13 +30,14 @@ import {
   Download,
   Flame,
   Plus,
+  ShieldCheck,
 } from 'lucide-react'
 const CoverageMap = lazy(() => import('../components/settings/CoverageMap'))
 import ForwardLeadModal from '../components/ForwardLeadModal'
 import UpsellModal from '../components/UpsellModal'
 import NetworkPointsCard from '../components/NetworkPointsCard'
 import ProfileCompletionBar from '../components/ProfileCompletionBar'
-import ProfileOnboarding from '../components/ProfileOnboarding'
+import { useIdentityVerification } from '../hooks/useIdentityVerification'
 import { useContractorProfile } from '../hooks/useContractorProfile'
 import { useSubscriptionAccess } from '../hooks/useSubscriptionAccess'
 import { usePushNotifications } from '../hooks/usePushNotifications'
@@ -245,7 +246,16 @@ export default function ContractorDashboard() {
       .then(({ data }) => { if (data) setViewStats(data) })
   }, [effectiveUserId, contractorData?.profile?.slug])
 
-  // Profile onboarding popup disabled — headline/bio/work preferences are not needed
+  // Show verification CTA when contractor is unverified (tier = 'new')
+  const { isVerified: identityVerified, isPending: verifyPending } = useIdentityVerification()
+  useEffect(() => {
+    if (!contractorData) return
+    const tier = contractorData.profile?.tier ?? 'new'
+    const dismissed = localStorage.getItem('mlf_verify_dismissed') === 'true'
+    if (tier === 'new' && !identityVerified && !verifyPending && !dismissed) {
+      setShowOnboarding(true)
+    }
+  }, [contractorData, identityVerified, verifyPending])
 
   // Close dropdowns on outside click
   useEffect(() => {
@@ -1341,15 +1351,69 @@ export default function ContractorDashboard() {
         currentUsage={{ professions: selectedProfs.length, zips: zipCodes.length }}
       />
 
-      {/* Onboarding Modal */}
+      {/* Verify Identity CTA */}
       {showOnboarding && (
-        <ProfileOnboarding
+        <VerifyIdentityCTA
           onClose={() => {
             setShowOnboarding(false)
-            localStorage.setItem('mlf_onboarding_dismissed', 'true')
+            localStorage.setItem('mlf_verify_dismissed', 'true')
           }}
         />
       )}
+    </div>
+  )
+}
+
+/* ─── Verify Identity CTA Modal ─── */
+function VerifyIdentityCTA({ onClose }: { onClose: () => void }) {
+  const { startVerification, actionLoading } = useIdentityVerification()
+  const { locale } = useI18n()
+  const isHe = locale === 'he'
+
+  async function handleVerify() {
+    try {
+      await startVerification()
+    } catch {
+      // Stripe session creation failed — close and let user try from profile
+      onClose()
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm animate-fade-in">
+      <div className="relative w-full max-w-md mx-4 bg-white rounded-3xl shadow-2xl overflow-hidden animate-scale-in p-6 text-center" dir={isHe ? 'rtl' : 'ltr'}>
+        <button onClick={onClose} className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors">
+          <X size={20} />
+        </button>
+
+        <div className="w-16 h-16 rounded-2xl bg-[#fe5b25]/10 flex items-center justify-center mx-auto mb-4">
+          <ShieldCheck size={28} className="text-[#fe5b25]" />
+        </div>
+
+        <h2 className="text-xl font-bold text-gray-900 mb-2">
+          {isHe ? 'אמת את הזהות שלך' : 'Verify Your Identity'}
+        </h2>
+        <p className="text-sm text-gray-500 mb-1">
+          {isHe ? 'קבלנים מאומתים מקבלים עדיפות בלידים' : 'Verified contractors get lead priority'}
+        </p>
+        <p className="text-xs text-gray-400 mb-6">
+          {isHe ? 'תהליך מהיר של 2 דקות עם תעודה מזהה + סלפי' : 'Quick 2-min process with ID + selfie'}
+        </p>
+
+        <button
+          onClick={handleVerify}
+          disabled={actionLoading}
+          className="w-full py-3 rounded-xl bg-[#fe5b25] text-white font-semibold text-sm hover:bg-[#e5501f] transition-colors disabled:opacity-50"
+        >
+          {actionLoading
+            ? (isHe ? 'מתחבר...' : 'Loading...')
+            : (isHe ? '✓ אמת עכשיו — קבל יותר עבודות' : '✓ Verify Now — Get More Jobs')}
+        </button>
+
+        <button onClick={onClose} className="mt-3 text-xs text-gray-400 hover:text-gray-600 transition-colors">
+          {isHe ? 'אולי אחר כך' : 'Maybe later'}
+        </button>
+      </div>
     </div>
   )
 }

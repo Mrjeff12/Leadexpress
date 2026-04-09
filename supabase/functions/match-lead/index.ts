@@ -84,20 +84,29 @@ Deno.serve(async (req: Request) => {
         continue;
       }
 
-      // Find matching contractors
-      const { data: contractors } = await supabase
+      // Find matching contractors (join contractor_profiles for tier-based priority)
+      const { data: contractorsRaw } = await supabase
         .from("contractors")
         .select(`
           user_id, professions, zip_codes, wa_notify, available_today,
           wa_window_until,
           profiles!inner(full_name, whatsapp_phone,
-            subscriptions!inner(status, plan_id))
+            subscriptions!inner(status, plan_id)),
+          contractor_profiles(tier)
         `)
         .eq("is_active", true)
         .eq("profiles.status", "active")
         .in("profiles.subscriptions.status", ["active", "trialing"])
         .contains("professions", [lead.profession])
         .contains("zip_codes", [lead.zip_code]);
+
+      // Sort by tier: elite > trusted > verified > new (verified+ get notified first)
+      const TIER_PRIORITY: Record<string, number> = { elite: 4, trusted: 3, verified: 2, new: 1 };
+      const contractors = (contractorsRaw ?? []).sort((a, b) => {
+        const ta = TIER_PRIORITY[(a as any).contractor_profiles?.tier ?? 'new'] ?? 0;
+        const tb = TIER_PRIORITY[(b as any).contractor_profiles?.tier ?? 'new'] ?? 0;
+        return tb - ta;
+      });
 
       if (!contractors?.length) {
         await supabase.from("leads").update({ status: "no_match" }).eq("id", leadId);

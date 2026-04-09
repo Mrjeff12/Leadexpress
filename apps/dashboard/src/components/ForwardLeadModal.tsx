@@ -52,6 +52,7 @@ export default function ForwardLeadModal({ lead, isOpen, onClose }: ForwardLeadM
   // Shared state
   const [dealType, setDealType] = useState<DealType>('percentage')
   const [dealValue, setDealValue] = useState('')
+  const [verifiedOnly, setVerifiedOnly] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [successMsg, setSuccessMsg] = useState<string | null>(null)
@@ -298,6 +299,7 @@ export default function ForwardLeadModal({ lead, isOpen, onClose }: ForwardLeadM
           deal_type: dealType,
           deal_value: dealValue,
           description: broadcastDescription.trim() || null,
+          min_tier: verifiedOnly ? 'verified' : null,
         })
         .select('id')
         .single()
@@ -547,10 +549,28 @@ export default function ForwardLeadModal({ lead, isOpen, onClose }: ForwardLeadM
                     className="w-full px-3 py-2 rounded-xl border border-stone-200 bg-white text-sm focus:border-[#fe5b25] focus:ring-1 focus:ring-[#fe5b25] outline-none resize-none"
                   />
                 </div>
+                {/* Verified Only Toggle */}
+                <label className="flex items-center gap-3 p-3 rounded-xl bg-stone-50 border border-stone-200 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={verifiedOnly}
+                    onChange={(e) => setVerifiedOnly(e.target.checked)}
+                    className="w-4 h-4 rounded border-stone-300 text-[#fe5b25] focus:ring-[#fe5b25]"
+                  />
+                  <div className="flex-1">
+                    <span className="text-sm font-medium text-stone-700">
+                      {locale === 'he' ? 'קבלנים מאומתים בלבד' : 'Verified contractors only'}
+                    </span>
+                    <p className="text-[11px] text-stone-400 mt-0.5">
+                      {locale === 'he' ? 'שלח רק לקבלנים שעברו אימות זהות' : 'Only send to ID-verified contractors'}
+                    </p>
+                  </div>
+                </label>
+
                 <div className="p-3 rounded-xl bg-blue-50 text-blue-700 text-sm border border-blue-100">
                   {locale === 'he'
-                    ? 'העבודה תישלח לכל הקבלנים המתאימים באזור.'
-                    : 'Your job will be sent to matching contractors in the area.'}
+                    ? verifiedOnly ? 'העבודה תישלח לקבלנים מאומתים בלבד באזור.' : 'העבודה תישלח לכל הקבלנים המתאימים באזור.'
+                    : verifiedOnly ? 'Job will be sent to verified contractors only.' : 'Your job will be sent to matching contractors in the area.'}
                 </div>
               </>
             )}

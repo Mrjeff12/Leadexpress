@@ -164,7 +164,7 @@ async function handleSendBroadcast(broadcastId: string, cors: CorsHeaders): Prom
 
   let query = supabase
     .from('contractors')
-    .select('user_id, professions, profiles(whatsapp_phone, full_name)')
+    .select('user_id, professions, profiles(whatsapp_phone, full_name), contractor_profiles(tier)')
     .eq('is_active', true)
     .contains('professions', [profession]);
 
@@ -172,7 +172,17 @@ async function handleSendBroadcast(broadcastId: string, cors: CorsHeaders): Prom
     query = query.contains('zip_codes', [zipCode]);
   }
 
-  const { data: matches } = await query.limit(broadcast.max_recipients);
+  const { data: matchesRaw } = await query.limit(broadcast.max_recipients * 2);
+
+  // Filter by min_tier if publisher required verified+ contractors
+  const TIER_RANK: Record<string, number> = { new: 0, verified: 1, trusted: 2, elite: 3 };
+  const minTier = broadcast.min_tier as string | null;
+  const minRank = minTier ? (TIER_RANK[minTier] ?? 0) : 0;
+
+  const matches = (matchesRaw ?? []).filter((m: any) => {
+    const tier = m.contractor_profiles?.tier ?? 'new';
+    return (TIER_RANK[tier] ?? 0) >= minRank;
+  }).slice(0, broadcast.max_recipients);
 
   if (!matches || matches.length === 0) {
     await supabase.from('job_broadcasts').update({ sent_count: 0 }).eq('id', broadcastId);
