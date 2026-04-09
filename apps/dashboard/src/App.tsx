@@ -69,6 +69,7 @@ const ProfileEdit = lazyRetry(() => import('./pages/ProfileEdit'))
 const LeadDetail = lazyRetry(() => import('./pages/LeadDetail'))
 const JobDetail = lazyRetry(() => import('./pages/JobDetail'))
 const MyReviews = lazyRetry(() => import('./pages/MyReviews'))
+const ReviewSubmit = lazyRetry(() => import('./pages/ReviewSubmit'))
 import RequirePartner from './components/RequirePartner'
 
 /* ─── Auth guard ─── */
@@ -247,6 +248,7 @@ function AppShell() {
               <Route path="/notifications" element={<NotificationsPage />} />
               <Route path="/leads/:id" element={<LeadDetail />} />
               <Route path="/reviews" element={<MyReviews />} />
+              <Route path="/review-submit/:jobOrderId" element={<ReviewSubmit />} />
               <Route path="/profile-preview" element={<PublicProfileView />} />
               <Route path="/partner/join" element={<PartnerOnboarding />} />
               <Route path="/partner/*" element={<RequirePartner><PartnerLayout /></RequirePartner>} />

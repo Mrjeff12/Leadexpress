@@ -105,6 +105,13 @@ export default function JobDetail() {
       .eq('id', job.id)
     setJob(prev => prev ? { ...prev, status: 'completed', completed_at: new Date().toISOString() } : prev)
     setUpdating(false)
+
+    // Send review notifications to both parties (fire-and-forget)
+    fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/review-notify`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ job_order_id: job.id }),
+    }).catch(() => {})
   }
 
   if (loading) {
@@ -330,6 +337,26 @@ export default function JobDetail() {
                 </div>
               )}
             </div>
+          </div>
+        )}
+
+        {/* Rate this job — shown when completed */}
+        {isCompleted && (
+          <div>
+            <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-2">Review</p>
+            <button
+              onClick={() => nav(`/review-submit/${job.id}`)}
+              className="w-full bg-gradient-to-r from-amber-50 to-orange-50 rounded-2xl border border-amber-100 p-4 flex items-center gap-3 active:scale-[0.98] transition-transform"
+            >
+              <div className="w-11 h-11 rounded-2xl bg-amber-100 flex items-center justify-center flex-shrink-0">
+                <Star size={20} className="text-amber-500" />
+              </div>
+              <div className="flex-1 text-left">
+                <p className="text-[14px] font-bold text-gray-800">Rate this job</p>
+                <p className="text-[11px] text-gray-500">Help other contractors make better decisions</p>
+              </div>
+              <ChevronRight size={14} className="text-amber-300" />
+            </button>
           </div>
         )}
       </div>
