@@ -3,7 +3,7 @@ import { MessageCircle, AlertTriangle, CheckCircle2 } from 'lucide-react'
 import { useContractor } from '../lib/useContractor'
 import { useI18n } from '../lib/i18n'
 
-const REBECA_PHONE = '14155238886'
+const REBECA_PHONE = '18623582898'
 const WA_LINK = `https://wa.me/${REBECA_PHONE}?text=${encodeURIComponent('👋')}`
 
 interface TimeLeft {

@@ -134,7 +134,7 @@ async function enqueuePushFallback(
       contractorId,
       title: `🔥 New ${profLabel} Lead`,
       body: `${location} — Tap to connect and see details`,
-      url: `https://wa.me/14155238886?text=${encodeURIComponent('👋')}`,
+      url: `https://wa.me/18623582898?text=${encodeURIComponent('👋')}`,
     }, {
       jobId: `fallback-push-${leadId}-${contractorId}`,
       attempts: 2,
