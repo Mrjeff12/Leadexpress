@@ -462,23 +462,32 @@ export default function JobPortal() {
               />
             )}
 
-            {/* ─ Editable fields with motivation text ─ */}
-            <div className="px-5 py-2.5" style={{ background: '#1c1c1e' }}>
-              <p className="text-[11px]" style={{ color: '#636366', lineHeight: 1.5 }}>
-                {isContractorSignup
-                  ? t(lang,
-                      'Take this job and get more like it automatically. Join for free.',
-                      'קח את העבודה וקבל עוד כאלה אוטומטית. הצטרף בחינם.'
-                    )
-                  : t(lang,
+            {isContractorSignup ? (
+              /* ─ Contractor signup: locked/blurred details ─ */
+              <>
+                <LockedRow label={t(lang, 'address', 'כתובת')} hint="••••••••••" />
+                <LockedRow label={t(lang, 'customer phone', 'טלפון לקוח')} hint="+1 •••-•••-••••" />
+                <LockedRow label={t(lang, 'your pay', 'התשלום שלך')} hint="$•••" />
+                <div className="px-5 py-3" style={{ background: '#1c1c1e' }}>
+                  <p className="text-[11px] text-center" style={{ color: '#a1a1a6', lineHeight: 1.5 }}>
+                    🔒 {t(lang,
+                      'Sign up to unlock full job details and get more jobs like this automatically.',
+                      'הירשם כדי לראות את כל הפרטים ולקבל עוד עבודות כאלה אוטומטית.'
+                    )}
+                  </p>
+                </div>
+              </>
+            ) : (
+              /* ─ Publisher signup: editable fields ─ */
+              <>
+                <div className="px-5 py-2.5" style={{ background: '#1c1c1e' }}>
+                  <p className="text-[11px]" style={{ color: '#636366', lineHeight: 1.5 }}>
+                    {t(lang,
                       'Fill in the details so you and ' + otherPartyName + ' have everything in one place. No more digging through WhatsApp.',
                       'מלא את הפרטים כדי שלך ול' + otherPartyName + ' יהיה הכל במקום אחד. בלי לחפש בוואטסאפ.'
-                    )
-                }
-              </p>
-            </div>
-            {!isContractorSignup && (
-              <>
+                    )}
+                  </p>
+                </div>
                 <ContactRowInput
                   label={t(lang, 'address', 'כתובת')}
                   value={leadAddress}
@@ -616,7 +625,7 @@ export default function JobPortal() {
                   {isExistingUser
                     ? t(lang, 'Open my dashboard →', 'פתח את הדשבורד שלי →')
                     : isContractorSignup
-                      ? t(lang, 'Take this job & get more 💬', 'קח את העבודה וקבל עוד 💬')
+                      ? t(lang, 'Sign up & unlock details 🔓', 'הירשם וגלה את הפרטים 🔓')
                       : t(lang, 'Save & send me a login link 💬', 'שמור ושלח לי לינק כניסה 💬')
                   }
                 </span>}
@@ -637,6 +646,17 @@ export default function JobPortal() {
         </div>
       </div>
     </Shell>
+  )
+}
+
+// ── Locked/blurred row (for contractor signup) ─────────────────────────────
+function LockedRow({ label, hint }: { label: string; hint: string }) {
+  return (
+    <div className="flex items-center px-5 py-3" style={{ borderBottom: '0.5px solid rgba(255,255,255,0.06)' }}>
+      <span className="text-[13px] shrink-0" style={{ color: '#48484a', width: 110 }}>{label}</span>
+      <span className="flex-1 text-[13px] font-medium" style={{ color: '#2c2c2e', filter: 'blur(4px)', userSelect: 'none' }}>{hint}</span>
+      <span className="text-[10px] shrink-0 ml-2" style={{ color: '#48484a' }}>🔒</span>
+    </div>
   )
 }
 
