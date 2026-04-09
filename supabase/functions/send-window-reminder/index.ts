@@ -44,7 +44,9 @@ Deno.serve(async (_req) => {
     let stage1Sent = 0;
     let stage2Sent = 0;
 
-    // ── Stage 1: Window closing in <10 min — WhatsApp free-form reminder ──
+    // ── Stage 1: Window closing in <10 min — Quick Reply template with 👋 button ──
+    const WINDOW_EXPIRING_TEMPLATE = Deno.env.get("TWILIO_CONTENT_WINDOW_EXPIRING") || "";
+
     const { data: expiringContractors } = await supabase
       .from("contractors")
       .select("user_id, last_push_reminder_at")
@@ -65,13 +67,36 @@ Deno.serve(async (_req) => {
         .select("id, full_name, whatsapp_phone")
         .in("id", userIds);
 
+      // Get lead counts for personalized message
+      const { data: recentLeadCounts } = await supabase.rpc('count_matched_leads_by_contractor', {
+        contractor_ids: userIds,
+        since_hours: 24,
+      }).catch(() => ({ data: null }));
+      const leadCountMap = new Map<string, number>();
+      for (const row of recentLeadCounts ?? []) {
+        leadCountMap.set(row.contractor_id, row.count);
+      }
+
       for (const profile of profiles ?? []) {
         if (!profile.whatsapp_phone) continue;
 
         const firstName = (profile.full_name || "").split(" ")[0] || "Hey";
-        const body = `${firstName}, your lead channel closes in 5 min! 🕐\n\nSend 👋 to stay connected and keep receiving leads.`;
+        const leadCount = leadCountMap.get(profile.id) ?? 0;
+        let sent = false;
 
-        const sent = await sendWhatsApp(profile.whatsapp_phone, body);
+        if (WINDOW_EXPIRING_TEMPLATE) {
+          // Use Content Template with quick-reply buttons (👋 Stay Connected / ⏸ Pause)
+          sent = await sendContentTemplate(
+            profile.whatsapp_phone,
+            WINDOW_EXPIRING_TEMPLATE,
+            { '1': firstName, '2': String(leadCount) },
+          );
+        } else {
+          // Fallback to free-form text if template SID not configured yet
+          const body = `${firstName}, your lead channel closes in 5 min! 🕐\n\nSend 👋 to stay connected and keep receiving leads.`;
+          sent = await sendWhatsApp(profile.whatsapp_phone, body);
+        }
+
         if (sent) {
           stage1Sent++;
           await supabase
@@ -132,7 +157,9 @@ Deno.serve(async (_req) => {
         leadCountMap.set(row.contractor_id, row.count);
       }
 
-      const ACCOUNT_STATUS_TEMPLATE = Deno.env.get("TWILIO_CONTENT_ACCOUNT_STATUS") || "HX6fab64f5e7365e174e2047a664fa406c";
+      const WINDOW_EXPIRED_TEMPLATE = Deno.env.get("TWILIO_CONTENT_WINDOW_EXPIRED")
+        || Deno.env.get("TWILIO_CONTENT_ACCOUNT_STATUS")
+        || "HX6fab64f5e7365e174e2047a664fa406c";
 
       for (const profile of profiles ?? []) {
         if (!profile.whatsapp_phone) continue;
@@ -142,11 +169,13 @@ Deno.serve(async (_req) => {
         // Only send template if there are real leads — don't waste quality score
         if (matchedLeads === 0) continue;
 
-        // Send Utility Template (works on US numbers, $0.004)
+        const firstName = (profile.full_name || "").split(" ")[0] || "there";
+
+        // Send Utility Template with quick-reply buttons (👋 Reconnect / 📊 View Leads)
         const sent = await sendContentTemplate(
           profile.whatsapp_phone,
-          ACCOUNT_STATUS_TEMPLATE,
-          { '1': String(matchedLeads), '2': 'your trades', '3': 'your service area' },
+          WINDOW_EXPIRED_TEMPLATE,
+          { '1': firstName, '2': String(matchedLeads), '3': 'your trades', '4': 'your service area' },
         );
         if (sent) {
           stage2Sent++;

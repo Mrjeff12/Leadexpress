@@ -593,24 +593,33 @@ async function handleButtonPayload(phone: string, payload: string, _text: string
   }
 
   switch (payload) {
-    case 'checkin_yes': {
+    case 'checkin_yes':
+    case 'stay_connected':
+    case 'reconnect_now': {
       const windowUntil = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
       await supabase
         .from('contractors')
         .update({ available_today: true, wa_window_until: windowUntil })
         .eq('user_id', profile.id);
       await sendText(phone, `✅ You're live! Leads will come through today.`);
-      console.log(`[checkin] ${profile.id} available (button)`);
+      console.log(`[checkin] ${profile.id} available (button: ${payload})`);
       break;
     }
 
-    case 'checkin_no': {
+    case 'checkin_no':
+    case 'pause_today': {
       await supabase
         .from('contractors')
         .update({ available_today: false })
         .eq('user_id', profile.id);
       await sendText(phone, `👍 Got it, enjoy your day off!`);
-      console.log(`[checkin] ${profile.id} off (button)`);
+      console.log(`[checkin] ${profile.id} off (button: ${payload})`);
+      break;
+    }
+
+    case 'view_leads': {
+      // Send magic link to dashboard leads page
+      await sendDashboardLink(phone, profile.id);
       break;
     }
 
