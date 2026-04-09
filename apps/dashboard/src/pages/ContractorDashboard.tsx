@@ -333,18 +333,16 @@ export default function ContractorDashboard() {
     let cancelled = false
 
     async function fetchData() {
+      // Fetch only leads matched to this contractor
       let leadsQuery = supabase
         .from('leads')
         .select('id, profession, parsed_summary, raw_message, city, zip_code, urgency, budget_range, sender_id, created_at, groups ( name )')
+        .contains('matched_contractors', [effectiveUserId])
         .order('created_at', { ascending: false })
         .limit(50)
 
-      if (selectedProfs.length > 0) leadsQuery = leadsQuery.in('profession', selectedProfs)
-      if (zipCodes.length > 0) leadsQuery = leadsQuery.in('zip_code', zipCodes)
-
       let countQuery = supabase.from('leads').select('id', { count: 'exact', head: true })
-      if (selectedProfs.length > 0) countQuery = countQuery.in('profession', selectedProfs)
-      if (zipCodes.length > 0) countQuery = countQuery.in('zip_code', zipCodes)
+        .contains('matched_contractors', [effectiveUserId])
 
       // Fire all 4 queries in parallel
       const [leadsRes, countRes, profRes, contactedRes] = await Promise.all([
@@ -369,7 +367,7 @@ export default function ContractorDashboard() {
 
     fetchData()
     return () => { cancelled = true }
-  }, [effectiveUserId, selectedProfs, zipCodes])
+  }, [effectiveUserId])
 
   /* ── KPIs ── */
   const now = new Date()

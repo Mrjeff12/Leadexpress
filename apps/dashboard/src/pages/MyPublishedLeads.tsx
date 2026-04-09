@@ -27,16 +27,26 @@ export default function MyPublishedLeads() {
 
   useEffect(() => {
     if (!user) return
-    supabase
-      .from('leads')
-      .select('id, profession, city, state, zip_code, parsed_summary, urgency, matched_contractors, created_at, status')
-      .eq('publisher_id', user.id)
-      .eq('source_type', 'publisher')
-      .order('created_at', { ascending: false })
-      .then(({ data, error }) => {
-        if (!error && data) setLeads(data)
-        setLoading(false)
-      })
+    ;(async () => {
+      // Get user's whatsapp phone to match sender_id
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('whatsapp_phone')
+        .eq('id', user.id)
+        .single()
+      const waPhone = profile?.whatsapp_phone?.replace(/[+\s\-()]/g, '')
+      if (!waPhone) { setLoading(false); return }
+
+      const senderId = `${waPhone}@c.us`
+      const { data, error } = await supabase
+        .from('leads')
+        .select('id, profession, city, state, zip_code, parsed_summary, urgency, matched_contractors, created_at, status')
+        .eq('sender_id', senderId)
+        .eq('source', 'bot')
+        .order('created_at', { ascending: false })
+      if (!error && data) setLeads(data)
+      setLoading(false)
+    })()
   }, [user])
 
   const urgencyBadge: Record<string, string> = {

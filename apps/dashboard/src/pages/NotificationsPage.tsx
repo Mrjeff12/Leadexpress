@@ -66,7 +66,7 @@ export default function NotificationsPage() {
 
   const professions = contractorData?.professions ?? []
   const zipCodes = contractorData?.zip_codes ?? []
-  const profileReady = !profileLoading && professions.length > 0 && zipCodes.length > 0
+  const profileReady = !profileLoading
 
   const [notifications, setNotifications] = useState<Notification[]>([])
   const [loading, setLoading] = useState(true)
@@ -75,23 +75,17 @@ export default function NotificationsPage() {
   /* Build notifications from recent lead activity */
   const fetchNotifications = useCallback(async () => {
     if (!effectiveUserId) return
-    if (professions.length === 0 || zipCodes.length === 0) {
-      setNotifications([])
-      setLoading(false)
-      return
-    }
     setLoading(true)
 
     try {
-      // Fetch recent leads filtered by contractor's professions & zip codes (last 30 days)
+      // Fetch recent leads matched to this contractor (last 30 days)
       const since = new Date()
       since.setDate(since.getDate() - 30)
 
       const { data: leads } = await supabase
         .from('leads')
         .select('id, profession, parsed_summary, city, zip_code, urgency, budget_range, created_at, groups ( name )')
-        .in('profession', professions)
-        .in('zip_code', zipCodes)
+        .contains('matched_contractors', [effectiveUserId])
         .order('created_at', { ascending: false })
         .gte('created_at', since.toISOString())
         .limit(50)

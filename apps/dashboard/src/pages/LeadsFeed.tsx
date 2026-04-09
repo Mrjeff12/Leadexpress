@@ -182,40 +182,28 @@ export default function LeadsFeed() {
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
-  // Fetch contractor settings then leads filtered by professions + zip codes
+  // Fetch leads that were matched to this contractor by the match-lead pipeline
   useEffect(() => {
     async function fetchLeads() {
       if (!user || !effectiveUserId) return
 
-      // 1. Load contractor's professions & zip_codes
+      // 1. Load contractor's professions (for filter UI only)
       const { data: contractor } = await supabase
         .from('contractors')
         .select('professions, zip_codes')
         .eq('user_id', effectiveUserId)
         .maybeSingle()
 
-      const professions: string[] = contractor?.professions ?? []
-      const zipCodes: string[] = contractor?.zip_codes ?? []
-      setContractorProfessions(professions)
-      setContractorZips(zipCodes)
+      setContractorProfessions(contractor?.professions ?? [])
+      setContractorZips(contractor?.zip_codes ?? [])
 
-      // 2. If contractor hasn't configured professions or zips, show empty
-      if (professions.length === 0 || zipCodes.length === 0) {
-        setLeads([])
-        setLoading(false)
-        return
-      }
-
-      // 3. Fetch leads filtered by contractor's professions AND zip codes
-      let query = supabase
+      // 2. Fetch only leads where this contractor is in matched_contractors
+      const { data, error } = await supabase
         .from('leads')
         .select('id, profession, parsed_summary, raw_message, city, zip_code, urgency, budget_range, sender_id, created_at, source, groups ( name )')
-        .in('profession', professions)
-        .in('zip_code', zipCodes)
+        .contains('matched_contractors', [effectiveUserId])
         .order('created_at', { ascending: false })
         .limit(200)
-
-      const { data, error } = await query
 
       if (!error && data) {
         const leadsData = data.map((row: any) => ({
