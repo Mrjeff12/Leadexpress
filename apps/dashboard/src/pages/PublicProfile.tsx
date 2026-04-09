@@ -121,13 +121,7 @@ function formatProfession(p: string): string {
   return p.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())
 }
 
-const PROF_EMOJI: Record<string, string> = {
-  hvac: '❄️', air_duct: '💨', chimney: '🏠', dryer_vent: '🌀',
-  garage_door: '🚪', locksmith: '🔑', roofing: '🏗️', plumbing: '🔧',
-  electrical: '⚡', painting: '🎨', cleaning: '🧹', carpet_cleaning: '🧼',
-  renovation: '🔨', fencing: '🏗️', landscaping: '🌿', tiling: '🔲',
-  kitchen: '🍳', bathroom: '🚿', pool: '🏊', moving: '📦', windows: '🪟', other: '📋',
-}
+import { PROFESSION_ICONS } from '../lib/profession-icons'
 
 function formatMemberSince(date: string | null | undefined): string {
   if (!date) return '--'
@@ -389,11 +383,13 @@ export default function PublicProfile() {
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(90px, 1fr))', gap: 8 }}>
                   {data.professions.map((p) => (
                     <div key={p} style={{
-                      display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
-                      padding: '12px 8px', borderRadius: 12,
+                      display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8,
+                      padding: '14px 8px', borderRadius: 12,
                       background: '#1c1c1e', border: '1px solid rgba(255,255,255,0.06)',
                     }}>
-                      <span style={{ fontSize: 24 }}>{PROF_EMOJI[p] || '📋'}</span>
+                      <div style={{ color: '#ff6b35', width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        {PROFESSION_ICONS[p] || PROFESSION_ICONS.other}
+                      </div>
                       <span style={{ fontSize: 10, fontWeight: 600, color: '#a1a1a6', textAlign: 'center', lineHeight: 1.2 }}>
                         {formatProfession(p)}
                       </span>
