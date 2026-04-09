@@ -245,15 +245,7 @@ export default function ContractorDashboard() {
       .then(({ data }) => { if (data) setViewStats(data) })
   }, [effectiveUserId, contractorData?.profile?.slug])
 
-  // Show onboarding modal when profile is very incomplete
-  useEffect(() => {
-    if (!contractorData) return
-    const completeness = contractorData.profile?.profile_completeness ?? 100
-    const dismissed = localStorage.getItem('mlf_onboarding_dismissed') === 'true'
-    if (completeness < 30 && !dismissed) {
-      setShowOnboarding(true)
-    }
-  }, [contractorData])
+  // Profile onboarding popup disabled — headline/bio/work preferences are not needed
 
   // Close dropdowns on outside click
   useEffect(() => {

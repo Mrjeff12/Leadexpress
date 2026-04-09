@@ -458,13 +458,15 @@ export default function PublicProfile() {
                 <Suspense fallback={<div style={{ height: 240, background: '#1c1c1e' }} />}>
                   <ServiceAreaMap zipCodes={data.zip_codes!} height="240px" className="rounded-none" />
                 </Suspense>
-                <div style={{ padding: '12px 20px', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                    {data.zip_codes!.map((z) => (
-                      <span key={z} style={{ padding: '2px 8px', borderRadius: 6, fontSize: 11, fontFamily: 'monospace', color: '#636366', background: '#1c1c1e', border: '1px solid rgba(255,255,255,0.06)' }}>{z}</span>
-                    ))}
+                {data.counties && data.counties.length > 0 && (
+                  <div style={{ padding: '12px 20px', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                      {data.counties.map((c) => (
+                        <span key={c} style={{ padding: '4px 10px', borderRadius: 8, fontSize: 12, color: '#a1a1a6', background: '#1c1c1e', border: '1px solid rgba(255,255,255,0.06)' }}>{c}</span>
+                      ))}
+                    </div>
                   </div>
-                </div>
+                )}
               </div>
             )}
 
