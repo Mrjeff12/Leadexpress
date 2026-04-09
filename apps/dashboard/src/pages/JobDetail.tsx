@@ -9,6 +9,14 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/auth'
 import { useI18n } from '../lib/i18n'
 
+interface SubProfile {
+  avg_rating: number
+  review_count: number
+  tier: string
+  avatar_url: string | null
+  years_experience: number | null
+}
+
 interface JobOrder {
   id: string
   lead_id: string | null
@@ -29,6 +37,7 @@ interface JobOrder {
   completed_at: string | null
   sub_name: string
   sub_phone: string
+  sub_profile: SubProfile | null
   lead_profession: string | null
   lead_city: string | null
   lead_zip: string | null
@@ -74,18 +83,19 @@ export default function JobDetail() {
     if (!id) return
     supabase
       .from('job_orders')
-      .select('*, subcontractors(full_name, phone), contractors(full_name, whatsapp_phone), leads(profession, city, zip_code, parsed_summary)')
+      .select('*, subcontractors(full_name, phone), contractors(full_name, whatsapp_phone), leads(profession, city, zip_code, parsed_summary), contractor_profiles!job_orders_contractor_id_fkey(avg_rating, review_count, tier, avatar_url, years_experience)')
       .eq('id', id)
       .maybeSingle()
       .then(({ data }) => {
         if (data) {
-          // Prefer subcontractor info; fall back to contractor (for claim-originated jobs where subcontractor_id is null)
           const sub = (data as any).subcontractors;
           const ctr = (data as any).contractors;
+          const cp = (data as any).contractor_profiles;
           setJob({
             ...data,
             sub_name: sub?.full_name || ctr?.full_name || '',
             sub_phone: sub?.phone || ctr?.whatsapp_phone || '',
+            sub_profile: cp || null,
             lead_profession: (data as any).leads?.profession || null,
             lead_city: (data as any).leads?.city || null,
             lead_zip: (data as any).leads?.zip_code || null,
@@ -283,12 +293,34 @@ export default function JobDetail() {
             <p className="text-[11px] font-semibold text-[#636366] uppercase tracking-wider mb-2">Assigned To</p>
             <div className="rounded-2xl p-4" style={{ background: '#141414', border: '1px solid rgba(255,255,255,0.08)' }}>
               <div className="flex items-center gap-3 mb-3">
-                <div className="w-11 h-11 rounded-2xl bg-[#2c2c2e] flex items-center justify-center text-[#a1a1a6] text-[13px] font-bold flex-shrink-0">
-                  {job.sub_name.slice(0, 2).toUpperCase()}
-                </div>
+                {job.sub_profile?.avatar_url ? (
+                  <img src={job.sub_profile.avatar_url} alt="" className="w-11 h-11 rounded-2xl object-cover flex-shrink-0" />
+                ) : (
+                  <div className="w-11 h-11 rounded-2xl flex items-center justify-center text-[13px] font-bold flex-shrink-0"
+                    style={{ background: 'rgba(255,107,53,0.15)', color: '#ff6b35' }}>
+                    {job.sub_name.slice(0, 2).toUpperCase()}
+                  </div>
+                )}
                 <div className="flex-1">
                   <p className="text-[14px] font-bold text-white">{job.sub_name}</p>
-                  <p className="text-[10px] text-[#636366]">Subcontractor</p>
+                  <div className="flex items-center gap-2 mt-0.5">
+                    {job.sub_profile && job.sub_profile.avg_rating > 0 && (
+                      <span className="flex items-center gap-0.5">
+                        <Star size={10} style={{ fill: '#ff6b35', color: '#ff6b35' }} />
+                        <span className="text-[10px] font-semibold" style={{ color: '#ff6b35' }}>{job.sub_profile.avg_rating}</span>
+                        <span className="text-[9px]" style={{ color: '#636366' }}>({job.sub_profile.review_count})</span>
+                      </span>
+                    )}
+                    {job.sub_profile?.tier && job.sub_profile.tier !== 'new' && (
+                      <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full"
+                        style={{ background: 'rgba(255,107,53,0.1)', color: '#ff6b35' }}>
+                        {job.sub_profile.tier === 'elite' ? '🏆' : job.sub_profile.tier === 'trusted' ? '✅' : '🔵'} {job.sub_profile.tier}
+                      </span>
+                    )}
+                    {!job.sub_profile?.avg_rating && (
+                      <span className="text-[10px] text-[#636366]">Subcontractor</span>
+                    )}
+                  </div>
                 </div>
                 <ChevronRight size={14} className="text-[#48484a]" />
               </div>
