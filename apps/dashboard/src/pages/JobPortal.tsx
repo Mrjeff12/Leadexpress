@@ -69,7 +69,8 @@ export default function JobPortal() {
   const [signupPhone, setSignupPhone] = useState('')
   const [leadAddress, setLeadAddress] = useState('')
   const [leadPhone, setLeadPhone] = useState('')
-  const [commissionPct, setCommissionPct] = useState('')
+  const [myEarnings, setMyEarnings] = useState('')
+  const [subPay, setSubPay] = useState('')
   const [signupLoading, setSignupLoading] = useState(false)
   const [signupDone, setSignupDone] = useState(false)
   const [isExistingUser, setIsExistingUser] = useState<boolean | null>(null) // null = checking
@@ -160,7 +161,8 @@ export default function JobPortal() {
           job_order_id: job?.id,
           lead_address: leadAddress.trim() || undefined,
           lead_phone: leadPhone.trim() || undefined,
-          commission_pct: commissionPct.trim() || undefined,
+          my_earnings: myEarnings.trim() || undefined,
+          sub_pay: subPay.trim() || undefined,
         }),
       })
       const data = await res.json().catch(() => ({}))
@@ -381,13 +383,18 @@ export default function JobPortal() {
               dir="ltr"
             />
             <ContactRowInput
-              label={t(lang, 'commission', 'עמלה')}
-              value={commissionPct}
-              onChange={setCommissionPct}
-              placeholder={t(lang, 'Tap to add %', 'לחץ להוספת %')}
-              type="number"
+              label={t(lang, 'my cut', 'העמלה שלי')}
+              value={myEarnings}
+              onChange={setMyEarnings}
+              placeholder={t(lang, 'e.g. $200', 'למשל $200')}
               dir="ltr"
-              suffix="%"
+            />
+            <ContactRowInput
+              label={t(lang, 'sub pay', 'תשלום לקבלן')}
+              value={subPay}
+              onChange={setSubPay}
+              placeholder={t(lang, 'e.g. $800', 'למשל $800')}
+              dir="ltr"
             />
 
             {/* Separator */}
