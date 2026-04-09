@@ -26,15 +26,19 @@ interface ContractorProfile {
 interface Job {
   id: string
   lead_id: string
-  contractor_id: string
+  contractor_id: string | null
+  publisher_user_id: string | null
   subcontractor_id: string | null
   deal_type: string
   deal_value: string
   status: string
   created_at: string
   updated_at: string
+  portal_mode: 'publisher_signup' | 'contractor_signup' | 'complete'
   contractor_name: string
   contractor_profile?: ContractorProfile
+  publisher_name?: string
+  publisher_profile?: ContractorProfile
   lead: {
     city: string | null
     zip_code: string | null
@@ -169,13 +173,14 @@ export default function JobPortal() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           action: 'signup',
+          mode: isContractorSignup ? 'contractor_signup' : 'publisher_signup',
           name: isExistingUser ? existingUserName : signupName.trim(),
           phone: signupPhone.trim(),
           job_order_id: job?.id,
-          lead_address: leadAddress.trim() || undefined,
-          lead_phone: leadPhone.trim() || undefined,
-          my_earnings: myEarnings.trim() || undefined,
-          sub_pay: subPay.trim() || undefined,
+          lead_address: !isContractorSignup ? (leadAddress.trim() || undefined) : undefined,
+          lead_phone: !isContractorSignup ? (leadPhone.trim() || undefined) : undefined,
+          my_earnings: !isContractorSignup ? (myEarnings.trim() || undefined) : undefined,
+          sub_pay: !isContractorSignup ? (subPay.trim() || undefined) : undefined,
         }),
       })
       const data = await res.json().catch(() => ({}))
@@ -202,8 +207,17 @@ export default function JobPortal() {
     : (signupName.trim() && signupPhone.trim())
 
   // Derived data
+  const portalMode = job?.portal_mode || 'publisher_signup'
+  const isContractorSignup = portalMode === 'contractor_signup'
+
+  // In contractor_signup mode, the "other party" is the publisher
+  const otherPartyName = isContractorSignup
+    ? (job?.publisher_name || t(lang, 'A publisher', 'מפרסם'))
+    : (job?.contractor_name || t(lang, 'A contractor', 'קבלן'))
+  const otherPartyProfile = isContractorSignup ? job?.publisher_profile : job?.contractor_profile
+
   const contractorName = job?.contractor_name || t(lang, 'A contractor', 'קבלן')
-  const cp = job?.contractor_profile
+  const cp = otherPartyProfile
   const lead = job?.lead || { city: null, zip_code: null, urgency: null, summary: null, description: null, sender_id: null, profession: null }
   const profession = (lead.profession || '').replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase())
   const location = [lead.city, lead.zip_code].filter(Boolean).join(', ') || t(lang, 'Your area', 'האזור שלך')
@@ -328,10 +342,16 @@ export default function JobPortal() {
           <div className="relative max-w-md mx-auto">
             {/* Title */}
             <h1 className="text-[17px] font-bold mb-3 animate-in" style={{ color: '#fff', fontFamily: "'Outfit', sans-serif", letterSpacing: '-0.03em' }}>
-              {t(lang,
-                `${contractorName} took your job ✅`,
-                `${contractorName} לקח את העבודה שלך ✅`
-              )}
+              {isContractorSignup
+                ? t(lang,
+                    `${otherPartyName} wants you on this job 🔧`,
+                    `${otherPartyName} רוצה אותך בעבודה הזאת 🔧`
+                  )
+                : t(lang,
+                    `${otherPartyName} took your job ✅`,
+                    `${otherPartyName} לקח את העבודה שלך ✅`
+                  )
+              }
             </h1>
 
             {/* Contractor profile card */}
@@ -343,12 +363,12 @@ export default function JobPortal() {
                 ) : (
                   <div className="w-12 h-12 rounded-xl flex items-center justify-center text-lg font-bold shrink-0"
                     style={{ background: 'rgba(255,107,53,0.15)', color: BRAND }}>
-                    {contractorName.charAt(0).toUpperCase()}
+                    {otherPartyName.charAt(0).toUpperCase()}
                   </div>
                 )}
                 {/* Name + tier */}
                 <div className="flex-1 min-w-0">
-                  <p className="text-[15px] font-bold text-white truncate">{contractorName}</p>
+                  <p className="text-[15px] font-bold text-white truncate">{otherPartyName}</p>
                   <div className="flex items-center gap-2 mt-0.5">
                     {cp && cp.avg_rating > 0 && (
                       <span className="flex items-center gap-0.5">
@@ -427,49 +447,68 @@ export default function JobPortal() {
                 small
               />
             )}
-            <ContactRow
-              label={t(lang, 'sub-contractor', 'קבלן משנה')}
-              value={contractorName}
-              accent="brand"
-            />
+            {!isContractorSignup && (
+              <ContactRow
+                label={t(lang, 'sub-contractor', 'קבלן משנה')}
+                value={contractorName}
+                accent="brand"
+              />
+            )}
+            {isContractorSignup && job?.publisher_name && (
+              <ContactRow
+                label={t(lang, 'posted by', 'פורסם ע"י')}
+                value={job.publisher_name}
+                accent="brand"
+              />
+            )}
 
             {/* ─ Editable fields with motivation text ─ */}
             <div className="px-5 py-2.5" style={{ background: '#1c1c1e' }}>
               <p className="text-[11px]" style={{ color: '#636366', lineHeight: 1.5 }}>
-                {t(lang,
-                  'Fill in the details so you and ' + contractorName + ' have everything in one place. No more digging through WhatsApp.',
-                  'מלא את הפרטים כדי שלך ול' + contractorName + ' יהיה הכל במקום אחד. בלי לחפש בוואטסאפ.'
-                )}
+                {isContractorSignup
+                  ? t(lang,
+                      'Take this job and get more like it automatically. Join for free.',
+                      'קח את העבודה וקבל עוד כאלה אוטומטית. הצטרף בחינם.'
+                    )
+                  : t(lang,
+                      'Fill in the details so you and ' + otherPartyName + ' have everything in one place. No more digging through WhatsApp.',
+                      'מלא את הפרטים כדי שלך ול' + otherPartyName + ' יהיה הכל במקום אחד. בלי לחפש בוואטסאפ.'
+                    )
+                }
               </p>
             </div>
-            <ContactRowInput
-              label={t(lang, 'address', 'כתובת')}
-              value={leadAddress}
-              onChange={setLeadAddress}
-              placeholder={t(lang, 'Tap to add', 'לחץ להוספה')}
-            />
-            <ContactRowInput
-              label={t(lang, 'customer phone', 'טלפון לקוח')}
-              value={leadPhone}
-              onChange={setLeadPhone}
-              placeholder={t(lang, 'Tap to add', 'לחץ להוספה')}
-              type="tel"
-              dir="ltr"
-            />
-            <ContactRowInput
-              label={t(lang, 'my cut', 'העמלה שלי')}
-              value={myEarnings}
-              onChange={setMyEarnings}
-              placeholder={t(lang, 'e.g. $200', 'למשל $200')}
-              dir="ltr"
-            />
-            <ContactRowInput
-              label={t(lang, 'sub pay', 'תשלום לקבלן')}
-              value={subPay}
-              onChange={setSubPay}
-              placeholder={t(lang, 'e.g. $800', 'למשל $800')}
-              dir="ltr"
-            />
+            {!isContractorSignup && (
+              <>
+                <ContactRowInput
+                  label={t(lang, 'address', 'כתובת')}
+                  value={leadAddress}
+                  onChange={setLeadAddress}
+                  placeholder={t(lang, 'Tap to add', 'לחץ להוספה')}
+                />
+                <ContactRowInput
+                  label={t(lang, 'customer phone', 'טלפון לקוח')}
+                  value={leadPhone}
+                  onChange={setLeadPhone}
+                  placeholder={t(lang, 'Tap to add', 'לחץ להוספה')}
+                  type="tel"
+                  dir="ltr"
+                />
+                <ContactRowInput
+                  label={t(lang, 'my cut', 'העמלה שלי')}
+                  value={myEarnings}
+                  onChange={setMyEarnings}
+                  placeholder={t(lang, 'e.g. $200', 'למשל $200')}
+                  dir="ltr"
+                />
+                <ContactRowInput
+                  label={t(lang, 'sub pay', 'תשלום לקבלן')}
+                  value={subPay}
+                  onChange={setSubPay}
+                  placeholder={t(lang, 'e.g. $800', 'למשל $800')}
+                  dir="ltr"
+                />
+              </>
+            )}
 
             {/* Separator */}
             <div style={{ height: 8, background: '#1c1c1e' }} />
@@ -576,7 +615,9 @@ export default function JobPortal() {
               : <span className="flex items-center justify-center gap-2">
                   {isExistingUser
                     ? t(lang, 'Open my dashboard →', 'פתח את הדשבורד שלי →')
-                    : t(lang, 'Save & send me a login link 💬', 'שמור ושלח לי לינק כניסה 💬')
+                    : isContractorSignup
+                      ? t(lang, 'Take this job & get more 💬', 'קח את העבודה וקבל עוד 💬')
+                      : t(lang, 'Save & send me a login link 💬', 'שמור ושלח לי לינק כניסה 💬')
                   }
                 </span>}
           </button>

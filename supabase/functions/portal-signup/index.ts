@@ -196,59 +196,89 @@ Deno.serve(async (req: Request) => {
       userName = name.trim();
     }
 
-    // Link job order to this publisher + save extra details
+    // Link job order — mode-aware
+    const signupMode = body.mode || "publisher_signup";
+
     if (job_order_id) {
-      const updatePayload: Record<string, unknown> = {
-        publisher_user_id: userId, // Publisher who posted the original job in WhatsApp
-      };
-      if (lead_address) updatePayload.customer_address = lead_address;
-      if (lead_phone) updatePayload.customer_phone = lead_phone;
-      if (commission_pct) updatePayload.commission_pct = Number(commission_pct) || null;
-
-      await supabase
-        .from("job_orders")
-        .update(updatePayload)
-        .eq("id", job_order_id);
-
-      // Log event
-      await supabase.from("pipeline_events").insert({
-        stage: isNew
-          ? "publisher_signed_up_via_portal"
-          : "publisher_linked_via_portal",
-        detail: {
-          user_id: userId,
-          job_order_id,
-          phone: cleanPhone,
-          is_new: isNew,
-        },
-      });
-
-      // ── Notify the sub-contractor (Moti) that publisher signed up ──
-      try {
-        const { data: jobOrder } = await supabase
+      if (signupMode === "contractor_signup") {
+        // ── Reverse portal: contractor signs up via publisher's invite ──
+        await supabase
           .from("job_orders")
-          .select("contractor_id")
-          .eq("id", job_order_id)
-          .single();
+          .update({ contractor_id: userId })
+          .eq("id", job_order_id);
 
-        if (jobOrder?.contractor_id) {
-          const { data: contractorProfile } = await supabase
-            .from("profiles")
-            .select("whatsapp_phone, full_name")
-            .eq("id", jobOrder.contractor_id)
+        await supabase.from("pipeline_events").insert({
+          stage: isNew ? "contractor_signed_up_via_portal" : "contractor_linked_via_portal",
+          detail: { user_id: userId, job_order_id, phone: cleanPhone, is_new: isNew },
+        });
+
+        // Notify the publisher that a contractor accepted
+        try {
+          const { data: jobOrder } = await supabase
+            .from("job_orders")
+            .select("publisher_user_id")
+            .eq("id", job_order_id)
             .single();
-
-          if (contractorProfile?.whatsapp_phone) {
-            await loadTwilioSecrets();
-            const notifyMsg = isNew
-              ? `🎉 ${userName} just signed up through your job link!\n\nThe publisher of the job is now on MasterLeadFlow. You'll both be able to track and manage the job from the dashboard.`
-              : `👍 ${userName} confirmed the job through your link!\n\nEverything is set up in the dashboard.`;
-            await sendWhatsApp(contractorProfile.whatsapp_phone, notifyMsg);
+          if (jobOrder?.publisher_user_id) {
+            const { data: pubProfile } = await supabase
+              .from("profiles")
+              .select("whatsapp_phone, full_name")
+              .eq("id", jobOrder.publisher_user_id)
+              .single();
+            if (pubProfile?.whatsapp_phone) {
+              await loadTwilioSecrets();
+              const msg = isNew
+                ? `🎉 ${userName} just accepted your job and signed up!\n\nYou can now track and manage the job together in the dashboard.`
+                : `👍 ${userName} accepted your job!\n\nEverything is set up in the dashboard.`;
+              await sendWhatsApp(pubProfile.whatsapp_phone, msg);
+            }
           }
+        } catch (e) {
+          console.error("[portal-signup] Publisher notification error:", e);
         }
-      } catch (notifyErr) {
-        // Non-blocking — don't fail the signup if notification fails
-        console.error("[portal-signup] Contractor notification error:", notifyErr);
+      } else {
+        // ── Standard portal: publisher signs up via contractor's invite ──
+        const updatePayload: Record<string, unknown> = {
+          publisher_user_id: userId,
+        };
+        if (lead_address) updatePayload.customer_address = lead_address;
+        if (lead_phone) updatePayload.customer_phone = lead_phone;
+        if (commission_pct) updatePayload.commission_pct = Number(commission_pct) || null;
+
+        await supabase
+          .from("job_orders")
+          .update(updatePayload)
+          .eq("id", job_order_id);
+
+        await supabase.from("pipeline_events").insert({
+          stage: isNew ? "publisher_signed_up_via_portal" : "publisher_linked_via_portal",
+          detail: { user_id: userId, job_order_id, phone: cleanPhone, is_new: isNew },
+        });
+
+        // Notify the sub-contractor that publisher signed up
+        try {
+          const { data: jobOrder } = await supabase
+            .from("job_orders")
+            .select("contractor_id")
+            .eq("id", job_order_id)
+            .single();
+          if (jobOrder?.contractor_id) {
+            const { data: conProfile } = await supabase
+              .from("profiles")
+              .select("whatsapp_phone, full_name")
+              .eq("id", jobOrder.contractor_id)
+              .single();
+            if (conProfile?.whatsapp_phone) {
+              await loadTwilioSecrets();
+              const msg = isNew
+                ? `🎉 ${userName} just signed up through your job link!\n\nThe publisher is now on MasterLeadFlow. You'll both be able to track and manage the job.`
+                : `👍 ${userName} confirmed the job through your link!\n\nEverything is set up in the dashboard.`;
+              await sendWhatsApp(conProfile.whatsapp_phone, msg);
+            }
+          }
+        } catch (e) {
+          console.error("[portal-signup] Contractor notification error:", e);
+        }
       }
     }
 
