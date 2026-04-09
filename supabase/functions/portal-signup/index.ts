@@ -80,6 +80,21 @@ Deno.serve(async (req: Request) => {
     const body = await req.json();
     const action = body.action || "signup";
 
+    // ── ACTION: send_invite — publisher sends portal link to sub via WhatsApp ──
+    if (action === "send_invite") {
+      const { phone, publisher_name, profession, location, portal_url } = body;
+      if (!phone || !portal_url) {
+        return new Response(JSON.stringify({ error: "phone and portal_url required" }), { status: 400, headers: corsHeaders });
+      }
+      const cleanPhone = phone.startsWith("+") ? phone : `+${phone}`;
+      await loadTwilioSecrets();
+      const profLabel = profession || "a job";
+      const loc = location ? ` in ${location}` : "";
+      const msg = `Hey! ${publisher_name || "A contractor"} has a ${profLabel} job${loc} for you.\n\nTap below to see the details and take the job:\n👉 ${portal_url}\n\nFree to join. Takes 30 seconds.`;
+      const sent = await sendWhatsApp(cleanPhone, msg);
+      return new Response(JSON.stringify({ ok: true, sent }), { headers: corsHeaders });
+    }
+
     // ── ACTION: check — does this phone exist? ──
     if (action === "check") {
       const phone = body.phone?.trim();

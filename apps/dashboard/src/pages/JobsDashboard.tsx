@@ -25,6 +25,7 @@ import {
   Send,
 } from 'lucide-react'
 import JobDetailPanel from '../components/JobDetailPanel'
+import InviteSubModal from '../components/InviteSubModal'
 import BroadcastResponsesPanel from '../components/BroadcastResponsesPanel'
 import { useSubscriptionAccess } from '../hooks/useSubscriptionAccess'
 import FeatureTeaser from '../components/FeatureTeaser'
@@ -142,6 +143,7 @@ export default function JobsDashboard() {
   const { effectiveUserId } = useAuth()
   const { locale } = useI18n()
   const { toast } = useToast()
+  const [showInvite, setShowInvite] = useState(false)
   const nav = useNavigate()
 
   const he = locale === 'he'
@@ -890,6 +892,21 @@ export default function JobsDashboard() {
       </>
       )}
       </div>{/* end hidden md:block */}
+
+      {/* FAB — Invite Sub-Contractor */}
+      <button
+        onClick={() => setShowInvite(true)}
+        className="fixed bottom-20 right-5 md:bottom-8 md:right-8 w-14 h-14 rounded-full flex items-center justify-center text-white active:scale-95 transition-transform z-40"
+        style={{ background: '#ff6b35', boxShadow: '0 0 24px rgba(255,107,53,0.4)' }}
+      >
+        <Plus size={24} />
+      </button>
+
+      <InviteSubModal
+        open={showInvite}
+        onClose={() => setShowInvite(false)}
+        onSuccess={() => toast({ title: 'Invite sent!', description: 'The sub-contractor will receive a WhatsApp link.' })}
+      />
     </div>
   )
 }
