@@ -465,9 +465,13 @@ export default function JobPortal() {
             {isContractorSignup ? (
               /* ─ Contractor signup: locked/blurred details ─ */
               <>
-                <LockedRow label={t(lang, 'address', 'כתובת')} hint="••••••••••" />
-                <LockedRow label={t(lang, 'customer phone', 'טלפון לקוח')} hint="+1 •••-•••-••••" />
-                <LockedRow label={t(lang, 'your pay', 'התשלום שלך')} hint="$•••" />
+                <LockedRow label={t(lang, 'address', 'כתובת')} hint="*** **** ****, **" />
+                <LockedRow label={t(lang, 'customer name', 'שם לקוח')} hint="**** ****" />
+                <LockedRow label={t(lang, 'customer phone', 'טלפון לקוח')} hint="+1 ***-***-****" />
+                <ContactRow
+                  label={t(lang, 'your pay', 'התשלום שלך')}
+                  value={job?.deal_value ? `$${job.deal_value}` : t(lang, 'To be discussed', 'לסיכום')}
+                />
                 <div className="px-5 py-3" style={{ background: '#1c1c1e' }}>
                   <p className="text-[11px] text-center" style={{ color: '#a1a1a6', lineHeight: 1.5 }}>
                     🔒 {t(lang,
@@ -653,8 +657,8 @@ export default function JobPortal() {
 function LockedRow({ label, hint }: { label: string; hint: string }) {
   return (
     <div className="flex items-center px-5 py-3" style={{ borderBottom: '0.5px solid rgba(255,255,255,0.06)' }}>
-      <span className="text-[13px] shrink-0" style={{ color: '#48484a', width: 110 }}>{label}</span>
-      <span className="flex-1 text-[13px] font-medium" style={{ color: '#2c2c2e', filter: 'blur(4px)', userSelect: 'none' }}>{hint}</span>
+      <span className="text-[13px] shrink-0" style={{ color: '#636366', width: 110 }}>{label}</span>
+      <span className="flex-1 text-[13px] font-medium tracking-wider" style={{ color: '#48484a' }}>{hint}</span>
       <span className="text-[10px] shrink-0 ml-2" style={{ color: '#48484a' }}>🔒</span>
     </div>
   )
