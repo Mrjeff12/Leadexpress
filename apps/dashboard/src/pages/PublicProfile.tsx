@@ -380,14 +380,24 @@ export default function PublicProfile() {
             {/* Services — Angi-style icon grid */}
             {data.professions && data.professions.length > 0 && (
               <Section icon={<Briefcase size={16} style={{ color: '#48484a' }} />} title="Services">
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(90px, 1fr))', gap: 8 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10 }} className="lg:!grid-cols-5">
                   {data.professions.map((p) => (
                     <div key={p} style={{
                       display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8,
-                      padding: '14px 8px', borderRadius: 12,
+                      padding: '16px 4px 12px', borderRadius: 14,
                       background: '#1c1c1e', border: '1px solid rgba(255,255,255,0.06)',
-                    }}>
-                      <div style={{ color: '#ff6b35', width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      transition: 'border-color 0.2s, background 0.2s',
+                      cursor: 'default',
+                    }}
+                      onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(255,107,53,0.2)'; e.currentTarget.style.background = '#222' }}
+                      onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.06)'; e.currentTarget.style.background = '#1c1c1e' }}
+                    >
+                      <div style={{
+                        width: 48, height: 48, borderRadius: '50%',
+                        background: 'rgba(255,107,53,0.08)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        color: '#ff6b35',
+                      }}>
                         {PROFESSION_ICONS[p] || PROFESSION_ICONS.other}
                       </div>
                       <span style={{ fontSize: 10, fontWeight: 600, color: '#a1a1a6', textAlign: 'center', lineHeight: 1.2 }}>
