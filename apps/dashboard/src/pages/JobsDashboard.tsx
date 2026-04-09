@@ -23,7 +23,11 @@ import {
   Navigation,
   Plus,
   Send,
+  ShieldCheck,
+  BadgeCheck,
+  Fingerprint,
 } from 'lucide-react'
+import { useIdentityVerification } from '../hooks/useIdentityVerification'
 import JobDetailPanel from '../components/JobDetailPanel'
 import InviteSubModal from '../components/InviteSubModal'
 import BroadcastResponsesPanel from '../components/BroadcastResponsesPanel'
@@ -157,6 +161,19 @@ export default function JobsDashboard() {
   const [broadcasts, setBroadcasts] = useState<Broadcast[]>([])
   const [broadcastsLoading, setBroadcastsLoading] = useState(false)
   const [selectedBroadcast, setSelectedBroadcast] = useState<Broadcast | null>(null)
+  const [pubProfile, setPubProfile] = useState<{ tier: string; avg_rating: number; review_count: number; jobs_completed: number } | null>(null)
+  const { isVerified: identityVerified } = useIdentityVerification()
+
+  // Fetch publisher profile
+  useEffect(() => {
+    if (!effectiveUserId) return
+    supabase
+      .from('publisher_profiles')
+      .select('tier, avg_rating, review_count, jobs_completed')
+      .eq('user_id', effectiveUserId)
+      .maybeSingle()
+      .then(({ data }) => { if (data) setPubProfile(data as any) })
+  }, [effectiveUserId])
 
   /* ── Fetch ── */
   const fetchJobs = useCallback(async (showLoading = true) => {
@@ -485,6 +502,36 @@ export default function JobsDashboard() {
           ) : (
             /* Published / Broadcasts */
             <>
+              {/* Publisher tier + Verify CTA */}
+              {pubProfile && (
+                <div className="flex items-center gap-3 p-3 rounded-xl bg-[#fafafa] mb-3">
+                  <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${pubProfile.tier !== 'new' ? 'bg-blue-100' : 'bg-gray-100'}`}>
+                    {pubProfile.tier !== 'new' ? <BadgeCheck size={16} className="text-blue-600" /> : <Users size={16} className="text-gray-400" />}
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-[12px] font-semibold text-[#111]">
+                      {he ? 'דרגת מפרסם:' : 'Publisher Tier:'} <span className="capitalize text-blue-600">{pubProfile.tier}</span>
+                    </p>
+                    <p className="text-[10px] text-[#737373]">
+                      {pubProfile.jobs_completed} {he ? 'עבודות הושלמו' : 'jobs completed'}
+                      {pubProfile.avg_rating > 0 && ` · ⭐ ${pubProfile.avg_rating}`}
+                    </p>
+                  </div>
+                </div>
+              )}
+              {!identityVerified && (
+                <Link to="/verify-identity"
+                  className="flex items-center gap-3 p-3 rounded-xl bg-gradient-to-r from-blue-50 to-blue-50/50 border border-blue-100 mb-3 active:scale-[0.98] transition-transform">
+                  <div className="w-9 h-9 rounded-lg bg-blue-500 flex items-center justify-center flex-shrink-0">
+                    <Fingerprint size={16} className="text-white" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-[12px] font-semibold text-[#111]">{he ? 'אמת את הזהות שלך' : 'Verify Your Identity'}</p>
+                    <p className="text-[10px] text-[#737373]">{he ? 'קבלנים מעדיפים מפרסמים מאומתים' : 'Contractors prefer verified publishers'}</p>
+                  </div>
+                  <ArrowRight size={14} className="text-blue-500" />
+                </Link>
+              )}
               {broadcastsLoading ? (
                 <div className="flex items-center justify-center py-16">
                   <Loader2 className="w-5 h-5 animate-spin text-[#fe5b25]" />

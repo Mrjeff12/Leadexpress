@@ -20,6 +20,8 @@ type PageState =
 interface JobInfo {
   contractor_id: string
   contractor_name: string
+  publisher_user_id: string | null
+  publisher_name: string | null
   status: string
   completed_at: string | null
 }
@@ -42,7 +44,7 @@ export default function ReviewSubmit() {
       /* Fetch job order with contractor info */
       const { data: job, error: jobErr } = await supabase
         .from('job_orders')
-        .select('contractor_id, status, completed_at, profiles!job_orders_contractor_id_fkey(full_name)')
+        .select('contractor_id, publisher_user_id, status, completed_at')
         .eq('id', jobOrderId)
         .single()
 
@@ -54,12 +56,20 @@ export default function ReviewSubmit() {
         return
       }
 
-      const contractorName =
-        (job.profiles as any)?.full_name || 'Contractor'
+      // Fetch names for both sides
+      const ids = [job.contractor_id, job.publisher_user_id].filter(Boolean) as string[]
+      const { data: names } = await supabase
+        .from('profiles')
+        .select('id, full_name')
+        .in('id', ids)
+
+      const nameMap = Object.fromEntries((names || []).map(n => [n.id, n.full_name]))
 
       setJobInfo({
         contractor_id: job.contractor_id,
-        contractor_name: contractorName,
+        contractor_name: nameMap[job.contractor_id] || 'Contractor',
+        publisher_user_id: job.publisher_user_id,
+        publisher_name: job.publisher_user_id ? (nameMap[job.publisher_user_id] || 'Publisher') : null,
         status: job.status,
         completed_at: job.completed_at,
       })
@@ -216,12 +226,20 @@ export default function ReviewSubmit() {
           <ArrowLeft size={14} /> Back to Jobs
         </Link>
 
-        <ReviewForm
-          jobOrderId={jobOrderId!}
-          revieweeId={jobInfo!.contractor_id}
-          revieweeName={jobInfo!.contractor_name}
-          onSuccess={() => setState('submitted')}
-        />
+        {(() => {
+          // Determine who to review: if I'm the contractor, review publisher. If I'm the publisher, review contractor.
+          const isPublisher = user?.id === jobInfo!.publisher_user_id
+          const revieweeId = isPublisher ? jobInfo!.contractor_id : (jobInfo!.publisher_user_id || jobInfo!.contractor_id)
+          const revieweeName = isPublisher ? jobInfo!.contractor_name : (jobInfo!.publisher_name || jobInfo!.contractor_name)
+          return (
+            <ReviewForm
+              jobOrderId={jobOrderId!}
+              revieweeId={revieweeId}
+              revieweeName={revieweeName}
+              onSuccess={() => setState('submitted')}
+            />
+          )
+        })()}
       </div>
     </div>
   )

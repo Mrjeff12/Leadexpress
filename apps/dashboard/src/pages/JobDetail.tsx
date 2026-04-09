@@ -43,6 +43,8 @@ interface JobOrder {
   lead_city: string | null
   lead_zip: string | null
   lead_summary: string | null
+  publisher_user_id: string | null
+  publisher_name: string | null
 }
 
 const STATUS_STEPS = ['Pending', 'Active', 'Working', 'Done']
@@ -84,7 +86,7 @@ export default function JobDetail() {
     if (!id) return
     supabase
       .from('job_orders')
-      .select('*, subcontractors(full_name, phone), contractors(full_name, whatsapp_phone), leads(profession, city, zip_code, parsed_summary), contractor_profiles!job_orders_contractor_id_fkey(avg_rating, review_count, tier, avatar_url, years_experience)')
+      .select('*, subcontractors(full_name, phone), contractors(full_name, whatsapp_phone), leads(profession, city, zip_code, parsed_summary), contractor_profiles!job_orders_contractor_id_fkey(avg_rating, review_count, tier, avatar_url, years_experience), pub_profile:profiles!job_orders_publisher_user_id_fkey(full_name)')
       .eq('id', id)
       .maybeSingle()
       .then(({ data }) => {
@@ -92,11 +94,14 @@ export default function JobDetail() {
           const sub = (data as any).subcontractors;
           const ctr = (data as any).contractors;
           const cp = (data as any).contractor_profiles;
+          const pubName = (data as any).pub_profile?.full_name || null;
           setJob({
             ...data,
             sub_name: sub?.full_name || ctr?.full_name || '',
             sub_phone: sub?.phone || ctr?.whatsapp_phone || '',
             sub_profile: cp || null,
+            publisher_user_id: (data as any).publisher_user_id || null,
+            publisher_name: pubName,
             lead_profession: (data as any).leads?.profession || null,
             lead_city: (data as any).leads?.city || null,
             lead_zip: (data as any).leads?.zip_code || null,
@@ -361,7 +366,7 @@ export default function JobDetail() {
 
         {/* Rate this job — shown when completed */}
         {isCompleted && (
-          <div>
+          <div className="space-y-2">
             <p className="text-[11px] font-semibold text-[#636366] uppercase tracking-wider mb-2">Review</p>
             <button
               onClick={() => nav(`/review-submit/${job.id}`)}
@@ -377,6 +382,22 @@ export default function JobDetail() {
               </div>
               <ChevronRight size={14} className="text-[#48484a]" />
             </button>
+            {job.publisher_user_id && job.publisher_user_id !== effectiveUserId && (
+              <button
+                onClick={() => nav(`/review-submit/${job.id}`)}
+                className="w-full rounded-2xl p-4 flex items-center gap-3 active:scale-[0.98] transition-transform"
+                style={{ background: 'rgba(59,130,246,0.08)', border: '1px solid rgba(59,130,246,0.15)' }}
+              >
+                <div className="w-11 h-11 rounded-2xl flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(59,130,246,0.15)' }}>
+                  <Star size={20} className="text-blue-500" />
+                </div>
+                <div className="flex-1 text-left">
+                  <p className="text-[14px] font-bold text-white">Rate Publisher{job.publisher_name ? `: ${job.publisher_name}` : ''}</p>
+                  <p className="text-[11px] text-[#a1a1a6]">How was working with this publisher?</p>
+                </div>
+                <ChevronRight size={14} className="text-[#48484a]" />
+              </button>
+            )}
           </div>
         )}
       </div>

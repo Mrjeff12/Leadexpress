@@ -49,6 +49,7 @@ import {
   Settings,
   Send,
   Lock,
+  BadgeCheck,
 } from 'lucide-react'
 
 /* ── Types ─────────────────────────────────────────────────────────── */
@@ -112,6 +113,7 @@ export default function LeadsFeed() {
   const [leads, setLeads] = useState<Lead[]>([])
   const [senderNames, setSenderNames] = useState<Record<string, string>>({})
   const [contactCounts, setContactCounts] = useState<Record<string, number>>({})
+  const [publisherInfo, setPublisherInfo] = useState<Record<string, { name: string; tier: string; rating: number; reviews: number }>>({})
   const [loading, setLoading] = useState(true)
   const [contractorProfessions, setContractorProfessions] = useState<string[] | null>(null)
   const [contractorZips, setContractorZips] = useState<string[] | null>(null)
@@ -236,6 +238,28 @@ export default function LeadsFeed() {
               if (m.display_name) nameMap[m.wa_sender_id] = m.display_name
             })
             setSenderNames(nameMap)
+          }
+        }
+
+        // Fetch publisher info for broadcast leads
+        const broadcastLeadIds = leadsData.filter((l: any) => l.source === 'publisher').map((l: any) => l.id)
+        if (broadcastLeadIds.length > 0) {
+          const { data: broadcasts } = await supabase
+            .from('job_broadcasts')
+            .select('lead_id, publisher_id, profiles:publisher_id ( full_name ), publisher_profiles:publisher_id ( tier, avg_rating, review_count )')
+            .in('lead_id', broadcastLeadIds)
+
+          if (broadcasts) {
+            const pubMap: Record<string, { name: string; tier: string; rating: number; reviews: number }> = {}
+            broadcasts.forEach((b: any) => {
+              pubMap[b.lead_id] = {
+                name: b.profiles?.full_name || 'Publisher',
+                tier: b.publisher_profiles?.tier || 'new',
+                rating: b.publisher_profiles?.avg_rating || 0,
+                reviews: b.publisher_profiles?.review_count || 0,
+              }
+            })
+            setPublisherInfo(pubMap)
           }
         }
 
@@ -588,10 +612,16 @@ export default function LeadsFeed() {
                     <div className="flex items-center gap-2 mt-0.5">
                       {lead.city && <span className="text-[10px] text-[#737373]">{lead.city}</span>}
                       <span className="text-[10px] text-[#a3a3a3]">{timeAgo(lead.created_at, he)}</span>
-                      {lead.source === 'publisher'
-                        ? <span className="text-[8px] font-semibold text-[#fe5b25] bg-[#fff4f0] px-1.5 py-0.5 rounded-full">APP</span>
-                        : <span className="text-[8px] font-semibold text-[#25D366] bg-[#25D366]/10 px-1.5 py-0.5 rounded-full">WA</span>
-                      }
+                      {lead.source === 'publisher' ? (
+                        <span className="text-[8px] font-semibold text-[#fe5b25] bg-[#fff4f0] px-1.5 py-0.5 rounded-full flex items-center gap-0.5">
+                          {publisherInfo[lead.id]?.tier && publisherInfo[lead.id].tier !== 'new' && (
+                            <BadgeCheck className="w-2.5 h-2.5" />
+                          )}
+                          {publisherInfo[lead.id]?.name?.split(' ')[0] || 'Publisher'}
+                        </span>
+                      ) : (
+                        <span className="text-[8px] font-semibold text-[#25D366] bg-[#25D366]/10 px-1.5 py-0.5 rounded-full">WA</span>
+                      )}
                     </div>
                   </div>
                   <div className="flex items-center gap-2 flex-shrink-0">
@@ -634,9 +664,12 @@ export default function LeadsFeed() {
                           <div className="w-6 h-6 rounded-lg bg-emerald-500/10 flex items-center justify-center">
                             <Users className="w-3 h-3 text-emerald-600" />
                           </div>
-                          <span className="text-[9px] font-bold text-emerald-600 uppercase tracking-tight text-center line-clamp-1">
-                            Publisher
+                          <span className="text-[9px] font-bold text-emerald-600 tracking-tight text-center line-clamp-1">
+                            {publisherInfo[lead.id]?.name?.split(' ')[0] || 'Publisher'}
                           </span>
+                          {publisherInfo[lead.id]?.tier && publisherInfo[lead.id].tier !== 'new' && (
+                            <span className="text-[8px] font-semibold text-blue-500">✓</span>
+                          )}
                         </>
                       ) : (
                         <>

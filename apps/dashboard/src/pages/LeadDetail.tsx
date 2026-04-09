@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import {
   ArrowLeft, MapPin, Clock, Flame, Zap, Snowflake,
-  Share2, MessageCircle, Phone, Loader2,
+  Share2, MessageCircle, Phone, Loader2, BadgeCheck, Star,
 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/auth'
@@ -47,6 +47,7 @@ export default function LeadDetail() {
   const [lead, setLead] = useState<Lead | null>(null)
   const [loading, setLoading] = useState(true)
   const [senderPhone, setSenderPhone] = useState<string | null>(null)
+  const [publisher, setPublisher] = useState<{ name: string; tier: string; rating: number; reviews: number } | null>(null)
 
   useEffect(() => {
     if (!id) return
@@ -70,6 +71,26 @@ export default function LeadDetail() {
     const phone = lead.sender_id.replace(/@.*$/, '')
     setSenderPhone(phone)
   }, [lead, canSeeLeadDetails])
+
+  // Fetch publisher info for broadcast leads
+  useEffect(() => {
+    if (!id) return
+    supabase
+      .from('job_broadcasts')
+      .select('publisher_id, profiles:publisher_id ( full_name ), publisher_profiles:publisher_id ( tier, avg_rating, review_count )')
+      .eq('lead_id', id)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data) {
+          setPublisher({
+            name: (data as any).profiles?.full_name || 'Publisher',
+            tier: (data as any).publisher_profiles?.tier || 'new',
+            rating: (data as any).publisher_profiles?.avg_rating || 0,
+            reviews: (data as any).publisher_profiles?.review_count || 0,
+          })
+        }
+      })
+  }, [id])
 
   function contactLead() {
     if (!canSeeLeadDetails || !senderPhone) return
@@ -179,6 +200,35 @@ export default function LeadDetail() {
             </p>
           </div>
         </div>
+
+        {/* Publisher info (broadcast leads) */}
+        {publisher && (
+          <div className="mb-5">
+            <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-2">Published by</p>
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-4 flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-[#fe5b25]/10 flex items-center justify-center flex-shrink-0 text-[#fe5b25] text-[13px] font-bold">
+                {publisher.name.slice(0, 2).toUpperCase()}
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-1.5">
+                  <p className="text-[13px] font-semibold text-gray-800 truncate">{publisher.name}</p>
+                  {publisher.tier !== 'new' && (
+                    <BadgeCheck size={14} className="text-blue-500 flex-shrink-0" />
+                  )}
+                </div>
+                <div className="flex items-center gap-2 mt-0.5">
+                  {publisher.rating > 0 && (
+                    <span className="flex items-center gap-0.5 text-[11px] text-amber-500 font-semibold">
+                      <Star size={10} fill="#f59e0b" /> {publisher.rating.toFixed(1)}
+                      <span className="text-gray-400 font-normal">({publisher.reviews})</span>
+                    </span>
+                  )}
+                  <span className="text-[10px] text-gray-400 capitalize">{publisher.tier === 'new' ? '' : publisher.tier}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Source */}
         {lead.group_name && (

@@ -36,6 +36,7 @@ const CoverageMap = lazy(() => import('../components/settings/CoverageMap'))
 import ForwardLeadModal from '../components/ForwardLeadModal'
 import UpsellModal from '../components/UpsellModal'
 import NetworkPointsCard from '../components/NetworkPointsCard'
+import TierProgressCard from '../components/TierProgressCard'
 import ProfileCompletionBar from '../components/ProfileCompletionBar'
 import { useIdentityVerification } from '../hooks/useIdentityVerification'
 import { useContractorProfile } from '../hooks/useContractorProfile'
@@ -941,6 +942,7 @@ export default function ContractorDashboard() {
             </div>
           )}
           <NetworkPointsCard />
+          <TierProgressCard />
         </div>
 
         {/* ═══ Lead Filter Preferences Header ═══ */}

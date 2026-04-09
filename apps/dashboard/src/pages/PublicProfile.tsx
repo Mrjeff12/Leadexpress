@@ -136,27 +136,27 @@ function responseTimeLabel(mins: number | null | undefined): string {
 }
 
 function getActivityLevel(stats: ProfileStats | null) {
-  if (!stats) return { label: 'New Member', color: '#636366', dotColor: '#48484a' }
+  if (!stats) return { label: 'New Member', color: '#999999', dotColor: '#cccccc' }
   const score = (stats.leads_contacted > 0 ? 1 : 0) + (stats.groups_active > 0 ? 1 : 0) + (stats.job_orders_total > 0 ? 1 : 0) + (stats.feedbacks_given > 0 ? 1 : 0)
-  if (score >= 3) return { label: 'Very Active', color: '#30d158', dotColor: '#30d158' }
+  if (score >= 3) return { label: 'Very Active', color: '#16a34a', dotColor: '#16a34a' }
   if (score >= 2) return { label: 'Active', color: '#0a84ff', dotColor: '#0a84ff' }
   if (score >= 1) return { label: 'Getting Started', color: '#ff9f0a', dotColor: '#ff9f0a' }
-  return { label: 'New Member', color: '#636366', dotColor: '#48484a' }
+  return { label: 'New Member', color: '#999999', dotColor: '#cccccc' }
 }
 
 /* ───────────────────── Skeleton ───────────────────── */
 
 function ProfileSkeleton() {
   return (
-    <div style={{ minHeight: '100vh', background: '#0a0a0a', fontFamily: 'Outfit, sans-serif' }}>
-      <div style={{ height: 160, background: '#141414' }} />
+    <div style={{ minHeight: '100vh', background: '#f8f8f8', fontFamily: 'Outfit, sans-serif' }}>
+      <div style={{ height: 160, background: '#ffffff' }} />
       <div style={{ maxWidth: 1100, margin: '0 auto', padding: '0 16px', marginTop: -64 }}>
-        <div style={{ background: '#141414', borderRadius: 16, border: '1px solid rgba(255,255,255,0.08)', padding: 24 }}>
+        <div style={{ background: '#ffffff', borderRadius: 16, border: '1px solid rgba(0,0,0,0.08)', padding: 24 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-            <div style={{ width: 80, height: 80, borderRadius: '50%', background: '#1c1c1e' }} />
+            <div style={{ width: 80, height: 80, borderRadius: '50%', background: '#f5f5f5' }} />
             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 8 }}>
-              <div style={{ height: 24, width: 160, background: '#1c1c1e', borderRadius: 8 }} />
-              <div style={{ height: 16, width: 112, background: '#1c1c1e', borderRadius: 8 }} />
+              <div style={{ height: 24, width: 160, background: '#f5f5f5', borderRadius: 8 }} />
+              <div style={{ height: 16, width: 112, background: '#f5f5f5', borderRadius: 8 }} />
             </div>
           </div>
         </div>
@@ -202,12 +202,12 @@ export default function PublicProfile() {
 
   if (notFound || !data) {
     return (
-      <div style={{ position: 'fixed', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0a0a0a', fontFamily: 'Outfit, sans-serif' }}>
+      <div style={{ position: 'fixed', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f8f8f8', fontFamily: 'Outfit, sans-serif' }}>
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16, textAlign: 'center', padding: '0 24px' }}>
-          <div style={{ width: 56, height: 56, borderRadius: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, color: '#fff', fontSize: 18, background: '#ff6b35', boxShadow: '0 0 24px rgba(255,107,53,0.25)' }}>MLF</div>
-          <h1 style={{ fontSize: 24, fontWeight: 700, color: '#fff', letterSpacing: '-0.03em' }}>Profile Not Found</h1>
-          <p style={{ color: '#636366', fontSize: 14, maxWidth: 280 }}>This professional profile doesn't exist or may have been removed.</p>
-          <a href="/" style={{ marginTop: 8, padding: '12px 24px', fontSize: 14, fontWeight: 600, color: '#fff', borderRadius: 12, background: '#ff6b35', textDecoration: 'none', boxShadow: '0 0 24px rgba(255,107,53,0.25)' }}>Back to MasterLeadFlow</a>
+          <div style={{ width: 56, height: 56, borderRadius: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, color: '#fff', fontSize: 18, background: '#ff6b35', boxShadow: '0 0 24px rgba(255,107,53,0.15)' }}>MLF</div>
+          <h1 style={{ fontSize: 24, fontWeight: 700, color: '#1a1a1a', letterSpacing: '-0.03em' }}>Profile Not Found</h1>
+          <p style={{ color: '#999999', fontSize: 14, maxWidth: 280 }}>This professional profile doesn't exist or may have been removed.</p>
+          <a href="/" style={{ marginTop: 8, padding: '12px 24px', fontSize: 14, fontWeight: 600, color: '#fff', borderRadius: 12, background: '#ff6b35', textDecoration: 'none', boxShadow: '0 0 24px rgba(255,107,53,0.15)' }}>Back to MasterLeadFlow</a>
         </div>
       </div>
     )
@@ -247,7 +247,7 @@ export default function PublicProfile() {
   const ctaButton = (
     <button
       onClick={() => window.location.href = `/jobs/new?contractor=${data.user_id}&name=${encodeURIComponent(data.full_name)}`}
-      style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, width: '100%', padding: '12px 16px', borderRadius: 12, fontSize: 14, fontWeight: 700, color: '#fff', background: '#ff6b35', border: 'none', cursor: 'pointer', boxShadow: '0 0 24px rgba(255,107,53,0.25)', transition: 'transform 0.1s' }}
+      style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, width: '100%', padding: '12px 16px', borderRadius: 12, fontSize: 14, fontWeight: 700, color: '#fff', background: '#ff6b35', border: 'none', cursor: 'pointer', boxShadow: '0 0 24px rgba(255,107,53,0.15)', transition: 'transform 0.1s' }}
       onMouseDown={e => (e.currentTarget.style.transform = 'scale(0.97)')}
       onMouseUp={e => (e.currentTarget.style.transform = 'scale(1)')}
       onMouseLeave={e => (e.currentTarget.style.transform = 'scale(1)')}
@@ -261,7 +261,7 @@ export default function PublicProfile() {
     <>
       <div className="flex items-center gap-4 lg:flex-col lg:items-center lg:text-center">
         <div style={{ position: 'relative', flexShrink: 0 }}>
-          <div style={{ width: 80, height: 80, borderRadius: '50%', background: '#1c1c1e', border: '3px solid #141414', boxShadow: '0 0 0 2px rgba(255,107,53,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, fontWeight: 700, color: '#fff', overflow: 'hidden' }} className="lg:!w-28 lg:!h-28 lg:!text-3xl">
+          <div style={{ width: 80, height: 80, borderRadius: '50%', background: '#f5f5f5', border: '3px solid #ffffff', boxShadow: '0 0 0 2px rgba(255,107,53,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, fontWeight: 700, color: '#1a1a1a', overflow: 'hidden' }} className="lg:!w-28 lg:!h-28 lg:!text-3xl">
             {data.avatar_url ? (
               <img src={data.avatar_url} alt={data.full_name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
             ) : (
@@ -269,13 +269,13 @@ export default function PublicProfile() {
             )}
           </div>
           {data.available_today && (
-            <div style={{ position: 'absolute', bottom: -2, left: '50%', transform: 'translateX(-50%)', display: 'flex', alignItems: 'center', gap: 4, padding: '2px 8px', borderRadius: 999, background: 'rgba(48,209,88,0.15)', color: '#30d158', fontSize: 9, fontWeight: 700, whiteSpace: 'nowrap' as const }}>
-              <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#30d158', animation: 'pulse 2s infinite' }} /> Available
+            <div style={{ position: 'absolute', bottom: -2, left: '50%', transform: 'translateX(-50%)', display: 'flex', alignItems: 'center', gap: 4, padding: '2px 8px', borderRadius: 999, background: 'rgba(22,163,74,0.1)', color: '#16a34a', fontSize: 9, fontWeight: 700, whiteSpace: 'nowrap' as const }}>
+              <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#16a34a', animation: 'pulse 2s infinite' }} /> Available
             </div>
           )}
         </div>
         <div style={{ flex: 1, minWidth: 0 }} className="lg:mt-3">
-          <h1 style={{ fontSize: 20, fontWeight: 800, color: '#fff', letterSpacing: '-0.03em', display: 'flex', alignItems: 'center', gap: 6 }} className="lg:text-2xl lg:justify-center truncate lg:truncate-none">
+          <h1 style={{ fontSize: 20, fontWeight: 800, color: '#1a1a1a', letterSpacing: '-0.03em', display: 'flex', alignItems: 'center', gap: 6 }} className="lg:text-2xl lg:justify-center truncate lg:truncate-none">
             {data.full_name}
             {data.background_check && (
               <svg viewBox="0 0 22 22" style={{ width: 20, height: 20, flexShrink: 0 }} fill="none">
@@ -284,8 +284,8 @@ export default function PublicProfile() {
               </svg>
             )}
           </h1>
-          {data.business_name && <p style={{ fontSize: 12, color: '#636366', marginTop: 2, fontWeight: 500 }} className="truncate">{data.business_name}</p>}
-          {data.headline && <p style={{ fontSize: 12, color: '#a1a1a6', marginTop: 4, lineHeight: 1.5 }} className="line-clamp-2 lg:line-clamp-none">{data.headline}</p>}
+          {data.business_name && <p style={{ fontSize: 12, color: '#999999', marginTop: 2, fontWeight: 500 }} className="truncate">{data.business_name}</p>}
+          {data.headline && <p style={{ fontSize: 12, color: '#666666', marginTop: 4, lineHeight: 1.5 }} className="line-clamp-2 lg:line-clamp-none">{data.headline}</p>}
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 8, flexWrap: 'wrap' as const }} className="lg:justify-center">
             {/* Tier badge — hide "new" tier (internal info) */}
             {data.tier !== 'new' && (
@@ -299,21 +299,21 @@ export default function PublicProfile() {
             ) : (
               /* Hide "New Member" and "Getting Started" labels — internal info */
               activity.label !== 'New Member' && activity.label !== 'Getting Started' ? (
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '3px 10px', borderRadius: 999, background: '#1c1c1e', border: '1px solid rgba(255,255,255,0.08)', fontSize: 10, fontWeight: 600, color: activity.color }}>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '3px 10px', borderRadius: 999, background: '#f5f5f5', border: '1px solid rgba(0,0,0,0.08)', fontSize: 10, fontWeight: 600, color: activity.color }}>
                   <span style={{ width: 6, height: 6, borderRadius: '50%', background: activity.dotColor }} />
                   {activity.label}
                 </span>
               ) : null
             )}
             {(stats?.avg_response_mins ?? 0) > 0 && stats!.avg_response_mins < 30 && (
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '3px 10px', borderRadius: 999, background: 'rgba(48,209,88,0.15)', color: '#30d158', fontSize: 10, fontWeight: 600 }}>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '3px 10px', borderRadius: 999, background: 'rgba(22,163,74,0.1)', color: '#16a34a', fontSize: 10, fontWeight: 600 }}>
                 <Zap size={10} /> Fast
               </span>
             )}
           </div>
           {location && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 6, fontSize: 12, color: '#636366' }} className="lg:justify-center">
-              <MapPin size={12} style={{ color: '#48484a' }} /> {location}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 6, fontSize: 12, color: '#999999' }} className="lg:justify-center">
+              <MapPin size={12} style={{ color: '#cccccc' }} /> {location}
             </div>
           )}
         </div>
@@ -323,10 +323,10 @@ export default function PublicProfile() {
 
   /* ═══════ Stats grid (hide 0-value items) ═══════ */
   const statsItems: { label: string; value: string | number; icon: React.ReactNode }[] = []
-  if (jobsValue > 0) statsItems.push({ label: 'Jobs', value: jobsValue, icon: <Briefcase size={15} style={{ color: '#48484a' }} /> })
-  if (responseValue !== '--') statsItems.push({ label: 'Response', value: responseValue, icon: <Zap size={15} style={{ color: '#48484a' }} /> })
-  if (networkValue > 0) statsItems.push({ label: 'Network', value: networkValue, icon: <Users size={15} style={{ color: '#48484a' }} /> })
-  if (memberSinceValue !== '--') statsItems.push({ label: 'Since', value: memberSinceValue, icon: <CalendarDays size={15} style={{ color: '#48484a' }} /> })
+  if (jobsValue > 0) statsItems.push({ label: 'Jobs', value: jobsValue, icon: <Briefcase size={15} style={{ color: '#cccccc' }} /> })
+  if (responseValue !== '--') statsItems.push({ label: 'Response', value: responseValue, icon: <Zap size={15} style={{ color: '#cccccc' }} /> })
+  if (networkValue > 0) statsItems.push({ label: 'Network', value: networkValue, icon: <Users size={15} style={{ color: '#cccccc' }} /> })
+  if (memberSinceValue !== '--') statsItems.push({ label: 'Since', value: memberSinceValue, icon: <CalendarDays size={15} style={{ color: '#cccccc' }} /> })
 
   const statsGrid = statsItems.length > 0 ? (
     <div style={{ display: 'grid', gap: 8 }} className={`grid-cols-${Math.min(statsItems.length, 4)} lg:grid-cols-2`}>
@@ -336,18 +336,18 @@ export default function PublicProfile() {
 
   /* ═══════ Services + Work Preferences combined ═══════ */
   const servicesAndPrefs = filteredProfessions.length > 0 ? (
-    <Section icon={<Briefcase size={16} style={{ color: '#48484a' }} />} title="Services & Preferences">
+    <Section icon={<Briefcase size={16} style={{ color: '#cccccc' }} />} title="Services & Preferences">
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }} className="lg:!grid-cols-3">
         {visibleProfessions.map((p) => (
           <div key={p} style={{
             display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8,
             padding: '16px 4px 12px', borderRadius: 14,
-            background: '#1c1c1e', border: '1px solid rgba(255,255,255,0.06)',
+            background: '#f5f5f5', border: '1px solid rgba(0,0,0,0.06)',
             transition: 'border-color 0.2s, background 0.2s',
             cursor: 'default',
           }}
-            onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(255,107,53,0.2)'; e.currentTarget.style.background = '#222' }}
-            onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.06)'; e.currentTarget.style.background = '#1c1c1e' }}
+            onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(255,107,53,0.2)'; e.currentTarget.style.background = '#f0f0f0' }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(0,0,0,0.06)'; e.currentTarget.style.background = '#f5f5f5' }}
           >
             <div style={{
               width: 32, height: 32,
@@ -356,7 +356,7 @@ export default function PublicProfile() {
             }}>
               {PROFESSION_ICONS[p] || PROFESSION_ICONS.other}
             </div>
-            <span style={{ fontSize: 10, fontWeight: 600, color: '#a1a1a6', textAlign: 'center', lineHeight: 1.2 }}>
+            <span style={{ fontSize: 10, fontWeight: 600, color: '#666666', textAlign: 'center', lineHeight: 1.2 }}>
               {formatProfession(p)}
             </span>
           </div>
@@ -365,23 +365,23 @@ export default function PublicProfile() {
           <div style={{
             display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4,
             padding: '16px 4px 12px', borderRadius: 14,
-            background: '#1c1c1e', border: '1px solid rgba(255,255,255,0.06)',
+            background: '#f5f5f5', border: '1px solid rgba(0,0,0,0.06)',
           }}>
-            <span style={{ fontSize: 16, fontWeight: 700, color: '#636366' }}>+{hiddenProfessionCount}</span>
-            <span style={{ fontSize: 10, fontWeight: 600, color: '#636366', textAlign: 'center' }}>more</span>
+            <span style={{ fontSize: 16, fontWeight: 700, color: '#999999' }}>+{hiddenProfessionCount}</span>
+            <span style={{ fontSize: 10, fontWeight: 600, color: '#999999', textAlign: 'center' }}>more</span>
           </div>
         )}
       </div>
       {/* Work Preferences inline */}
-      <div style={{ marginTop: 16, paddingTop: 14, borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+      <div style={{ marginTop: 16, paddingTop: 14, borderTop: '1px solid rgba(0,0,0,0.06)' }}>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
           <WorkPref accepted={data.accepts_percentage} icon={<Percent size={13} />} label="Percentage" />
           <WorkPref accepted={data.accepts_fixed} icon={<DollarSign size={13} />} label="Fixed Price" />
           <WorkPref accepted={data.accepts_subwork} icon={<Users size={13} />} label="Sub Work" />
         </div>
         {(data.min_job_value || data.max_job_value) && (
-          <p style={{ fontSize: 12, color: '#636366', marginTop: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
-            <DollarSign size={13} style={{ color: '#48484a' }} />
+          <p style={{ fontSize: 12, color: '#999999', marginTop: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
+            <DollarSign size={13} style={{ color: '#cccccc' }} />
             {data.min_job_value && data.max_job_value
               ? `$${data.min_job_value.toLocaleString()} – $${data.max_job_value.toLocaleString()}`
               : data.min_job_value
@@ -393,15 +393,15 @@ export default function PublicProfile() {
     </Section>
   ) : (
     /* If no professions, still show work prefs */
-    <Section icon={<Wrench size={16} style={{ color: '#48484a' }} />} title="Work Preferences">
+    <Section icon={<Wrench size={16} style={{ color: '#cccccc' }} />} title="Work Preferences">
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
         <WorkPref accepted={data.accepts_percentage} icon={<Percent size={13} />} label="Percentage" />
         <WorkPref accepted={data.accepts_fixed} icon={<DollarSign size={13} />} label="Fixed Price" />
         <WorkPref accepted={data.accepts_subwork} icon={<Users size={13} />} label="Sub Work" />
       </div>
       {(data.min_job_value || data.max_job_value) && (
-        <p style={{ fontSize: 12, color: '#636366', marginTop: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
-          <DollarSign size={13} style={{ color: '#48484a' }} />
+        <p style={{ fontSize: 12, color: '#999999', marginTop: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
+          <DollarSign size={13} style={{ color: '#cccccc' }} />
           {data.min_job_value && data.max_job_value
             ? `$${data.min_job_value.toLocaleString()} – $${data.max_job_value.toLocaleString()}`
             : data.min_job_value
@@ -414,51 +414,51 @@ export default function PublicProfile() {
 
   /* ═══════ Reviews block ═══════ */
   const reviewsBlock = (
-    <div style={{ background: '#141414', border: '1px solid rgba(255,255,255,0.08)', padding: '16px 20px' }} className="rounded-none lg:rounded-2xl border-0 lg:border lg:p-5">
-      <h3 style={{ fontSize: 13, fontWeight: 700, color: '#fff', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
-        <Star size={16} style={{ color: '#48484a' }} /> Reviews
-        {hasReviews && <span style={{ marginLeft: 'auto', fontSize: 12, fontWeight: 400, color: '#48484a' }}>{data.review_count} review{data.review_count !== 1 ? 's' : ''}</span>}
+    <div style={{ background: '#ffffff', border: '1px solid rgba(0,0,0,0.06)', boxShadow: '0 1px 3px rgba(0,0,0,0.04)', padding: '16px 20px' }} className="rounded-none lg:rounded-2xl border-0 lg:border lg:p-5">
+      <h3 style={{ fontSize: 13, fontWeight: 700, color: '#1a1a1a', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
+        <Star size={16} style={{ color: '#cccccc' }} /> Reviews
+        {hasReviews && <span style={{ marginLeft: 'auto', fontSize: 12, fontWeight: 400, color: '#cccccc' }}>{data.review_count} review{data.review_count !== 1 ? 's' : ''}</span>}
       </h3>
       {hasReviews ? (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 16, padding: 16, borderRadius: 12, background: '#1c1c1e', border: '1px solid rgba(255,255,255,0.06)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 16, padding: 16, borderRadius: 12, background: '#f5f5f5', border: '1px solid rgba(0,0,0,0.06)' }}>
             <div style={{ textAlign: 'center' }}>
-              <div style={{ fontSize: 28, fontWeight: 800, color: '#fff', letterSpacing: '-0.03em' }}>{(data.avg_rating ?? 0).toFixed(1)}</div>
+              <div style={{ fontSize: 28, fontWeight: 800, color: '#1a1a1a', letterSpacing: '-0.03em' }}>{(data.avg_rating ?? 0).toFixed(1)}</div>
               <StarRating rating={data.avg_rating ?? 0} size="sm" />
-              <div style={{ fontSize: 10, color: '#48484a', marginTop: 4 }}>{data.review_count} review{data.review_count !== 1 ? 's' : ''}</div>
+              <div style={{ fontSize: 10, color: '#cccccc', marginTop: 4 }}>{data.review_count} review{data.review_count !== 1 ? 's' : ''}</div>
             </div>
-            <div style={{ flex: 1, height: 1, background: 'rgba(255,255,255,0.06)' }} />
+            <div style={{ flex: 1, height: 1, background: 'rgba(0,0,0,0.06)' }} />
             <div style={{ textAlign: 'center' }}>
-              <div style={{ fontSize: 24, fontWeight: 800, color: '#30d158' }}>100%</div>
-              <div style={{ fontSize: 10, color: '#48484a' }}>would hire again</div>
+              <div style={{ fontSize: 24, fontWeight: 800, color: '#16a34a' }}>100%</div>
+              <div style={{ fontSize: 10, color: '#cccccc' }}>would hire again</div>
             </div>
           </div>
           <ReviewsList userId={data.user_id} avgRating={data.avg_rating ?? undefined} reviewCount={data.review_count} />
         </div>
       ) : (
         <div style={{ padding: '32px 0', textAlign: 'center' }}>
-          <div style={{ margin: '0 auto', width: 64, height: 64, borderRadius: '50%', background: '#1c1c1e', border: '2px dashed rgba(255,255,255,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
-            <Star size={24} style={{ color: '#2c2c2e' }} />
+          <div style={{ margin: '0 auto', width: 64, height: 64, borderRadius: '50%', background: '#f5f5f5', border: '2px dashed rgba(0,0,0,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
+            <Star size={24} style={{ color: '#eeeeee' }} />
           </div>
-          <p style={{ color: '#636366', fontWeight: 600, fontSize: 14 }}>No reviews yet</p>
-          <p style={{ color: '#48484a', fontSize: 12, marginTop: 4, maxWidth: 260, margin: '4px auto 0', lineHeight: 1.5 }}>
+          <p style={{ color: '#999999', fontWeight: 600, fontSize: 14 }}>No reviews yet</p>
+          <p style={{ color: '#cccccc', fontSize: 12, marginTop: 4, maxWidth: 260, margin: '4px auto 0', lineHeight: 1.5 }}>
             Reviews will appear here after completed jobs. This professional is verified and active on MasterLeadFlow.
           </p>
 
           {stats && (
             <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 8, marginTop: 20 }}>
               {(stats.groups_active ?? 0) > 0 && (
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 12px', borderRadius: 999, background: '#1c1c1e', border: '1px solid rgba(255,255,255,0.06)', color: '#636366', fontSize: 12 }}>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 12px', borderRadius: 999, background: '#f5f5f5', border: '1px solid rgba(0,0,0,0.06)', color: '#999999', fontSize: 12 }}>
                   <Users size={12} /> {stats.groups_active} group{stats.groups_active !== 1 ? 's' : ''}
                 </span>
               )}
               {(stats.leads_contacted ?? 0) > 0 && (
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 12px', borderRadius: 999, background: '#1c1c1e', border: '1px solid rgba(255,255,255,0.06)', color: '#636366', fontSize: 12 }}>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 12px', borderRadius: 999, background: '#f5f5f5', border: '1px solid rgba(0,0,0,0.06)', color: '#999999', fontSize: 12 }}>
                   <MessageCircle size={12} /> {stats.leads_contacted} leads
                 </span>
               )}
               {stats.member_since && (
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 12px', borderRadius: 999, background: '#1c1c1e', border: '1px solid rgba(255,255,255,0.06)', color: '#636366', fontSize: 12 }}>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 12px', borderRadius: 999, background: '#f5f5f5', border: '1px solid rgba(0,0,0,0.06)', color: '#999999', fontSize: 12 }}>
                   <CalendarDays size={12} /> Since {formatMemberSince(stats.member_since)}
                 </span>
               )}
@@ -471,29 +471,29 @@ export default function PublicProfile() {
 
   /* ═══════ Service Areas block ═══════ */
   const serviceAreasBlock = hasMap ? (
-    <div style={{ background: '#141414', border: '1px solid rgba(255,255,255,0.08)', overflow: 'hidden' }} className="rounded-none lg:rounded-2xl border-0 lg:border">
+    <div style={{ background: '#ffffff', border: '1px solid rgba(0,0,0,0.06)', boxShadow: '0 1px 3px rgba(0,0,0,0.04)', overflow: 'hidden' }} className="rounded-none lg:rounded-2xl border-0 lg:border">
       <div style={{ padding: '12px 20px' }} className="lg:p-4 lg:pb-2">
-        <h3 style={{ fontSize: 13, fontWeight: 700, color: '#fff', display: 'flex', alignItems: 'center', gap: 8 }}>
-          <MapPin size={16} style={{ color: '#48484a' }} /> Service Areas
+        <h3 style={{ fontSize: 13, fontWeight: 700, color: '#1a1a1a', display: 'flex', alignItems: 'center', gap: 8 }}>
+          <MapPin size={16} style={{ color: '#cccccc' }} /> Service Areas
         </h3>
         {(countyLabel || derivedState) && (
-          <p style={{ fontSize: 12, color: '#a1a1a6', marginTop: 4 }}>
+          <p style={{ fontSize: 12, color: '#666666', marginTop: 4 }}>
             {[countyLabel, derivedState].filter(Boolean).join(' · ')}
-            {data.zip_codes && <span style={{ color: '#636366' }}> · {data.zip_codes.length} ZIP{data.zip_codes.length !== 1 ? 's' : ''}</span>}
+            {data.zip_codes && <span style={{ color: '#999999' }}> · {data.zip_codes.length} ZIP{data.zip_codes.length !== 1 ? 's' : ''}</span>}
           </p>
         )}
       </div>
       {/* Map: hidden on mobile, shown on desktop */}
       <div className="hidden lg:block">
-        <Suspense fallback={<div style={{ height: 240, background: '#1c1c1e' }} />}>
+        <Suspense fallback={<div style={{ height: 240, background: '#f5f5f5' }} />}>
           <ServiceAreaMap zipCodes={data.zip_codes!} height="240px" className="rounded-none" />
         </Suspense>
       </div>
       {data.counties && data.counties.length > 0 && (
-        <div style={{ padding: '12px 20px', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+        <div style={{ padding: '12px 20px', borderTop: '1px solid rgba(0,0,0,0.06)' }}>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
             {data.counties.map((c) => (
-              <span key={c} style={{ padding: '4px 10px', borderRadius: 8, fontSize: 12, color: '#a1a1a6', background: '#1c1c1e', border: '1px solid rgba(255,255,255,0.06)' }}>{c}</span>
+              <span key={c} style={{ padding: '4px 10px', borderRadius: 8, fontSize: 12, color: '#666666', background: '#f5f5f5', border: '1px solid rgba(0,0,0,0.06)' }}>{c}</span>
             ))}
           </div>
         </div>
@@ -502,7 +502,7 @@ export default function PublicProfile() {
   ) : null
 
   return (
-    <div style={{ minHeight: '100vh', background: '#0a0a0a', fontFamily: 'Outfit, sans-serif' }}>
+    <div style={{ minHeight: '100vh', background: '#f8f8f8', fontFamily: 'Outfit, sans-serif' }}>
       <Helmet>
         <title>{data.full_name} — MasterLeadFlow</title>
         <meta name="description" content={data.headline || data.bio?.slice(0, 160) || `${data.full_name} on MasterLeadFlow`} />
@@ -513,17 +513,17 @@ export default function PublicProfile() {
       </Helmet>
 
       {/* ═══════════ NAV BAR ═══════════ */}
-      <div style={{ position: 'sticky', top: 0, zIndex: 40, background: 'rgba(10,10,10,0.85)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', borderBottom: '1px solid rgba(255,255,255,0.06)', padding: '10px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+      <div style={{ position: 'sticky', top: 0, zIndex: 40, background: 'rgba(255,255,255,0.9)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', borderBottom: '1px solid rgba(0,0,0,0.06)', padding: '10px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <div style={{ width: 28, height: 28, borderRadius: 8, background: '#ff6b35', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, color: '#fff', fontSize: 9, letterSpacing: '-0.02em' }}>MLF</div>
-          <span style={{ color: '#fff', fontSize: 11, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase' as const }}>MasterLeadFlow</span>
+          <span style={{ color: '#1a1a1a', fontSize: 11, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase' as const }}>MasterLeadFlow</span>
         </div>
         <div style={{ display: 'flex', gap: 6 }}>
-          <button onClick={handleCopy} style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '6px 10px', borderRadius: 8, fontSize: 11, fontWeight: 500, color: '#a1a1a6', background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.08)', cursor: 'pointer' }}>
+          <button onClick={handleCopy} style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '6px 10px', borderRadius: 8, fontSize: 11, fontWeight: 500, color: '#666666', background: 'rgba(0,0,0,0.06)', border: '1px solid rgba(0,0,0,0.06)', cursor: 'pointer' }}>
             {copied ? <Check size={13} /> : <Copy size={13} />}
             <span className="hidden sm:inline">{copied ? 'Copied' : 'Copy'}</span>
           </button>
-          <button onClick={handleShare} style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '6px 10px', borderRadius: 8, fontSize: 11, fontWeight: 500, color: '#a1a1a6', background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.08)', cursor: 'pointer' }}>
+          <button onClick={handleShare} style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '6px 10px', borderRadius: 8, fontSize: 11, fontWeight: 500, color: '#666666', background: 'rgba(0,0,0,0.06)', border: '1px solid rgba(0,0,0,0.06)', cursor: 'pointer' }}>
             <Share2 size={13} />
             <span className="hidden sm:inline">Share</span>
           </button>
@@ -537,7 +537,7 @@ export default function PublicProfile() {
           {/* ═══════ LEFT COLUMN (Desktop: sticky sidebar) ═══════ */}
           <div className="lg:sticky" style={{}} >
             <style>{`.lg\\:sticky { position: relative; } @media (min-width: 1024px) { .lg\\:sticky { position: sticky !important; top: 80px !important; } }`}</style>
-            <div style={{ background: '#141414', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 16, padding: 24 }} className="rounded-none lg:rounded-2xl border-0 lg:border">
+            <div style={{ background: '#ffffff', border: '1px solid rgba(0,0,0,0.06)', borderRadius: 16, padding: 24, boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }} className="rounded-none lg:rounded-2xl border-0 lg:border">
               {heroContent}
 
               {/* Stats — desktop only (mobile shows below) */}
@@ -549,7 +549,7 @@ export default function PublicProfile() {
 
               {/* Trust badges */}
               {(data.license_number || data.insurance_verified) && (
-                <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid rgba(255,255,255,0.06)', display: 'flex', flexWrap: 'wrap' as const, gap: 6 }} className="lg:justify-center">
+                <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid rgba(0,0,0,0.06)', display: 'flex', flexWrap: 'wrap' as const, gap: 6 }} className="lg:justify-center">
                   {data.license_number && <MiniVerify icon={<FileCheck size={12} />} label="Licensed" />}
                   {data.insurance_verified && <MiniVerify icon={<ShieldCheck size={12} />} label="Insured" />}
                 </div>
@@ -560,11 +560,11 @@ export default function PublicProfile() {
                 {ctaButton}
               </div>
               <div className="hidden lg:flex" style={{ gap: 8, marginTop: 8 }}>
-                <button onClick={handleShare} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '8px 12px', borderRadius: 12, fontSize: 12, fontWeight: 600, color: '#a1a1a6', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.08)', cursor: 'pointer' }}>
+                <button onClick={handleShare} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '8px 12px', borderRadius: 12, fontSize: 12, fontWeight: 600, color: '#666666', background: 'rgba(0,0,0,0.04)', border: '1px solid rgba(0,0,0,0.06)', cursor: 'pointer' }}>
                   <Share2 size={13} /> Share
                 </button>
-                <button onClick={handleCopy} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '8px 12px', borderRadius: 12, fontSize: 12, fontWeight: 600, color: '#a1a1a6', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.08)', cursor: 'pointer' }}>
-                  {copied ? <Check size={13} style={{ color: '#30d158' }} /> : <Copy size={13} />}
+                <button onClick={handleCopy} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '8px 12px', borderRadius: 12, fontSize: 12, fontWeight: 600, color: '#666666', background: 'rgba(0,0,0,0.04)', border: '1px solid rgba(0,0,0,0.06)', cursor: 'pointer' }}>
+                  {copied ? <Check size={13} style={{ color: '#16a34a' }} /> : <Copy size={13} />}
                   {copied ? 'Copied' : 'Link'}
                 </button>
               </div>
@@ -578,8 +578,8 @@ export default function PublicProfile() {
             <div className="hidden lg:flex" style={{ alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 16 }}>
               <div style={{ width: 28, height: 28, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, color: '#fff', fontSize: 8, background: '#ff6b35' }}>MLF</div>
               <div style={{ display: 'flex', flexDirection: 'column' }}>
-                <span style={{ fontSize: 12, fontWeight: 700, color: '#636366', letterSpacing: '-0.01em', lineHeight: 1.2 }}>MasterLeadFlow</span>
-                <span style={{ fontSize: 9, color: '#48484a', lineHeight: 1.2 }}>Professional Contractor Network</span>
+                <span style={{ fontSize: 12, fontWeight: 700, color: '#999999', letterSpacing: '-0.01em', lineHeight: 1.2 }}>MasterLeadFlow</span>
+                <span style={{ fontSize: 9, color: '#cccccc', lineHeight: 1.2 }}>Professional Contractor Network</span>
               </div>
             </div>
           </div>
@@ -602,7 +602,7 @@ export default function PublicProfile() {
             {/* 3. Bio */}
             {data.bio && (
               <Section title="About">
-                <p style={{ fontSize: 14, color: '#a1a1a6', lineHeight: 1.6, whiteSpace: 'pre-line' }}>{data.bio}</p>
+                <p style={{ fontSize: 14, color: '#666666', lineHeight: 1.6, whiteSpace: 'pre-line' }}>{data.bio}</p>
               </Section>
             )}
 
@@ -612,23 +612,23 @@ export default function PublicProfile() {
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, textAlign: 'center' }}>
                   {data.years_experience != null && (
                     <div>
-                      <div style={{ fontSize: 28, fontWeight: 800, color: '#fff', letterSpacing: '-0.03em' }}>{data.years_experience}</div>
-                      <div style={{ fontSize: 11, color: '#636366', marginTop: 2 }}>Years Exp.</div>
+                      <div style={{ fontSize: 28, fontWeight: 800, color: '#1a1a1a', letterSpacing: '-0.03em' }}>{data.years_experience}</div>
+                      <div style={{ fontSize: 11, color: '#999999', marginTop: 2 }}>Years Exp.</div>
                     </div>
                   )}
                   {data.team_size != null && (
                     <div>
-                      <div style={{ fontSize: 28, fontWeight: 800, color: '#fff', letterSpacing: '-0.03em' }}>{data.team_size}</div>
-                      <div style={{ fontSize: 11, color: '#636366', marginTop: 2 }}>Team</div>
+                      <div style={{ fontSize: 28, fontWeight: 800, color: '#1a1a1a', letterSpacing: '-0.03em' }}>{data.team_size}</div>
+                      <div style={{ fontSize: 11, color: '#999999', marginTop: 2 }}>Team</div>
                     </div>
                   )}
                   {data.languages && data.languages.length > 0 && (
                     <div>
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
-                        <Languages size={16} style={{ color: '#48484a' }} />
-                        <span style={{ fontSize: 28, fontWeight: 800, color: '#fff', letterSpacing: '-0.03em' }}>{data.languages.length}</span>
+                        <Languages size={16} style={{ color: '#cccccc' }} />
+                        <span style={{ fontSize: 28, fontWeight: 800, color: '#1a1a1a', letterSpacing: '-0.03em' }}>{data.languages.length}</span>
                       </div>
-                      <div style={{ fontSize: 11, color: '#636366', marginTop: 2 }}>{data.languages.slice(0, 2).join(', ')}</div>
+                      <div style={{ fontSize: 11, color: '#999999', marginTop: 2 }}>{data.languages.slice(0, 2).join(', ')}</div>
                     </div>
                   )}
                 </div>
@@ -640,7 +640,7 @@ export default function PublicProfile() {
 
             {/* 6. Portfolio */}
             {hasPortfolio && (
-              <Section icon={<Image size={16} style={{ color: '#48484a' }} />} title="Portfolio" extra={<span style={{ fontSize: 12, color: '#48484a' }}>{portfolio.length} project{portfolio.length !== 1 ? 's' : ''}</span>}>
+              <Section icon={<Image size={16} style={{ color: '#cccccc' }} />} title="Portfolio" extra={<span style={{ fontSize: 12, color: '#cccccc' }}>{portfolio.length} project{portfolio.length !== 1 ? 's' : ''}</span>}>
                 <PortfolioGallery items={portfolio} />
               </Section>
             )}
@@ -661,8 +661,8 @@ export default function PublicProfile() {
             <div className="lg:hidden" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '24px 0' }}>
               <div style={{ width: 28, height: 28, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, color: '#fff', fontSize: 8, background: '#ff6b35' }}>MLF</div>
               <div style={{ display: 'flex', flexDirection: 'column' }}>
-                <span style={{ fontSize: 12, fontWeight: 700, color: '#636366', letterSpacing: '-0.01em', lineHeight: 1.2 }}>MasterLeadFlow</span>
-                <span style={{ fontSize: 9, color: '#48484a', lineHeight: 1.2 }}>Professional Contractor Network</span>
+                <span style={{ fontSize: 12, fontWeight: 700, color: '#999999', letterSpacing: '-0.01em', lineHeight: 1.2 }}>MasterLeadFlow</span>
+                <span style={{ fontSize: 9, color: '#cccccc', lineHeight: 1.2 }}>Professional Contractor Network</span>
               </div>
             </div>
 
@@ -673,7 +673,7 @@ export default function PublicProfile() {
       {/* ═══════════ STICKY MOBILE CTA ═══════════ */}
       <div className="lg:hidden" style={{
         position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 50,
-        background: 'linear-gradient(to top, #0a0a0a 60%, transparent)',
+        background: 'linear-gradient(to top, #f8f8f8 60%, transparent)',
         padding: '24px 16px 16px',
         paddingBottom: 'max(16px, env(safe-area-inset-bottom))',
       }}>
@@ -691,11 +691,11 @@ function Section({ icon, title, extra, children }: {
   icon?: React.ReactNode; title?: string; extra?: React.ReactNode; children: React.ReactNode
 }) {
   return (
-    <div style={{ background: '#141414', border: '1px solid rgba(255,255,255,0.08)', padding: '16px 20px' }} className="rounded-none lg:rounded-2xl border-0 lg:border lg:p-5">
+    <div style={{ background: '#ffffff', border: '1px solid rgba(0,0,0,0.06)', boxShadow: '0 1px 3px rgba(0,0,0,0.04)', padding: '16px 20px' }} className="rounded-none lg:rounded-2xl border-0 lg:border lg:p-5">
       {title && (
-        <h3 style={{ fontSize: 13, fontWeight: 700, color: '#fff', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
+        <h3 style={{ fontSize: 13, fontWeight: 700, color: '#1a1a1a', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
           {icon}
-          <span style={{ fontSize: 10, fontWeight: 600, color: '#636366', textTransform: 'uppercase' as const, letterSpacing: '0.06em' }}>{title}</span>
+          <span style={{ fontSize: 10, fontWeight: 600, color: '#999999', textTransform: 'uppercase' as const, letterSpacing: '0.06em' }}>{title}</span>
           {extra && <span style={{ marginLeft: 'auto' }}>{extra}</span>}
         </h3>
       )}
@@ -706,17 +706,17 @@ function Section({ icon, title, extra, children }: {
 
 function MiniStat({ label, value, icon }: { label: string; value: string | number; icon: React.ReactNode }) {
   return (
-    <div style={{ padding: 10, borderRadius: 12, background: '#141414', border: '1px solid rgba(255,255,255,0.08)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, textAlign: 'center' }} className="lg:p-3">
+    <div style={{ padding: 10, borderRadius: 12, background: '#ffffff', border: '1px solid rgba(0,0,0,0.08)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, textAlign: 'center' }} className="lg:p-3">
       {icon}
-      <div style={{ fontSize: 14, fontWeight: 700, color: '#fff', lineHeight: 1.2 }} className="lg:text-base">{value}</div>
-      <div style={{ fontSize: 10, color: '#636366', fontWeight: 500 }}>{label}</div>
+      <div style={{ fontSize: 14, fontWeight: 700, color: '#1a1a1a', lineHeight: 1.2 }} className="lg:text-base">{value}</div>
+      <div style={{ fontSize: 10, color: '#999999', fontWeight: 500 }}>{label}</div>
     </div>
   )
 }
 
 function MiniVerify({ icon, label }: { icon: React.ReactNode; label: string }) {
   return (
-    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '4px 8px', borderRadius: 8, fontSize: 10, fontWeight: 600, color: '#30d158', background: 'rgba(48,209,88,0.15)', border: '1px solid rgba(48,209,88,0.1)' }}>
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '4px 8px', borderRadius: 8, fontSize: 10, fontWeight: 600, color: '#16a34a', background: 'rgba(22,163,74,0.1)', border: '1px solid rgba(22,163,74,0.08)' }}>
       {icon} {label}
     </span>
   )
@@ -724,7 +724,7 @@ function MiniVerify({ icon, label }: { icon: React.ReactNode; label: string }) {
 
 function ActivitySignal({ icon, label }: { icon: React.ReactNode; label: string }) {
   return (
-    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 10px', borderRadius: 999, background: '#1c1c1e', border: '1px solid rgba(255,255,255,0.06)', color: '#636366', fontSize: 12 }}>
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 10px', borderRadius: 999, background: '#f5f5f5', border: '1px solid rgba(0,0,0,0.06)', color: '#999999', fontSize: 12 }}>
       {icon} {label}
     </span>
   )
@@ -734,13 +734,13 @@ function WorkPref({ accepted, icon, label }: { accepted: boolean; icon: React.Re
   return (
     <span style={{
       display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 14px', borderRadius: 12, fontSize: 12, fontWeight: 600,
-      background: accepted ? 'rgba(48,209,88,0.15)' : '#2c2c2e',
-      color: accepted ? '#30d158' : '#48484a',
-      border: accepted ? '1px solid rgba(48,209,88,0.1)' : '1px solid rgba(255,255,255,0.06)',
+      background: accepted ? 'rgba(22,163,74,0.1)' : '#eeeeee',
+      color: accepted ? '#16a34a' : '#cccccc',
+      border: accepted ? '1px solid rgba(22,163,74,0.08)' : '1px solid rgba(0,0,0,0.06)',
       textDecoration: accepted ? 'none' : 'line-through',
     }}>
       {icon} {label}
-      {accepted && <Check size={12} style={{ color: '#30d158' }} />}
+      {accepted && <Check size={12} style={{ color: '#16a34a' }} />}
     </span>
   )
 }
