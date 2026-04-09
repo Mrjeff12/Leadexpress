@@ -469,8 +469,8 @@ export default function JobPortal() {
                 <LockedRow label={t(lang, 'customer name', 'שם לקוח')} hint="**** ****" />
                 <LockedRow label={t(lang, 'customer phone', 'טלפון לקוח')} hint="+1 ***-***-****" />
                 <ContactRow
-                  label={t(lang, 'your pay', 'התשלום שלך')}
-                  value={job?.deal_value ? `$${job.deal_value}` : t(lang, 'To be discussed', 'לסיכום')}
+                  label={t(lang, 'your cut', 'האחוז שלך')}
+                  value={job?.deal_value ? `${job.deal_value}%` : t(lang, 'To be discussed', 'לסיכום')}
                 />
                 <div className="px-5 py-3" style={{ background: '#1c1c1e' }}>
                   <p className="text-[11px] text-center" style={{ color: '#a1a1a6', lineHeight: 1.5 }}>
