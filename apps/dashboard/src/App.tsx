@@ -65,6 +65,7 @@ const GroupLeads = lazyRetry(() => import('./pages/GroupLeads'))
 const PartnerLayout = lazyRetry(() => import('./pages/partner/PartnerLayout'))
 const NotificationsPage = lazyRetry(() => import('./pages/NotificationsPage'))
 const PublicProfileView = lazyRetry(() => import('./pages/PublicProfileView'))
+const PublicProfile = lazyRetry(() => import('./pages/PublicProfile'))
 const ProfileEdit = lazyRetry(() => import('./pages/ProfileEdit'))
 const LeadDetail = lazyRetry(() => import('./pages/LeadDetail'))
 const JobDetail = lazyRetry(() => import('./pages/JobDetail'))
@@ -284,6 +285,7 @@ function App() {
               <Suspense fallback={<LoadingScreen />}>
                 <Routes>
                   <Route path="/portal/job/:token" element={<JobPortal />} />
+                  <Route path="/pro/:slug" element={<PublicProfile />} />
                   <Route path="/claim/:leadId" element={<ClaimLead />} />
                   <Route path="/claim-followup" element={<ClaimFollowup />} />
                   <Route path="/partner/chat-demo" element={<PartnerGroupChat />} />
