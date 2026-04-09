@@ -11,6 +11,18 @@ import {
 type PortalLang = 'en' | 'he'
 const t = (lang: PortalLang, en: string, he: string) => lang === 'he' ? he : en
 
+interface ContractorProfile {
+  avatar_url: string | null
+  avg_rating: number
+  review_count: number
+  tier: string
+  years_experience: number | null
+  bio: string | null
+  headline: string | null
+  completion_rate: number
+  professions: string[] | null
+}
+
 interface Job {
   id: string
   lead_id: string
@@ -22,6 +34,7 @@ interface Job {
   created_at: string
   updated_at: string
   contractor_name: string
+  contractor_profile?: ContractorProfile
   lead: {
     city: string | null
     zip_code: string | null
@@ -190,9 +203,11 @@ export default function JobPortal() {
 
   // Derived data
   const contractorName = job?.contractor_name || t(lang, 'A contractor', 'קבלן')
+  const cp = job?.contractor_profile
   const lead = job?.lead || { city: null, zip_code: null, urgency: null, summary: null, description: null, sender_id: null, profession: null }
   const profession = (lead.profession || '').replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase())
   const location = [lead.city, lead.zip_code].filter(Boolean).join(', ') || t(lang, 'Your area', 'האזור שלך')
+  const tierLabels: Record<string, string> = { elite: '🏆 Elite', trusted: '✅ Trusted', verified: '🔵 Verified', new: '🆕 New' }
 
   // ── Loading ──
   if (loading) {
@@ -305,35 +320,94 @@ export default function JobPortal() {
       <style>{DARK_ANIM}</style>
       <div className="flex-1 pb-28">
 
-        {/* ── Section 1: Compact Hero ── */}
-        <div className="relative" style={{ background: '#0a0a0a', padding: '20px 20px 24px' }}>
+        {/* ── Section 1: Hero with Contractor Profile ── */}
+        <div className="relative" style={{ background: '#0a0a0a', padding: '16px 20px 20px' }}>
           <div className="absolute inset-0" style={{
-            background: 'radial-gradient(ellipse at 50% 0%, rgba(255,107,53,0.1) 0%, transparent 50%)',
+            background: 'radial-gradient(ellipse at 50% 0%, rgba(255,107,53,0.08) 0%, transparent 50%)',
           }} />
           <div className="relative max-w-md mx-auto">
-            {/* Avatar + title inline */}
-            <div className="flex items-center gap-3.5 mb-3 animate-in">
-              <div className="relative w-12 h-12 shrink-0">
-                <div className="absolute inset-0 rounded-xl opacity-20" style={{ background: BRAND, filter: 'blur(10px)' }} />
-                <div className="relative w-full h-full rounded-xl flex items-center justify-center text-lg font-bold"
-                  style={{ background: '#141414', color: '#fff', border: '1.5px solid rgba(255,107,53,0.3)' }}>
-                  {contractorName.charAt(0).toUpperCase()}
+            {/* Title */}
+            <h1 className="text-[17px] font-bold mb-3 animate-in" style={{ color: '#fff', fontFamily: "'Outfit', sans-serif", letterSpacing: '-0.03em' }}>
+              {t(lang,
+                `${contractorName} took your job ✅`,
+                `${contractorName} לקח את העבודה שלך ✅`
+              )}
+            </h1>
+
+            {/* Contractor profile card */}
+            <div className="rounded-2xl p-4 animate-in-1" style={{ background: '#141414', border: '1px solid rgba(255,255,255,0.08)' }}>
+              <div className="flex items-center gap-3">
+                {/* Avatar */}
+                {cp?.avatar_url ? (
+                  <img src={cp.avatar_url} alt="" className="w-12 h-12 rounded-xl object-cover shrink-0" />
+                ) : (
+                  <div className="w-12 h-12 rounded-xl flex items-center justify-center text-lg font-bold shrink-0"
+                    style={{ background: 'rgba(255,107,53,0.15)', color: BRAND }}>
+                    {contractorName.charAt(0).toUpperCase()}
+                  </div>
+                )}
+                {/* Name + tier */}
+                <div className="flex-1 min-w-0">
+                  <p className="text-[15px] font-bold text-white truncate">{contractorName}</p>
+                  <div className="flex items-center gap-2 mt-0.5">
+                    {cp && cp.avg_rating > 0 && (
+                      <span className="flex items-center gap-0.5">
+                        <Star className="w-3 h-3" style={{ fill: BRAND, color: BRAND }} />
+                        <span className="text-[11px] font-semibold" style={{ color: BRAND }}>{cp.avg_rating}</span>
+                        <span className="text-[10px]" style={{ color: '#636366' }}>({cp.review_count})</span>
+                      </span>
+                    )}
+                    {cp?.tier && cp.tier !== 'new' && (
+                      <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full"
+                        style={{ background: 'rgba(255,107,53,0.1)', color: BRAND }}>
+                        {tierLabels[cp.tier] || cp.tier}
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
-              <div>
-                <h1 className="text-[18px] font-bold" style={{ color: '#fff', fontFamily: "'Outfit', sans-serif", letterSpacing: '-0.03em', lineHeight: 1.2 }}>
-                  {t(lang,
-                    `${contractorName} took your job ✅`,
-                    `${contractorName} לקח את העבודה שלך ✅`
+
+              {/* Quick stats row */}
+              {cp && (
+                <div className="flex items-center gap-3 mt-3 pt-3" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+                  {cp.years_experience && (
+                    <div className="flex-1 text-center">
+                      <p className="text-[14px] font-bold text-white">{cp.years_experience}</p>
+                      <p className="text-[9px] uppercase" style={{ color: '#636366', letterSpacing: '0.05em' }}>{t(lang, 'Years', 'שנים')}</p>
+                    </div>
                   )}
-                </h1>
-                <div className="flex items-center gap-2 mt-1">
-                  {profession && (
-                    <span className="text-[12px] font-medium" style={{ color: BRAND }}>{profession}</span>
+                  {cp.completion_rate > 0 && (
+                    <div className="flex-1 text-center">
+                      <p className="text-[14px] font-bold text-white">{cp.completion_rate}%</p>
+                      <p className="text-[9px] uppercase" style={{ color: '#636366', letterSpacing: '0.05em' }}>{t(lang, 'Done', 'הושלם')}</p>
+                    </div>
                   )}
-                  {profession && <span style={{ color: '#2c2c2e' }}>·</span>}
-                  <span className="text-[12px]" style={{ color: '#636366' }}>{location}</span>
+                  {cp.review_count > 0 && (
+                    <div className="flex-1 text-center">
+                      <p className="text-[14px] font-bold text-white">{cp.review_count}</p>
+                      <p className="text-[9px] uppercase" style={{ color: '#636366', letterSpacing: '0.05em' }}>{t(lang, 'Reviews', 'דירוגים')}</p>
+                    </div>
+                  )}
+                  {cp.professions && cp.professions.length > 0 && !cp.years_experience && !cp.completion_rate && (
+                    <div className="flex flex-wrap gap-1">
+                      {cp.professions.slice(0, 3).map((p, i) => (
+                        <span key={i} className="text-[10px] px-2 py-0.5 rounded-full"
+                          style={{ background: 'rgba(255,255,255,0.06)', color: '#a1a1a6' }}>
+                          {p.replace(/_/g, ' ')}
+                        </span>
+                      ))}
+                    </div>
+                  )}
                 </div>
+              )}
+
+              {/* Job info inline */}
+              <div className="flex items-center gap-2 mt-3 pt-3" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+                {profession && (
+                  <span className="text-[11px] font-medium" style={{ color: BRAND }}>{profession}</span>
+                )}
+                {profession && <span style={{ color: '#2c2c2e' }}>·</span>}
+                <span className="text-[11px]" style={{ color: '#636366' }}>{location}</span>
               </div>
             </div>
           </div>
