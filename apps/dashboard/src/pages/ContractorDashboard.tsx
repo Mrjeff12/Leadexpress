@@ -834,8 +834,20 @@ export default function ContractorDashboard() {
           </div>
         ))}
 
-        {/* Plan badge */}
+        {/* Plan badge + actions */}
         <div className="ml-2 mr-1 flex items-center gap-2">
+          <Link
+            to="/publish"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-bold text-white bg-[#fe5b25] hover:bg-[#e04d1c] transition-colors"
+          >
+            <Plus className="w-3 h-3" /> {locale === 'he' ? 'פרסם עבודה' : 'Publish Job'}
+          </Link>
+          <Link
+            to="/notifications"
+            className="w-8 h-8 rounded-full bg-white/80 hover:bg-white flex items-center justify-center transition-colors relative"
+          >
+            <Bell className="w-4 h-4 text-stone-600" />
+          </Link>
           <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-semibold bg-gradient-to-r from-[#fff4ef] to-[#fff4ef] text-[#c43d10] border border-[#fee8df]">
             <Sparkles className="w-3 h-3" />
             {planName}
@@ -915,10 +927,34 @@ export default function ContractorDashboard() {
         {/* Profile Completion + Views */}
         <div className="mb-5 space-y-4">
           {contractorData && (contractorData.profile?.profile_completeness ?? 100) < 100 && (
-            <ProfileCompletionBar
-              completeness={contractorData.profile?.profile_completeness ?? 0}
-              profile={contractorData}
-            />
+            <Link to="/profile" className="block glass-panel p-4 hover:shadow-md transition-shadow">
+              <div className="flex items-center gap-3.5 mb-3">
+                {(() => {
+                  const pct = contractorData.profile?.profile_completeness ?? 0
+                  const r = 20
+                  const circ = 2 * Math.PI * r
+                  return (
+                    <div className="relative w-12 h-12 flex-shrink-0">
+                      <svg width="48" height="48" viewBox="0 0 48 48" className="-rotate-90">
+                        <circle cx="24" cy="24" r={r} fill="none" strokeWidth="3" stroke="#f5f5f5" />
+                        <circle cx="24" cy="24" r={r} fill="none" strokeWidth="3" stroke="#fe5b25" strokeLinecap="round"
+                          strokeDasharray={`${circ}`} strokeDashoffset={`${circ * (1 - pct / 100)}`} />
+                      </svg>
+                      <span className="absolute inset-0 flex items-center justify-center text-[12px] font-bold text-[#fe5b25]">{pct}%</span>
+                    </div>
+                  )
+                })()}
+                <div className="flex-1">
+                  <p className="text-[13px] font-semibold text-stone-900">{locale === 'he' ? 'השלם את הפרופיל' : 'Complete your profile'}</p>
+                  <p className="text-[10px] text-stone-500">{locale === 'he' ? 'קבלנים מאומתים מקבלים' : 'Verified contractors get'} <strong className="text-[#fe5b25]">+30% {locale === 'he' ? 'יותר לידים' : 'more leads'}</strong></p>
+                </div>
+                <ChevronRight className="w-3.5 h-3.5 text-stone-400" />
+              </div>
+              <div className="flex gap-1.5">
+                <span className="text-[9px] bg-[#fff4f0] text-[#fe5b25] px-2 py-0.5 rounded-full font-medium">+ Verify ID</span>
+                <span className="text-[9px] bg-stone-100 text-stone-500 px-2 py-0.5 rounded-full font-medium">+ License</span>
+              </div>
+            </Link>
           )}
           {contractorData?.profile?.slug && viewStats && (
             <div className="glass-panel p-4 flex items-center gap-3">
@@ -942,6 +978,58 @@ export default function ContractorDashboard() {
           <NetworkPointsCard />
           <TierProgressCard />
         </div>
+
+        {/* ═══ My Services summary ═══ */}
+        {selectedProfs.length > 0 && (
+          <div className="mb-4">
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-[11px] font-bold text-stone-400 uppercase tracking-[0.12em]">
+                {locale === 'he' ? 'השירותים שלי' : 'My Services'}
+              </p>
+              <Link to="/profile" className="text-[10px] text-[#fe5b25] font-semibold hover:underline">
+                {locale === 'he' ? 'ערוך' : 'Edit'}
+              </Link>
+            </div>
+            <div className="space-y-1.5">
+              {selectedProfs.slice(0, 4).map((id) => {
+                const p = profLookup[id]
+                return p ? (
+                  <div key={id} className="glass-panel px-3 py-2.5 flex items-center gap-2.5">
+                    <div className="w-7 h-7 rounded-lg bg-[#fff4f0] flex items-center justify-center">
+                      <span className="text-sm">{p.emoji}</span>
+                    </div>
+                    <span className="text-[12px] font-semibold text-stone-800">{locale === 'he' ? p.he : p.en}</span>
+                  </div>
+                ) : null
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* ═══ My Areas summary ═══ */}
+        {(counties.length > 0 || zipCodes.length > 0) && (
+          <div className="mb-5">
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-[11px] font-bold text-stone-400 uppercase tracking-[0.12em]">
+                {locale === 'he' ? 'האזורים שלי' : 'My Areas'}
+              </p>
+              <Link to="/profile" className="text-[10px] text-[#fe5b25] font-semibold hover:underline">
+                {locale === 'he' ? 'ערוך' : 'Edit'}
+              </Link>
+            </div>
+            <div className="flex gap-1.5 flex-wrap">
+              {counties.length > 0 ? counties.map((c) => (
+                <span key={c} className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-full glass-panel text-[11px] font-medium text-stone-700">
+                  <MapPin className="w-2.5 h-2.5 text-[#fe5b25]" /> {c}
+                </span>
+              )) : zipCodes.slice(0, 8).map((z) => (
+                <span key={z} className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-full glass-panel text-[11px] font-medium text-stone-700">
+                  <MapPin className="w-2.5 h-2.5 text-[#fe5b25]" /> {z}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* ═══ Lead Filter Preferences Header ═══ */}
         <div className="rounded-2xl bg-gradient-to-r from-[#fff4ef]/80 to-[#fff4ef]/60 border border-[#fee8df]/60 p-3.5 mb-5">

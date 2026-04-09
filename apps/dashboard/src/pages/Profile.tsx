@@ -3,6 +3,7 @@ import { useAuth } from '../lib/auth'
 import { useI18n } from '../lib/i18n'
 import { supabase } from '../lib/supabase'
 import { useNavigate, Link } from 'react-router-dom'
+import { PROFESSIONS } from '../lib/professions'
 import {
   User,
   Phone,
@@ -702,17 +703,233 @@ export default function Profile() {
       <div className="hidden md:block">
         <div className="animate-fade-in max-w-3xl mx-auto space-y-6 pb-12">
           {/* Header */}
-          <div className="flex items-center gap-3">
-            <div className="flex items-center justify-center h-10 w-10 rounded-xl bg-[#fee8df] text-[#c43d10]">
-              <User className="h-5 w-5" />
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="flex items-center justify-center h-10 w-10 rounded-xl bg-[#fee8df] text-[#c43d10]">
+                <User className="h-5 w-5" />
+              </div>
+              <div>
+                <h1 className="text-xl font-semibold text-zinc-900">{t('profile.title')}</h1>
+                <p className="text-sm text-zinc-500">Manage your personal information</p>
+              </div>
             </div>
-            <div>
-              <h1 className="text-xl font-semibold text-zinc-900">{t('profile.title')}</h1>
-              <p className="text-sm text-zinc-500">Manage your personal information</p>
-            </div>
+            {contractorData?.profile?.slug && (
+              <Link
+                to={`/pro/${contractorData.profile.slug}`}
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold text-[#fe5b25] bg-[#fff4f0] hover:bg-[#fee8df] transition-colors"
+              >
+                <Eye className="w-4 h-4" /> {isHe ? 'צפה בפרופיל ציבורי' : 'View Public Profile'}
+              </Link>
+            )}
           </div>
 
           <div className="stagger-children space-y-5">
+
+            {/* --- Hero Card with Tier Journey --- */}
+            <section className="glass-panel p-6 bg-gradient-to-r from-zinc-900 to-zinc-800 text-white rounded-2xl overflow-hidden relative">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-[#fe5b25] rounded-full opacity-[0.08] -translate-y-10 translate-x-10" />
+              <div className="flex items-center gap-4 mb-5 relative">
+                <div className="relative">
+                  <div className="w-16 h-16 rounded-2xl bg-white/10 flex items-center justify-center text-white text-[22px] font-bold">
+                    {initials}
+                  </div>
+                  {identityVerified && (
+                    <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center border-2 border-zinc-900">
+                      <CheckCircle2 size={12} className="text-white" />
+                    </div>
+                  )}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h2 className="text-lg font-bold tracking-tight truncate">{fullName || 'Your Name'}</h2>
+                  <p className="text-sm text-white/40">
+                    {contractorData?.professions?.[0] ?? 'Contractor'}
+                    {contractorData?.counties?.[0] ? ` · ${contractorData.counties[0]}` : ''}
+                    {contractorData?.profile?.years_experience ? ` · ${contractorData.profile.years_experience} yrs` : ''}
+                  </p>
+                  <div className="flex items-center gap-3 mt-1.5">
+                    {contractorData?.profile?.avg_rating ? (
+                      <span className="flex items-center gap-1 text-sm text-amber-400 font-semibold">
+                        <Star size={12} fill="#fbbf24" /> {contractorData.profile.avg_rating.toFixed(1)}
+                        <span className="text-white/25 font-normal">({contractorData.profile.review_count ?? 0})</span>
+                      </span>
+                    ) : (
+                      <span className="text-sm text-white/30">{isHe ? 'אין דירוג עדיין' : 'No rating yet'}</span>
+                    )}
+                    {identityVerified && (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-500/15 text-[10px] font-bold text-blue-400 border border-blue-500/20">
+                        <CheckCircle2 size={10} /> {isHe ? 'מאומת' : 'Verified'}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Tier Journey */}
+              {(() => {
+                const tierDefs = [
+                  { name: 'New', Icon: UserCircle, reached: true, color: '#9ca3af', bg: 'rgba(156,163,175,0.15)' },
+                  { name: 'Verified', Icon: BadgeCheck, reached: identityVerified, color: '#3b82f6', bg: 'rgba(59,130,246,0.15)' },
+                  { name: 'Trusted', Icon: Award, reached: false, color: '#22c55e', bg: 'rgba(34,197,94,0.15)' },
+                  { name: 'Elite', Icon: Crown, reached: false, color: '#f59e0b', bg: 'rgba(245,158,11,0.15)' },
+                ]
+                const currentIdx = identityVerified ? 1 : 0
+                return (
+                  <div className="flex items-center gap-0 mb-3">
+                    {tierDefs.map((td, i, arr) => {
+                      const isActive = i === currentIdx
+                      const isPast = i < currentIdx || td.reached
+                      return (
+                        <div key={i} className="flex items-center flex-1">
+                          <div className="flex flex-col items-center flex-1">
+                            <div
+                              className={`w-10 h-10 rounded-xl flex items-center justify-center mb-1 transition-all ${isActive ? 'ring-2 shadow-lg scale-110' : ''}`}
+                              style={{
+                                background: isPast || isActive ? td.bg : 'rgba(255,255,255,0.04)',
+                                '--tw-ring-color': isActive ? td.color : 'transparent',
+                                boxShadow: isActive ? `0 0 16px ${td.color}33` : undefined,
+                              } as React.CSSProperties}
+                            >
+                              <td.Icon size={18} strokeWidth={1.8} style={{ color: isPast || isActive ? td.color : 'rgba(255,255,255,0.12)' }} />
+                            </div>
+                            <span className="text-[10px] font-semibold" style={{ color: isPast || isActive ? td.color : 'rgba(255,255,255,0.12)' }}>
+                              {td.name}
+                            </span>
+                          </div>
+                          {i < arr.length - 1 && (
+                            <div className="h-[2px] w-full mt-[-14px] rounded-full" style={{
+                              background: isPast && tierDefs[i + 1]?.reached
+                                ? `linear-gradient(90deg, ${td.color}66, ${tierDefs[i + 1].color}66)`
+                                : isPast ? `${td.color}44` : 'rgba(255,255,255,0.05)',
+                            }} />
+                          )}
+                        </div>
+                      )
+                    })}
+                  </div>
+                )
+              })()}
+
+              {/* Profile Strength bar */}
+              <div className="flex items-center gap-3">
+                <div className="flex-1 flex gap-0.5">
+                  {[0, 1, 2, 3, 4].map(i => (
+                    <div key={i} className={`flex-1 h-1.5 rounded-full ${i < filledSegments ? 'bg-[#fe5b25]' : 'bg-white/10'}`} />
+                  ))}
+                </div>
+                <span className="text-[12px] font-bold text-[#fe5b25]">{strengthPercent}%</span>
+              </div>
+            </section>
+
+            {/* --- Professional Info --- */}
+            <section className="glass-panel p-6 space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-sm font-medium text-zinc-700">
+                  <Wrench className="h-4 w-4 text-[#e04d1c]" />
+                  {isHe ? 'מידע מקצועי' : 'Professional Info'}
+                </div>
+                <Link to="/profile/edit" className="text-xs font-semibold text-[#fe5b25] hover:underline">
+                  {isHe ? 'ערוך' : 'Edit'}
+                </Link>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="rounded-xl border border-zinc-100 p-4 space-y-1">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Wrench size={14} className="text-zinc-400" />
+                    <span className="text-xs font-semibold text-zinc-500">{isHe ? 'שירותים' : 'Services'}</span>
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {(contractorData?.professions ?? []).length > 0
+                      ? contractorData!.professions!.map((p: string) => {
+                          const prof = PROFESSIONS.find(pr => pr.id === p)
+                          return prof ? (
+                            <span key={p} className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-[#fff4f0] text-[11px] font-medium text-zinc-700">
+                              {prof.emoji} {isHe ? prof.he : prof.en}
+                            </span>
+                          ) : null
+                        })
+                      : <span className="text-xs text-zinc-400">{isHe ? 'לא נבחר' : 'Not set'}</span>
+                    }
+                  </div>
+                </div>
+                <div className="rounded-xl border border-zinc-100 p-4 space-y-1">
+                  <div className="flex items-center gap-2 mb-2">
+                    <MapPin size={14} className="text-zinc-400" />
+                    <span className="text-xs font-semibold text-zinc-500">{isHe ? 'אזורי שירות' : 'Service Areas'}</span>
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {(contractorData?.counties ?? []).length > 0
+                      ? contractorData!.counties!.map((c: string) => (
+                          <span key={c} className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-blue-50 text-[11px] font-medium text-zinc-700">
+                            <MapPin size={10} className="text-blue-400" /> {c}
+                          </span>
+                        ))
+                      : (contractorData?.zip_codes ?? []).length > 0
+                        ? contractorData!.zip_codes!.slice(0, 6).map((z: string) => (
+                            <span key={z} className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-blue-50 text-[11px] font-medium text-zinc-700">
+                              {z}
+                            </span>
+                          ))
+                        : <span className="text-xs text-zinc-400">{isHe ? 'לא נבחר' : 'Not set'}</span>
+                    }
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            {/* --- Reviews --- */}
+            <section className="glass-panel p-6 space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-sm font-medium text-zinc-700">
+                  <Star className="h-4 w-4 text-[#e04d1c]" />
+                  {isHe ? 'ביקורות' : 'Reviews'}
+                </div>
+                <span className="text-xs text-zinc-400">{contractorData?.profile?.review_count ?? 0} {isHe ? 'סה״כ' : 'total'}</span>
+              </div>
+              {contractorData?.profile?.avg_rating ? (
+                <div className="flex items-center gap-4">
+                  <p className="text-3xl font-bold tracking-tight text-zinc-900">{contractorData.profile.avg_rating.toFixed(1)}</p>
+                  <div className="flex gap-0.5">
+                    {[1,2,3,4,5].map(i => (
+                      <Star key={i} size={16} className={i <= Math.round(contractorData.profile!.avg_rating!) ? 'text-amber-400' : 'text-gray-200'} fill={i <= Math.round(contractorData.profile!.avg_rating!) ? '#fbbf24' : '#e5e7eb'} />
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center py-6">
+                  <Star size={28} className="text-gray-200 mx-auto mb-2" />
+                  <p className="text-sm text-zinc-400">{isHe ? 'אין ביקורות עדיין' : 'No reviews yet'}</p>
+                </div>
+              )}
+            </section>
+
+            {/* --- Portfolio --- */}
+            <section className="glass-panel p-6 space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-sm font-medium text-zinc-700">
+                  <Image className="h-4 w-4 text-[#e04d1c]" />
+                  {isHe ? 'פורטפוליו' : 'Portfolio'}
+                </div>
+                <Link to="/profile/edit" className="text-xs font-semibold text-[#fe5b25] hover:underline">
+                  {isHe ? 'הוסף פרויקט' : 'Add Project'}
+                </Link>
+              </div>
+              <div className="grid grid-cols-4 gap-3">
+                {['Smart Lock Install', 'Commercial Rekey', 'Emergency Lockout', 'Safe Install'].map((p, i) => (
+                  <div key={i} className="group cursor-pointer">
+                    <div className="aspect-[3/4] rounded-xl bg-zinc-100 flex items-center justify-center mb-1.5 relative overflow-hidden group-hover:shadow-md transition-shadow">
+                      <Image size={20} className="text-zinc-300" />
+                      <span className="absolute bottom-1.5 left-1.5 text-[9px] font-semibold bg-zinc-900/70 text-white px-1.5 py-0.5 rounded backdrop-blur-sm">B/A</span>
+                    </div>
+                    <p className="text-[11px] font-medium truncate text-zinc-700">{p}</p>
+                  </div>
+                ))}
+              </div>
+              <div className="flex items-center gap-2 bg-blue-50 rounded-xl p-3">
+                <TrendingUp size={14} className="text-blue-500" />
+                <p className="text-xs text-blue-700">6+ projects = <strong>40% more inquiries</strong></p>
+              </div>
+            </section>
+
             {/* --- Personal Info --- */}
             <section className="glass-panel p-6 space-y-4">
               <div className="flex items-center gap-2 text-sm font-medium text-zinc-700">

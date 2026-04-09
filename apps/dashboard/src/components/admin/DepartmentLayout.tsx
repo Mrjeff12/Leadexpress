@@ -43,6 +43,7 @@ const GrowthDashboard = lazy(() => import('../../pages/admin/GrowthDashboard'))
 
 // Army
 const ArmyCommandCenter = lazy(() => import('../../pages/admin/army/ArmyCommandCenter'))
+const DmCampaigns = lazy(() => import('../../pages/admin/army/DmCampaigns'))
 
 // Settings
 const Professions = lazy(() => import('../../pages/admin/Professions'))
@@ -81,6 +82,7 @@ const TAB_COMPONENTS: Record<string, React.LazyExoticComponent<() => React.JSX.E
   'growth/dashboard': GrowthDashboard,
   // Army
   'army/command': ArmyCommandCenter,
+  'army/dm-campaigns': DmCampaigns,
   // Settings
   'settings/professions': Professions,
   'settings/system': SystemSettings,

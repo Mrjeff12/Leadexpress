@@ -172,6 +172,7 @@ export const departments: DepartmentDef[] = [
     basePath: 'army',
     tabs: [
       { key: 'command', labelEn: 'Command Center', labelHe: 'מרכז שליטה', path: '', fullBleed: true },
+      { key: 'dm-campaigns', labelEn: 'DM Campaigns', labelHe: 'קמפיינים', path: 'dm-campaigns' },
     ],
     kpis: [
       { key: 'armyAccounts', labelEn: 'Accounts', labelHe: 'חשבונות' },

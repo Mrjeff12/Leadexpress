@@ -377,6 +377,8 @@ export default function LeadsFeed() {
           sub={he ? 'מנותחים ע"י AI' : 'Across all channels'}
           color="#fe5b25"
           chartData={chartDataAll.all}
+          active={filterUrg === 'all'}
+          onClick={() => setFilterUrg('all')}
         />
         <KpiCard
           icon={Flame}

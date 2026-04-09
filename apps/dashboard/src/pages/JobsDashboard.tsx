@@ -855,6 +855,7 @@ export default function JobsDashboard() {
                 <th className="text-left px-4 py-3 font-medium">{he ? 'סטטוס' : 'Status'}</th>
                 <th className="text-left px-4 py-3 font-medium hidden sm:table-cell">{he ? 'תשלום' : 'Payment'}</th>
                 <th className="text-left px-4 py-3 font-medium hidden lg:table-cell">{he ? 'תאריך' : 'Date'}</th>
+                <th className="text-left px-4 py-3 font-medium hidden md:table-cell">{he ? 'פעולות' : 'Actions'}</th>
               </tr>
             </thead>
             <tbody>
@@ -918,6 +919,25 @@ export default function JobsDashboard() {
                     {/* Date */}
                     <td className="px-4 py-3 text-xs text-stone-400 hidden lg:table-cell">
                       {formatDate(job.created_at)}
+                    </td>
+
+                    {/* Quick Actions — active jobs */}
+                    <td className="px-4 py-3 hidden md:table-cell">
+                      {job.status === 'accepted' && (
+                        <div className="flex items-center gap-1.5">
+                          <a href={`tel:${job.sub_phone}`} onClick={e => e.stopPropagation()}
+                            className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-green-50 hover:bg-green-100 text-green-600 text-[10px] font-semibold transition-colors">
+                            <Phone className="w-3 h-3" /> {he ? 'שיחה' : 'Call'}
+                          </a>
+                          {job.customer_address && (
+                            <a href={`https://maps.google.com/?q=${encodeURIComponent(job.customer_address)}`}
+                              target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()}
+                              className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-500 text-[10px] font-semibold transition-colors">
+                              <Navigation className="w-3 h-3" /> {he ? 'נווט' : 'Go'}
+                            </a>
+                          )}
+                        </div>
+                      )}
                     </td>
                   </tr>
                 )
