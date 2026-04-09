@@ -96,7 +96,12 @@ Deno.serve(async (req: Request) => {
     let nudged = 0;
 
     for (const job of staleJobs) {
-      // Get contractor's WhatsApp phone
+      // Mark BEFORE sending to prevent duplicates from concurrent cron runs
+      await supabase
+        .from("job_orders")
+        .update({ portal_nudge_sent: true })
+        .eq("id", job.id);
+
       const { data: contractor } = await supabase
         .from("profiles")
         .select("whatsapp_phone, full_name")
@@ -112,15 +117,8 @@ Deno.serve(async (req: Request) => {
 
       const msg = `💡 Heads up — the publisher of ${jobDesc} opened your link but didn't finish signing up.\n\nYou can send them a quick reminder or reach out directly. Sometimes people just get busy!`;
 
-      const sent = await sendWhatsApp(contractor.whatsapp_phone, msg);
-
-      if (sent) {
-        await supabase
-          .from("job_orders")
-          .update({ portal_nudge_sent: true })
-          .eq("id", job.id);
-        nudged++;
-      }
+      await sendWhatsApp(contractor.whatsapp_phone, msg);
+      nudged++;
     }
 
     console.log(`[portal-nudge] Nudged ${nudged}/${staleJobs.length} contractors`);

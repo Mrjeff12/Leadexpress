@@ -80,6 +80,8 @@ export default function JobPortal() {
   const [signupDone, setSignupDone] = useState(false)
   const [isExistingUser, setIsExistingUser] = useState<boolean | null>(null) // null = checking
   const [existingUserName, setExistingUserName] = useState('')
+  const [waSendFailed, setWaSendFailed] = useState(false)
+  const [noPhone, setNoPhone] = useState(false)
   const formRef = useRef<HTMLDivElement>(null)
   const [lang, setLang] = useState<PortalLang>(() => {
     const saved = localStorage.getItem('le-portal-lang') as PortalLang | null
@@ -117,6 +119,11 @@ export default function JobPortal() {
         }
         supabase.from('job_orders').update({ viewed_at: new Date().toISOString() }).eq('id', jobData.id).then(() => {})
 
+        // No phone = can't proceed
+        if (!publisherPhone) {
+          setNoPhone(true)
+        }
+
         // Check if publisher is an existing user
         if (publisherPhone) {
           try {
@@ -144,7 +151,7 @@ export default function JobPortal() {
   }, [token])
 
   const handleSignup = async () => {
-    // Existing users don't need a name
+    if (signupLoading) return // Prevent double-click
     if (!isExistingUser && !signupName.trim()) return
     if (!signupPhone.trim()) return
     setSignupLoading(true)
@@ -162,8 +169,18 @@ export default function JobPortal() {
           commission_pct: commissionPct.trim() || undefined,
         }),
       })
-      if (res.ok) setSignupDone(true)
-      else alert(t(lang, 'Something went wrong. Try again.', 'משהו השתבש. נסה שוב.'))
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        alert(t(lang, 'Something went wrong. Try again.', 'משהו השתבש. נסה שוב.'))
+        return
+      }
+      // Check if WhatsApp was actually sent
+      if (data.magicLinkSent === false) {
+        setSignupDone(true) // Still show success but with fallback message
+        setWaSendFailed(true)
+        return
+      }
+      setSignupDone(true)
     } catch {
       alert(t(lang, 'Network error.', 'שגיאת רשת.'))
     } finally {
@@ -216,29 +233,62 @@ export default function JobPortal() {
 
   // ── Success ──
   if (signupDone) {
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)
     return (
       <Shell lang={lang} toggleLang={toggleLang}>
         <style>{ANIM_STYLES}</style>
         <div className="flex-1 flex flex-col items-center justify-center px-6 gap-5">
-          {/* WhatsApp icon */}
-          <div className="w-24 h-24 rounded-full flex items-center justify-center portal-check-in" style={{ background: '#dcfce7' }}>
-            <span className="text-5xl">💬</span>
+          <div className="w-24 h-24 rounded-full flex items-center justify-center portal-check-in" style={{ background: waSendFailed ? '#fef2ef' : '#dcfce7' }}>
+            <span className="text-5xl">{waSendFailed ? '⚠️' : '💬'}</span>
           </div>
-          <h1 className="text-2xl font-bold text-center portal-fade-up-1" style={{ color: '#1a1614', letterSpacing: '-0.04em' }}>
-            {t(lang, 'Check your WhatsApp! 🎉', 'בדוק את הוואטסאפ! 🎉')}
-          </h1>
-          <p className="text-[15px] text-center portal-fade-up-2" style={{ color: '#5a5450', maxWidth: 300, lineHeight: 1.7 }}>
-            {t(lang,
-              `We sent you a link on WhatsApp to manage the job with ${contractorName}.`,
-              `שלחנו לך לינק בוואטסאפ לניהול העבודה עם ${contractorName}.`
-            )}
-          </p>
+
+          {waSendFailed ? (
+            /* WhatsApp send failed — show fallback */
+            <>
+              <h1 className="text-2xl font-bold text-center portal-fade-up-1" style={{ color: '#1a1614', letterSpacing: '-0.04em' }}>
+                {t(lang, 'Almost there!', 'כמעט שם!')}
+              </h1>
+              <p className="text-[15px] text-center portal-fade-up-2" style={{ color: '#5a5450', maxWidth: 300, lineHeight: 1.7 }}>
+                {t(lang,
+                  `Your account is set up, but we couldn't send the WhatsApp link. Contact ${contractorName} to get your login link.`,
+                  `החשבון שלך מוכן, אבל לא הצלחנו לשלוח את הלינק בוואטסאפ. פנה ל${contractorName} כדי לקבל לינק כניסה.`
+                )}
+              </p>
+            </>
+          ) : !isMobile ? (
+            /* Desktop — tell them to check phone */
+            <>
+              <h1 className="text-2xl font-bold text-center portal-fade-up-1" style={{ color: '#1a1614', letterSpacing: '-0.04em' }}>
+                {t(lang, 'Check your phone! 📱', 'בדוק את הטלפון! 📱')}
+              </h1>
+              <p className="text-[15px] text-center portal-fade-up-2" style={{ color: '#5a5450', maxWidth: 300, lineHeight: 1.7 }}>
+                {t(lang,
+                  `We sent a login link to your WhatsApp. Open it on your phone to access the dashboard.`,
+                  `שלחנו לינק כניסה לוואטסאפ שלך. פתח אותו בטלפון כדי להיכנס לדשבורד.`
+                )}
+              </p>
+            </>
+          ) : (
+            /* Mobile — normal success */
+            <>
+              <h1 className="text-2xl font-bold text-center portal-fade-up-1" style={{ color: '#1a1614', letterSpacing: '-0.04em' }}>
+                {t(lang, 'Check your WhatsApp! 🎉', 'בדוק את הוואטסאפ! 🎉')}
+              </h1>
+              <p className="text-[15px] text-center portal-fade-up-2" style={{ color: '#5a5450', maxWidth: 300, lineHeight: 1.7 }}>
+                {t(lang,
+                  `We sent you a link on WhatsApp to manage the job with ${contractorName}.`,
+                  `שלחנו לך לינק בוואטסאפ לניהול העבודה עם ${contractorName}.`
+                )}
+              </p>
+            </>
+          )}
+
           <div className="rounded-2xl px-5 py-4 portal-fade-up-3" style={{ background: '#fff', border: '1px solid #efece8', maxWidth: 300 }}>
             <p className="text-[13px] text-center" style={{ color: '#7a7570', lineHeight: 1.6 }}>
-              {t(lang,
-                'Tap the link in WhatsApp to log in to your dashboard. The link expires in 24 hours.',
-                'לחץ על הלינק בוואטסאפ כדי להיכנס לדשבורד שלך. הלינק בתוקף ל-24 שעות.'
-              )}
+              {waSendFailed
+                ? t(lang, 'Your account was created successfully. You just need a login link to access it.', 'החשבון נוצר בהצלחה. אתה רק צריך לינק כניסה.')
+                : t(lang, 'Tap the link in WhatsApp to log in. The link expires in 24 hours.', 'לחץ על הלינק בוואטסאפ כדי להיכנס. הלינק בתוקף 24 שעות.')
+              }
             </p>
           </div>
           <div className="flex items-center gap-2 mt-2 px-5 py-2.5 rounded-full portal-fade-up-4" style={{ background: '#fff4ef' }}>
