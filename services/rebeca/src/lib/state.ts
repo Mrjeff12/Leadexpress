@@ -1,7 +1,7 @@
 import { supabase } from './supabase.js';
 
 export interface BotState {
-  step: 'welcome' | 'name' | 'profession' | 'state_select' | 'city' | 'working_days' | 'email' | 'confirm' | 'ai' | 'groups' | 'menu' | 'post_job' | 'lead_pending';
+  step: 'welcome' | 'name' | 'profession' | 'state_select' | 'city' | 'working_days' | 'email' | 'confirm' | 'ai' | 'groups' | 'menu' | 'post_job' | 'lead_pending' | 'pj_description' | 'pj_profession' | 'pj_location' | 'pj_address' | 'pj_commission' | 'pj_confirm';
   userId: string | null;
   prospectId: string | null;
   language: 'he' | 'en';

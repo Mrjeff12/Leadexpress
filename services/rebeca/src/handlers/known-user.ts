@@ -76,6 +76,16 @@ export async function handleKnownUser(
     return;
   }
 
+  // POST JOB — start publish flow
+  const JOB_TRIGGERS = new Set(['post job', 'publish', 'post', 'פרסם', 'פרסם עבודה', 'עבודה חדשה', 'new job', '7']);
+  if (JOB_TRIGGERS.has(lower)) {
+    const { startPublishJob } = await import('./publish-job.js');
+    const { newOnboardState } = await import('../lib/state.js');
+    const state = newOnboardState(profile.id, null, lang(phone) === 'he' ? 'he' : 'en', profile.full_name);
+    await startPublishJob(phone, state);
+    return;
+  }
+
   // Unrecognized — show menu
   log.debug({ phone, text: lower }, 'Unrecognized message from known user');
   await sendText(phone, t(phone, 'menu'));

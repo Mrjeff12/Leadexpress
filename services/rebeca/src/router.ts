@@ -6,6 +6,7 @@ import { findProfile, linkWhatsAppPhone, isOptedOut } from './lib/profile.js';
 import { handleOnboarding, startOnboarding, startNewUserOnboarding } from './handlers/onboarding.js';
 import { handleKnownUser } from './handlers/known-user.js';
 import { handleLeadClaim, handleLeadPass } from './handlers/lead-action.js';
+import { handlePublishJob } from './handlers/publish-job.js';
 import pino from 'pino';
 
 const log = pino({ name: 'router' });
@@ -66,9 +67,15 @@ async function processMessage(phone: string, text: string, buttonPayload: string
     return;
   }
 
-  // 4. Active onboarding state (both new & existing users)
+  // 4. Active state — route to correct handler
   const state = await getState(phone);
   if (state) {
+    // Publish job flow
+    if (state.step.startsWith('pj_')) {
+      await handlePublishJob(phone, text);
+      return;
+    }
+    // All other states → onboarding
     await handleOnboarding(phone, text);
     return;
   }
