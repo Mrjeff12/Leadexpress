@@ -117,14 +117,8 @@ function getInitials(name: string): string {
   return name.split(' ').map((w) => w[0]).filter(Boolean).slice(0, 2).join('').toUpperCase()
 }
 
-function professionGradient(professions: string[] | null): string {
-  const p = (professions?.[0] ?? '').toLowerCase()
-  if (p.includes('hvac') || p.includes('air')) return 'from-blue-600 via-blue-500 to-cyan-400'
-  if (p.includes('renovation') || p.includes('kitchen') || p.includes('bathroom')) return 'from-orange-600 via-amber-500 to-yellow-400'
-  if (p.includes('electric')) return 'from-yellow-500 via-amber-500 to-orange-400'
-  if (p.includes('plumb')) return 'from-teal-600 via-teal-500 to-emerald-400'
-  if (p.includes('paint')) return 'from-purple-600 via-purple-500 to-pink-400'
-  return 'from-[#fe5b25] via-[#ff6b3d] to-[#ff8f6b]'
+function formatProfession(p: string): string {
+  return p.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())
 }
 
 function formatMemberSince(date: string | null | undefined): string {
@@ -140,27 +134,27 @@ function responseTimeLabel(mins: number | null | undefined): string {
 }
 
 function getActivityLevel(stats: ProfileStats | null) {
-  if (!stats) return { label: 'New Member', color: 'text-gray-500', dotColor: 'bg-gray-400' }
+  if (!stats) return { label: 'New Member', color: '#636366', dotColor: '#48484a' }
   const score = (stats.leads_contacted > 0 ? 1 : 0) + (stats.groups_active > 0 ? 1 : 0) + (stats.job_orders_total > 0 ? 1 : 0) + (stats.feedbacks_given > 0 ? 1 : 0)
-  if (score >= 3) return { label: 'Very Active', color: 'text-green-600', dotColor: 'bg-green-500' }
-  if (score >= 2) return { label: 'Active', color: 'text-blue-600', dotColor: 'bg-blue-500' }
-  if (score >= 1) return { label: 'Getting Started', color: 'text-amber-600', dotColor: 'bg-amber-500' }
-  return { label: 'New Member', color: 'text-gray-500', dotColor: 'bg-gray-400' }
+  if (score >= 3) return { label: 'Very Active', color: '#30d158', dotColor: '#30d158' }
+  if (score >= 2) return { label: 'Active', color: '#0a84ff', dotColor: '#0a84ff' }
+  if (score >= 1) return { label: 'Getting Started', color: '#ff9f0a', dotColor: '#ff9f0a' }
+  return { label: 'New Member', color: '#636366', dotColor: '#48484a' }
 }
 
 /* ───────────────────── Skeleton ───────────────────── */
 
 function ProfileSkeleton() {
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="h-36 bg-gradient-to-br from-gray-300 to-gray-400 animate-pulse" />
-      <div className="max-w-5xl mx-auto px-4 -mt-16 pb-10">
-        <div className="bg-white rounded-3xl p-6 animate-pulse shadow-xl">
-          <div className="flex items-center gap-4">
-            <div className="w-20 h-20 rounded-full bg-gray-300" />
-            <div className="flex-1 space-y-2">
-              <div className="h-6 w-40 bg-gray-200 rounded" />
-              <div className="h-4 w-28 bg-gray-200 rounded" />
+    <div style={{ minHeight: '100vh', background: '#0a0a0a', fontFamily: 'Outfit, sans-serif' }}>
+      <div style={{ height: 160, background: '#141414' }} />
+      <div style={{ maxWidth: 1100, margin: '0 auto', padding: '0 16px', marginTop: -64 }}>
+        <div style={{ background: '#141414', borderRadius: 16, border: '1px solid rgba(255,255,255,0.08)', padding: 24 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+            <div style={{ width: 80, height: 80, borderRadius: '50%', background: '#1c1c1e' }} />
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <div style={{ height: 24, width: 160, background: '#1c1c1e', borderRadius: 8 }} />
+              <div style={{ height: 16, width: 112, background: '#1c1c1e', borderRadius: 8 }} />
             </div>
           </div>
         </div>
@@ -206,12 +200,12 @@ export default function PublicProfile() {
 
   if (notFound || !data) {
     return (
-      <div className="fixed inset-0 flex items-center justify-center bg-gray-50">
-        <div className="flex flex-col items-center gap-4 text-center px-6">
-          <div className="w-14 h-14 rounded-2xl flex items-center justify-center font-bold text-white text-lg shadow-lg shadow-orange-200/50" style={{ background: 'linear-gradient(135deg, #fe5b25, #ff7a4d)' }}>MLF</div>
-          <h1 className="text-2xl font-bold text-gray-900">Profile Not Found</h1>
-          <p className="text-gray-500 text-sm max-w-xs">This professional profile doesn't exist or may have been removed.</p>
-          <a href="/" className="mt-2 px-6 py-3 text-sm font-semibold text-white rounded-xl bg-gradient-to-r from-[#fe5b25] to-[#ff7a4d] shadow-lg shadow-orange-200/40">Back to MasterLeadFlow</a>
+      <div style={{ position: 'fixed', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0a0a0a', fontFamily: 'Outfit, sans-serif' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16, textAlign: 'center', padding: '0 24px' }}>
+          <div style={{ width: 56, height: 56, borderRadius: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, color: '#fff', fontSize: 18, background: '#ff6b35', boxShadow: '0 0 24px rgba(255,107,53,0.25)' }}>MLF</div>
+          <h1 style={{ fontSize: 24, fontWeight: 700, color: '#fff', letterSpacing: '-0.03em' }}>Profile Not Found</h1>
+          <p style={{ color: '#636366', fontSize: 14, maxWidth: 280 }}>This professional profile doesn't exist or may have been removed.</p>
+          <a href="/" style={{ marginTop: 8, padding: '12px 24px', fontSize: 14, fontWeight: 600, color: '#fff', borderRadius: 12, background: '#ff6b35', textDecoration: 'none', boxShadow: '0 0 24px rgba(255,107,53,0.25)' }}>Back to MasterLeadFlow</a>
         </div>
       </div>
     )
@@ -238,7 +232,7 @@ export default function PublicProfile() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 lg:bg-gray-100">
+    <div style={{ minHeight: '100vh', background: '#0a0a0a', fontFamily: 'Outfit, sans-serif' }}>
       <Helmet>
         <title>{data.full_name} — MasterLeadFlow</title>
         <meta name="description" content={data.headline || data.bio?.slice(0, 160) || `${data.full_name} on MasterLeadFlow`} />
@@ -248,22 +242,18 @@ export default function PublicProfile() {
         <meta property="og:url" content={profileUrl} />
       </Helmet>
 
-      {/* ═══════════ HERO ═══════════ */}
-      <div className={`relative h-32 lg:h-44 bg-gradient-to-br ${professionGradient(data.professions)} overflow-hidden`}>
-        <div className="absolute inset-0 overflow-hidden">
-          <div className="absolute -top-10 -right-10 w-60 h-60 rounded-full bg-white/10 blur-sm" />
-          <div className="absolute top-20 -left-16 w-40 h-40 rounded-full bg-white/5" />
+      {/* ═══════════ NAV BAR ═══════════ */}
+      <div style={{ position: 'sticky', top: 0, zIndex: 40, background: 'rgba(10,10,10,0.85)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', borderBottom: '1px solid rgba(255,255,255,0.06)', padding: '10px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div style={{ width: 28, height: 28, borderRadius: 8, background: '#ff6b35', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, color: '#fff', fontSize: 9, letterSpacing: '-0.02em' }}>MLF</div>
+          <span style={{ color: '#fff', fontSize: 11, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase' as const }}>MasterLeadFlow</span>
         </div>
-        <div className="absolute top-3 left-3 flex items-center gap-1.5">
-          <div className="w-7 h-7 rounded-lg bg-white/20 backdrop-blur-sm flex items-center justify-center text-white font-bold text-[9px] tracking-tight">MLF</div>
-          <span className="text-white/70 text-[11px] font-semibold tracking-wider uppercase hidden sm:block">MasterLeadFlow</span>
-        </div>
-        <div className="absolute top-3 right-3 flex gap-1.5">
-          <button onClick={handleCopy} className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-medium text-white bg-white/15 backdrop-blur-sm hover:bg-white/25 transition-all">
+        <div style={{ display: 'flex', gap: 6 }}>
+          <button onClick={handleCopy} style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '6px 10px', borderRadius: 8, fontSize: 11, fontWeight: 500, color: '#a1a1a6', background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.08)', cursor: 'pointer' }}>
             {copied ? <Check size={13} /> : <Copy size={13} />}
             <span className="hidden sm:inline">{copied ? 'Copied' : 'Copy'}</span>
           </button>
-          <button onClick={handleShare} className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-medium text-white bg-white/15 backdrop-blur-sm hover:bg-white/25 transition-all">
+          <button onClick={handleShare} style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '6px 10px', borderRadius: 8, fontSize: 11, fontWeight: 500, color: '#a1a1a6', background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.08)', cursor: 'pointer' }}>
             <Share2 size={13} />
             <span className="hidden sm:inline">Share</span>
           </button>
@@ -271,77 +261,77 @@ export default function PublicProfile() {
       </div>
 
       {/* ═══════════ MAIN ═══════════ */}
-      <div className="max-w-6xl mx-auto px-0 lg:px-6 -mt-14 pb-6 relative z-10">
-        <div className="lg:grid lg:grid-cols-[380px_1fr] lg:gap-6 lg:items-start">
+      <div style={{ maxWidth: 1100, margin: '0 auto', padding: '0 0 24px' }} className="lg:px-6">
+        <div className="lg:grid lg:grid-cols-[380px_1fr] lg:gap-6 lg:items-start" style={{ paddingTop: 24 }}>
 
           {/* ═══════ LEFT: Profile Card ═══════ */}
-          <div className="lg:sticky lg:top-4 animate-fade-in-up">
-            <div className="bg-white rounded-none lg:rounded-3xl shadow-sm lg:shadow-xl lg:shadow-gray-200/50 border-b border-gray-100 lg:border p-5 lg:p-6">
+          <div className="lg:sticky lg:top-16">
+            <div style={{ background: '#141414', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 16, padding: 24 }} className="rounded-none lg:rounded-2xl border-0 lg:border">
               <div className="flex items-center gap-4 lg:flex-col lg:items-center lg:text-center">
-                <div className="relative flex-shrink-0">
-                  <div className="w-20 h-20 lg:w-28 lg:h-28 rounded-full border-[3px] border-white shadow-lg flex items-center justify-center text-2xl lg:text-3xl font-bold text-white ring-2 ring-gray-100 overflow-hidden" style={{ background: 'linear-gradient(135deg, #fe5b25, #ff7a4d)' }}>
+                <div style={{ position: 'relative', flexShrink: 0 }}>
+                  <div style={{ width: 80, height: 80, borderRadius: '50%', background: '#1c1c1e', border: '3px solid #141414', boxShadow: '0 0 0 2px rgba(255,107,53,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, fontWeight: 700, color: '#fff', overflow: 'hidden' }} className="lg:!w-28 lg:!h-28 lg:!text-3xl">
                     {data.avatar_url ? (
-                      <img src={data.avatar_url} alt={data.full_name} className="w-full h-full object-cover" />
+                      <img src={data.avatar_url} alt={data.full_name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                     ) : (
                       getInitials(data.full_name)
                     )}
                   </div>
                   {data.available_today && (
-                    <div className="absolute -bottom-0.5 left-1/2 -translate-x-1/2 flex items-center gap-1 px-2 py-0.5 rounded-full bg-green-500 text-white text-[9px] font-bold shadow-md whitespace-nowrap">
-                      <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" /> Available
+                    <div style={{ position: 'absolute', bottom: -2, left: '50%', transform: 'translateX(-50%)', display: 'flex', alignItems: 'center', gap: 4, padding: '2px 8px', borderRadius: 999, background: 'rgba(48,209,88,0.15)', color: '#30d158', fontSize: 9, fontWeight: 700, whiteSpace: 'nowrap' as const }}>
+                      <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#30d158', animation: 'pulse 2s infinite' }} /> Available
                     </div>
                   )}
                 </div>
-                <div className="flex-1 min-w-0 lg:mt-3">
-                  <h1 className="text-xl lg:text-2xl font-extrabold text-gray-900 truncate lg:truncate-none tracking-tight flex items-center gap-1.5">
+                <div style={{ flex: 1, minWidth: 0 }} className="lg:mt-3">
+                  <h1 style={{ fontSize: 20, fontWeight: 800, color: '#fff', letterSpacing: '-0.03em', display: 'flex', alignItems: 'center', gap: 6 }} className="lg:text-2xl lg:justify-center truncate lg:truncate-none">
                     {data.full_name}
                     {data.background_check && (
-                      <svg viewBox="0 0 22 22" className="w-5 h-5 flex-shrink-0" fill="none">
-                        <circle cx="11" cy="11" r="11" fill="#1d9bf0" />
+                      <svg viewBox="0 0 22 22" style={{ width: 20, height: 20, flexShrink: 0 }} fill="none">
+                        <circle cx="11" cy="11" r="11" fill="#ff6b35" />
                         <path d="M9.5 14.25L6.75 11.5l1.06-1.06 1.69 1.69 4.19-4.19L14.75 9l-5.25 5.25z" fill="white" />
                       </svg>
                     )}
                   </h1>
-                  {data.business_name && <p className="text-xs text-gray-500 mt-0.5 truncate font-medium">{data.business_name}</p>}
-                  {data.headline && <p className="text-xs text-gray-600 mt-1 line-clamp-2 lg:line-clamp-none leading-relaxed">{data.headline}</p>}
-                  <div className="flex items-center gap-1.5 mt-2 flex-wrap lg:justify-center">
-                    <TrustBadge tier={data.tier} size="sm" />
+                  {data.business_name && <p style={{ fontSize: 12, color: '#636366', marginTop: 2, fontWeight: 500 }} className="truncate">{data.business_name}</p>}
+                  {data.headline && <p style={{ fontSize: 12, color: '#a1a1a6', marginTop: 4, lineHeight: 1.5 }} className="line-clamp-2 lg:line-clamp-none">{data.headline}</p>}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 8, flexWrap: 'wrap' as const }} className="lg:justify-center">
+                    <span style={{ display: 'inline-flex', alignItems: 'center', padding: '3px 10px', borderRadius: 999, background: 'rgba(255,107,53,0.15)', color: '#ff6b35', fontSize: 10, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.04em' }}>{data.tier}</span>
                     {hasReviews && data.avg_rating != null ? (
-                      <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-50 border border-amber-100">
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '3px 10px', borderRadius: 999, background: 'rgba(255,107,53,0.1)', border: '1px solid rgba(255,107,53,0.15)' }}>
                         <StarRating rating={data.avg_rating} size="sm" showValue />
-                        <span className="text-[10px] text-amber-600 font-medium">({data.review_count})</span>
+                        <span style={{ fontSize: 10, color: '#ff6b35', fontWeight: 500 }}>({data.review_count})</span>
                       </div>
                     ) : (
-                      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-gray-50 border border-gray-200 ${activity.color}`}>
-                        <span className={`w-1.5 h-1.5 rounded-full ${activity.dotColor} animate-pulse`} />
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '3px 10px', borderRadius: 999, background: '#1c1c1e', border: '1px solid rgba(255,255,255,0.08)', fontSize: 10, fontWeight: 600, color: activity.color }}>
+                        <span style={{ width: 6, height: 6, borderRadius: '50%', background: activity.dotColor }} />
                         {activity.label}
                       </span>
                     )}
                     {(stats?.avg_response_mins ?? 0) > 0 && stats!.avg_response_mins < 30 && (
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-green-50 border border-green-100 text-green-700">
-                        <Zap size={10} /> Fast Responder
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '3px 10px', borderRadius: 999, background: 'rgba(48,209,88,0.15)', color: '#30d158', fontSize: 10, fontWeight: 600 }}>
+                        <Zap size={10} /> Fast
                       </span>
                     )}
                   </div>
                   {location && (
-                    <div className="flex items-center gap-1 mt-1.5 text-xs text-gray-500 lg:justify-center">
-                      <MapPin size={12} className="text-gray-400" /> {location}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 6, fontSize: 12, color: '#636366' }} className="lg:justify-center">
+                      <MapPin size={12} style={{ color: '#48484a' }} /> {location}
                     </div>
                   )}
                 </div>
               </div>
 
               {/* Stats */}
-              <div className="mt-4 grid grid-cols-4 lg:grid-cols-2 gap-2">
-                <MiniStat label="Jobs" value={stats?.job_orders_completed ?? stats?.successful_jobs ?? 0} icon={<Briefcase size={15} className="text-gray-400" />} />
-                <MiniStat label="Response" value={responseTimeLabel(stats?.avg_response_mins)} icon={<Zap size={15} className="text-gray-400" />} />
-                <MiniStat label="Network" value={stats?.groups_active ?? 0} icon={<Users size={15} className="text-gray-400" />} />
-                <MiniStat label="Since" value={formatMemberSince(data.member_since ?? stats?.member_since)} icon={<CalendarDays size={15} className="text-gray-400" />} />
+              <div style={{ marginTop: 16, display: 'grid', gap: 8 }} className="grid-cols-4 lg:grid-cols-2">
+                <MiniStat label="Jobs" value={stats?.job_orders_completed ?? stats?.successful_jobs ?? 0} icon={<Briefcase size={15} style={{ color: '#48484a' }} />} />
+                <MiniStat label="Response" value={responseTimeLabel(stats?.avg_response_mins)} icon={<Zap size={15} style={{ color: '#48484a' }} />} />
+                <MiniStat label="Network" value={stats?.groups_active ?? 0} icon={<Users size={15} style={{ color: '#48484a' }} />} />
+                <MiniStat label="Since" value={formatMemberSince(data.member_since ?? stats?.member_since)} icon={<CalendarDays size={15} style={{ color: '#48484a' }} />} />
               </div>
 
               {/* Trust badges */}
               {(data.license_number || data.insurance_verified) && (
-                <div className="mt-3 pt-3 border-t border-gray-100 flex flex-wrap gap-1.5 lg:justify-center">
+                <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid rgba(255,255,255,0.06)', display: 'flex', flexWrap: 'wrap' as const, gap: 6 }} className="lg:justify-center">
                   {data.license_number && <MiniVerify icon={<FileCheck size={12} />} label="Licensed" />}
                   {data.insurance_verified && <MiniVerify icon={<ShieldCheck size={12} />} label="Insured" />}
                 </div>
@@ -350,58 +340,62 @@ export default function PublicProfile() {
               {/* CTA — Send Job Offer */}
               <button
                 onClick={() => setShowJobOffer(true)}
-                className="mt-4 flex items-center justify-center gap-2 w-full px-4 py-3 rounded-xl text-sm font-bold text-white bg-gradient-to-r from-[#fe5b25] to-[#ff7a4d] hover:from-[#e5501f] hover:to-[#fe5b25] active:scale-[0.98] transition-all shadow-lg shadow-orange-200/40"
+                style={{ marginTop: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, width: '100%', padding: '12px 16px', borderRadius: 12, fontSize: 14, fontWeight: 700, color: '#fff', background: '#ff6b35', border: 'none', cursor: 'pointer', boxShadow: '0 0 24px rgba(255,107,53,0.25)', transition: 'transform 0.1s' }}
+                onMouseDown={e => (e.currentTarget.style.transform = 'scale(0.97)')}
+                onMouseUp={e => (e.currentTarget.style.transform = 'scale(1)')}
+                onMouseLeave={e => (e.currentTarget.style.transform = 'scale(1)')}
               >
                 <Briefcase size={16} /> Send Job Offer
               </button>
-              <div className="hidden lg:flex gap-2 mt-2">
-                <button onClick={handleShare} className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold text-gray-600 bg-gray-50 border border-gray-200 hover:bg-gray-100 active:scale-[0.98] transition-all">
+              <div className="hidden lg:flex" style={{ gap: 8, marginTop: 8 }}>
+                <button onClick={handleShare} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '8px 12px', borderRadius: 12, fontSize: 12, fontWeight: 600, color: '#a1a1a6', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.08)', cursor: 'pointer' }}>
                   <Share2 size={13} /> Share
                 </button>
-                <button onClick={handleCopy} className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold text-gray-600 bg-gray-50 border border-gray-200 hover:bg-gray-100 active:scale-[0.98] transition-all">
-                  {copied ? <Check size={13} className="text-green-500" /> : <Copy size={13} />}
+                <button onClick={handleCopy} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '8px 12px', borderRadius: 12, fontSize: 12, fontWeight: 600, color: '#a1a1a6', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.08)', cursor: 'pointer' }}>
+                  {copied ? <Check size={13} style={{ color: '#30d158' }} /> : <Copy size={13} />}
                   {copied ? 'Copied' : 'Link'}
                 </button>
               </div>
               {data.website_url && (
-                <a href={data.website_url} target="_blank" rel="noopener noreferrer" className="hidden lg:flex items-center gap-1.5 mt-3 text-xs text-[#fe5b25] font-semibold hover:underline justify-center">
-                  <Globe size={14} /> Website <ExternalLink size={11} className="opacity-60" />
+                <a href={data.website_url} target="_blank" rel="noopener noreferrer" className="hidden lg:flex" style={{ alignItems: 'center', gap: 6, marginTop: 12, fontSize: 12, color: '#ff6b35', fontWeight: 600, textDecoration: 'none', justifyContent: 'center' }}>
+                  <Globe size={14} /> Website <ExternalLink size={11} style={{ opacity: 0.6 }} />
                 </a>
               )}
             </div>
-            <div className="hidden lg:flex items-center justify-center gap-2 mt-4">
-              <div className="w-7 h-7 rounded-lg flex items-center justify-center font-bold text-white text-[8px] tracking-tight" style={{ background: 'linear-gradient(135deg, #fe5b25, #ff7a4d)' }}>MLF</div>
-              <div className="flex flex-col">
-                <span className="text-xs font-bold text-gray-500 tracking-tight leading-tight">MasterLeadFlow</span>
-                <span className="text-[9px] text-gray-400 leading-tight">Professional Contractor Network</span>
+            {/* Desktop footer */}
+            <div className="hidden lg:flex" style={{ alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 16 }}>
+              <div style={{ width: 28, height: 28, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, color: '#fff', fontSize: 8, background: '#ff6b35' }}>MLF</div>
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                <span style={{ fontSize: 12, fontWeight: 700, color: '#636366', letterSpacing: '-0.01em', lineHeight: 1.2 }}>MasterLeadFlow</span>
+                <span style={{ fontSize: 9, color: '#48484a', lineHeight: 1.2 }}>Professional Contractor Network</span>
               </div>
             </div>
           </div>
 
           {/* ═══════ RIGHT: All Content (scrollable) ═══════ */}
-          <div className="mt-0 lg:mt-0 space-y-0 lg:space-y-3 animate-fade-in-up animate-fade-in-up-delay-1">
+          <div className="mt-0 lg:mt-0 space-y-0 lg:space-y-3">
 
             {/* Services */}
             {data.professions && data.professions.length > 0 && (
-              <Section icon={<Briefcase size={16} className="text-gray-400" />} title="Services">
-                <div className="flex flex-wrap gap-2">
+              <Section icon={<Briefcase size={16} style={{ color: '#48484a' }} />} title="Services">
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                   {data.professions.map((p) => (
-                    <span key={p} className="px-3 py-1.5 rounded-xl text-xs font-semibold bg-orange-50/80 text-[#d94a1a] border border-orange-100">{p}</span>
+                    <span key={p} style={{ padding: '6px 14px', borderRadius: 999, fontSize: 12, fontWeight: 600, background: 'rgba(255,107,53,0.1)', color: '#ff6b35' }}>{formatProfession(p)}</span>
                   ))}
                 </div>
               </Section>
             )}
 
             {/* Work Preferences */}
-            <Section icon={<Wrench size={16} className="text-gray-400" />} title="Work Preferences">
-              <div className="flex flex-wrap gap-2">
+            <Section icon={<Wrench size={16} style={{ color: '#48484a' }} />} title="Work Preferences">
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                 <WorkPref accepted={data.accepts_percentage} icon={<Percent size={13} />} label="Percentage" />
                 <WorkPref accepted={data.accepts_fixed} icon={<DollarSign size={13} />} label="Fixed Price" />
                 <WorkPref accepted={data.accepts_subwork} icon={<Users size={13} />} label="Sub Work" />
               </div>
               {(data.min_job_value || data.max_job_value) && (
-                <p className="text-xs text-gray-500 mt-3 flex items-center gap-1.5">
-                  <DollarSign size={13} className="text-gray-400" />
+                <p style={{ fontSize: 12, color: '#636366', marginTop: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <DollarSign size={13} style={{ color: '#48484a' }} />
                   {data.min_job_value && data.max_job_value
                     ? `$${data.min_job_value.toLocaleString()} – $${data.max_job_value.toLocaleString()}`
                     : data.min_job_value
@@ -414,33 +408,33 @@ export default function PublicProfile() {
             {/* Bio */}
             {data.bio && (
               <Section title="About">
-                <p className="text-sm text-gray-600 leading-relaxed whitespace-pre-line">{data.bio}</p>
+                <p style={{ fontSize: 14, color: '#a1a1a6', lineHeight: 1.6, whiteSpace: 'pre-line' }}>{data.bio}</p>
               </Section>
             )}
 
             {/* Details */}
             {(data.years_experience || data.team_size || data.languages?.length) && (
               <Section>
-                <div className="grid grid-cols-3 gap-4 text-center">
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, textAlign: 'center' }}>
                   {data.years_experience != null && (
                     <div>
-                      <div className="text-2xl font-extrabold text-gray-900">{data.years_experience}</div>
-                      <div className="text-[11px] text-gray-500 mt-0.5">Years Exp.</div>
+                      <div style={{ fontSize: 28, fontWeight: 800, color: '#fff', letterSpacing: '-0.03em' }}>{data.years_experience}</div>
+                      <div style={{ fontSize: 11, color: '#636366', marginTop: 2 }}>Years Exp.</div>
                     </div>
                   )}
                   {data.team_size != null && (
                     <div>
-                      <div className="text-2xl font-extrabold text-gray-900">{data.team_size}</div>
-                      <div className="text-[11px] text-gray-500 mt-0.5">Team</div>
+                      <div style={{ fontSize: 28, fontWeight: 800, color: '#fff', letterSpacing: '-0.03em' }}>{data.team_size}</div>
+                      <div style={{ fontSize: 11, color: '#636366', marginTop: 2 }}>Team</div>
                     </div>
                   )}
                   {data.languages && data.languages.length > 0 && (
                     <div>
-                      <div className="flex items-center justify-center gap-1">
-                        <Languages size={16} className="text-gray-400" />
-                        <span className="text-2xl font-extrabold text-gray-900">{data.languages.length}</span>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
+                        <Languages size={16} style={{ color: '#48484a' }} />
+                        <span style={{ fontSize: 28, fontWeight: 800, color: '#fff', letterSpacing: '-0.03em' }}>{data.languages.length}</span>
                       </div>
-                      <div className="text-[11px] text-gray-500 mt-0.5">{data.languages.slice(0, 2).join(', ')}</div>
+                      <div style={{ fontSize: 11, color: '#636366', marginTop: 2 }}>{data.languages.slice(0, 2).join(', ')}</div>
                     </div>
                   )}
                 </div>
@@ -449,25 +443,25 @@ export default function PublicProfile() {
 
             {/* Map */}
             {hasMap && (
-              <div className="bg-white border-b border-gray-100 lg:border lg:rounded-2xl lg:shadow-sm overflow-hidden">
-                <div className="px-5 py-3 lg:p-4 lg:pb-2">
-                  <h3 className="text-sm font-bold text-gray-800 flex items-center gap-2">
-                    <MapPin size={16} className="text-gray-400" /> Service Areas
+              <div style={{ background: '#141414', border: '1px solid rgba(255,255,255,0.08)', overflow: 'hidden' }} className="rounded-none lg:rounded-2xl border-0 lg:border">
+                <div style={{ padding: '12px 20px' }} className="lg:p-4 lg:pb-2">
+                  <h3 style={{ fontSize: 13, fontWeight: 700, color: '#fff', display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <MapPin size={16} style={{ color: '#48484a' }} /> Service Areas
                   </h3>
                   {(countyLabel || derivedState) && (
-                    <p className="text-xs text-gray-500 mt-1">
+                    <p style={{ fontSize: 12, color: '#a1a1a6', marginTop: 4 }}>
                       {[countyLabel, derivedState].filter(Boolean).join(' · ')}
-                      {data.zip_codes && <span className="text-gray-400"> · {data.zip_codes.length} ZIP{data.zip_codes.length !== 1 ? 's' : ''}</span>}
+                      {data.zip_codes && <span style={{ color: '#636366' }}> · {data.zip_codes.length} ZIP{data.zip_codes.length !== 1 ? 's' : ''}</span>}
                     </p>
                   )}
                 </div>
-                <Suspense fallback={<div className="h-[240px] bg-gray-50 animate-pulse rounded-none" />}>
+                <Suspense fallback={<div style={{ height: 240, background: '#1c1c1e' }} />}>
                   <ServiceAreaMap zipCodes={data.zip_codes!} height="240px" className="rounded-none" />
                 </Suspense>
-                <div className="px-5 py-3 lg:p-3 border-t border-gray-100">
-                  <div className="flex flex-wrap gap-1.5">
+                <div style={{ padding: '12px 20px', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                     {data.zip_codes!.map((z) => (
-                      <span key={z} className="px-2 py-0.5 rounded-md text-[11px] font-mono text-gray-500 bg-gray-50 border border-gray-100">{z}</span>
+                      <span key={z} style={{ padding: '2px 8px', borderRadius: 6, fontSize: 11, fontFamily: 'monospace', color: '#636366', background: '#1c1c1e', border: '1px solid rgba(255,255,255,0.06)' }}>{z}</span>
                     ))}
                   </div>
                 </div>
@@ -476,61 +470,57 @@ export default function PublicProfile() {
 
             {/* Portfolio */}
             {hasPortfolio && (
-              <Section icon={<Image size={16} className="text-gray-400" />} title="Portfolio" extra={<span className="text-xs text-gray-400">{portfolio.length} project{portfolio.length !== 1 ? 's' : ''}</span>}>
+              <Section icon={<Image size={16} style={{ color: '#48484a' }} />} title="Portfolio" extra={<span style={{ fontSize: 12, color: '#48484a' }}>{portfolio.length} project{portfolio.length !== 1 ? 's' : ''}</span>}>
                 <PortfolioGallery items={portfolio} />
               </Section>
             )}
 
             {/* Reviews */}
-            <div className="bg-white border-b border-gray-100 lg:border lg:rounded-2xl lg:shadow-sm px-5 py-4 lg:p-5">
-              <h3 className="text-sm font-bold text-gray-800 mb-4 flex items-center gap-2">
-                <Star size={16} className="text-gray-400" /> Reviews
-                {hasReviews && <span className="ml-auto text-xs font-normal text-gray-400">{data.review_count} review{data.review_count !== 1 ? 's' : ''}</span>}
+            <div style={{ background: '#141414', border: '1px solid rgba(255,255,255,0.08)', padding: '16px 20px' }} className="rounded-none lg:rounded-2xl border-0 lg:border lg:p-5">
+              <h3 style={{ fontSize: 13, fontWeight: 700, color: '#fff', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
+                <Star size={16} style={{ color: '#48484a' }} /> Reviews
+                {hasReviews && <span style={{ marginLeft: 'auto', fontSize: 12, fontWeight: 400, color: '#48484a' }}>{data.review_count} review{data.review_count !== 1 ? 's' : ''}</span>}
               </h3>
               {hasReviews ? (
-                /* When there are reviews — show rating summary + cards */
-                <div className="space-y-4">
-                  {/* Rating summary bar */}
-                  <div className="flex items-center gap-4 p-4 rounded-xl bg-gray-50 border border-gray-100">
-                    <div className="text-center">
-                      <div className="text-3xl font-extrabold text-gray-900">{(data.avg_rating ?? 0).toFixed(1)}</div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 16, padding: 16, borderRadius: 12, background: '#1c1c1e', border: '1px solid rgba(255,255,255,0.06)' }}>
+                    <div style={{ textAlign: 'center' }}>
+                      <div style={{ fontSize: 28, fontWeight: 800, color: '#fff', letterSpacing: '-0.03em' }}>{(data.avg_rating ?? 0).toFixed(1)}</div>
                       <StarRating rating={data.avg_rating ?? 0} size="sm" />
-                      <div className="text-[10px] text-gray-400 mt-1">{data.review_count} review{data.review_count !== 1 ? 's' : ''}</div>
+                      <div style={{ fontSize: 10, color: '#48484a', marginTop: 4 }}>{data.review_count} review{data.review_count !== 1 ? 's' : ''}</div>
                     </div>
-                    <div className="flex-1 h-px bg-gray-200" />
-                    <div className="text-center">
-                      <div className="text-2xl font-extrabold text-green-600">100%</div>
-                      <div className="text-[10px] text-gray-400">would hire again</div>
+                    <div style={{ flex: 1, height: 1, background: 'rgba(255,255,255,0.06)' }} />
+                    <div style={{ textAlign: 'center' }}>
+                      <div style={{ fontSize: 24, fontWeight: 800, color: '#30d158' }}>100%</div>
+                      <div style={{ fontSize: 10, color: '#48484a' }}>would hire again</div>
                     </div>
                   </div>
                   <ReviewsList userId={data.user_id} avgRating={data.avg_rating ?? undefined} reviewCount={data.review_count} />
                 </div>
               ) : (
-                /* Cold start — clean, light empty state */
-                <div className="py-8 text-center">
-                  <div className="mx-auto w-16 h-16 rounded-full bg-gray-50 border-2 border-dashed border-gray-200 flex items-center justify-center mb-4">
-                    <Star size={24} className="text-gray-300" />
+                <div style={{ padding: '32px 0', textAlign: 'center' }}>
+                  <div style={{ margin: '0 auto', width: 64, height: 64, borderRadius: '50%', background: '#1c1c1e', border: '2px dashed rgba(255,255,255,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
+                    <Star size={24} style={{ color: '#2c2c2e' }} />
                   </div>
-                  <p className="text-gray-800 font-semibold text-sm">No reviews yet</p>
-                  <p className="text-gray-400 text-xs mt-1 max-w-[260px] mx-auto leading-relaxed">
+                  <p style={{ color: '#636366', fontWeight: 600, fontSize: 14 }}>No reviews yet</p>
+                  <p style={{ color: '#48484a', fontSize: 12, marginTop: 4, maxWidth: 260, margin: '4px auto 0', lineHeight: 1.5 }}>
                     Reviews will appear here after completed jobs. This professional is verified and active on MasterLeadFlow.
                   </p>
 
-                  {/* Activity signals as proof */}
                   {stats && (
-                    <div className="flex flex-wrap justify-center gap-2 mt-5">
+                    <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 8, marginTop: 20 }}>
                       {(stats.groups_active ?? 0) > 0 && (
-                        <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gray-50 border border-gray-100 text-gray-500 text-xs">
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 12px', borderRadius: 999, background: '#1c1c1e', border: '1px solid rgba(255,255,255,0.06)', color: '#636366', fontSize: 12 }}>
                           <Users size={12} /> {stats.groups_active} group{stats.groups_active !== 1 ? 's' : ''}
                         </span>
                       )}
                       {(stats.leads_contacted ?? 0) > 0 && (
-                        <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gray-50 border border-gray-100 text-gray-500 text-xs">
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 12px', borderRadius: 999, background: '#1c1c1e', border: '1px solid rgba(255,255,255,0.06)', color: '#636366', fontSize: 12 }}>
                           <MessageCircle size={12} /> {stats.leads_contacted} leads
                         </span>
                       )}
                       {stats.member_since && (
-                        <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gray-50 border border-gray-100 text-gray-500 text-xs">
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 12px', borderRadius: 999, background: '#1c1c1e', border: '1px solid rgba(255,255,255,0.06)', color: '#636366', fontSize: 12 }}>
                           <CalendarDays size={12} /> Since {formatMemberSince(stats.member_since)}
                         </span>
                       )}
@@ -543,29 +533,29 @@ export default function PublicProfile() {
             {/* Website — mobile */}
             {data.website_url && (
               <Section>
-                <a href={data.website_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-[#fe5b25] font-semibold hover:underline">
-                  <Globe size={16} /> Visit Website <ExternalLink size={13} className="opacity-60" />
+                <a href={data.website_url} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14, color: '#ff6b35', fontWeight: 600, textDecoration: 'none' }}>
+                  <Globe size={16} /> Visit Website <ExternalLink size={13} style={{ opacity: 0.6 }} />
                 </a>
               </Section>
             )}
 
             {/* Share — mobile */}
-            <div className="lg:hidden flex gap-2 px-4 py-3">
-              <button onClick={handleShare} className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold text-gray-600 bg-gray-50 border border-gray-200 hover:bg-gray-100 active:scale-[0.98] transition-all">
+            <div className="lg:hidden" style={{ display: 'flex', gap: 8, padding: '12px 16px' }}>
+              <button onClick={handleShare} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '10px 16px', borderRadius: 12, fontSize: 12, fontWeight: 600, color: '#a1a1a6', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.08)', cursor: 'pointer' }}>
                 <Share2 size={13} /> Share
               </button>
-              <button onClick={handleCopy} className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold text-gray-600 bg-gray-50 border border-gray-200 hover:bg-gray-100 active:scale-[0.98] transition-all">
-                {copied ? <Check size={13} className="text-green-500" /> : <Copy size={13} />}
+              <button onClick={handleCopy} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '10px 16px', borderRadius: 12, fontSize: 12, fontWeight: 600, color: '#a1a1a6', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.08)', cursor: 'pointer' }}>
+                {copied ? <Check size={13} style={{ color: '#30d158' }} /> : <Copy size={13} />}
                 {copied ? 'Copied' : 'Copy Link'}
               </button>
             </div>
 
             {/* Footer — mobile */}
-            <div className="lg:hidden flex items-center justify-center gap-2 py-6">
-              <div className="w-7 h-7 rounded-lg flex items-center justify-center font-bold text-white text-[8px] tracking-tight" style={{ background: 'linear-gradient(135deg, #fe5b25, #ff7a4d)' }}>MLF</div>
-              <div className="flex flex-col">
-                <span className="text-xs font-bold text-gray-500 tracking-tight leading-tight">MasterLeadFlow</span>
-                <span className="text-[9px] text-gray-400 leading-tight">Professional Contractor Network</span>
+            <div className="lg:hidden" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '24px 0' }}>
+              <div style={{ width: 28, height: 28, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, color: '#fff', fontSize: 8, background: '#ff6b35' }}>MLF</div>
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                <span style={{ fontSize: 12, fontWeight: 700, color: '#636366', letterSpacing: '-0.01em', lineHeight: 1.2 }}>MasterLeadFlow</span>
+                <span style={{ fontSize: 9, color: '#48484a', lineHeight: 1.2 }}>Professional Contractor Network</span>
               </div>
             </div>
 
@@ -575,53 +565,51 @@ export default function PublicProfile() {
 
       {/* ═══════ Job Offer Bottom Sheet ═══════ */}
       {showJobOffer && (
-        <div className="fixed inset-0 z-50 flex items-end lg:items-center justify-center">
-          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setShowJobOffer(false)} />
-          <div className="relative bg-white w-full lg:max-w-md lg:rounded-2xl rounded-t-3xl p-6 pb-8 lg:pb-6 shadow-2xl animate-in slide-in-from-bottom duration-200">
-            <div className="w-10 h-1 rounded-full bg-gray-300 mx-auto mb-5 lg:hidden" />
-            <h3 className="text-lg font-bold text-gray-900 mb-1">Send Job Offer</h3>
-            <p className="text-sm text-gray-500 mb-5">Choose how to reach {data.full_name}</p>
+        <div style={{ position: 'fixed', inset: 0, zIndex: 50, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }} className="lg:items-center">
+          <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)' }} onClick={() => setShowJobOffer(false)} />
+          <div style={{ position: 'relative', background: '#141414', width: '100%', borderRadius: '24px 24px 0 0', padding: '24px 24px 32px', border: '1px solid rgba(255,255,255,0.08)', borderBottom: 'none' }} className="lg:max-w-md lg:!rounded-2xl lg:!pb-6 lg:!border-b">
+            <div style={{ width: 40, height: 4, borderRadius: 2, background: '#2c2c2e', margin: '0 auto 20px' }} className="lg:hidden" />
+            <h3 style={{ fontSize: 18, fontWeight: 700, color: '#fff', marginBottom: 4, letterSpacing: '-0.03em' }}>Send Job Offer</h3>
+            <p style={{ fontSize: 14, color: '#636366', marginBottom: 20 }}>Choose how to reach {data.full_name}</p>
 
-            <div className="space-y-3">
-              {/* Option 1: WhatsApp to Rebecca */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               <a
                 href={`https://wa.me/${PLATFORM_WA}?text=${encodeURIComponent(`Hi, I'd like to send a job offer to ${data.full_name} (${data.professions?.join(', ') ?? 'contractor'}) — found on MasterLeadFlow profile: ${profileUrl}`)}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center gap-4 w-full p-4 rounded-2xl border border-gray-100 hover:border-green-200 hover:bg-green-50/50 transition-all group"
+                style={{ display: 'flex', alignItems: 'center', gap: 16, width: '100%', padding: 16, borderRadius: 16, border: '1px solid rgba(255,255,255,0.08)', background: '#1c1c1e', textDecoration: 'none', transition: 'background 0.15s' }}
               >
-                <div className="w-11 h-11 rounded-xl bg-[#25D366] flex items-center justify-center text-white flex-shrink-0">
+                <div style={{ width: 44, height: 44, borderRadius: 12, background: '#25D366', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', flexShrink: 0 }}>
                   <MessageCircle size={20} />
                 </div>
-                <div className="flex-1 text-left">
-                  <p className="text-sm font-semibold text-gray-900">Quick via WhatsApp</p>
-                  <p className="text-xs text-gray-500">Message our team to coordinate the job</p>
+                <div style={{ flex: 1, textAlign: 'left' }}>
+                  <p style={{ fontSize: 14, fontWeight: 600, color: '#fff', margin: 0 }}>Quick via WhatsApp</p>
+                  <p style={{ fontSize: 12, color: '#636366', margin: '2px 0 0' }}>Message our team to coordinate the job</p>
                 </div>
-                <ExternalLink size={14} className="text-gray-400 group-hover:text-green-500" />
+                <ExternalLink size={14} style={{ color: '#48484a' }} />
               </a>
 
-              {/* Option 2: In-app form (coming soon / simplified) */}
               <button
                 onClick={() => {
                   setShowJobOffer(false)
                   window.location.href = `/jobs/new?contractor=${data.user_id}&name=${encodeURIComponent(data.full_name)}`
                 }}
-                className="flex items-center gap-4 w-full p-4 rounded-2xl border border-gray-100 hover:border-orange-200 hover:bg-orange-50/50 transition-all group text-left"
+                style={{ display: 'flex', alignItems: 'center', gap: 16, width: '100%', padding: 16, borderRadius: 16, border: '1px solid rgba(255,255,255,0.08)', background: '#1c1c1e', cursor: 'pointer', textAlign: 'left', transition: 'background 0.15s' }}
               >
-                <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-[#fe5b25] to-[#ff7a4d] flex items-center justify-center text-white flex-shrink-0">
+                <div style={{ width: 44, height: 44, borderRadius: 12, background: '#ff6b35', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', flexShrink: 0 }}>
                   <Briefcase size={20} />
                 </div>
-                <div className="flex-1">
-                  <p className="text-sm font-semibold text-gray-900">Submit Job Details</p>
-                  <p className="text-xs text-gray-500">Fill out a form with job specifics</p>
+                <div style={{ flex: 1 }}>
+                  <p style={{ fontSize: 14, fontWeight: 600, color: '#fff', margin: 0 }}>Submit Job Details</p>
+                  <p style={{ fontSize: 12, color: '#636366', margin: '2px 0 0' }}>Fill out a form with job specifics</p>
                 </div>
-                <ExternalLink size={14} className="text-gray-400 group-hover:text-orange-500" />
+                <ExternalLink size={14} style={{ color: '#48484a' }} />
               </button>
             </div>
 
             <button
               onClick={() => setShowJobOffer(false)}
-              className="mt-4 w-full py-2.5 text-sm font-semibold text-gray-500 hover:text-gray-700 transition-colors"
+              style={{ marginTop: 16, width: '100%', padding: '10px 0', fontSize: 14, fontWeight: 600, color: '#636366', background: 'transparent', border: 'none', cursor: 'pointer' }}
             >
               Cancel
             </button>
@@ -638,10 +626,12 @@ function Section({ icon, title, extra, children }: {
   icon?: React.ReactNode; title?: string; extra?: React.ReactNode; children: React.ReactNode
 }) {
   return (
-    <div className="bg-white border-b border-gray-100 lg:border lg:rounded-2xl lg:shadow-sm px-5 py-4 lg:p-5">
+    <div style={{ background: '#141414', border: '1px solid rgba(255,255,255,0.08)', padding: '16px 20px' }} className="rounded-none lg:rounded-2xl border-0 lg:border lg:p-5">
       {title && (
-        <h3 className="text-sm font-bold text-gray-800 mb-3 flex items-center gap-2">
-          {icon} {title} {extra && <span className="ml-auto">{extra}</span>}
+        <h3 style={{ fontSize: 13, fontWeight: 700, color: '#fff', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
+          {icon}
+          <span style={{ fontSize: 10, fontWeight: 600, color: '#636366', textTransform: 'uppercase' as const, letterSpacing: '0.06em' }}>{title}</span>
+          {extra && <span style={{ marginLeft: 'auto' }}>{extra}</span>}
         </h3>
       )}
       {children}
@@ -651,17 +641,17 @@ function Section({ icon, title, extra, children }: {
 
 function MiniStat({ label, value, icon }: { label: string; value: string | number; icon: React.ReactNode }) {
   return (
-    <div className="p-2.5 lg:p-3 rounded-xl bg-gray-50/80 border border-gray-100 flex flex-col items-center gap-1 text-center">
+    <div style={{ padding: 10, borderRadius: 12, background: '#141414', border: '1px solid rgba(255,255,255,0.08)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, textAlign: 'center' }} className="lg:p-3">
       {icon}
-      <div className="text-sm lg:text-base font-bold text-gray-900 leading-tight">{value}</div>
-      <div className="text-[10px] text-gray-400 font-medium">{label}</div>
+      <div style={{ fontSize: 14, fontWeight: 700, color: '#fff', lineHeight: 1.2 }} className="lg:text-base">{value}</div>
+      <div style={{ fontSize: 10, color: '#636366', fontWeight: 500 }}>{label}</div>
     </div>
   )
 }
 
 function MiniVerify({ icon, label }: { icon: React.ReactNode; label: string }) {
   return (
-    <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-semibold text-green-700 bg-green-50 border border-green-100">
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '4px 8px', borderRadius: 8, fontSize: 10, fontWeight: 600, color: '#30d158', background: 'rgba(48,209,88,0.15)', border: '1px solid rgba(48,209,88,0.1)' }}>
       {icon} {label}
     </span>
   )
@@ -669,7 +659,7 @@ function MiniVerify({ icon, label }: { icon: React.ReactNode; label: string }) {
 
 function ActivitySignal({ icon, label }: { icon: React.ReactNode; label: string }) {
   return (
-    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/5 border border-white/10 text-white/50 text-xs">
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 10px', borderRadius: 999, background: '#1c1c1e', border: '1px solid rgba(255,255,255,0.06)', color: '#636366', fontSize: 12 }}>
       {icon} {label}
     </span>
   )
@@ -677,13 +667,15 @@ function ActivitySignal({ icon, label }: { icon: React.ReactNode; label: string 
 
 function WorkPref({ accepted, icon, label }: { accepted: boolean; icon: React.ReactNode; label: string }) {
   return (
-    <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold border ${
-      accepted
-        ? 'bg-green-50/80 text-green-700 border-green-100'
-        : 'bg-gray-50 text-gray-400 border-gray-100 line-through'
-    }`}>
+    <span style={{
+      display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 14px', borderRadius: 12, fontSize: 12, fontWeight: 600,
+      background: accepted ? 'rgba(48,209,88,0.15)' : '#2c2c2e',
+      color: accepted ? '#30d158' : '#48484a',
+      border: accepted ? '1px solid rgba(48,209,88,0.1)' : '1px solid rgba(255,255,255,0.06)',
+      textDecoration: accepted ? 'none' : 'line-through',
+    }}>
       {icon} {label}
-      {accepted && <Check size={12} className="text-green-500" />}
+      {accepted && <Check size={12} style={{ color: '#30d158' }} />}
     </span>
   )
 }
