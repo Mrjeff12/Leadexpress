@@ -107,13 +107,15 @@ Deno.serve(async (req: Request) => {
     }
 
     // ── ACTION: signup — create/find user + magic link + WhatsApp ──
-    const { name, phone, job_order_id, lead_address, lead_phone, commission_pct } = body as {
+    const { name, phone, job_order_id, lead_address, lead_phone, commission_pct, my_earnings, sub_pay } = body as {
       name?: string;
       phone: string;
       job_order_id?: string;
       lead_address?: string;
       lead_phone?: string;
       commission_pct?: string;
+      my_earnings?: string;
+      sub_pay?: string;
     };
 
     if (!phone?.trim()) {
@@ -243,6 +245,8 @@ Deno.serve(async (req: Request) => {
         };
         if (lead_address) updatePayload.customer_address = lead_address;
         if (lead_phone) updatePayload.customer_phone = lead_phone;
+        if (my_earnings) updatePayload.publisher_cut = my_earnings;
+        if (sub_pay) updatePayload.contractor_pay = sub_pay;
         if (commission_pct) updatePayload.commission_pct = Number(commission_pct) || null;
 
         await supabase
