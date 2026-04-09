@@ -8,6 +8,7 @@ import {
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/auth'
 import { useI18n } from '../lib/i18n'
+import { formatProfession } from '../lib/profession-icons'
 
 interface SubProfile {
   avg_rating: number
@@ -144,7 +145,7 @@ export default function JobDetail() {
   }
 
   const currentStep = getStepIndex(job.status)
-  const profLabel = job.lead_profession?.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) || 'Job'
+  const profLabel = job.lead_profession ? formatProfession(job.lead_profession) : 'Job'
   const isCompleted = job.status === 'completed'
   const amount = job.job_amount || job.payment_amount || null
 

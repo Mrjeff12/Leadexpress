@@ -7,6 +7,7 @@ import {
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/auth'
 import { useUserSubscription } from '../hooks/useUserSubscription'
+import { formatProfession } from '../lib/profession-icons'
 
 interface Lead {
   id: string
@@ -106,7 +107,7 @@ export default function LeadDetail() {
 
   const urg = URG[lead.urgency] || URG.warm
   const UrgIcon = urg.icon
-  const profLabel = lead.profession?.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) || 'Service'
+  const profLabel = lead.profession ? formatProfession(lead.profession) : 'Service'
 
   return (
     <div className="min-h-[100dvh] bg-white flex flex-col max-w-[480px] mx-auto">

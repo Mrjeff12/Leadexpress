@@ -7,6 +7,8 @@ import {
   Wrench, ChevronDown
 } from 'lucide-react'
 
+import { formatProfession } from '../lib/profession-icons'
+
 // ── Types & helpers ─────────────────────────────────────────────────────────
 type PortalLang = 'en' | 'he'
 const t = (lang: PortalLang, en: string, he: string) => lang === 'he' ? he : en
@@ -223,7 +225,7 @@ export default function JobPortal() {
   const contractorName = job?.contractor_name || t(lang, 'A contractor', 'קבלן')
   const cp = otherPartyProfile
   const lead = job?.lead || { city: null, zip_code: null, urgency: null, summary: null, description: null, sender_id: null, profession: null }
-  const profession = (lead.profession || '').replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase())
+  const profession = lead.profession ? formatProfession(lead.profession) : ''
   const location = [lead.city, lead.zip_code].filter(Boolean).join(', ') || t(lang, 'Your area', 'האזור שלך')
   const tierLabels: Record<string, string> = { elite: '🏆 Elite', trusted: '✅ Trusted', verified: '🔵 Verified', new: '🆕 New' }
 
