@@ -1,10 +1,8 @@
 import { useState } from 'react'
-import { MessageCircle, X } from 'lucide-react'
+import { X } from 'lucide-react'
 import { useAuth } from '../lib/auth'
 import { useContractor } from '../lib/useContractor'
-
-const REBECA_PHONE = '14155238886'
-const WA_LINK = `https://wa.me/${REBECA_PHONE}?text=${encodeURIComponent('👋')}`
+import WhatsAppWindowCountdown from './WhatsAppWindowCountdown'
 
 export default function WhatsAppReconnectBanner() {
   const { profile } = useAuth()
@@ -16,6 +14,7 @@ export default function WhatsAppReconnectBanner() {
   if (!contractor?.wa_notify) return null
 
   const windowExpired = !contractor.wa_window_until || new Date(contractor.wa_window_until) < new Date()
+  // Only show banner-style when expired — countdown is inline in dashboard
   if (!windowExpired) return null
 
   function handleDismiss() {
@@ -24,20 +23,11 @@ export default function WhatsAppReconnectBanner() {
   }
 
   return (
-    <div className="mx-4 mt-3 mb-1 flex items-center gap-3 px-4 py-3 rounded-xl bg-emerald-50 border border-emerald-200 shadow-sm">
-      <MessageCircle className="w-4 h-4 text-emerald-600 flex-shrink-0" />
-      <p className="text-xs text-emerald-800 font-medium flex-1">
-        Your WhatsApp is disconnected — you're missing leads!
-      </p>
-      <a
-        href={WA_LINK}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="px-3 py-1.5 rounded-lg bg-[#25D366] text-white text-xs font-semibold hover:brightness-110 transition-all flex-shrink-0"
-      >
-        Reconnect
-      </a>
-      <button onClick={handleDismiss} className="text-emerald-400 hover:text-emerald-600 transition-colors flex-shrink-0">
+    <div className="mx-4 mt-3 mb-1 flex items-center gap-2">
+      <div className="flex-1">
+        <WhatsAppWindowCountdown />
+      </div>
+      <button onClick={handleDismiss} className="text-red-300 hover:text-red-500 transition-colors flex-shrink-0 p-1">
         <X className="w-4 h-4" />
       </button>
     </div>

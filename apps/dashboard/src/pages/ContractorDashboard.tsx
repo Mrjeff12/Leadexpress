@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback, useMemo, lazy, Suspense } from 'react'
+import WhatsAppWindowCountdown from '../components/WhatsAppWindowCountdown'
 import { useAuth } from '../lib/auth'
 import { useI18n } from '../lib/i18n'
 import { timeAgo } from '../lib/shared'
@@ -537,6 +538,9 @@ export default function ContractorDashboard() {
             <h1 className="text-[22px] font-bold tracking-tight mt-0.5">
               <span className="text-[#fe5b25]">{leadsToday > 0 ? `${leadsToday} new leads` : 'Welcome back'}</span>{leadsToday > 0 ? ' today' : ''}
             </h1>
+            <div className="mt-2">
+              <WhatsAppWindowCountdown />
+            </div>
           </div>
 
           {/* Urgent lead card — dark card style */}
@@ -857,6 +861,9 @@ export default function ContractorDashboard() {
             </span>
           </h1>
           {/* Plan badge moved to top banner on desktop */}
+          <div className="mt-2">
+            <WhatsAppWindowCountdown />
+          </div>
         </div>
 
         {/* Push Notification Banner */}
