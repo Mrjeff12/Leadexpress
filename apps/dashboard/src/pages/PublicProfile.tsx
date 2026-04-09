@@ -393,8 +393,7 @@ export default function PublicProfile() {
                       onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.06)'; e.currentTarget.style.background = '#1c1c1e' }}
                     >
                       <div style={{
-                        width: 48, height: 48, borderRadius: '50%',
-                        background: 'rgba(255,107,53,0.08)',
+                        width: 32, height: 32,
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
                         color: '#ff6b35',
                       }}>

@@ -1369,50 +1369,95 @@ function VerifyIdentityCTA({ onClose }: { onClose: () => void }) {
   const { startVerification, actionLoading } = useIdentityVerification()
   const { locale } = useI18n()
   const isHe = locale === 'he'
+  const [error, setError] = useState<string | null>(null)
 
   async function handleVerify() {
+    setError(null)
     try {
       await startVerification()
-    } catch {
-      // Stripe session creation failed — close and let user try from profile
-      onClose()
+    } catch (err: any) {
+      console.error('[verify] Failed:', err)
+      setError(isHe ? 'משהו השתבש, נסה שוב' : 'Something went wrong, please try again')
     }
   }
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm animate-fade-in">
-      <div className="relative w-full max-w-md mx-4 bg-white rounded-3xl shadow-2xl overflow-hidden animate-scale-in p-6 text-center" dir={isHe ? 'rtl' : 'ltr'}>
-        <button onClick={onClose} className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors">
-          <X size={20} />
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm animate-fade-in">
+      <div className="relative w-full max-w-md mx-4 bg-[#0a0a0a] rounded-3xl shadow-2xl overflow-hidden animate-scale-in" dir={isHe ? 'rtl' : 'ltr'}>
+        {/* Close */}
+        <button onClick={onClose} className="absolute top-3 right-3 z-10 w-8 h-8 rounded-full bg-black/40 backdrop-blur flex items-center justify-center text-white/60 hover:text-white transition-colors">
+          <X size={16} />
         </button>
 
-        <div className="w-16 h-16 rounded-2xl bg-[#fe5b25]/10 flex items-center justify-center mx-auto mb-4">
-          <ShieldCheck size={28} className="text-[#fe5b25]" />
+        {/* Hero image */}
+        <div className="relative h-48 overflow-hidden">
+          <img src="/reviews-technician-v3.jpg" alt="" className="w-full h-full object-cover object-top" />
+          <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0a] via-[#0a0a0a]/40 to-transparent" />
+          <div className="absolute bottom-3 left-4 right-4">
+            <div className="flex items-center gap-1.5">
+              <div className="flex -space-x-1">
+                {[1,2,3,4,5].map(i => (
+                  <span key={i} className="text-amber-400 text-xs">★</span>
+                ))}
+              </div>
+              <span className="text-[10px] text-white/60 font-medium">
+                {isHe ? 'קבלנים מאומתים מקבלים 3x יותר עבודות' : 'Verified contractors get 3x more jobs'}
+              </span>
+            </div>
+          </div>
         </div>
 
-        <h2 className="text-xl font-bold text-gray-900 mb-2">
-          {isHe ? 'אמת את הזהות שלך' : 'Verify Your Identity'}
-        </h2>
-        <p className="text-sm text-gray-500 mb-1">
-          {isHe ? 'קבלנים מאומתים מקבלים עדיפות בלידים' : 'Verified contractors get lead priority'}
-        </p>
-        <p className="text-xs text-gray-400 mb-6">
-          {isHe ? 'תהליך מהיר של 2 דקות עם תעודה מזהה + סלפי' : 'Quick 2-min process with ID + selfie'}
-        </p>
+        {/* Content */}
+        <div className="px-5 pb-5 pt-3 text-center">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#fe5b25]/15 mb-3">
+            <ShieldCheck size={12} className="text-[#fe5b25]" />
+            <span className="text-[10px] font-bold text-[#fe5b25] uppercase tracking-wider">
+              {isHe ? 'חינם • 2 דקות' : 'Free • 2 minutes'}
+            </span>
+          </div>
 
-        <button
-          onClick={handleVerify}
-          disabled={actionLoading}
-          className="w-full py-3 rounded-xl bg-[#fe5b25] text-white font-semibold text-sm hover:bg-[#e5501f] transition-colors disabled:opacity-50"
-        >
-          {actionLoading
-            ? (isHe ? 'מתחבר...' : 'Loading...')
-            : (isHe ? '✓ אמת עכשיו — קבל יותר עבודות' : '✓ Verify Now — Get More Jobs')}
-        </button>
+          <h2 className="text-xl font-bold text-white mb-2">
+            {isHe ? 'אמת את הזהות שלך' : 'Get Verified, Get More Jobs'}
+          </h2>
+          <p className="text-sm text-white/50 mb-1">
+            {isHe ? 'קבלנים מאומתים מקבלים עדיפות בלידים חדשים' : 'Verified contractors get priority on new leads'}
+          </p>
+          <p className="text-xs text-white/30 mb-5">
+            {isHe ? 'צלם תעודה מזהה + סלפי מהיר — זה הכל' : 'Snap your ID + quick selfie — that\'s it'}
+          </p>
 
-        <button onClick={onClose} className="mt-3 text-xs text-gray-400 hover:text-gray-600 transition-colors">
-          {isHe ? 'אולי אחר כך' : 'Maybe later'}
-        </button>
+          {/* Benefits */}
+          <div className="flex justify-center gap-4 mb-5">
+            {[
+              { icon: '⚡', label: isHe ? 'עדיפות בלידים' : 'Lead priority' },
+              { icon: '✓', label: isHe ? 'תג מאומת' : 'Verified badge' },
+              { icon: '🔒', label: isHe ? 'אמון לקוחות' : 'Client trust' },
+            ].map((b, i) => (
+              <div key={i} className="flex flex-col items-center gap-1">
+                <span className="text-lg">{b.icon}</span>
+                <span className="text-[10px] text-white/40 font-medium">{b.label}</span>
+              </div>
+            ))}
+          </div>
+
+          {error && (
+            <p className="text-xs text-red-400 mb-3">{error}</p>
+          )}
+
+          <button
+            onClick={handleVerify}
+            disabled={actionLoading}
+            className="w-full py-3.5 rounded-2xl bg-[#fe5b25] text-white font-bold text-sm hover:bg-[#e5501f] transition-all active:scale-[0.97] disabled:opacity-50 shadow-lg shadow-[#fe5b25]/25"
+          >
+            {actionLoading
+              ? (isHe ? 'מתחבר...' : 'Loading...')
+              : (isHe ? '✓ אמת עכשיו — חינם' : '✓ Verify Now — It\'s Free')}
+          </button>
+
+          <button onClick={onClose} className="mt-3 text-[11px] text-white/30 hover:text-white/50 transition-colors">
+            {isHe ? 'אולי אחר כך' : 'Maybe later'}
+          </button>
+        </div>
       </div>
     </div>
   )
