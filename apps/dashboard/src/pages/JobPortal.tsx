@@ -33,36 +33,30 @@ interface Job {
   }
 }
 
-const BRAND = '#fe5b25'
-const BRAND_DARK = '#e04d1c'
-const BG = '#faf9f6'
+const BRAND = '#ff6b35'
 
-// ── CSS keyframes injected once ─────────────────────────────────────────────
-const ANIM_STYLES = `
-@keyframes portalFadeUp {
-  from { opacity: 0; transform: translateY(20px); }
+// ── Tailwind-style animation keyframes ─────────────────────────────────────
+const DARK_ANIM = `
+@keyframes animIn {
+  from { opacity: 0; transform: translateY(16px); }
   to { opacity: 1; transform: translateY(0); }
 }
-@keyframes portalPulse {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.05); }
-}
-@keyframes portalBounce {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-4px); }
-}
-@keyframes portalCheckIn {
+@keyframes checkPop {
   0% { transform: scale(0) rotate(-45deg); opacity: 0; }
-  50% { transform: scale(1.2) rotate(0deg); opacity: 1; }
+  50% { transform: scale(1.15) rotate(0deg); opacity: 1; }
   100% { transform: scale(1) rotate(0deg); opacity: 1; }
 }
-.portal-fade-up { animation: portalFadeUp 0.5s ease-out both; }
-.portal-fade-up-1 { animation: portalFadeUp 0.5s ease-out 0.1s both; }
-.portal-fade-up-2 { animation: portalFadeUp 0.5s ease-out 0.2s both; }
-.portal-fade-up-3 { animation: portalFadeUp 0.5s ease-out 0.3s both; }
-.portal-fade-up-4 { animation: portalFadeUp 0.5s ease-out 0.4s both; }
-.portal-check-in { animation: portalCheckIn 0.6s ease-out 0.3s both; }
-.portal-bounce { animation: portalBounce 2s ease-in-out infinite; }
+@keyframes gentleBounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-3px); }
+}
+.animate-in   { animation: animIn 0.45s ease-out both; }
+.animate-in-1 { animation: animIn 0.45s ease-out 0.08s both; }
+.animate-in-2 { animation: animIn 0.45s ease-out 0.16s both; }
+.animate-in-3 { animation: animIn 0.45s ease-out 0.24s both; }
+.animate-in-4 { animation: animIn 0.45s ease-out 0.32s both; }
+.animate-check { animation: checkPop 0.55s ease-out 0.25s both; }
+.animate-bounce-subtle { animation: gentleBounce 2s ease-in-out infinite; }
 `
 
 // ── Main Component ──────────────────────────────────────────────────────────
@@ -202,11 +196,11 @@ export default function JobPortal() {
   if (loading) {
     return (
       <Shell lang={lang} toggleLang={toggleLang}>
-        <style>{ANIM_STYLES}</style>
+        <style>{DARK_ANIM}</style>
         <div className="flex-1 flex items-center justify-center">
-          <div className="flex flex-col items-center gap-3 portal-fade-up">
+          <div className="flex flex-col items-center gap-3 animate-in">
             <Loader2 className="w-8 h-8 animate-spin" style={{ color: BRAND }} />
-            <p className="text-sm" style={{ color: '#9a9590' }}>{t(lang, 'Loading...', 'טוען...')}</p>
+            <p className="text-sm" style={{ color: '#a1a1a6' }}>{t(lang, 'Loading...', 'טוען...')}</p>
           </div>
         </div>
       </Shell>
@@ -217,13 +211,13 @@ export default function JobPortal() {
   if (error || !job) {
     return (
       <Shell lang={lang} toggleLang={toggleLang}>
-        <style>{ANIM_STYLES}</style>
+        <style>{DARK_ANIM}</style>
         <div className="flex-1 flex flex-col items-center justify-center gap-4 px-6">
-          <div className="w-20 h-20 rounded-full flex items-center justify-center portal-fade-up" style={{ background: '#fef2ef' }}>
-            <XCircle className="w-10 h-10" style={{ color: '#e8a99a' }} />
+          <div className="w-20 h-20 rounded-full flex items-center justify-center animate-in" style={{ background: 'rgba(255,69,58,0.12)' }}>
+            <XCircle className="w-10 h-10" style={{ color: '#ff453a' }} />
           </div>
-          <h1 className="text-xl font-bold portal-fade-up-1" style={{ color: '#1a1614' }}>{t(lang, 'Link Expired', 'הקישור פג תוקף')}</h1>
-          <p className="text-sm text-center portal-fade-up-2" style={{ color: '#9a9590', maxWidth: 280 }}>
+          <h1 className="text-xl font-bold animate-in-1" style={{ color: '#fff', fontFamily: "'Outfit', sans-serif", letterSpacing: '-0.03em' }}>{t(lang, 'Link Expired', 'הקישור פג תוקף')}</h1>
+          <p className="text-sm text-center animate-in-2" style={{ color: '#a1a1a6', maxWidth: 280 }}>
             {t(lang, 'This job link is no longer valid.', 'קישור העבודה הזה כבר לא תקף.')}
           </p>
         </div>
@@ -236,19 +230,20 @@ export default function JobPortal() {
     const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)
     return (
       <Shell lang={lang} toggleLang={toggleLang}>
-        <style>{ANIM_STYLES}</style>
+        <style>{DARK_ANIM}</style>
         <div className="flex-1 flex flex-col items-center justify-center px-6 gap-5">
-          <div className="w-24 h-24 rounded-full flex items-center justify-center portal-check-in" style={{ background: waSendFailed ? '#fef2ef' : '#dcfce7' }}>
+          <div className="w-24 h-24 rounded-full flex items-center justify-center animate-check"
+            style={{ background: '#141414', border: `2px solid ${waSendFailed ? 'rgba(255,69,58,0.3)' : 'rgba(255,107,53,0.3)'}` }}>
             <span className="text-5xl">{waSendFailed ? '⚠️' : '💬'}</span>
           </div>
 
           {waSendFailed ? (
             /* WhatsApp send failed — show fallback */
             <>
-              <h1 className="text-2xl font-bold text-center portal-fade-up-1" style={{ color: '#1a1614', letterSpacing: '-0.04em' }}>
+              <h1 className="text-2xl font-bold text-center animate-in-1" style={{ color: '#fff', fontFamily: "'Outfit', sans-serif", letterSpacing: '-0.03em' }}>
                 {t(lang, 'Almost there!', 'כמעט שם!')}
               </h1>
-              <p className="text-[15px] text-center portal-fade-up-2" style={{ color: '#5a5450', maxWidth: 300, lineHeight: 1.7 }}>
+              <p className="text-[15px] text-center animate-in-2" style={{ color: '#a1a1a6', maxWidth: 300, lineHeight: 1.7 }}>
                 {t(lang,
                   `Your account is set up, but we couldn't send the WhatsApp link. Contact ${contractorName} to get your login link.`,
                   `החשבון שלך מוכן, אבל לא הצלחנו לשלוח את הלינק בוואטסאפ. פנה ל${contractorName} כדי לקבל לינק כניסה.`
@@ -258,10 +253,10 @@ export default function JobPortal() {
           ) : !isMobile ? (
             /* Desktop — tell them to check phone */
             <>
-              <h1 className="text-2xl font-bold text-center portal-fade-up-1" style={{ color: '#1a1614', letterSpacing: '-0.04em' }}>
+              <h1 className="text-2xl font-bold text-center animate-in-1" style={{ color: '#fff', fontFamily: "'Outfit', sans-serif", letterSpacing: '-0.03em' }}>
                 {t(lang, 'Check your phone! 📱', 'בדוק את הטלפון! 📱')}
               </h1>
-              <p className="text-[15px] text-center portal-fade-up-2" style={{ color: '#5a5450', maxWidth: 300, lineHeight: 1.7 }}>
+              <p className="text-[15px] text-center animate-in-2" style={{ color: '#a1a1a6', maxWidth: 300, lineHeight: 1.7 }}>
                 {t(lang,
                   `We sent a login link to your WhatsApp. Open it on your phone to access the dashboard.`,
                   `שלחנו לינק כניסה לוואטסאפ שלך. פתח אותו בטלפון כדי להיכנס לדשבורד.`
@@ -271,10 +266,10 @@ export default function JobPortal() {
           ) : (
             /* Mobile — normal success */
             <>
-              <h1 className="text-2xl font-bold text-center portal-fade-up-1" style={{ color: '#1a1614', letterSpacing: '-0.04em' }}>
+              <h1 className="text-2xl font-bold text-center animate-in-1" style={{ color: '#fff', fontFamily: "'Outfit', sans-serif", letterSpacing: '-0.03em' }}>
                 {t(lang, 'Check your WhatsApp! 🎉', 'בדוק את הוואטסאפ! 🎉')}
               </h1>
-              <p className="text-[15px] text-center portal-fade-up-2" style={{ color: '#5a5450', maxWidth: 300, lineHeight: 1.7 }}>
+              <p className="text-[15px] text-center animate-in-2" style={{ color: '#a1a1a6', maxWidth: 300, lineHeight: 1.7 }}>
                 {t(lang,
                   `We sent you a link on WhatsApp to manage the job with ${contractorName}.`,
                   `שלחנו לך לינק בוואטסאפ לניהול העבודה עם ${contractorName}.`
@@ -283,17 +278,17 @@ export default function JobPortal() {
             </>
           )}
 
-          <div className="rounded-2xl px-5 py-4 portal-fade-up-3" style={{ background: '#fff', border: '1px solid #efece8', maxWidth: 300 }}>
-            <p className="text-[13px] text-center" style={{ color: '#7a7570', lineHeight: 1.6 }}>
+          <div className="rounded-2xl px-5 py-4 animate-in-3" style={{ background: '#141414', border: '1px solid rgba(255,255,255,0.08)', maxWidth: 300 }}>
+            <p className="text-[13px] text-center" style={{ color: '#a1a1a6', lineHeight: 1.6 }}>
               {waSendFailed
                 ? t(lang, 'Your account was created successfully. You just need a login link to access it.', 'החשבון נוצר בהצלחה. אתה רק צריך לינק כניסה.')
                 : t(lang, 'Tap the link in WhatsApp to log in. The link expires in 24 hours.', 'לחץ על הלינק בוואטסאפ כדי להיכנס. הלינק בתוקף 24 שעות.')
               }
             </p>
           </div>
-          <div className="flex items-center gap-2 mt-2 px-5 py-2.5 rounded-full portal-fade-up-4" style={{ background: '#fff4ef' }}>
+          <div className="flex items-center gap-2 mt-2 px-5 py-2.5 rounded-full animate-in-4" style={{ background: 'rgba(255,107,53,0.15)' }}>
             <Zap className="w-4 h-4" style={{ color: BRAND }} />
-            <span className="text-xs font-semibold" style={{ color: BRAND_DARK }}>MasterLeadFlow</span>
+            <span className="text-xs font-semibold" style={{ color: BRAND }}>MasterLeadFlow</span>
           </div>
         </div>
       </Shell>
@@ -305,29 +300,30 @@ export default function JobPortal() {
   // ══════════════════════════════════════════════════════════════════════════════
   return (
     <Shell lang={lang} toggleLang={toggleLang} sticky>
-      <style>{ANIM_STYLES}</style>
+      <style>{DARK_ANIM}</style>
       <div className="flex-1 pb-28">
 
         {/* ── Section 1: Hero ── */}
         <div className="relative overflow-hidden" style={{
-          background: `linear-gradient(145deg, ${BRAND} 0%, ${BRAND_DARK} 60%, #b83510 100%)`,
+          background: '#0a0a0a',
           padding: '36px 20px 56px',
         }}>
-          {/* Decorative circles */}
-          <div className="absolute top-0 right-0 w-72 h-72 rounded-full opacity-[0.08]" style={{ background: '#fff', transform: 'translate(35%, -55%)' }} />
-          <div className="absolute bottom-0 left-0 w-48 h-48 rounded-full opacity-[0.05]" style={{ background: '#fff', transform: 'translate(-35%, 45%)' }} />
+          {/* Subtle radial glow */}
+          <div className="absolute inset-0" style={{
+            background: 'radial-gradient(ellipse at 50% 0%, rgba(255,107,53,0.12) 0%, transparent 60%)',
+          }} />
 
           <div className="relative max-w-md mx-auto text-center">
-            {/* Avatar with pulse ring */}
+            {/* Avatar */}
             <div className="relative w-[72px] h-[72px] mx-auto mb-5">
-              <div className="absolute inset-0 rounded-2xl animate-ping opacity-20" style={{ background: '#fff' }} />
-              <div className="relative w-full h-full rounded-2xl flex items-center justify-center text-2xl font-bold portal-fade-up"
-                style={{ background: 'rgba(255,255,255,0.2)', color: '#fff', backdropFilter: 'blur(12px)', border: '2px solid rgba(255,255,255,0.3)' }}>
+              <div className="absolute inset-0 rounded-2xl opacity-20" style={{ background: BRAND, filter: 'blur(16px)' }} />
+              <div className="relative w-full h-full rounded-2xl flex items-center justify-center text-2xl font-bold animate-in"
+                style={{ background: '#141414', color: '#fff', border: '2px solid rgba(255,107,53,0.3)' }}>
                 {contractorName.charAt(0).toUpperCase()}
               </div>
             </div>
 
-            <h1 className="text-[24px] font-bold text-white mb-1 portal-fade-up-1" style={{ letterSpacing: '-0.04em', lineHeight: 1.25 }}>
+            <h1 className="text-[24px] font-bold mb-1 animate-in-1" style={{ color: '#fff', fontFamily: "'Outfit', sans-serif", letterSpacing: '-0.03em', lineHeight: 1.25 }}>
               {t(lang,
                 `${contractorName} took your job ✅`,
                 `${contractorName} לקח את העבודה שלך ✅`
@@ -335,30 +331,30 @@ export default function JobPortal() {
             </h1>
 
             {/* Job badges */}
-            <div className="flex flex-wrap items-center justify-center gap-2 mt-3 portal-fade-up-2">
+            <div className="flex flex-wrap items-center justify-center gap-2 mt-3 animate-in-2">
               {profession && (
                 <div className="inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5"
-                  style={{ background: 'rgba(255,255,255,0.2)', backdropFilter: 'blur(4px)' }}>
-                  <Wrench className="w-3.5 h-3.5 text-white/80" />
-                  <span className="text-[13px] text-white font-semibold">{profession}</span>
+                  style={{ background: 'rgba(255,255,255,0.08)' }}>
+                  <Wrench className="w-3.5 h-3.5" style={{ color: 'rgba(255,255,255,0.5)' }} />
+                  <span className="text-[13px] font-semibold" style={{ color: 'rgba(255,255,255,0.8)' }}>{profession}</span>
                 </div>
               )}
               <div className="inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5"
-                style={{ background: 'rgba(255,255,255,0.12)', backdropFilter: 'blur(4px)' }}>
-                <MapPin className="w-3.5 h-3.5 text-white/70" />
-                <span className="text-[13px] text-white/80 font-medium">{location}</span>
+                style={{ background: 'rgba(255,255,255,0.08)' }}>
+                <MapPin className="w-3.5 h-3.5" style={{ color: 'rgba(255,255,255,0.5)' }} />
+                <span className="text-[13px] font-medium" style={{ color: 'rgba(255,255,255,0.8)' }}>{location}</span>
               </div>
             </div>
 
-            <p className="text-[13px] text-white/50 mt-4 portal-fade-up-3" style={{ lineHeight: 1.6 }}>
+            <p className="text-[13px] mt-4 animate-in-3" style={{ color: '#636366', lineHeight: 1.6 }}>
               {t(lang,
                 "The deal is set. Let's manage it in one place.",
                 'העבודה סגורה. בוא ננהל אותה במקום אחד.'
               )}
             </p>
 
-            {/* Subtle down arrow — card is right below */}
-            <div className="mt-4 flex justify-center portal-bounce" style={{ color: 'rgba(255,255,255,0.3)' }}>
+            {/* Subtle down arrow */}
+            <div className="mt-4 flex justify-center animate-bounce-subtle" style={{ color: 'rgba(255,255,255,0.15)' }}>
               <ChevronDown className="w-5 h-5" />
             </div>
           </div>
@@ -367,26 +363,25 @@ export default function JobPortal() {
         {/* ── Section 2: iOS Contact Card — immediately after hero ── */}
         <div ref={formRef} className="px-5 -mt-5 pb-4 max-w-md mx-auto">
 
-          {/* Card header — like iOS contact top */}
+          {/* Card header */}
           <div className="rounded-t-2xl px-5 pt-5 pb-4 text-center" style={{
-            background: '#fff',
-            borderLeft: '1px solid #efece8', borderRight: '1px solid #efece8', borderTop: '1px solid #efece8',
+            background: '#141414',
+            borderLeft: '1px solid rgba(255,255,255,0.08)', borderRight: '1px solid rgba(255,255,255,0.08)', borderTop: '1px solid rgba(255,255,255,0.08)',
           }}>
             <div className="w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-2 text-xl font-bold"
-              style={{ background: '#fff4ef', color: BRAND }}>
+              style={{ background: 'rgba(255,107,53,0.15)', color: BRAND }}>
               <ClipboardList className="w-6 h-6" />
             </div>
-            <p className="text-[15px] font-bold" style={{ color: '#1a1614' }}>
+            <p className="text-[15px] font-bold" style={{ color: '#fff', fontFamily: "'Outfit', sans-serif", letterSpacing: '-0.03em' }}>
               {profession || t(lang, 'Job', 'עבודה')}
             </p>
-            <p className="text-[12px]" style={{ color: '#9a9590' }}>{location}</p>
+            <p className="text-[12px]" style={{ color: '#636366' }}>{location}</p>
           </div>
 
           {/* Unified contact-card rows */}
           <div className="rounded-b-2xl overflow-hidden" style={{
-            background: '#fff',
-            border: '1px solid #efece8', borderTop: 'none',
-            boxShadow: '0 4px 24px rgba(26,22,20,0.06)',
+            background: '#141414',
+            border: '1px solid rgba(255,255,255,0.08)', borderTop: 'none',
           }}>
             {/* ─ Known info ─ */}
             {(lead.summary || lead.description) && (
@@ -399,12 +394,12 @@ export default function JobPortal() {
             <ContactRow
               label={t(lang, 'sub-contractor', 'קבלן משנה')}
               value={contractorName}
-              accent="emerald"
+              accent="brand"
             />
 
             {/* ─ Editable fields with motivation text ─ */}
-            <div className="px-5 py-2.5" style={{ background: '#f5f3f0' }}>
-              <p className="text-[11px]" style={{ color: '#7a7570', lineHeight: 1.5 }}>
+            <div className="px-5 py-2.5" style={{ background: '#1c1c1e' }}>
+              <p className="text-[11px]" style={{ color: '#636366', lineHeight: 1.5 }}>
                 {t(lang,
                   'Fill in the details so you and ' + contractorName + ' have everything in one place. No more digging through WhatsApp.',
                   'מלא את הפרטים כדי שלך ול' + contractorName + ' יהיה הכל במקום אחד. בלי לחפש בוואטסאפ.'
@@ -436,27 +431,27 @@ export default function JobPortal() {
             />
 
             {/* Separator */}
-            <div style={{ height: 8, background: '#f5f3f0' }} />
+            <div style={{ height: 8, background: '#1c1c1e' }} />
 
             {/* ─ Your details — conditional on existing user ─ */}
             {isExistingUser === null ? (
               /* Still checking... */
               <div className="px-5 py-4 flex items-center justify-center gap-2">
-                <Loader2 className="w-4 h-4 animate-spin" style={{ color: '#b5b0ab' }} />
-                <span className="text-[12px]" style={{ color: '#b5b0ab' }}>{t(lang, 'Checking...', 'בודק...')}</span>
+                <Loader2 className="w-4 h-4 animate-spin" style={{ color: '#636366' }} />
+                <span className="text-[12px]" style={{ color: '#636366' }}>{t(lang, 'Checking...', 'בודק...')}</span>
               </div>
             ) : isExistingUser ? (
               /* Existing user — show greeting, no name/phone fields */
               <div className="px-5 py-4">
                 <div className="flex items-center gap-3 mb-1">
-                  <div className="w-10 h-10 rounded-full flex items-center justify-center text-lg font-bold" style={{ background: '#ecfdf5', color: '#059669' }}>
+                  <div className="w-10 h-10 rounded-full flex items-center justify-center text-lg font-bold" style={{ background: 'rgba(255,107,53,0.15)', color: BRAND }}>
                     {existingUserName.charAt(0).toUpperCase() || '✓'}
                   </div>
                   <div>
-                    <p className="text-[15px] font-bold" style={{ color: '#1a1614' }}>
+                    <p className="text-[15px] font-bold" style={{ color: '#fff' }}>
                       {t(lang, `Hey ${existingUserName}!`, `היי ${existingUserName}!`)}
                     </p>
-                    <p className="text-[12px]" style={{ color: '#9a9590' }}>
+                    <p className="text-[12px]" style={{ color: '#636366' }}>
                       {t(lang, 'We found your account', 'מצאנו את החשבון שלך')}
                     </p>
                   </div>
@@ -465,8 +460,8 @@ export default function JobPortal() {
             ) : (
               /* New user — show name + phone fields */
               <>
-                <div className="px-4 py-2" style={{ background: '#f5f3f0' }}>
-                  <p className="text-[10px] font-bold uppercase" style={{ color: '#9a9590', letterSpacing: '0.08em' }}>
+                <div className="px-4 py-2" style={{ background: '#2c2c2e' }}>
+                  <p className="text-[10px] font-bold uppercase" style={{ color: '#636366', letterSpacing: '0.08em' }}>
                     {t(lang, 'Your info', 'הפרטים שלך')}
                   </p>
                 </div>
@@ -494,11 +489,14 @@ export default function JobPortal() {
 
         {/* ── Section 3: Why MasterLeadFlow — compact trust strip ── */}
         <div className="px-5 mt-5 pb-4 max-w-md mx-auto">
-          <div className="flex items-center gap-3 rounded-2xl p-3.5" style={{ background: '#fff', border: '1px solid #efece8' }}>
-            <img src="/contractors-team.webp" alt="Team" className="w-12 h-12 rounded-xl object-cover shrink-0" style={{ objectPosition: 'center 30%' }} />
+          <div className="flex items-center gap-3 rounded-2xl p-3.5" style={{ background: '#141414', border: '1px solid rgba(255,255,255,0.08)' }}>
+            <div className="w-12 h-12 rounded-xl overflow-hidden shrink-0 relative">
+              <img src="/contractors-team.webp" alt="Team" className="w-full h-full object-cover" style={{ objectPosition: 'center 30%' }} />
+              <div className="absolute inset-0" style={{ background: 'rgba(0,0,0,0.15)' }} />
+            </div>
             <div className="min-w-0 flex-1">
-              <p className="text-[12px] font-bold" style={{ color: '#1a1614' }}>MasterLeadFlow</p>
-              <p className="text-[11px]" style={{ color: '#9a9590', lineHeight: 1.4 }}>
+              <p className="text-[12px] font-bold" style={{ color: '#fff' }}>MasterLeadFlow</p>
+              <p className="text-[11px]" style={{ color: '#a1a1a6', lineHeight: 1.4 }}>
                 {t(lang,
                   'Used by 500+ contractors · Free forever',
                   'בשימוש 500+ קבלנים · חינם לנצח'
@@ -507,7 +505,7 @@ export default function JobPortal() {
             </div>
             <div className="flex items-center gap-0.5 shrink-0">
               {[1,2,3,4,5].map(i => (
-                <Star key={i} className="w-2.5 h-2.5 fill-amber-400 text-amber-400" />
+                <Star key={i} className="w-2.5 h-2.5" style={{ fill: BRAND, color: BRAND }} />
               ))}
             </div>
           </div>
@@ -516,7 +514,7 @@ export default function JobPortal() {
 
       {/* ── Sticky bottom CTA ── */}
       <div className="fixed bottom-0 left-0 right-0 z-50" style={{
-        background: `linear-gradient(transparent, ${BG} 20%)`,
+        background: 'linear-gradient(transparent, #0a0a0a 20%)',
         paddingBottom: 'env(safe-area-inset-bottom, 0px)',
       }}>
         <div className="px-5 pt-3 pb-4 max-w-md mx-auto">
@@ -525,13 +523,11 @@ export default function JobPortal() {
             disabled={signupLoading || !isFormReady}
             className="w-full rounded-2xl py-4 text-[15px] font-bold text-white transition-all duration-200 active:scale-[0.97]"
             style={{
-              background: isFormReady
-                ? `linear-gradient(135deg, ${BRAND}, ${BRAND_DARK})`
-                : '#d5d0cb',
+              background: isFormReady ? BRAND : '#2c2c2e',
+              color: isFormReady ? '#fff' : '#636366',
               boxShadow: isFormReady
-                ? '0 8px 24px rgba(254,91,37,0.4)'
-                : '0 2px 8px rgba(0,0,0,0.08)',
-              transform: isFormReady ? undefined : 'none',
+                ? '0 0 30px rgba(255,107,53,0.25)'
+                : 'none',
             }}
           >
             {signupLoading
@@ -544,15 +540,15 @@ export default function JobPortal() {
                 </span>}
           </button>
           <div className="flex items-center justify-center gap-3 mt-2">
-            <span className="flex items-center gap-1 text-[10px]" style={{ color: '#b5b0ab' }}>
+            <span className="flex items-center gap-1 text-[10px]" style={{ color: '#636366' }}>
               <Shield className="w-3 h-3" /> {t(lang, 'Secure', 'מאובטח')}
             </span>
-            <span className="text-[10px]" style={{ color: '#d5d0cb' }}>·</span>
-            <span className="text-[10px]" style={{ color: '#b5b0ab' }}>
+            <span className="text-[10px]" style={{ color: '#48484a' }}>·</span>
+            <span className="text-[10px]" style={{ color: '#636366' }}>
               {t(lang, 'Free forever', 'חינם לנצח')}
             </span>
-            <span className="text-[10px]" style={{ color: '#d5d0cb' }}>·</span>
-            <span className="text-[10px]" style={{ color: '#b5b0ab' }}>
+            <span className="text-[10px]" style={{ color: '#48484a' }}>·</span>
+            <span className="text-[10px]" style={{ color: '#636366' }}>
               {t(lang, 'No credit card', 'ללא כ.א.')}
             </span>
           </div>
@@ -564,13 +560,13 @@ export default function JobPortal() {
 
 // ── iOS Contact Card: Read-only row ─────────────────────────────────────────
 function ContactRow({ label, value, small, accent }: {
-  label: string; value: string; small?: boolean; accent?: 'emerald'
+  label: string; value: string; small?: boolean; accent?: 'brand'
 }) {
   return (
-    <div className="flex items-start px-5 py-3" style={{ borderBottom: '0.5px solid #f0ece8' }}>
-      <span className="text-[13px] shrink-0" style={{ color: '#8e8e93', width: 110 }}>{label}</span>
+    <div className="flex items-start px-5 py-3" style={{ borderBottom: '0.5px solid rgba(255,255,255,0.06)' }}>
+      <span className="text-[13px] shrink-0" style={{ color: '#636366', width: 110 }}>{label}</span>
       <span className={`text-[13px] flex-1 ${small ? '' : 'font-medium'}`} style={{
-        color: accent === 'emerald' ? '#059669' : (small ? '#5a5450' : '#1a1614'),
+        color: accent === 'brand' ? BRAND : (small ? '#a1a1a6' : '#fff'),
         lineHeight: 1.45,
       }}>{value}</span>
     </div>
@@ -583,8 +579,8 @@ function ContactRowInput({ label, value, onChange, placeholder, type = 'text', d
   placeholder: string; type?: string; dir?: string; required?: boolean; suffix?: string; last?: boolean
 }) {
   return (
-    <div className="flex items-center px-5 py-0.5" style={{ borderBottom: last ? 'none' : '0.5px solid #f0ece8' }}>
-      <span className="text-[13px] shrink-0 flex items-center gap-1" style={{ color: '#8e8e93', width: 110 }}>
+    <div className="flex items-center px-5 py-0.5" style={{ borderBottom: last ? 'none' : '0.5px solid rgba(255,255,255,0.06)' }}>
+      <span className="text-[13px] shrink-0 flex items-center gap-1" style={{ color: '#636366', width: 110 }}>
         {label}
         {required && <span className="text-[10px]" style={{ color: BRAND }}>*</span>}
       </span>
@@ -596,10 +592,10 @@ function ContactRowInput({ label, value, onChange, placeholder, type = 'text', d
           placeholder={placeholder}
           dir={dir}
           className="w-full py-3 text-[13px] font-medium bg-transparent focus:outline-none"
-          style={{ color: '#1a1614' }}
+          style={{ color: '#fff' }}
         />
         {suffix && value && (
-          <span className="text-[13px] font-medium shrink-0" style={{ color: '#1a1614' }}>{suffix}</span>
+          <span className="text-[13px] font-medium shrink-0" style={{ color: '#fff' }}>{suffix}</span>
         )}
       </div>
     </div>
@@ -612,26 +608,26 @@ function Shell({ lang, toggleLang, children, sticky }: {
 }) {
   return (
     <div className="min-h-screen flex flex-col" style={{
-      background: BG,
-      fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+      background: '#0a0a0a',
+      fontFamily: "'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
       paddingTop: 'env(safe-area-inset-top, 0px)',
     }} dir={lang === 'he' ? 'rtl' : 'ltr'}>
       {/* Glassmorphism nav */}
       <div className={sticky ? 'sticky top-0 z-40' : ''} style={{
-        background: sticky ? 'rgba(255,255,255,0.85)' : '#fff',
-        backdropFilter: sticky ? 'blur(12px) saturate(180%)' : undefined,
-        WebkitBackdropFilter: sticky ? 'blur(12px) saturate(180%)' : undefined,
-        borderBottom: '1px solid rgba(234,230,226,0.8)',
+        background: 'rgba(10,10,10,0.85)',
+        backdropFilter: 'blur(20px) saturate(180%)',
+        WebkitBackdropFilter: 'blur(20px) saturate(180%)',
+        borderBottom: '1px solid rgba(255,255,255,0.06)',
       }}>
         <div className="flex items-center justify-between px-5 py-3 max-w-md mx-auto">
           <div className="flex items-center gap-2">
             <div className="w-7 h-7 rounded-lg flex items-center justify-center text-white font-bold text-xs" style={{ background: BRAND }}>M</div>
-            <span className="text-[13px] font-bold" style={{ color: '#1a1614', letterSpacing: '-0.02em' }}>MasterLeadFlow</span>
+            <span className="text-[13px] font-bold" style={{ color: '#fff', letterSpacing: '-0.02em' }}>MasterLeadFlow</span>
           </div>
           <button
             onClick={toggleLang}
             className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-semibold transition-all active:scale-95"
-            style={{ background: 'rgba(245,243,240,0.8)', color: '#9a9590' }}
+            style={{ background: 'rgba(255,255,255,0.08)', color: '#a1a1a6' }}
           >
             <Globe className="w-3 h-3" />
             {lang === 'en' ? 'עברית' : 'EN'}

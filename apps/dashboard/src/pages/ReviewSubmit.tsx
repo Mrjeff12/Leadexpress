@@ -104,11 +104,16 @@ export default function ReviewSubmit() {
   /* ── Skeleton ── */
   if (state === 'loading') {
     return (
-      <div className="max-w-xl mx-auto py-16 px-4">
-        <div className="space-y-4 animate-pulse">
-          <div className="h-8 w-48 rounded-lg bg-white/10" />
-          <div className="h-4 w-64 rounded bg-white/5" />
-          <div className="h-64 rounded-2xl bg-white/5" />
+      <div className="min-h-screen bg-[#0a0a0a]">
+        <div className="max-w-xl mx-auto py-16 px-4">
+          <div className="flex justify-center mb-6">
+            <Loader2 size={32} className="animate-spin text-[#ff6b35]" />
+          </div>
+          <div className="space-y-4 animate-pulse">
+            <div className="h-8 w-48 rounded-lg bg-white/10" />
+            <div className="h-4 w-64 rounded bg-white/5" />
+            <div className="h-64 rounded-2xl bg-white/5" />
+          </div>
         </div>
       </div>
     )
@@ -118,7 +123,11 @@ export default function ReviewSubmit() {
   if (state === 'error') {
     return (
       <StatusPage
-        icon={<AlertCircle size={40} className="text-red-400" />}
+        icon={
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-[rgba(255,69,58,0.12)]">
+            <AlertCircle size={32} className="text-[#ff453a]" />
+          </div>
+        }
         title="Something went wrong"
         subtitle={errorMsg}
       />
@@ -129,7 +138,11 @@ export default function ReviewSubmit() {
   if (state === 'already_reviewed') {
     return (
       <StatusPage
-        icon={<CheckCircle2 size={40} className="text-emerald-400" />}
+        icon={
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-[rgba(48,209,88,0.12)]">
+            <CheckCircle2 size={32} className="text-[#a1a1a6]" />
+          </div>
+        }
         title="Already reviewed"
         subtitle="You've already submitted a review for this job."
       />
@@ -140,7 +153,11 @@ export default function ReviewSubmit() {
   if (state === 'not_completed') {
     return (
       <StatusPage
-        icon={<Clock size={40} className="text-amber-400" />}
+        icon={
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-[rgba(255,107,53,0.12)]">
+            <Clock size={32} className="text-[#ff6b35]" />
+          </div>
+        }
         title="Job not completed"
         subtitle="This job must be completed before you can leave a review."
       />
@@ -151,7 +168,11 @@ export default function ReviewSubmit() {
   if (state === 'expired') {
     return (
       <StatusPage
-        icon={<Clock size={40} className="text-white/40" />}
+        icon={
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-[rgba(99,99,102,0.12)]">
+            <Clock size={32} className="text-[#636366]" />
+          </div>
+        }
         title="Review window expired"
         subtitle="The 30-day review window has expired for this job."
       />
@@ -161,43 +182,47 @@ export default function ReviewSubmit() {
   /* ── Submitted success ── */
   if (state === 'submitted') {
     return (
-      <div className="max-w-xl mx-auto py-16 px-4 text-center space-y-4">
-        <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-emerald-500/20 border border-emerald-400/30 mb-2 animate-[bounce_0.6s_ease-in-out]">
-          <Sparkles size={32} className="text-emerald-400" />
+      <div className="min-h-screen bg-[#0a0a0a]">
+        <div className="max-w-xl mx-auto py-16 px-4 text-center space-y-4">
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-[rgba(48,209,88,0.12)] border border-[rgba(48,209,88,0.2)] mb-2 animate-[bounce_0.6s_ease-in-out]">
+            <Sparkles size={32} className="text-[#30d158]" />
+          </div>
+          <h2 className="text-xl font-bold text-white" style={{ fontFamily: 'Outfit, sans-serif', letterSpacing: '-0.03em' }}>Review submitted!</h2>
+          <p className="text-sm text-[#a1a1a6]">
+            Waiting for the other party to review. Both reviews will be published once complete.
+          </p>
+          <div className="pt-4">
+            <StarRating rating={5} size="lg" />
+          </div>
+          <Link
+            to="/jobs"
+            className="inline-flex items-center gap-1.5 text-sm text-[#ff6b35] hover:brightness-125 mt-4 transition-all"
+          >
+            <ArrowLeft size={14} /> Back to Jobs
+          </Link>
         </div>
-        <h2 className="text-xl font-bold text-white">Review submitted!</h2>
-        <p className="text-sm text-white/50">
-          Waiting for the other party to review. Both reviews will be published once complete.
-        </p>
-        <div className="pt-4">
-          <StarRating rating={5} size="lg" />
-        </div>
-        <Link
-          to="/jobs"
-          className="inline-flex items-center gap-1.5 text-sm text-orange-400 hover:text-orange-300 mt-4"
-        >
-          <ArrowLeft size={14} /> Back to Jobs
-        </Link>
       </div>
     )
   }
 
   /* ── Ready: show form ── */
   return (
-    <div className="max-w-xl mx-auto py-8 px-4 space-y-4">
-      <Link
-        to="/jobs"
-        className="inline-flex items-center gap-1.5 text-sm text-white/50 hover:text-white/80 transition-colors"
-      >
-        <ArrowLeft size={14} /> Back to Jobs
-      </Link>
+    <div className="min-h-screen bg-[#0a0a0a]">
+      <div className="max-w-xl mx-auto py-8 px-4 space-y-4">
+        <Link
+          to="/jobs"
+          className="inline-flex items-center gap-1.5 text-sm text-[#636366] hover:text-[#a1a1a6] transition-colors"
+        >
+          <ArrowLeft size={14} /> Back to Jobs
+        </Link>
 
-      <ReviewForm
-        jobOrderId={jobOrderId!}
-        revieweeId={jobInfo!.contractor_id}
-        revieweeName={jobInfo!.contractor_name}
-        onSuccess={() => setState('submitted')}
-      />
+        <ReviewForm
+          jobOrderId={jobOrderId!}
+          revieweeId={jobInfo!.contractor_id}
+          revieweeName={jobInfo!.contractor_name}
+          onSuccess={() => setState('submitted')}
+        />
+      </div>
     </div>
   )
 }
@@ -214,16 +239,18 @@ function StatusPage({
   subtitle: string
 }) {
   return (
-    <div className="max-w-xl mx-auto py-16 px-4 text-center space-y-3">
-      <div className="flex justify-center">{icon}</div>
-      <h2 className="text-lg font-bold text-white">{title}</h2>
-      <p className="text-sm text-white/50">{subtitle}</p>
-      <Link
-        to="/jobs"
-        className="inline-flex items-center gap-1.5 text-sm text-orange-400 hover:text-orange-300 mt-4"
-      >
-        <ArrowLeft size={14} /> Back to Jobs
-      </Link>
+    <div className="min-h-screen bg-[#0a0a0a]">
+      <div className="max-w-xl mx-auto py-16 px-4 text-center space-y-3">
+        <div className="flex justify-center">{icon}</div>
+        <h2 className="text-lg font-bold text-white" style={{ fontFamily: 'Outfit, sans-serif', letterSpacing: '-0.03em' }}>{title}</h2>
+        <p className="text-sm text-[#a1a1a6]">{subtitle}</p>
+        <Link
+          to="/jobs"
+          className="inline-flex items-center gap-1.5 text-sm text-[#ff6b35] hover:brightness-125 mt-4 transition-all"
+        >
+          <ArrowLeft size={14} /> Back to Jobs
+        </Link>
+      </div>
     </div>
   )
 }

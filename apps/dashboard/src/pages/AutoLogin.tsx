@@ -148,43 +148,54 @@ export default function AutoLogin() {
     <div
       className="min-h-screen flex flex-col items-center justify-center p-6"
       style={{
-        background: 'linear-gradient(135deg, #0a0a1a 0%, #12122a 100%)',
-        fontFamily: "'Plus Jakarta Sans', sans-serif",
+        background: '#0a0a0a',
+        fontFamily: "'Outfit', sans-serif",
       }}
     >
       {status === 'loading' && (
         <div className="flex flex-col items-center gap-4">
           <div className="relative">
-            <Loader2 className="w-12 h-12 animate-spin text-purple-500" />
-            <div className="absolute inset-0 w-12 h-12 rounded-full animate-ping opacity-20 bg-purple-500" />
+            <Loader2 className="w-12 h-12 animate-spin" style={{ color: '#ff6b35' }} />
+            <div
+              className="absolute inset-0 w-12 h-12 rounded-full animate-ping"
+              style={{ background: 'rgba(255,107,53,0.2)' }}
+            />
           </div>
-          <p className="text-white text-lg font-semibold">
+          <p
+            className="text-lg font-semibold"
+            style={{ color: retrying ? '#636366' : '#fff', letterSpacing: '-0.03em' }}
+          >
             {retrying ? 'Retrying...' : 'Signing you in...'}
           </p>
-          <p className="text-slate-500 text-sm">Please wait</p>
+          <p className="text-sm" style={{ color: '#636366' }}>Please wait</p>
         </div>
       )}
 
       {status === 'success' && (
         <div className="flex flex-col items-center gap-4">
-          <CheckCircle className="w-12 h-12 text-green-500" />
-          <p className="text-white text-lg font-semibold">Welcome!</p>
-          <p className="text-slate-400 text-sm">Redirecting...</p>
+          <CheckCircle className="w-12 h-12" style={{ color: '#30d158' }} />
+          <p className="text-lg font-semibold" style={{ color: '#fff', letterSpacing: '-0.03em' }}>Welcome!</p>
+          <p className="text-sm" style={{ color: '#636366' }}>Redirecting...</p>
         </div>
       )}
 
       {status === 'error' && (
         <div className="flex flex-col items-center gap-4 max-w-sm text-center">
-          <XCircle className="w-12 h-12 text-red-500" />
-          <p className="text-white text-lg font-semibold">Login Failed</p>
-          <p className="text-slate-400 text-sm">{error}</p>
+          <div
+            className="w-16 h-16 rounded-full flex items-center justify-center"
+            style={{ background: 'rgba(255,69,58,0.12)' }}
+          >
+            <XCircle className="w-8 h-8" style={{ color: '#ff453a' }} />
+          </div>
+          <p className="text-lg font-semibold" style={{ color: '#fff', letterSpacing: '-0.03em' }}>Login Failed</p>
+          <p className="text-sm" style={{ color: '#a1a1a6' }}>{error}</p>
 
           <button
             onClick={handleRetry}
-            className="mt-4 flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-semibold text-white transition-all hover:brightness-110"
+            className="mt-4 flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-semibold text-white transition-all hover:brightness-110 active:scale-[0.97]"
             style={{
-              background: 'linear-gradient(135deg, #8b5cf6, #6d28d9)',
-              boxShadow: '0 0 20px rgba(139, 92, 246, 0.3)',
+              background: '#ff6b35',
+              boxShadow: '0 0 20px rgba(255,107,53,0.25)',
             }}
           >
             <RefreshCw className="w-4 h-4" />
@@ -193,7 +204,10 @@ export default function AutoLogin() {
 
           <a
             href="/login"
-            className="text-slate-500 text-xs hover:text-slate-300 transition-colors"
+            className="text-xs transition-colors"
+            style={{ color: '#636366' }}
+            onMouseEnter={(e) => (e.currentTarget.style.color = '#a1a1a6')}
+            onMouseLeave={(e) => (e.currentTarget.style.color = '#636366')}
           >
             Or sign in with email
           </a>

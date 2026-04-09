@@ -10,8 +10,8 @@ interface StarRatingProps {
 }
 
 const SIZE_PX = { sm: 16, md: 20, lg: 28 } as const
-const FILLED = '#fe5b25'
-const EMPTY = '#e7e5e4' // stone-200
+const FILLED = '#ff6b35'
+const EMPTY = '#2c2c2e'
 
 export default function StarRating({
   rating,
@@ -72,12 +72,12 @@ export default function StarRating({
       })}
 
       {showValue && (
-        <span className="ml-1 font-semibold text-gray-700" style={{ fontSize: px * 0.7 }}>
+        <span className="ml-1 font-semibold text-[#a1a1a6]" style={{ fontSize: px * 0.7 }}>
           {rating.toFixed(1)}
         </span>
       )}
       {typeof count === 'number' && (
-        <span className="ml-0.5 text-gray-400" style={{ fontSize: px * 0.6 }}>
+        <span className="ml-0.5 text-[#636366]" style={{ fontSize: px * 0.6 }}>
           ({count})
         </span>
       )}

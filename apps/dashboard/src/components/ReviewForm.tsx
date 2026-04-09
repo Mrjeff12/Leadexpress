@@ -68,16 +68,16 @@ export default function ReviewForm({
   return (
     <form
       onSubmit={handleSubmit}
-      className="rounded-2xl border border-white/20 bg-white/10 backdrop-blur-xl p-6 space-y-6 shadow-lg"
+      className="rounded-2xl border border-[rgba(255,255,255,0.08)] bg-[#141414] p-6 space-y-6 shadow-lg"
     >
-      <h3 className="text-lg font-semibold text-white">
+      <h3 className="text-lg font-semibold text-white" style={{ fontFamily: 'Outfit, sans-serif', letterSpacing: '-0.03em' }}>
         Review {revieweeName}
       </h3>
 
       {/* Overall rating (required) */}
       <div className="space-y-1">
-        <label className="text-sm font-medium text-white/80">
-          Overall rating <span className="text-red-400">*</span>
+        <label className="text-sm font-medium text-[#a1a1a6]">
+          Overall rating <span className="text-[#ff453a]">*</span>
         </label>
         <StarRating rating={overall} onChange={setOverall} size="lg" />
       </div>
@@ -85,30 +85,30 @@ export default function ReviewForm({
       {/* Sub-ratings */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="space-y-1">
-          <label className="text-sm font-medium text-white/70">Quality of work</label>
+          <label className="text-sm font-medium text-[#636366]">Quality of work</label>
           <StarRating rating={quality} onChange={setQuality} size="md" />
         </div>
         <div className="space-y-1">
-          <label className="text-sm font-medium text-white/70">Communication</label>
+          <label className="text-sm font-medium text-[#636366]">Communication</label>
           <StarRating rating={communication} onChange={setCommunication} size="md" />
         </div>
         <div className="space-y-1">
-          <label className="text-sm font-medium text-white/70">Timeliness</label>
+          <label className="text-sm font-medium text-[#636366]">Timeliness</label>
           <StarRating rating={timeliness} onChange={setTimeliness} size="md" />
         </div>
       </div>
 
       {/* Would hire again */}
       <div className="space-y-1">
-        <label className="text-sm font-medium text-white/80">Would you hire again?</label>
+        <label className="text-sm font-medium text-[#a1a1a6]">Would you hire again?</label>
         <div className="flex gap-2 mt-1">
           <button
             type="button"
             onClick={() => setWouldHireAgain(wouldHireAgain === true ? null : true)}
             className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
               wouldHireAgain === true
-                ? 'bg-emerald-500/30 text-emerald-300 border border-emerald-400/40'
-                : 'bg-white/5 text-white/50 border border-white/10 hover:bg-white/10'
+                ? 'bg-[rgba(48,209,88,0.15)] text-[#30d158] border border-[rgba(48,209,88,0.3)]'
+                : 'bg-[#1c1c1e] text-[#636366] border border-[rgba(255,255,255,0.1)] hover:bg-[#2c2c2e]'
             }`}
           >
             <ThumbsUp size={16} /> Yes
@@ -118,8 +118,8 @@ export default function ReviewForm({
             onClick={() => setWouldHireAgain(wouldHireAgain === false ? null : false)}
             className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
               wouldHireAgain === false
-                ? 'bg-red-500/30 text-red-300 border border-red-400/40'
-                : 'bg-white/5 text-white/50 border border-white/10 hover:bg-white/10'
+                ? 'bg-[rgba(255,69,58,0.15)] text-[#ff453a] border border-[rgba(255,69,58,0.3)]'
+                : 'bg-[#1c1c1e] text-[#636366] border border-[rgba(255,255,255,0.1)] hover:bg-[#2c2c2e]'
             }`}
           >
             <ThumbsDown size={16} /> No
@@ -129,23 +129,23 @@ export default function ReviewForm({
 
       {/* Review text */}
       <div className="space-y-1">
-        <label className="text-sm font-medium text-white/80">
-          Your review <span className="text-red-400">*</span>
+        <label className="text-sm font-medium text-[#a1a1a6]">
+          Your review <span className="text-[#ff453a]">*</span>
         </label>
         <textarea
           value={reviewText}
           onChange={(e) => setReviewText(e.target.value)}
           placeholder="Share your experience working with this person..."
           rows={4}
-          className="w-full rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-sm text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-orange-500/50 resize-none"
+          className="w-full rounded-lg border border-[rgba(255,255,255,0.1)] bg-[#1c1c1e] px-3 py-2 text-sm text-white placeholder-[#48484a] focus:outline-none focus:border-[#ff6b35] focus:ring-1 focus:ring-[#ff6b35]/50 resize-none transition-colors"
         />
         <div className="flex justify-between text-xs">
-          <span className={reviewText.trim().length < 20 ? 'text-white/40' : 'text-emerald-400'}>
+          <span className={reviewText.trim().length < 20 ? 'text-[#636366]' : 'text-[#30d158]'}>
             {reviewText.trim().length < 20
               ? `${20 - reviewText.trim().length} more characters needed`
               : 'Looks good!'}
           </span>
-          <span className="text-white/40">{reviewText.trim().length} chars</span>
+          <span className="text-[#636366]">{reviewText.trim().length} chars</span>
         </div>
       </div>
 
@@ -153,7 +153,7 @@ export default function ReviewForm({
       <button
         type="submit"
         disabled={!canSubmit}
-        className="flex items-center justify-center gap-2 w-full rounded-lg bg-gradient-to-r from-orange-500 to-pink-500 px-4 py-2.5 text-sm font-semibold text-white shadow-lg transition-all hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed"
+        className="flex items-center justify-center gap-2 w-full rounded-lg bg-[#ff6b35] px-4 py-2.5 text-sm font-semibold text-white shadow-[0_0_20px_rgba(255,107,53,0.3)] transition-all hover:brightness-110 active:scale-[0.97] disabled:opacity-40 disabled:cursor-not-allowed disabled:shadow-none"
       >
         {submitting ? (
           <Loader2 size={16} className="animate-spin" />
