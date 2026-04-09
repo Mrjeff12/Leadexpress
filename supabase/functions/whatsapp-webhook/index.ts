@@ -1431,15 +1431,18 @@ async function handleFollowupButton(phone: string, payload: string, userId: stri
     // TRACK B: Publisher is NOT our user → send portal link via contractor
     // ══════════════════════════════════════════════════════════════════════
     } else {
-      // Build message for contractor to forward to publisher
+      // Build full message for contractor to forward (copy-paste)
       const publisherMsg = `Hey! It's ${contractorName} 👋\nI took the ${profession} job in ${location} you posted.\n\nI use an app to keep jobs organized — tap here so we're both on the same page:\n👉 ${portalUrl}\n\nIt takes 30 seconds and it's free.`;
 
-      // Message 1: the ready-to-send text
+      // Short version for wa.me link — keeps the link clean and clickable
+      const waMsg = `Hey! It's ${contractorName} 👋\nI took the ${profession} job in ${location} you posted.\n\n${portalUrl}`;
+      const encoded = encodeURIComponent(waMsg);
+
+      // Message 1: the ready-to-copy text
       await sendText(phone,
         `🎉 *מעולה! העבודה נוצרה.*\n\nהעבר את ההודעה הזאת למפרסם:\n\n─────────\n${publisherMsg}\n─────────`);
 
-      // Message 2: direct wa.me link to the specific publisher
-      const encoded = encodeURIComponent(publisherMsg);
+      // Message 2: direct wa.me link (opens chat with pre-filled message)
       if (publisherPhone) {
         await sendText(phone, `📤 לחץ לשלוח למפרסם:\nhttps://wa.me/${publisherPhone}?text=${encoded}`);
       } else {
@@ -3658,149 +3661,407 @@ async function executeAIFunction(phone: string, fnName: string, profile: { id: s
 }
 
 // ── Post Job Flow ────────────────────────────────────────────────────────────
-// Contractor posts a job from the field → AI collects details → publishes to matching contractors
+// Hybrid: local parsing for numbers/zips → GPT only for free-form text
+// State tracks `asking_for` so numbers are always unambiguous.
+// GPT NEVER decides when to publish — code checks required fields.
 
-const POST_JOB_SYSTEM = `You are Rebeca, a smart AI assistant helping contractors publish jobs to other contractors on the MasterLeadFlow network.
-You speak English and Hebrew — match the user's language.
-Keep responses SHORT (1-2 sentences, WhatsApp style).
+const POST_JOB_GPT_SYSTEM = `You are a strict field extractor for job postings. Extract structured data from the user's message.
 
-CRITICAL: ANALYZE THE FIRST MESSAGE CAREFULLY. Users often provide ALL details in a single message.
-If you can extract all required fields from the message, call publish_job IMMEDIATELY — do NOT ask questions you already have answers to.
+You MUST call extract_fields. NEVER respond with text.
 
-Required fields:
-1. profession - Extract from context. Map to: hvac, renovation, fencing, cleaning, locksmith, plumbing, electrical, painting, roofing, flooring, air_duct, other
-   Examples: "תיקון מזגן"→hvac, "AC repair"→hvac, "fence install"→fencing, "deep clean"→cleaning
-2. city - Extract city name from context (e.g. "פורט לוטרדר"→Fort Lauderdale, "מיאמי"→Miami)
-3. description - Summarize the work needed in 1 sentence. Strip ALL personal info (phone, address, names).
-4. urgency - Infer from context: "just finished there"→today, "need someone"→this_week, otherwise→flexible
-5. budget - Optional. Extract if mentioned (e.g. "20% על העבודה"→"20% commission")
+The system is currently asking the user for: {{asking_for}}
+Previously collected: {{collected}}
+
+FIELDS TO EXTRACT:
+- profession: Map to one of: garage_door, air_duct, locksmith, chimney, dryer_vent, hvac, renovation, plumbing, electrical, painting, roofing, fencing, cleaning, carpet_cleaning, landscaping, pool, tiling, windows, bathroom, kitchen, moving, other
+  Hebrew: "מזגן/AC"→hvac, "גדר"→fencing, "ניקיון"→cleaning, "צביעה"→painting, "שיפוץ"→renovation, "אינסטלציה"→plumbing, "חשמל"→electrical, "גג"→roofing, "דלת גראז׳"→garage_door, "דאקט"→air_duct, "ארובה"→chimney, "מנעולן"→locksmith, "ייבוש/דרייר"→dryer_vent
+- zip_code: 5-digit US zip code
+- city: City name in English (translate Hebrew)
+- state: US state 2-letter abbreviation
+- urgency: "today/היום"→"today", "tomorrow/מחר"→"tomorrow", "this week/השבוע"→"this_week", "flexible/גמיש"→"flexible"
+- description: Brief 1-sentence job description. Generate one if user says "תמציא"/"make it up". Strip personal info.
+- budget: Budget if mentioned
+- schedule: Time window if mentioned (e.g. "9-11 AM")
+- cancel: true only if user wants to cancel
 
 RULES:
-- If ALL required fields can be extracted → call publish_job RIGHT AWAY
-- If only 1-2 fields are missing → ask for just those specific fields
-- NEVER re-ask for information already provided
-- NEVER include customer phone, address, or personal info in the description
-- Be encouraging: "מעולה! מפרסם עכשיו..." / "Great! Publishing now..."`;
+- Focus on what the system is currently asking for ({{asking_for}})
+- Extract ANY additional fields you find in the message
+- Do NOT re-extract fields already in {{collected}}
+- ALWAYS call extract_fields even if empty`;
 
-const POST_JOB_FUNCTIONS = [
+const EXTRACT_FUNCTIONS = [
   {
-    name: 'publish_job',
-    description: 'Publish the job when all details are collected',
+    name: 'extract_fields',
+    description: 'Extract job posting fields from the message',
     parameters: {
       type: 'object',
       properties: {
-        profession: { type: 'string', enum: ['hvac', 'renovation', 'fencing', 'cleaning', 'locksmith', 'plumbing', 'electrical', 'painting', 'roofing', 'flooring', 'air_duct', 'other'] },
+        profession: { type: 'string' },
+        zip_code: { type: 'string' },
         city: { type: 'string' },
-        description: { type: 'string', description: 'Brief job description WITHOUT personal info' },
-        urgency: { type: 'string', enum: ['today', 'this_week', 'flexible'] },
-        budget: { type: 'string', description: 'Optional budget estimate' },
+        state: { type: 'string' },
+        urgency: { type: 'string', enum: ['today', 'tomorrow', 'this_week', 'flexible'] },
+        description: { type: 'string' },
+        budget: { type: 'string' },
+        schedule: { type: 'string' },
+        cancel: { type: 'boolean' },
       },
-      required: ['profession', 'city', 'description', 'urgency'],
     },
-  },
-  {
-    name: 'cancel_post',
-    description: 'Cancel job posting',
-    parameters: { type: 'object', properties: {} },
   },
 ];
 
+interface PostJobFields {
+  profession?: string;
+  zip_code?: string;
+  city?: string;
+  state?: string;
+  urgency?: string;
+  description?: string;
+  budget?: string;
+  schedule?: string;
+}
+
+// Profession list — ordered by real lead volume
+const POST_JOB_PROFESSIONS = [
+  { n: 1,  key: 'garage_door', label: '🚪 Garage Door' },
+  { n: 2,  key: 'air_duct',    label: '💨 Air Duct' },
+  { n: 3,  key: 'locksmith',   label: '🔑 Locksmith' },
+  { n: 4,  key: 'chimney',     label: '🧹 Chimney' },
+  { n: 5,  key: 'dryer_vent',  label: '💨 Dryer Vent' },
+  { n: 6,  key: 'hvac',        label: '❄️ HVAC' },
+  { n: 7,  key: 'renovation',  label: '🔨 Renovation' },
+  { n: 8,  key: 'plumbing',    label: '🚰 Plumbing' },
+  { n: 9,  key: 'electrical',  label: '⚡ Electrical' },
+  { n: 10, key: 'painting',    label: '🎨 Painting' },
+];
+
+const POST_JOB_PROF_KEYWORDS: Record<string, string[]> = {
+  garage_door: ['garage', 'גראז', 'דלת גר'],
+  air_duct: ['duct', 'air duct', 'דאקט', 'ניקוי צנרת'],
+  locksmith: ['locksmith', 'lock', 'key', 'מנעול', 'מפתח'],
+  chimney: ['chimney', 'ארובה'],
+  dryer_vent: ['dryer', 'vent', 'ייבוש', 'דרייר'],
+  hvac: ['hvac', 'ac ', 'a/c', 'מזגן', 'מיזוג', 'air condition'],
+  renovation: ['renovation', 'remodel', 'שיפוץ'],
+  plumbing: ['plumb', 'אינסטל'],
+  electrical: ['electr', 'חשמל'],
+  painting: ['paint', 'צבע', 'צביע'],
+  roofing: ['roof', 'גג'],
+  fencing: ['fence', 'fencing', 'gate', 'גדר', 'שער'],
+  cleaning: ['clean', 'ניקיון', 'ניקוי'],
+  carpet_cleaning: ['carpet', 'upholster', 'שטיח', 'ספה', 'ריפוד'],
+  landscaping: ['landscape', 'garden', 'גינ'],
+};
+
+// ── Local parsers — no GPT needed ──────────────────────────────────────────
+
+function tryLocalParseProfession(text: string): string | null {
+  const t = text.trim().toLowerCase();
+  // Number → profession
+  const num = parseInt(t, 10);
+  if (num >= 1 && num <= POST_JOB_PROFESSIONS.length) {
+    return POST_JOB_PROFESSIONS[num - 1].key;
+  }
+  // Keyword match
+  for (const [key, words] of Object.entries(POST_JOB_PROF_KEYWORDS)) {
+    if (words.some(w => t.includes(w))) return key;
+  }
+  return null;
+}
+
+function tryLocalParseZip(text: string): string | null {
+  const match = text.match(/\b(\d{5})\b/);
+  return match ? match[1] : null;
+}
+
+function tryLocalParseUrgency(text: string): string | null {
+  const t = text.trim().toLowerCase();
+  const map: Record<string, string> = {
+    '1': 'today', 'today': 'today', 'היום': 'today', 'urgent': 'today', 'דחוף': 'today',
+    '2': 'tomorrow', 'tomorrow': 'tomorrow', 'מחר': 'tomorrow',
+    '3': 'this_week', 'this week': 'this_week', 'השבוע': 'this_week',
+    '4': 'flexible', 'flexible': 'flexible', 'גמיש': 'flexible',
+  };
+  return map[t] || null;
+}
+
+/** Try to parse ALL fields locally from a single message. Returns what it finds. */
+function tryLocalParseAll(text: string): Partial<PostJobFields> {
+  const result: Partial<PostJobFields> = {};
+  const prof = tryLocalParseProfession(text);
+  if (prof) result.profession = prof;
+  const zip = tryLocalParseZip(text);
+  if (zip) result.zip_code = zip;
+  const urg = tryLocalParseUrgency(text);
+  if (urg) result.urgency = urg;
+  return result;
+}
+
+/** Check if input is "simple" (number, zip, single word) vs free-form requiring GPT */
+function isSimpleInput(text: string): boolean {
+  const t = text.trim();
+  // Pure number
+  if (/^\d{1,2}$/.test(t)) return true;
+  // Zip code
+  if (/^\d{5}$/.test(t)) return true;
+  // Single known keyword
+  if (tryLocalParseProfession(t)) return true;
+  if (tryLocalParseUrgency(t)) return true;
+  return false;
+}
+
+// ── GPT extraction (only for free-form text) ───────────────────────────────
+
+async function gptExtractFields(
+  text: string,
+  askingFor: string,
+  collected: PostJobFields,
+): Promise<Partial<PostJobFields> & { cancel?: boolean }> {
+  const systemPrompt = POST_JOB_GPT_SYSTEM
+    .replace(/\{\{asking_for\}\}/g, askingFor)
+    .replace(/\{\{collected\}\}/g, JSON.stringify(collected));
+
+  const res = await fetch('https://api.openai.com/v1/chat/completions', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getOpenAIKey()}` },
+    body: JSON.stringify({
+      model: 'gpt-4o-mini',
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: text },
+      ],
+      functions: EXTRACT_FUNCTIONS,
+      function_call: { name: 'extract_fields' },
+      max_tokens: 200,
+    }),
+  });
+
+  if (!res.ok) {
+    console.error('[post-job] GPT error:', await res.text());
+    return {};
+  }
+
+  const result = await res.json();
+  const msg = result.choices?.[0]?.message;
+  return msg?.function_call?.arguments ? JSON.parse(msg.function_call.arguments) : {};
+}
+
+// ── Main flow ──────────────────────────────────────────────────────────────
+
 async function startPostJob(phone: string, profile: { id: string; full_name: string }): Promise<void> {
-  // Store conversation state
+  const lang = phone.startsWith('+972') ? 'he' : 'en';
   await supabase.from('wa_onboard_state').upsert({
     phone,
     step: 'post_job',
-    data: { userId: profile.id, messages: [] },
+    data: { userId: profile.id, userName: profile.full_name, fields: {}, lang, askingFor: 'profession' },
     updated_at: new Date().toISOString(),
   });
 
-  await sendText(phone, `📝 *Post a Job*\n\nTell me about the job you want to publish.\nWhat type of work is it? (HVAC, plumbing, renovation, etc.)`);
+  const profList = POST_JOB_PROFESSIONS.map(p => `${String(p.n).padStart(2, ' ')}. ${p.label}`).join('\n');
+
+  await sendText(phone, lang === 'he'
+    ? `📝 *פרסום עבודה*\n\nספר לי על העבודה — מקצוע, zip code, ומתי.\nאפשר הכל בהודעה אחת או שלב אחרי שלב.\n\nדוגמה: *garage door 33132 tomorrow*\n\n${profList}\n\nשלח מספר, כתוב מקצוע, או שלח הכל ביחד.\nשלח *בטל* לביטול.`
+    : `📝 *Post a Job*\n\nTell me about the job — profession, zip code, and when.\nAll at once or one step at a time.\n\nExample: *garage door 33132 tomorrow*\n\n${profList}\n\nSend a number, type a profession, or send everything together.\nSend *cancel* to abort.`);
 }
 
 async function handlePostJobMessage(phone: string, text: string, state: { data: Record<string, unknown> }): Promise<void> {
-  if (!getOpenAIKey()) {
-    await sendText(phone, `AI not configured. Send *MENU* for options.`);
+  const textLower = text.trim().toLowerCase();
+
+  // Cancel
+  if (/^(cancel|ביטול|בטל|stop)$/i.test(text.trim())) {
+    await supabase.from('wa_onboard_state').delete().eq('phone', phone);
+    await sendText(phone, `❌ בוטל. שלח *MENU* לאפשרויות.`);
     return;
   }
 
-  const data = state.data as { userId: string; messages: Array<{ role: string; content: string }> };
-  const messages = data.messages || [];
+  const data = state.data as {
+    userId: string;
+    fields: PostJobFields;
+    lang: string;
+    askingFor: string; // 'profession' | 'location' | 'urgency' | 'confirming'
+  };
+  const fields: PostJobFields = data.fields || {};
+  const lang = data.lang || (phone.startsWith('+972') ? 'he' : 'en');
+  const he = lang === 'he';
+  const askingFor = data.askingFor || 'profession';
 
-  // Add user message to history
-  messages.push({ role: 'user', content: text });
+  // ── Confirmation step ──
+  if (askingFor === 'confirming') {
+    const positives = ['yes', 'y', 'yeah', 'ok', 'כן', 'בטח', 'כמובן', 'אוקי', 'בסדר', '1', '👍', 'יאללה', 'שלח', 'פרסם'];
+    if (positives.some(w => textLower === w || textLower === w + '!')) {
+      // Auto-generate description if missing
+      if (!fields.description) {
+        const profLabel = (fields.profession || 'service').replace(/_/g, ' ');
+        fields.description = `${profLabel.charAt(0).toUpperCase() + profLabel.slice(1)} service needed in ${fields.city || fields.zip_code || 'area'}.`;
+      }
 
-  // Keep only last 10 messages to stay within limits
-  const recentMessages = messages.slice(-10);
+      await sendText(phone, he ? '🚀 מפרסם עכשיו...' : '🚀 Publishing now...');
 
-  try {
-    const res = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getOpenAIKey()}` },
-      body: JSON.stringify({
-        model: 'gpt-4o-mini',
-        messages: [
-          { role: 'system', content: POST_JOB_SYSTEM },
-          ...recentMessages,
-        ],
-        functions: POST_JOB_FUNCTIONS,
-        function_call: 'auto',
-        max_tokens: 200,
-      }),
-    });
+      await publishJob(phone, data.userId, data.userName as string || null, {
+        profession: fields.profession!,
+        city: fields.city || fields.state || fields.zip_code || '',
+        description: fields.description,
+        urgency: fields.urgency!,
+        budget: fields.budget,
+        zip_code: fields.zip_code,
+        state: fields.state,
+        schedule: fields.schedule,
+      });
 
-    if (!res.ok) {
-      console.error('[post-job] OpenAI error:', await res.text());
-      await sendText(phone, `Something went wrong. Try again or send *MENU*.`);
+      await supabase.from('wa_onboard_state').delete().eq('phone', phone);
       return;
     }
 
-    const result = await res.json();
-    const msg = result.choices?.[0]?.message;
-
-    if (msg?.function_call?.name === 'publish_job') {
-      const args = JSON.parse(msg.function_call.arguments);
-      await publishJob(phone, data.userId, args);
-      // Clear state
-      await supabase.from('wa_onboard_state').delete().eq('phone', phone);
-    } else if (msg?.function_call?.name === 'cancel_post') {
-      await supabase.from('wa_onboard_state').delete().eq('phone', phone);
-      await sendText(phone, `❌ Job posting cancelled. Send *MENU* for options.`);
-    } else if (msg?.content) {
-      // Save conversation and send AI response
-      messages.push({ role: 'assistant', content: msg.content });
-      await supabase.from('wa_onboard_state').update({
-        data: { ...data, messages },
-        updated_at: new Date().toISOString(),
-      }).eq('phone', phone);
-      await sendText(phone, msg.content);
+    if (/^(no|לא|בטל|cancel|edit|ערוך|מחדש|redo)$/i.test(textLower)) {
+      await savePostJobState(phone, data, {}, 'profession');
+      await sendText(phone, he ? '🔄 מתחילים מחדש. ספר לי על העבודה.' : '🔄 Starting over. Tell me about the job.');
+      return;
     }
-  } catch (err) {
-    console.error('[post-job] Error:', err);
-    await sendText(phone, `Something went wrong. Try again or send *MENU*.`);
+
+    // User sent new info instead of confirming — fall through to re-extract
+    data.askingFor = 'profession'; // reset to check all fields
   }
+
+  // ── Extract fields: local first, GPT fallback ──
+  let extracted: Partial<PostJobFields> & { cancel?: boolean } = {};
+
+  if (isSimpleInput(text)) {
+    // ── LOCAL PARSE — instant, free, context-aware ──
+    if (askingFor === 'profession') {
+      const prof = tryLocalParseProfession(text);
+      if (prof) extracted.profession = prof;
+      // Also check if they sent everything at once
+      const zip = tryLocalParseZip(text);
+      if (zip) extracted.zip_code = zip;
+    } else if (askingFor === 'location') {
+      const zip = tryLocalParseZip(text);
+      if (zip) extracted.zip_code = zip;
+    } else if (askingFor === 'urgency') {
+      const urg = tryLocalParseUrgency(text);
+      if (urg) extracted.urgency = urg;
+    } else {
+      // Generic: try all parsers
+      extracted = tryLocalParseAll(text);
+    }
+    console.log(`[post-job] LOCAL parsed:`, JSON.stringify(extracted));
+  } else {
+    // ── GPT EXTRACTION — for free-form text, Hebrew, slang ──
+    if (!getOpenAIKey()) {
+      // No GPT available — try local parsing anyway
+      extracted = tryLocalParseAll(text);
+    } else {
+      extracted = await gptExtractFields(text, askingFor, fields);
+      console.log(`[post-job] GPT extracted:`, JSON.stringify(extracted));
+    }
+  }
+
+  if (extracted.cancel) {
+    await supabase.from('wa_onboard_state').delete().eq('phone', phone);
+    await sendText(phone, `❌ בוטל. שלח *MENU* לאפשרויות.`);
+    return;
+  }
+
+  // Merge extracted into accumulated fields
+  if (extracted.profession) fields.profession = extracted.profession;
+  if (extracted.zip_code) fields.zip_code = extracted.zip_code;
+  if (extracted.city) fields.city = extracted.city;
+  if (extracted.state) fields.state = extracted.state;
+  if (extracted.urgency) fields.urgency = extracted.urgency;
+  if (extracted.description) fields.description = extracted.description;
+  if (extracted.budget) fields.budget = extracted.budget;
+  if (extracted.schedule) fields.schedule = extracted.schedule;
+
+  console.log(`[post-job] Accumulated:`, JSON.stringify(fields));
+
+  // ── Ask for FIRST missing required field ──
+
+  if (!fields.profession) {
+    await savePostJobState(phone, data, fields, 'profession');
+    const profList = POST_JOB_PROFESSIONS.map(p => `${String(p.n).padStart(2, ' ')}. ${p.label}`).join('\n');
+    await sendText(phone, he
+      ? `🔧 מה סוג העבודה?\n\n${profList}\n\nשלח מספר או כתוב מקצוע.`
+      : `🔧 What type of work?\n\n${profList}\n\nSend a number or type the profession.`);
+    return;
+  }
+
+  if (!fields.zip_code && !fields.city) {
+    await savePostJobState(phone, data, fields, 'location');
+    await sendText(phone, he
+      ? `📍 איפה העבודה?\n\nשלח zip code (למשל: *33132*)\nאו עיר + state (למשל: *Miami FL*)`
+      : `📍 Where is the job?\n\nSend a zip code (e.g. *33132*)\nor city + state (e.g. *Miami FL*)`);
+    return;
+  }
+
+  if (!fields.urgency) {
+    await savePostJobState(phone, data, fields, 'urgency');
+    await sendText(phone, he
+      ? `⏰ מתי העבודה?\n\n1. 🔴 היום\n2. 🟡 מחר\n3. 🟠 השבוע\n4. 🟢 גמיש\n\nשלח מספר או כתוב.`
+      : `⏰ When is the job?\n\n1. 🔴 Today\n2. 🟡 Tomorrow\n3. 🟠 This week\n4. 🟢 Flexible\n\nSend a number or type.`);
+    return;
+  }
+
+  // ── All required → show confirmation ──
+  const profEntry = POST_JOB_PROFESSIONS.find(p => p.key === fields.profession);
+  const profDisplay = profEntry ? profEntry.label : fields.profession!.replace(/_/g, ' ');
+  const locationParts = [fields.city, fields.state, fields.zip_code].filter(Boolean);
+  const locationDisplay = locationParts.join(', ') || 'N/A';
+  const urgencyLabels: Record<string, string> = { today: '🔴 היום', tomorrow: '🟡 מחר', this_week: '🟠 השבוע', flexible: '🟢 גמיש' };
+  const urgencyDisplay = urgencyLabels[fields.urgency!] || fields.urgency!;
+  const descDisplay = fields.description || (he ? '(יווצר אוטומטית)' : '(auto-generated)');
+  const budgetLine = fields.budget ? `\n💰 ${fields.budget}` : '';
+  const scheduleLine = fields.schedule ? `\n🕐 ${fields.schedule}` : '';
+
+  await savePostJobState(phone, data, fields, 'confirming');
+
+  await sendText(phone, he
+    ? `✅ *מוכן לפרסום:*\n\n${profDisplay}\n📍 ${locationDisplay}\n${urgencyDisplay}\n📝 ${descDisplay}${budgetLine}${scheduleLine}\n\nשלח *כן* לפרסום או *בטל* לביטול.`
+    : `✅ *Ready to publish:*\n\n${profDisplay}\n📍 ${locationDisplay}\n${urgencyDisplay}\n📝 ${descDisplay}${budgetLine}${scheduleLine}\n\nSend *yes* to publish or *cancel* to abort.`);
+}
+
+async function savePostJobState(
+  phone: string,
+  data: { userId: string; lang: string },
+  fields: PostJobFields,
+  askingFor: string,
+): Promise<void> {
+  await supabase.from('wa_onboard_state').update({
+    data: { userId: data.userId, fields, lang: data.lang, askingFor },
+    updated_at: new Date().toISOString(),
+  }).eq('phone', phone);
 }
 
 async function publishJob(
   phone: string,
   userId: string,
-  job: { profession: string; city: string; description: string; urgency: string; budget?: string },
+  userName: string | null,
+  job: { profession: string; city: string; description: string; urgency: string; budget?: string; zip_code?: string; state?: string; schedule?: string },
 ): Promise<void> {
-  const URGENCY_LABELS: Record<string, string> = { today: '🔴 Today', this_week: '🟡 This week', flexible: '🟢 Flexible' };
+  const URGENCY_LABELS: Record<string, string> = { today: '🔴 Today', tomorrow: '🟡 Tomorrow', this_week: '🟡 This week', flexible: '🟢 Flexible' };
   const emoji = PROF_EMOJI_MAP[job.profession] ?? '📋';
   const profLabel = job.profession.charAt(0).toUpperCase() + job.profession.slice(1);
 
+  const urgencyMap: Record<string, string> = { today: 'hot', tomorrow: 'hot', this_week: 'warm', flexible: 'cold' };
+
   // Create lead in DB
+  const leadInsert: Record<string, unknown> = {
+    profession: job.profession,
+    city: job.city,
+    parsed_summary: job.description,
+    status: 'parsed',
+    urgency: urgencyMap[job.urgency] || 'cold',
+    sender_id: phone.replace('+', '') + '@c.us',
+    raw_message: `[Posted via WhatsApp Bot] ${job.description}`,
+    source: 'bot',
+    sender_name: userName,
+  };
+  if (job.zip_code) leadInsert.zip_code = job.zip_code;
+  if (job.state) leadInsert.state = job.state;
+  if (job.budget) leadInsert.budget_range = job.budget;
+
   const { data: lead, error } = await supabase
     .from('leads')
-    .insert({
-      profession: job.profession,
-      city: job.city,
-      parsed_summary: job.description,
-      status: 'parsed',
-      urgency: job.urgency === 'today' ? 'hot' : job.urgency === 'this_week' ? 'warm' : 'cold',
-      sender_id: phone.replace('+', '') + '@c.us',
-      raw_message: `[Posted via WhatsApp Bot] ${job.description}`,
-    })
+    .insert(leadInsert)
     .select('id')
     .single();
 
@@ -3810,9 +4071,8 @@ async function publishJob(
     return;
   }
 
-  // Find matching contractors — active subscription only, whatsapp_phone joined in one query
-  // TODO(zip-filter): add .overlaps('zip_codes', [zip]) once job posting collects zip_code
-  const { data: matches } = await supabase
+  // Find matching contractors — active subscription, matching profession, optionally filter by zip
+  let matchQuery = supabase
     .from('contractors')
     .select(`
       user_id,
@@ -3826,6 +4086,12 @@ async function publishJob(
     .eq('subscriptions.status', 'active')
     .neq('user_id', userId)
     .limit(50);
+
+  if (job.zip_code) {
+    matchQuery = matchQuery.contains('zip_codes', [job.zip_code]);
+  }
+
+  const { data: matches } = await matchQuery;
 
   const matchedIds = (matches || []).map(c => c.user_id);
 
@@ -3859,9 +4125,11 @@ async function publishJob(
   }
 
   const budgetLine = job.budget ? `\n💰 *Budget:* ${job.budget}` : '';
+  const scheduleLine = job.schedule ? `\n🕐 *When:* ${job.schedule}` : '';
+  const locationDisplay = [job.city, job.state, job.zip_code].filter(Boolean).join(', ') || job.city;
   await sendText(
     phone,
-    `✅ *Job Published!*\n\n${emoji} *${profLabel}* — ${job.city}\n📝 ${job.description}\n⏰ ${URGENCY_LABELS[job.urgency] ?? job.urgency}${budgetLine}\n\n📨 Sent to *${matchedIds.length}* matching contractors.\nYou'll get WhatsApp messages from interested pros!`,
+    `✅ *Job Published!*\n\n${emoji} *${profLabel}* — ${locationDisplay}\n📝 ${job.description}\n⏰ ${URGENCY_LABELS[job.urgency] ?? job.urgency}${scheduleLine}${budgetLine}\n\n📨 Matching contractors will contact you on WhatsApp!`,
   );
 
   console.log(`[post-job] Published lead ${lead.id} by ${userId}, sent to ${matchedIds.length} contractors`);
