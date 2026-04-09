@@ -64,8 +64,7 @@ interface Lead {
   sender_id: string | null
   created_at: string
   group_name: string | null
-  source_type?: string
-  publisher_id?: string
+  source?: string
 }
 
 /* ── Profession + Urgency config ───────────────────────────────────── */
@@ -208,7 +207,7 @@ export default function LeadsFeed() {
       // 3. Fetch leads filtered by contractor's professions AND zip codes
       let query = supabase
         .from('leads')
-        .select('id, profession, parsed_summary, raw_message, city, zip_code, urgency, budget_range, sender_id, created_at, source_type, publisher_id, groups ( name )')
+        .select('id, profession, parsed_summary, raw_message, city, zip_code, urgency, budget_range, sender_id, created_at, source, groups ( name )')
         .in('profession', professions)
         .in('zip_code', zipCodes)
         .order('created_at', { ascending: false })
@@ -589,7 +588,7 @@ export default function LeadsFeed() {
                     <div className="flex items-center gap-2 mt-0.5">
                       {lead.city && <span className="text-[10px] text-[#737373]">{lead.city}</span>}
                       <span className="text-[10px] text-[#a3a3a3]">{timeAgo(lead.created_at, he)}</span>
-                      {lead.source_type === 'publisher'
+                      {lead.source === 'publisher'
                         ? <span className="text-[8px] font-semibold text-[#fe5b25] bg-[#fff4f0] px-1.5 py-0.5 rounded-full">APP</span>
                         : <span className="text-[8px] font-semibold text-[#25D366] bg-[#25D366]/10 px-1.5 py-0.5 rounded-full">WA</span>
                       }
@@ -630,7 +629,7 @@ export default function LeadsFeed() {
                     <span className="text-lg font-bold text-black tracking-tight text-center leading-tight">{timeAgo(lead.created_at, he)}</span>
                     <span className="text-[10px] font-bold text-stone-400 uppercase tracking-widest mt-1 text-center">{arrivalTime} • {arrivalDate}</span>
                     <div className="mt-3 flex flex-col items-center gap-1 w-full">
-                      {lead.source_type === 'publisher' ? (
+                      {lead.source === 'publisher' ? (
                         <>
                           <div className="w-6 h-6 rounded-lg bg-emerald-500/10 flex items-center justify-center">
                             <Users className="w-3 h-3 text-emerald-600" />
