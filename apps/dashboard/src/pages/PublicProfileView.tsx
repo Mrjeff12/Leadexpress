@@ -104,7 +104,7 @@ export default function PublicProfileView() {
 
   /* ───── Main ───── */
   return (
-    <div className="w-full max-w-3xl mx-auto space-y-4">
+    <div className="w-full max-w-3xl mx-auto space-y-4 min-h-screen bg-[#0a0a0a] fixed inset-0 z-40 overflow-y-auto px-4 pt-5 pb-8 [&_.glass-panel]:!bg-white/[0.06] [&_.glass-panel]:!border-white/[0.08] [&_.glass-panel:hover]:!bg-white/[0.08]">
 
       {/* Header bar */}
       <div className="flex items-center justify-between">
