@@ -208,38 +208,63 @@ export default function IdentityVerification() {
 
         {/* ── Not Started (Intro) ── */}
         {status === 'none' && (
-          <div className="text-center pt-8">
-            <div className="w-16 h-16 rounded-2xl bg-orange-50 flex items-center justify-center mx-auto mb-4">
-              <Shield size={28} className="text-[#fe5b25]" />
+          <>
+            {/* Hero image */}
+            <div className="relative -mx-5 h-48 overflow-hidden rounded-b-3xl mb-6">
+              <img src="/reviews-technician-v3.jpg" alt="" className="w-full h-full object-cover object-top" />
+              <div className="absolute inset-0 bg-gradient-to-t from-white via-white/30 to-transparent" />
+              <div className="absolute bottom-4 left-5 right-5">
+                <div className="flex items-center gap-1.5">
+                  {[1,2,3,4,5].map(i => <span key={i} className="text-amber-400 text-sm">★</span>)}
+                  <span className="text-[11px] text-gray-600 font-medium ml-1">
+                    {isHe ? 'קבלנים מאומתים מקבלים 3x יותר עבודות' : 'Verified contractors get 3x more jobs'}
+                  </span>
+                </div>
+              </div>
             </div>
-            <h2 className="text-[20px] font-bold tracking-tight mb-2">
-              {isHe ? 'קבל אימות' : 'Get Verified'}
-            </h2>
-            <p className="text-[13px] text-gray-500 leading-relaxed mb-8">
-              {isHe
-                ? <>אמת את הזהות שלך כדי לקבל תג מאומת ולפתוח <strong className="text-[#fe5b25]">+30% יותר לידים</strong></>
-                : <>Verify your identity to get the verified badge and unlock <strong className="text-[#fe5b25]">+30% more leads</strong></>
-              }
-            </p>
+
+            <div className="text-center">
+              <h2 className="text-[22px] font-bold tracking-tight mb-2">
+                {isHe ? 'קבל אימות, קבל יותר עבודות' : 'Get Verified, Get More Jobs'}
+              </h2>
+              <p className="text-[13px] text-gray-500 leading-relaxed mb-2">
+                {isHe
+                  ? <>אמת את הזהות שלך כדי לקבל תג מאומת ולפתוח <strong className="text-[#fe5b25]">+30% יותר לידים</strong></>
+                  : <>Verify your identity to get the verified badge and unlock <strong className="text-[#fe5b25]">+30% more leads</strong></>
+                }
+              </p>
+            </div>
+
+            {/* Why it matters */}
+            <div className="flex justify-between gap-2 my-5 px-2">
+              {[
+                { icon: '⚡', label: isHe ? 'עדיפות\nבלידים' : 'Lead\nPriority', color: 'bg-orange-50 text-orange-600' },
+                { icon: '✓', label: isHe ? 'תג\nמאומת' : 'Verified\nBadge', color: 'bg-green-50 text-green-600' },
+                { icon: '🔒', label: isHe ? 'אמון\nלקוחות' : 'Client\nTrust', color: 'bg-blue-50 text-blue-600' },
+                { icon: '💰', label: isHe ? 'יותר\nעבודות' : 'More\nJobs', color: 'bg-purple-50 text-purple-600' },
+              ].map((b, i) => (
+                <div key={i} className="flex-1 flex flex-col items-center gap-1.5 p-3 rounded-2xl bg-gray-50">
+                  <span className="text-xl">{b.icon}</span>
+                  <span className="text-[10px] font-semibold text-gray-600 text-center whitespace-pre-line leading-tight">{b.label}</span>
+                </div>
+              ))}
+            </div>
 
             {/* Steps */}
-            <div className="space-y-3 text-left mb-8" dir={isHe ? 'rtl' : 'ltr'}>
+            <div className="space-y-3 text-left mb-6" dir={isHe ? 'rtl' : 'ltr'}>
               {[
                 {
-                  n: '1',
-                  icon: Upload,
+                  n: '1', icon: Upload,
                   title: isHe ? 'צלם תעודה' : 'Upload ID',
                   desc: isHe ? 'תעודת זהות, דרכון או רישיון נהיגה' : 'Photo of government-issued ID',
                 },
                 {
-                  n: '2',
-                  icon: Camera,
+                  n: '2', icon: Camera,
                   title: isHe ? 'צלם סלפי' : 'Take a selfie',
                   desc: isHe ? 'התאמת פנים מהירה לאבטחה' : 'Quick face match for security',
                 },
                 {
-                  n: '3',
-                  icon: Lock,
+                  n: '3', icon: Lock,
                   title: isHe ? 'קבל אישור' : 'Get approved',
                   desc: isHe ? 'תוצאות תוך דקות' : 'Results within minutes',
                 },
@@ -247,11 +272,11 @@ export default function IdentityVerification() {
                 const Icon = s.icon
                 return (
                   <div key={s.n} className="bg-white rounded-2xl border border-gray-100 shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-4 flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-[#fe5b25] text-white flex items-center justify-center text-[13px] font-bold flex-shrink-0">
+                    <div className="w-9 h-9 rounded-full bg-[#fe5b25] text-white flex items-center justify-center text-[13px] font-bold flex-shrink-0">
                       {s.n}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-[13px] font-semibold text-gray-900">{s.title}</p>
+                      <p className="text-[14px] font-semibold text-gray-900">{s.title}</p>
                       <p className="text-[11px] text-gray-400">{s.desc}</p>
                     </div>
                     <Icon size={16} className="text-gray-300 flex-shrink-0" />
@@ -263,25 +288,50 @@ export default function IdentityVerification() {
             <button
               onClick={startVerification}
               disabled={actionLoading}
-              className="w-full bg-[#fe5b25] text-white py-4 rounded-2xl text-[15px] font-semibold flex items-center justify-center gap-2 active:scale-[0.97] transition-transform disabled:opacity-50"
+              className="w-full bg-[#fe5b25] text-white py-4 rounded-2xl text-[15px] font-bold flex items-center justify-center gap-2 active:scale-[0.97] transition-transform disabled:opacity-50 shadow-lg shadow-[#fe5b25]/20"
             >
               {actionLoading ? (
                 <Loader2 size={18} className="animate-spin" />
               ) : (
                 <>
-                  {isHe ? 'התחל אימות' : 'Start Verification'}
+                  {isHe ? '✓ התחל אימות — חינם' : '✓ Start Verification — Free'}
                   <ArrowRight size={16} className="rtl:rotate-180" />
                 </>
               )}
             </button>
-            <p className="text-[10px] text-gray-300 mt-3">
-              {isHe ? 'לוקח פחות מ-2 דקות' : 'Takes less than 2 minutes'}
+            <p className="text-[10px] text-gray-400 mt-3 text-center">
+              {isHe ? 'לוקח פחות מ-2 דקות • מעובד ע"י Stripe' : 'Takes less than 2 minutes • Processed by Stripe'}
             </p>
-          </div>
+
+            {/* What we verify */}
+            <div className="mt-6 bg-gray-50 rounded-2xl p-5 space-y-3">
+              <h3 className="text-[13px] font-semibold text-gray-900">
+                {isHe ? 'מה אנחנו מאמתים' : 'What we verify'}
+              </h3>
+              <div className="space-y-2">
+                {[
+                  isHe ? 'תעודה ממשלתית (דרכון, רישיון או ת.ז.)' : 'Government-issued ID (passport, license, or ID)',
+                  isHe ? 'התאמת סלפי לתמונה בתעודה' : 'Selfie matching to your document photo',
+                  isHe ? 'זיהוי חיות למניעת הונאה' : 'Liveness detection to prevent fraud',
+                ].map((text, i) => (
+                  <div key={i} className="flex items-center gap-2">
+                    <CheckCircle2 size={12} className="text-green-500 flex-shrink-0" />
+                    <span className="text-[12px] text-gray-500">{text}</span>
+                  </div>
+                ))}
+              </div>
+              <p className="text-[10px] text-gray-300 pt-1">
+                {isHe
+                  ? 'המסמכים מעובדים ע"י Stripe ולא נשמרים בשרתים שלנו.'
+                  : 'Documents processed by Stripe. Not stored on our servers.'
+                }
+              </p>
+            </div>
+          </>
         )}
 
-        {/* ── What we verify ── */}
-        {(status === 'none' || needsRetry) && (
+        {/* ── What we verify (retry state) ── */}
+        {needsRetry && (
           <div className="mt-8 bg-gray-50 rounded-2xl p-5 space-y-3">
             <h3 className="text-[13px] font-semibold text-gray-900">
               {isHe ? 'מה אנחנו מאמתים' : 'What we verify'}
@@ -298,12 +348,6 @@ export default function IdentityVerification() {
                 </div>
               ))}
             </div>
-            <p className="text-[10px] text-gray-300 pt-1">
-              {isHe
-                ? 'המסמכים מעובדים ע"י Stripe ולא נשמרים בשרתים שלנו.'
-                : 'Documents processed by Stripe. Not stored on our servers.'
-              }
-            </p>
           </div>
         )}
       </div>
