@@ -121,6 +121,14 @@ function formatProfession(p: string): string {
   return p.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())
 }
 
+const PROF_EMOJI: Record<string, string> = {
+  hvac: '❄️', air_duct: '💨', chimney: '🏠', dryer_vent: '🌀',
+  garage_door: '🚪', locksmith: '🔑', roofing: '🏗️', plumbing: '🔧',
+  electrical: '⚡', painting: '🎨', cleaning: '🧹', carpet_cleaning: '🧼',
+  renovation: '🔨', fencing: '🏗️', landscaping: '🌿', tiling: '🔲',
+  kitchen: '🍳', bathroom: '🚿', pool: '🏊', moving: '📦', windows: '🪟', other: '📋',
+}
+
 function formatMemberSince(date: string | null | undefined): string {
   if (!date) return '--'
   return new Date(date).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
@@ -375,12 +383,21 @@ export default function PublicProfile() {
           {/* ═══════ RIGHT: All Content (scrollable) ═══════ */}
           <div className="mt-0 lg:mt-0 space-y-0 lg:space-y-3">
 
-            {/* Services */}
+            {/* Services — Angi-style icon grid */}
             {data.professions && data.professions.length > 0 && (
               <Section icon={<Briefcase size={16} style={{ color: '#48484a' }} />} title="Services">
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(90px, 1fr))', gap: 8 }}>
                   {data.professions.map((p) => (
-                    <span key={p} style={{ padding: '6px 14px', borderRadius: 999, fontSize: 12, fontWeight: 600, background: 'rgba(255,107,53,0.1)', color: '#ff6b35' }}>{formatProfession(p)}</span>
+                    <div key={p} style={{
+                      display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
+                      padding: '12px 8px', borderRadius: 12,
+                      background: '#1c1c1e', border: '1px solid rgba(255,255,255,0.06)',
+                    }}>
+                      <span style={{ fontSize: 24 }}>{PROF_EMOJI[p] || '📋'}</span>
+                      <span style={{ fontSize: 10, fontWeight: 600, color: '#a1a1a6', textAlign: 'center', lineHeight: 1.2 }}>
+                        {formatProfession(p)}
+                      </span>
+                    </div>
                   ))}
                 </div>
               </Section>
