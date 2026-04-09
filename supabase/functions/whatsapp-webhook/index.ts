@@ -936,10 +936,12 @@ async function handleKnownUser(
     return;
   }
 
-  // Enable WA if not already
-  if (!contractor.wa_notify) {
-    await supabase.from('contractors').update({ wa_notify: true }).eq('user_id', profile.id);
-  }
+  // Enable WA + refresh 24h window on every inbound message from a known contractor
+  const windowUntil = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+  await supabase
+    .from('contractors')
+    .update({ wa_notify: true, wa_window_until: windowUntil })
+    .eq('user_id', profile.id);
 
   // Check subscription (warn but don't block) — only for fully set-up users
   const hasSub = await checkSubscription(profile.id);
