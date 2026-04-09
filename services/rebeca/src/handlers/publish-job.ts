@@ -253,10 +253,10 @@ async function handleConfirm(phone: string, text: string, state: BotState, job: 
     state.extra = { ...(state.extra || {}), job: undefined };
     await setState(phone, state);
 
-    const profLabel = (job.profession || '').replace(/_/g, ' ');
+    const profLabel = job.professionLabel || (job.profession || '').replace(/_/g, ' ');
     await sendText(phone,
       `✅ *Job Published!*\n\n` +
-      `Your ${profLabel} job has been sent to ${sentCount} matching contractors.\n\n` +
+      `Your ${profLabel} job has been sent to matching contractors in your area.\n\n` +
       `We'll notify you on WhatsApp when someone is interested. 🔔`
     );
 
