@@ -126,7 +126,11 @@ export default function JobPortal() {
           publisherPhone = phone.startsWith('+') ? phone : `+${phone}`
           setSignupPhone(publisherPhone)
         }
-        if (jobData.status === 'pending') {
+        // Auto-accept only for scenario A (sub→pub) where deal is already done
+        // In scenario D (pub→sub), keep pending until contractor actually signs up
+        const mode = jobData.portal_mode ||
+          (!jobData.publisher_user_id && jobData.contractor_id ? 'publisher_signup' : 'contractor_signup')
+        if (jobData.status === 'pending' && mode === 'publisher_signup') {
           await supabase.rpc('update_job_order_status_by_token', { token, new_status: 'accepted' })
         }
         supabase.from('job_orders').update({ viewed_at: new Date().toISOString() }).eq('id', jobData.id).then(() => {})

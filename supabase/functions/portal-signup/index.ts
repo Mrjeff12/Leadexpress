@@ -221,7 +221,7 @@ Deno.serve(async (req: Request) => {
         // ── Reverse portal: contractor signs up via publisher's invite ──
         await supabase
           .from("job_orders")
-          .update({ contractor_id: userId })
+          .update({ contractor_id: userId, status: "accepted" })
           .eq("id", job_order_id);
 
         await supabase.from("pipeline_events").insert({
