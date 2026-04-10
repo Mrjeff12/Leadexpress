@@ -60,3 +60,4 @@ supabase/.temp/
 .superpowers/
 .playwright-mcp/
 .vercel
+.claude/worktrees/
