@@ -1,5 +1,6 @@
 import { useI18n } from '../../lib/i18n'
 import { PROFESSIONS, type ProfessionId } from '../../lib/professions'
+import { PROFESSION_ICONS } from '../../lib/profession-icons'
 
 interface Props {
   selected: ProfessionId[]
@@ -17,6 +18,7 @@ export default function ProfessionGrid({ selected, onToggle }: Props) {
       <div className="grid grid-cols-2 gap-2">
         {PROFESSIONS.map((prof) => {
           const active = selected.includes(prof.id)
+          const icon = PROFESSION_ICONS[prof.id]
           return (
             <button
               key={prof.id}
@@ -29,7 +31,10 @@ export default function ProfessionGrid({ selected, onToggle }: Props) {
                   : 'bg-white/60 border border-zinc-200 text-zinc-600 hover:bg-white hover:shadow-sm',
               ].join(' ')}
             >
-              <span className="text-base">{prof.emoji}</span>
+              {icon
+                ? <span style={{ color: '#fe5b25', width: 18, height: 18, display: 'inline-flex', flexShrink: 0 }} className="[&>svg]:w-[18px] [&>svg]:h-[18px]">{icon}</span>
+                : <span className="text-base">{prof.emoji}</span>
+              }
               <span className="flex-1 truncate">{locale === 'he' ? prof.he : prof.en}</span>
               {active && (
                 <svg className="w-4 h-4 text-[#fe5b25] shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>

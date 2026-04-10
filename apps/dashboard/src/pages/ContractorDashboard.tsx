@@ -6,6 +6,7 @@ import { timeAgo } from '../lib/shared'
 import { supabase } from '../lib/supabase'
 import { useContractorSettings } from '../hooks/useContractorSettings'
 import { PROFESSIONS, type ProfessionId } from '../lib/professions'
+import { PROFESSION_ICONS } from '../lib/profession-icons'
 import { DAY_KEYS, DAY_LABELS, type WorkingHours, type DayKey } from '../lib/working-hours'
 import { Link } from 'react-router-dom'
 import {
@@ -730,11 +731,19 @@ export default function ContractorDashboard() {
             <div className="space-y-1.5">
               {selectedProfs.length > 0 ? selectedProfs.slice(0, 4).map((id) => {
                 const p = profLookup[id]
+                const svgIcon = PROFESSION_ICONS[id]
                 return p ? (
                   <div key={id} className="bg-white rounded-[20px] border border-black/[0.04] shadow-sm px-3.5 py-3 flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-lg bg-[#fff4f0] flex items-center justify-center">
-                      <span className="text-sm">{p.emoji}</span>
-                    </div>
+                    {svgIcon ? (
+                      <span
+                        style={{ color: '#fe5b25', width: 22, height: 22, display: 'inline-flex', flexShrink: 0 }}
+                        className="[&>svg]:w-[22px] [&>svg]:h-[22px]"
+                      >
+                        {svgIcon}
+                      </span>
+                    ) : (
+                      <span className="text-base" style={{ color: '#fe5b25' }}>{p.emoji}</span>
+                    )}
                     <div className="flex-1">
                       <p className="text-[12px] font-semibold">{p.en}</p>
                       <p className="text-[9px] text-[#737373]">{leadsWeek} leads this week</p>
@@ -993,11 +1002,19 @@ export default function ContractorDashboard() {
             <div className="space-y-1.5">
               {selectedProfs.slice(0, 4).map((id) => {
                 const p = profLookup[id]
+                const svgIcon = PROFESSION_ICONS[id]
                 return p ? (
                   <div key={id} className="glass-panel px-3 py-2.5 flex items-center gap-2.5">
-                    <div className="w-7 h-7 rounded-lg bg-[#fff4f0] flex items-center justify-center">
-                      <span className="text-sm">{p.emoji}</span>
-                    </div>
+                    {svgIcon ? (
+                      <span
+                        style={{ color: '#fe5b25', width: 20, height: 20, display: 'inline-flex', flexShrink: 0 }}
+                        className="[&>svg]:w-5 [&>svg]:h-5"
+                      >
+                        {svgIcon}
+                      </span>
+                    ) : (
+                      <span className="text-sm" style={{ color: '#fe5b25' }}>{p.emoji}</span>
+                    )}
                     <span className="text-[12px] font-semibold text-stone-800">{locale === 'he' ? p.he : p.en}</span>
                   </div>
                 ) : null
@@ -1097,17 +1114,27 @@ export default function ContractorDashboard() {
               selectedProfs.map((profId) => {
                 const prof = profLookup[profId]
                 if (!prof) return null
+                const svgIcon = PROFESSION_ICONS[profId]
                 return (
                   <button
                     key={profId}
                     onClick={() => handleToggleProfession(profId)}
-                    className="group flex items-center gap-1.5 bg-white/80 border border-[#fee8df] rounded-xl py-1.5 px-2.5 shadow-sm hover:border-red-200 hover:bg-red-50/50 transition-all"
+                    className="group flex items-center gap-1.5 bg-white/80 border border-[#fee8df] rounded-xl py-1.5 px-2.5 shadow-sm hover:border-[#fe5b25]/30 hover:bg-[#fff4ef] transition-all"
                   >
-                    <span className="text-sm">{prof.emoji}</span>
-                    <span className="text-[10px] font-bold text-stone-700 group-hover:text-red-500 transition-colors">
+                    {svgIcon ? (
+                      <span
+                        style={{ color: '#fe5b25', width: 14, height: 14, display: 'inline-flex', flexShrink: 0 }}
+                        className="[&>svg]:w-[14px] [&>svg]:h-[14px]"
+                      >
+                        {svgIcon}
+                      </span>
+                    ) : (
+                      <span className="text-sm">{prof.emoji}</span>
+                    )}
+                    <span className="text-[10px] font-bold text-stone-700 group-hover:text-[#fe5b25] transition-colors">
                       {locale === 'he' ? prof.he : prof.en}
                     </span>
-                    <X className="w-3 h-3 text-stone-300 group-hover:text-red-400 transition-colors" />
+                    <X className="w-3 h-3 text-stone-300 group-hover:text-[#fe5b25] transition-colors" />
                   </button>
                 )
               })

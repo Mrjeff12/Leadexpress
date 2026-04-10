@@ -41,6 +41,8 @@ import {
   Bath,
   Waves,
   Truck,
+  ScanLine,
+  Bot,
 } from 'lucide-react'
 
 /* ── Types ─────────────────────────────────────────────────────────── */
@@ -58,10 +60,14 @@ interface Lead {
   status: string
   sent_to_count: number
   sender_id: string | null
+  source: 'group' | 'bot' | 'test' | null
   review_status: 'pending' | 'approved' | 'rejected' | null
   created_at: string
   group?: { name: string }
+  sender_name: string | null
 }
+
+type SourceFilter = 'all' | 'group' | 'bot'
 
 interface Contractor {
   professions: string[]
@@ -123,6 +129,7 @@ export default function AdminLeads() {
   const dateRef = useRef<HTMLDivElement>(null)
 
   const [filterUrg, setFilterUrg] = useState('all')
+  const [filterSource, setFilterSource] = useState<SourceFilter>('all')
   const [search, setSearch] = useState('')
   const [expandedId, setExpandedId] = useState<string | null>(null)
 
@@ -152,6 +159,9 @@ export default function AdminLeads() {
     weekAgo.setDate(weekAgo.getDate() - 7)
 
     return leads.filter(l => {
+      // 0. Source
+      if (filterSource !== 'all' && (l.source || 'group') !== filterSource) return false
+
       // 1. Search
       if (search) {
         const q = search.toLowerCase()
@@ -168,7 +178,7 @@ export default function AdminLeads() {
       if (filterDate !== 'all') {
         const leadDateObj = new Date(l.created_at)
         const leadDateStr = leadDateObj.toLocaleDateString('en-CA')
-        
+
         if (filterDate === 'today' && leadDateStr !== todayStr) return false
         if (filterDate === 'yesterday' && leadDateStr !== yesterdayStr) return false
         if (filterDate === 'week' && leadDateObj < weekAgo) return false
@@ -177,7 +187,7 @@ export default function AdminLeads() {
 
       return true
     })
-  }, [leads, search, filterProfs, filterDate, customDate])
+  }, [leads, search, filterSource, filterProfs, filterDate, customDate])
 
   // Final filter (applies urgency on top of base)
   const filtered = useMemo(() => {
@@ -216,17 +226,33 @@ export default function AdminLeads() {
   // Fetch leads and contractors
   useEffect(() => {
     ;(async () => {
+      // Paginate leads in batches of 1000 to bypass PostgREST row limit
+      const fetchAllLeads = async () => {
+        const PAGE = 1000
+        let all: any[] = []
+        let from = 0
+        while (true) {
+          const { data, error } = await supabase
+            .from('leads')
+            .select(`
+              id, group_id, profession, parsed_summary, raw_message,
+              city, zip_code, state, budget_range, urgency, status,
+              sent_to_count, sender_id, source, sender_name,
+              review_status, created_at,
+              group:groups(name)
+            `)
+            .order('created_at', { ascending: false })
+            .range(from, from + PAGE - 1)
+          if (error || !data || data.length === 0) break
+          all = all.concat(data)
+          if (data.length < PAGE) break
+          from += PAGE
+        }
+        return { data: all, error: null }
+      }
+
       const [leadsRes, contractorsRes, subsRes] = await Promise.all([
-        supabase
-          .from('leads')
-          .select(`
-            id, group_id, profession, parsed_summary, raw_message,
-            city, zip_code, state, budget_range, urgency, status,
-            sent_to_count, sender_id, review_status, created_at,
-            group:groups(name)
-          `)
-          .order('created_at', { ascending: false })
-          .limit(1000),
+        fetchAllLeads(),
         supabase
           .from('contractors')
           .select('user_id, professions, zip_codes, is_active')
@@ -242,13 +268,13 @@ export default function AdminLeads() {
         setLeads(leadsData)
 
         // Fetch sender names from group_members
-        const senderIds = [...new Set(leadsData.map(l => l.sender_id).filter(Boolean))]
+        const senderIds = [...new Set(leadsData.map((l: any) => l.sender_id).filter(Boolean))]
         if (senderIds.length > 0) {
           const { data: members } = await supabase
             .from('group_members')
             .select('wa_sender_id, display_name')
             .in('wa_sender_id', senderIds)
-          
+
           if (members) {
             const nameMap: Record<string, string> = {}
             members.forEach(m => {
@@ -301,16 +327,17 @@ export default function AdminLeads() {
       <header className="flex items-end justify-between px-2">
         <div>
           <h1 className="text-4xl font-light tracking-tight text-black">
-            {he ? 'כל הלידים' : 'Intelligence Feed'}
+            {he ? 'כל הלידים' : 'All Leads'}
           </h1>
           <p className="mt-2 text-sm font-medium text-stone-400 tracking-wide uppercase">
-            {he ? 'לידים שחולצו מקבוצות WhatsApp ע"י AI' : 'AI-extracted leads from WhatsApp'}
+            {he ? 'לידים מקבוצות + לידים מקבלנים' : 'Scraped from groups & posted by contractors'}
           </p>
         </div>
         <div className="flex items-center gap-3">
           <button
             onClick={() => {
               const csvCols: CsvColumn<Lead>[] = [
+                { header: 'Source', accessor: (l) => l.source || 'group' },
                 { header: 'Profession', accessor: (l) => l.profession },
                 { header: 'Summary', accessor: (l) => l.parsed_summary },
                 { header: 'City', accessor: (l) => l.city ?? '' },
@@ -321,6 +348,7 @@ export default function AdminLeads() {
                 { header: 'Budget', accessor: (l) => l.budget_range ?? '' },
                 { header: 'Sent To', accessor: (l) => l.sent_to_count },
                 { header: 'Group', accessor: (l) => l.group?.name ?? '' },
+                { header: 'Sender', accessor: (l) => l.sender_name ?? '' },
                 { header: 'Created', accessor: (l) => csvDate(l.created_at) },
               ]
               exportToCsv(filtered, csvCols, `leads-${new Date().toISOString().slice(0, 10)}`)
@@ -340,6 +368,30 @@ export default function AdminLeads() {
           </div>
         </div>
       </header>
+
+      {/* ── Source Toggle ── */}
+      <div className="flex gap-2 bg-black/[0.03] p-1.5 rounded-2xl w-fit">
+        {([
+          { key: 'all' as SourceFilter, en: 'All', he: 'הכל', icon: Zap },
+          { key: 'group' as SourceFilter, en: 'Scraped', he: 'נסרקו', icon: ScanLine },
+          { key: 'bot' as SourceFilter, en: 'Posted', he: 'פורסמו', icon: Bot },
+        ]).map(s => {
+          const active = filterSource === s.key
+          const SIcon = s.icon
+          return (
+            <button
+              key={s.key}
+              onClick={() => setFilterSource(s.key)}
+              className={`flex items-center gap-2 text-[11px] font-bold uppercase tracking-widest rounded-xl px-5 py-3 transition-all ${
+                active ? 'bg-white text-black shadow-sm' : 'text-stone-400 hover:text-stone-600'
+              }`}
+            >
+              <SIcon className="w-4 h-4" style={{ color: active ? '#fe5b25' : undefined }} strokeWidth={2} />
+              {he ? s.he : s.en}
+            </button>
+          )
+        })}
+      </div>
 
       {/* ── KPI Strip ── */}
       <section className="stagger-kpi grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
@@ -569,29 +621,38 @@ export default function AdminLeads() {
               >
                 <div className="flex items-stretch min-h-[100px]">
                   {/* Left Column: Time & Source */}
-                  <div className="w-32 flex flex-col items-center justify-center border-r border-black/[0.03] bg-black/[0.01] p-4 shrink-0">
+                  <div className="w-36 flex flex-col items-center justify-center border-r border-black/[0.03] bg-black/[0.01] p-4 shrink-0">
                     <span className="text-lg font-bold text-black tracking-tight text-center leading-tight">{timeAgo(lead.created_at, he)}</span>
                     <span className="text-[10px] font-bold text-stone-400 uppercase tracking-widest mt-1 text-center">{arrivalTime} • {arrivalDate}</span>
                     <div className="mt-3 flex flex-col items-center gap-1 w-full">
-                      <div className="w-6 h-6 rounded-lg bg-black/5 flex items-center justify-center">
-                        <Radio className="w-3 h-3 text-stone-400" />
-                      </div>
-                      <span className="text-[9px] font-bold text-stone-400 uppercase tracking-tight text-center line-clamp-1">
-                        {lead.group?.name || 'Unknown Group'}
-                      </span>
+                      {(lead.source || 'group') === 'bot' ? (
+                        <>
+                          <Bot className="w-4 h-4" style={{ color: '#fe5b25' }} strokeWidth={2} />
+                          <span className="text-[9px] font-bold uppercase tracking-tight text-center line-clamp-1" style={{ color: '#fe5b25' }}>
+                            {he ? 'רבקה' : 'Rebeca'}
+                          </span>
+                          {lead.sender_name && (
+                            <span className="text-[8px] font-medium text-stone-400 text-center line-clamp-1">
+                              {lead.sender_name}
+                            </span>
+                          )}
+                        </>
+                      ) : (
+                        <>
+                          <ScanLine className="w-4 h-4" style={{ color: '#fe5b25' }} strokeWidth={2} />
+                          <span className="text-[9px] font-bold text-stone-400 uppercase tracking-tight text-center line-clamp-1">
+                            {lead.group?.name || (he ? 'קבוצה' : 'Group')}
+                          </span>
+                        </>
+                      )}
                     </div>
                   </div>
 
                   {/* Center Column: Content */}
                   <div className="flex-1 flex flex-col justify-center p-6 min-w-0">
-                    <div className="flex items-center gap-3 mb-2">
-                      <div 
-                        className="w-8 h-8 rounded-[10px] flex items-center justify-center shadow-sm"
-                        style={{ background: `${p.color}10`, color: p.color }}
-                      >
-                        <PIcon className="h-4 w-4" strokeWidth={2} />
-                      </div>
-                      <span className="text-[10px] font-bold uppercase tracking-[0.2em]" style={{ color: p.color }}>
+                    <div className="flex items-center gap-2 mb-2">
+                      <PIcon className="h-4 w-4" style={{ color: '#fe5b25' }} strokeWidth={2} />
+                      <span className="text-[10px] font-bold uppercase tracking-[0.2em]" style={{ color: '#fe5b25' }}>
                         {he ? p.he : p.label}
                       </span>
                     </div>

@@ -41,6 +41,10 @@ export function useAdminKPIs(dateRange?: DateRange) {
           partnersPendingRes,
           partnerCommissionsRes,
           plansRes,
+          jobsTotalRes,
+          jobsPendingRes,
+          jobsAcceptedRes,
+          jobsCompletedRes,
         ] = await Promise.all([
           supabase.from('leads').select('id', { count: 'exact', head: true }),
           // Filtered: hot leads created in date range
@@ -63,6 +67,11 @@ export function useAdminKPIs(dateRange?: DateRange) {
           supabase.from('community_partners').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
           supabase.from('partner_commissions').select('amount_cents').eq('status', 'pending').eq('type', 'earning'),
           supabase.from('plans').select('slug, price_cents'),
+          // Jobs KPIs
+          supabase.from('job_orders').select('id', { count: 'exact', head: true }),
+          supabase.from('job_orders').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
+          supabase.from('job_orders').select('id', { count: 'exact', head: true }).eq('status', 'accepted'),
+          supabase.from('job_orders').select('id', { count: 'exact', head: true }).eq('status', 'completed'),
         ])
 
         // Check for critical errors
@@ -126,6 +135,10 @@ export function useAdminKPIs(dateRange?: DateRange) {
           activePartners,
           pendingPartners,
           partnerCommissions: Math.round(partnerCommissionsCents / 100),
+          jobsTotal: jobsTotalRes.count ?? 0,
+          jobsPending: jobsPendingRes.count ?? 0,
+          jobsAccepted: jobsAcceptedRes.count ?? 0,
+          jobsCompleted: jobsCompletedRes.count ?? 0,
         })
       } catch (err) {
         console.error('[useAdminKPIs] Error fetching KPIs:', err)

@@ -1,1132 +1,1027 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback, useRef, type ReactNode } from 'react'
 import { useAuth } from '../lib/auth'
 import { useI18n } from '../lib/i18n'
 import { supabase } from '../lib/supabase'
-import { useNavigate, Link } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import { PROFESSIONS } from '../lib/professions'
+import { PROFESSION_ICONS } from '../lib/profession-icons'
+import ProfessionGrid from '../components/settings/ProfessionGrid'
+import ServiceAreaSelector, { type SelectedArea } from '../components/settings/ServiceAreaSelector'
+import { QRCodeCanvas } from 'qrcode.react'
 import {
-  User,
-  Phone,
-  Mail,
-  Save,
-  CheckCircle,
-  CheckCircle2,
-  Send,
-  MessageCircle,
-  Radio,
-  ExternalLink,
-  Loader2,
-  Bell,
-  Shield,
-  Star,
-  Wrench,
-  MapPin,
-  Eye,
-  ChevronRight,
-  ChevronDown,
-  Sparkles,
-  ArrowRight,
-  Fingerprint,
-  Camera,
-  Globe,
-  Briefcase,
-  Image,
-  Award,
-  Crown,
-  BadgeCheck,
-  UserCircle,
-  TrendingUp,
+  User, Phone, Mail, Save, CheckCircle2,
+  MessageCircle, ExternalLink, Loader2, Bell, Star,
+  MapPin, Eye, Sparkles, Fingerprint,
+  Camera, Globe, Briefcase, Award, Crown, BadgeCheck, UserCircle,
+  Copy, Download, ShieldCheck, ChevronRight, X, Settings, Radio, Clock,
 } from 'lucide-react'
 import { usePushNotifications } from '../hooks/usePushNotifications'
 import { useIdentityVerification } from '../hooks/useIdentityVerification'
 import { useContractorProfile } from '../hooks/useContractorProfile'
+import { useToast } from '../components/hooks/use-toast'
 
 const WA_NUMBER = '18623582898'
+const DAY_KEYS = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'] as const
+const dayIdxToKey = (i: number) => DAY_KEYS[i] ?? 'mon'
+const dayKeyToIdx = (k: string) => DAY_KEYS.indexOf(k as typeof DAY_KEYS[number])
 
-/* ── Mobile sub-sections ──────────────────────────────── */
+const LANGUAGE_OPTIONS = [
+  { value: 'English', label: 'English', labelHe: 'אנגלית' },
+  { value: 'Hebrew', label: 'Hebrew', labelHe: 'עברית' },
+  { value: 'Spanish', label: 'Spanish', labelHe: 'ספרדית' },
+  { value: 'Russian', label: 'Russian', labelHe: 'רוסית' },
+  { value: 'Arabic', label: 'Arabic', labelHe: 'ערבית' },
+]
 
-function MobileCollapsible({ title, badge, defaultOpen = false, children }: {
-  title: string; badge?: string; defaultOpen?: boolean; children: React.ReactNode
+/* ═══════════════════════════════════════════════════
+   Bottom Sheet
+   ═══════════════════════════════════════════════════ */
+
+function BottomSheet({ open, onClose, title, children, fullScreen = false }: {
+  open: boolean; onClose: () => void; title: string; children: ReactNode; fullScreen?: boolean
 }) {
-  const [open, setOpen] = useState(defaultOpen)
+  if (!open) return null
   return (
-    <div className="bg-white rounded-[20px] border border-black/[0.04] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
-      <button onClick={() => setOpen(!open)} className="w-full flex items-center justify-between px-4 py-3.5 active:scale-[0.97] transition-transform">
-        <div className="flex items-center gap-2">
-          <p className="text-[14px] font-semibold text-zinc-900">{title}</p>
-          {badge && (
-            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-              badge === 'Complete' ? 'bg-green-50 text-green-600' : 'bg-[#fee8df] text-[#fe5b25]'
-            }`}>{badge}</span>
+    <div className="fixed inset-0 z-[100]" onClick={onClose}>
+      {/* Backdrop */}
+      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
+      {/* Sheet */}
+      <div
+        onClick={e => e.stopPropagation()}
+        className={`absolute bg-white rounded-t-[20px] shadow-2xl animate-slide-up overflow-hidden flex flex-col
+          ${fullScreen
+            ? 'inset-0 rounded-none'
+            : 'bottom-0 left-0 right-0 max-h-[85vh]'
+          }`}
+      >
+        {/* Handle + header */}
+        <div className="sticky top-0 bg-white z-10 border-b border-gray-100">
+          {!fullScreen && (
+            <div className="flex justify-center pt-2.5 pb-1">
+              <div className="w-10 h-1 rounded-full bg-gray-200" />
+            </div>
           )}
+          <div className="flex items-center justify-between px-5 py-3">
+            <h3 className="text-[16px] font-bold text-zinc-900">{title}</h3>
+            <button onClick={onClose}
+              className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center hover:bg-gray-200 transition-colors">
+              <X size={16} className="text-gray-500" />
+            </button>
+          </div>
         </div>
-        <ChevronDown size={16} className={`text-[#a3a3a3] transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
-      </button>
-      {open && <div className="px-4 pb-4 border-t border-[#f5f5f5]">{children}</div>}
+        {/* Content */}
+        <div className="flex-1 overflow-y-auto px-5 py-4">
+          {children}
+        </div>
+      </div>
     </div>
   )
 }
 
-function MobileProfSection({ navigate }: { navigate: (path: string) => void }) {
-  return (
-    <MobileCollapsible title="Professional Info" badge="Complete">
-      <div className="space-y-0 mt-3">
-        {[
-          { Icon: Wrench, label: 'Services', val: 'Locksmith, Rekey, Smart Locks' },
-          { Icon: MapPin, label: 'Service Areas', val: 'Miami-Dade, Broward' },
-          { Icon: Globe, label: 'Languages', val: 'English, Spanish' },
-          { Icon: Briefcase, label: 'Work Preferences', val: 'Fixed, Percentage, Sub-work' },
-        ].map((item, i, arr) => (
-          <button
-            key={i}
-            onClick={() => navigate('/profile/edit')}
-            className="w-full flex items-center gap-3 py-3 active:scale-[0.97] transition-transform"
-            style={{ borderBottom: i < arr.length - 1 ? '1px solid #f5f5f5' : 'none' }}
-          >
-            <div className="w-8 h-8 rounded-lg bg-[#fafafa] flex items-center justify-center">
-              <item.Icon size={15} strokeWidth={1.6} className="text-zinc-600" />
-            </div>
-            <div className="flex-1 text-left">
-              <p className="text-[12px] font-semibold text-zinc-900">{item.label}</p>
-              <p className="text-[10px] text-[#737373]">{item.val}</p>
-            </div>
-            <ChevronRight size={14} className="text-[#a3a3a3]" />
-          </button>
-        ))}
-      </div>
-    </MobileCollapsible>
-  )
-}
+/* ═══════════════════════════════════════════════════
+   Summary Card — Neumorphic 3D raised style
+   ═══════════════════════════════════════════════════ */
 
-function MobilePortfolioSection() {
-  return (
-    <MobileCollapsible title="Portfolio" badge="4 projects">
-      <div className="mt-3">
-        <div className="flex gap-2.5 overflow-x-auto -mx-1 px-1 pb-1" style={{ scrollbarWidth: 'none' }}>
-          {['Smart Lock Install', 'Commercial Rekey', 'Emergency Lockout', 'Safe Install'].map((p, i) => (
-            <div key={i} className="flex-shrink-0 w-[120px] active:scale-[0.97] transition-transform">
-              <div className="aspect-[3/4] rounded-xl bg-[#f5f5f5] flex items-center justify-center mb-1.5 relative">
-                <Image size={16} className="text-[#a3a3a3]" />
-                <span className="absolute bottom-1 left-1 text-[8px] font-semibold bg-zinc-900/70 text-white px-1.5 py-0.5 rounded backdrop-blur-sm">B/A</span>
-              </div>
-              <p className="text-[10px] font-medium truncate text-zinc-900">{p}</p>
-            </div>
-          ))}
-          <div className="flex-shrink-0 w-[120px] active:scale-[0.97] transition-transform">
-            <div className="aspect-[3/4] rounded-xl border-2 border-dashed border-zinc-200 flex flex-col items-center justify-center gap-1 mb-1.5">
-              <div className="w-6 h-6 rounded-full bg-[#fee8df] flex items-center justify-center">
-                <Image size={11} className="text-[#fe5b25]" />
-              </div>
-              <p className="text-[9px] text-[#fe5b25] font-semibold">Add</p>
-            </div>
-          </div>
-        </div>
-        <div className="mt-2.5 flex items-center gap-2 bg-blue-50 rounded-lg p-2.5">
-          <TrendingUp size={12} className="text-blue-500" />
-          <p className="text-[10px] text-blue-700">6+ projects = <strong>40% more inquiries</strong></p>
-        </div>
-      </div>
-    </MobileCollapsible>
-  )
-}
-
-function MobileCommSection({
-  isWhatsAppConnected, whatsappPhone,
-  pushStatus, pushLoading, waPolling,
-  handleConnectWhatsApp, enablePush, navigate,
-}: {
-  isWhatsAppConnected: boolean; whatsappPhone: string | null
-  pushStatus: string; pushLoading: boolean; waPolling: boolean
-  handleConnectWhatsApp: () => void; enablePush: () => void; navigate: (path: string) => void
+function SummaryCard({ icon: Icon, customIcon, title, children, onClick, accent = '#fe5b25', complete, wide }: {
+  icon?: React.ElementType; customIcon?: ReactNode; title: string; children: ReactNode; onClick: () => void
+  accent?: string; complete?: boolean; wide?: boolean
 }) {
-  const channels = [
-    {
-      icon: MessageCircle,
-      label: 'WhatsApp',
-      bg: 'bg-[#25D366]',
-      ok: isWhatsAppConnected,
-      status: isWhatsAppConnected ? (whatsappPhone ?? 'Connected') : 'Not connected',
-      action: () => handleConnectWhatsApp(),
-    },
-    {
-      icon: Bell,
-      label: 'Push Notifications',
-      bg: pushStatus === 'granted' ? 'bg-[#fe5b25]' : 'bg-zinc-400',
-      ok: pushStatus === 'granted',
-      status: pushStatus === 'granted' ? 'Enabled' : pushStatus === 'denied' ? 'Blocked' : pushStatus === 'unsupported' ? 'Not supported' : 'Not enabled',
-      action: () => enablePush(),
-    },
-  ]
   return (
-    <MobileCollapsible title="Communication" defaultOpen={true}>
-      <div className="space-y-0 mt-3">
-        {channels.map((ch, i, arr) => (
-          <div key={i} className="flex items-center gap-3 py-3"
-            style={{ borderBottom: i < arr.length - 1 ? '1px solid #f5f5f5' : 'none' }}>
-            <div className={`w-8 h-8 rounded-lg ${ch.bg} flex items-center justify-center`}>
-              <ch.icon size={14} className="text-white" />
-            </div>
-            <div className="flex-1">
-              <p className="text-[12px] font-semibold text-zinc-900">{ch.label}</p>
-              <p className={`text-[10px] ${ch.ok ? 'text-green-500' : 'text-[#737373]'}`}>{ch.status}</p>
-            </div>
-            {ch.ok ? (
-              <div className="w-2 h-2 rounded-full bg-green-500" />
-            ) : (
-              <button
-                onClick={ch.action}
-                disabled={ch.label === 'WhatsApp' ? waPolling : ch.label === 'Push Notifications' ? pushLoading : false}
-                className="text-[11px] font-semibold text-[#fe5b25] bg-[#fee8df] px-3 py-1.5 rounded-full active:scale-[0.97] transition-transform disabled:opacity-60"
-              >
-                {(ch.label === 'WhatsApp' && waPolling) || (ch.label === 'Push Notifications' && pushLoading)
-                  ? <Loader2 size={12} className="animate-spin" />
-                  : 'Connect'}
-              </button>
-            )}
+    <button onClick={onClick}
+      className={`w-full rounded-[24px] p-4 pb-5 text-left active:scale-[0.97]
+                 hover:translate-y-[-3px] transition-all duration-300 group relative
+                 animate-fade-in ${wide ? 'col-span-2 md:col-span-3' : ''}`}
+      style={{
+        background: 'linear-gradient(165deg, #ffffff 0%, #faf9f7 50%, #f5f3f0 100%)',
+        boxShadow: `
+          0 1px 2px rgba(0,0,0,0.04),
+          0 4px 8px rgba(0,0,0,0.04),
+          0 12px 24px rgba(0,0,0,0.06),
+          0 24px 48px rgba(0,0,0,0.04),
+          inset 0 1px 0 rgba(255,255,255,1),
+          inset 0 -1px 2px rgba(0,0,0,0.02)
+        `,
+        border: '1px solid rgba(0,0,0,0.06)',
+      }}>
+      {/* Status dot */}
+      {complete !== undefined && (
+        <div className="absolute top-3 right-3 rtl:right-auto rtl:left-3">
+          <div className={`w-2.5 h-2.5 rounded-full ${complete ? 'bg-green-400' : 'bg-amber-400'}`}
+            style={{ boxShadow: complete ? '0 0 6px rgba(74,222,128,0.4)' : '0 0 6px rgba(251,191,36,0.4)' }} />
+        </div>
+      )}
+      {/* Icon + content layout */}
+      <div className={wide ? 'flex items-start gap-4' : ''}>
+        {/* Icon — neumorphic raised bubble */}
+        <div className={`${wide ? '' : 'mb-3'} flex items-center ${wide ? '' : 'justify-between'}`}>
+          <div className={`${wide ? 'w-14 h-14' : 'w-12 h-12'} rounded-[16px] flex items-center justify-center flex-shrink-0`}
+            style={{
+              background: `linear-gradient(145deg, ${accent}18 0%, ${accent}08 100%)`,
+              boxShadow: `0 2px 8px ${accent}15, inset 0 1px 0 rgba(255,255,255,0.8), inset 0 -1px 2px ${accent}10`,
+              border: `1px solid ${accent}15`,
+            }}>
+            {customIcon
+              ? <div style={{ color: accent, width: wide ? 28 : 24, height: wide ? 28 : 24 }}>{customIcon}</div>
+              : Icon && <Icon size={wide ? 24 : 20} style={{ color: accent }} strokeWidth={2} />
+            }
           </div>
-        ))}
-      </div>
-    </MobileCollapsible>
-  )
-}
-
-function MobileWorkingHoursSection() {
-  return (
-    <MobileCollapsible title="Working Hours">
-      <div className="space-y-2 mt-3">
-        {['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].map((d, i) => (
-          <div key={d} className="flex items-center justify-between">
-            <span className={`text-[12px] font-semibold w-10 ${i >= 5 ? 'text-[#a3a3a3]' : 'text-zinc-700'}`}>{d}</span>
-            {i >= 5 ? (
-              <span className="text-[11px] text-[#a3a3a3]">Off</span>
-            ) : (
-              <div className="flex items-center gap-1">
-                <span className="text-[11px] bg-[#fafafa] px-2.5 py-1 rounded-lg text-zinc-600">8:00 AM</span>
-                <span className="text-[10px] text-[#a3a3a3]">—</span>
-                <span className="text-[11px] bg-[#fafafa] px-2.5 py-1 rounded-lg text-zinc-600">6:00 PM</span>
+          {!wide && (
+            <div className="w-7 h-7 rounded-full flex items-center justify-center group-hover:translate-x-0.5 transition-transform"
+              style={{ background: 'linear-gradient(145deg, #f5f3f0, #eae8e4)', boxShadow: '0 2px 6px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.8)' }}>
+              <ChevronRight size={13} className="text-zinc-400 group-hover:text-zinc-600 transition-colors" />
+            </div>
+          )}
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center justify-between">
+            <h3 className={`${wide ? 'text-[17px]' : 'text-[15px]'} font-bold text-zinc-800 tracking-tight mb-1.5`}>{title}</h3>
+            {wide && (
+              <div className="w-7 h-7 rounded-full flex items-center justify-center group-hover:translate-x-0.5 transition-transform"
+                style={{ background: 'linear-gradient(145deg, #f5f3f0, #eae8e4)', boxShadow: '0 2px 6px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.8)' }}>
+                <ChevronRight size={13} className="text-zinc-400 group-hover:text-zinc-600 transition-colors" />
               </div>
             )}
           </div>
-        ))}
+          <div className="text-[12px] text-zinc-500 leading-relaxed">{children}</div>
+        </div>
       </div>
-    </MobileCollapsible>
+    </button>
   )
 }
 
-function MobilePreferencesSection() {
+/* ═══════════════════════════════════════════════════
+   Sheet form helpers
+   ═══════════════════════════════════════════════════ */
+
+function SheetLabel({ children }: { children: ReactNode }) {
+  return <label className="block text-sm font-medium text-gray-700 mb-1.5">{children}</label>
+}
+
+function SheetInput({ value, onChange, placeholder, type = 'text', disabled = false, maxLength }: {
+  value: string; onChange: (v: string) => void; placeholder?: string
+  type?: string; disabled?: boolean; maxLength?: number
+}) {
   return (
-    <MobileCollapsible title="Preferences">
-      <div className="space-y-0 mt-3">
-        {[{l:'Language',v:'English'},{l:'Distance',v:'Miles'},{l:'Notifications',v:'On'}].map((p, i, arr) => (
-          <div key={i} className="flex items-center justify-between py-3"
-            style={{ borderBottom: i < arr.length - 1 ? '1px solid #f5f5f5' : 'none' }}>
-            <p className="text-[12px] font-semibold text-zinc-900">{p.l}</p>
-            <div className="flex items-center gap-1">
-              <span className="text-[10px] text-[#737373]">{p.v}</span>
-              <ChevronRight size={13} className="text-[#a3a3a3]" />
-            </div>
-          </div>
-        ))}
-      </div>
-    </MobileCollapsible>
+    <input type={type} value={value} onChange={e => onChange(e.target.value)}
+      placeholder={placeholder} disabled={disabled} maxLength={maxLength}
+      className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-white
+                 text-sm text-gray-800 placeholder:text-gray-400
+                 focus:outline-none focus:ring-2 focus:ring-[#fe5b25]/30 focus:border-[#fe5b25]/50
+                 transition-all disabled:opacity-50 disabled:bg-gray-50" />
   )
 }
+
+function SheetToggle({ label, checked, onChange }: { label: string; checked: boolean; onChange: (v: boolean) => void }) {
+  return (
+    <div className="flex items-center justify-between py-2">
+      <span className="text-sm text-gray-700">{label}</span>
+      <button type="button" role="switch" aria-checked={checked} onClick={() => onChange(!checked)}
+        className={`relative w-11 h-6 rounded-full transition-colors ${checked ? 'bg-[#fe5b25]' : 'bg-gray-200'}`}>
+        <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${checked ? 'translate-x-5' : ''}`} />
+      </button>
+    </div>
+  )
+}
+
+function SheetSaveButton({ onClick, saving, isHe }: { onClick: () => void; saving: boolean; isHe: boolean }) {
+  return (
+    <button type="button" onClick={onClick} disabled={saving}
+      className="w-full mt-4 py-3 rounded-2xl bg-[#fe5b25] text-white font-semibold text-sm
+                 flex items-center justify-center gap-2
+                 hover:bg-[#e5501f] active:scale-[0.98] transition-all shadow-lg shadow-[#fe5b25]/20
+                 disabled:opacity-50">
+      {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+      {isHe ? 'שמור' : 'Save'}
+    </button>
+  )
+}
+
+/* ═══════════════════════════════════════════════════
+   Main Component
+   ═══════════════════════════════════════════════════ */
 
 export default function Profile() {
   const { user, profile, refreshProfile, effectiveUserId, impersonatedProfile } = useAuth()
   const { t, locale } = useI18n()
-  const navigate = useNavigate()
   const isHe = locale === 'he'
-
-  const [fullName, setFullName] = useState('')
-  const [phone, setPhone] = useState('')
-  const [whatsappPhone, setWhatsappPhone] = useState<string | null>(null)
+  const { toast } = useToast()
 
   const { status: pushStatus, enable: enablePush, isLoading: pushLoading } = usePushNotifications()
   const { isVerified: identityVerified, isPending: identityPending } = useIdentityVerification()
-  const { data: contractorData } = useContractorProfile()
-  const [saving, setSaving] = useState(false)
-  const [saved, setSaved] = useState(false)
+  const {
+    data: contractorData, isLoading: profileLoading,
+    save: saveContractorProfile, isSaving: cpSaving,
+    publishProfile, isPublishing, refetch,
+  } = useContractorProfile()
+
+  /* ── State ── */
+  const [fullName, setFullName] = useState('')
+  const [phone, setPhone] = useState('')
+  const [whatsappPhone, setWhatsappPhone] = useState<string | null>(null)
+  const [businessName, setBusinessName] = useState('')
+  const [licenseNumber, setLicenseNumber] = useState('')
+  const [languages, setLanguages] = useState<string[]>([])
+  const [websiteUrl, setWebsiteUrl] = useState('')
+  const [acceptsPercentage, setAcceptsPercentage] = useState(true)
+  const [acceptsFixed, setAcceptsFixed] = useState(true)
+  const [acceptsSubwork, setAcceptsSubwork] = useState(true)
+  const [minJobValue, setMinJobValue] = useState('')
+  const [maxJobValue, setMaxJobValue] = useState('')
+  const [availableToday, setAvailableToday] = useState(false)
+  const [workingDays, setWorkingDays] = useState<string[]>(['mon','tue','wed','thu','fri'])
+  const [workingHoursStart, setWorkingHoursStart] = useState('08:00')
+  const [workingHoursEnd, setWorkingHoursEnd] = useState('18:00')
   const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
   const [waPolling, setWaPolling] = useState(false)
+  const [copied, setCopied] = useState(false)
+  const [avatarUploading, setAvatarUploading] = useState(false)
+  const [activeSheet, setActiveSheet] = useState<string | null>(null)
+  const [editProfessions, setEditProfessions] = useState<string[]>([])
+  const [editAreas, setEditAreas] = useState<SelectedArea[]>([])
+
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
-  const [mobileTab, setMobileTab] = useState<'profile' | 'settings'>('profile')
-
+  /* ── Load personal info ── */
   const loadProfile = useCallback(async () => {
     if (!effectiveUserId) return
     setLoading(true)
-
     const { data } = await supabase
-      .from('profiles')
-      .select('full_name, phone, whatsapp_phone')
-      .eq('id', effectiveUserId)
-      .maybeSingle()
-
-    const activeProfile = impersonatedProfile || profile
+      .from('profiles').select('full_name, phone, whatsapp_phone')
+      .eq('id', effectiveUserId).maybeSingle()
+    const active = impersonatedProfile || profile
     if (data) {
       setFullName(data.full_name ?? '')
       setPhone(data.phone ?? '')
       setWhatsappPhone(data.whatsapp_phone ?? null)
     } else {
-      setFullName(activeProfile?.full_name ?? '')
+      setFullName(active?.full_name ?? '')
     }
-
     setLoading(false)
   }, [effectiveUserId, profile, impersonatedProfile])
 
-  useEffect(() => {
-    loadProfile()
-  }, [loadProfile])
+  useEffect(() => { loadProfile() }, [loadProfile])
 
-  // Cleanup polling on unmount
+  /* ── Seed contractor profile ── */
   useEffect(() => {
-    return () => {
-      if (pollRef.current) clearInterval(pollRef.current)
-    }
-  }, [])
+    if (!contractorData) return
+    const p = contractorData.profile
+    setBusinessName(p.business_name ?? '')
+    setLicenseNumber(p.license_number ?? '')
+    setLanguages(p.languages ?? [])
+    setWebsiteUrl(p.website_url ?? '')
+    setAcceptsPercentage(p.accepts_percentage ?? true)
+    setAcceptsFixed(p.accepts_fixed ?? true)
+    setAcceptsSubwork(p.accepts_subwork ?? true)
+    setMinJobValue(p.min_job_value != null ? String(p.min_job_value) : '')
+    setMaxJobValue(p.max_job_value != null ? String(p.max_job_value) : '')
+  }, [contractorData])
 
-  function getWhatsAppCode(): string {
-    return effectiveUserId ? effectiveUserId.slice(0, 8) : 'unknown'
-  }
+  /* ── Load availability from contractors table ── */
+  useEffect(() => {
+    if (!effectiveUserId) return
+    ;(async () => {
+      const { data } = await supabase
+        .from('contractors')
+        .select('available_today, working_days, working_hours')
+        .eq('user_id', effectiveUserId)
+        .maybeSingle()
+      if (data) {
+        setAvailableToday(data.available_today ?? false)
+        if (data.working_days?.length) setWorkingDays(
+          typeof data.working_days[0] === 'number'
+            ? data.working_days.map((d: number) => dayIdxToKey(d))
+            : data.working_days.map(String)
+        )
+        if (data.working_hours) {
+          setWorkingHoursStart(data.working_hours.start ?? '08:00')
+          setWorkingHoursEnd(data.working_hours.end ?? '18:00')
+        }
+      }
+    })()
+  }, [effectiveUserId])
+
+  useEffect(() => { return () => { if (pollRef.current) clearInterval(pollRef.current) } }, [])
+
+  /* ── Handlers ── */
 
   function handleConnectWhatsApp() {
-    const code = getWhatsAppCode()
-    const message = encodeURIComponent(`Hey! Connect my account. Code: LE-${code}`)
-    window.open(`https://wa.me/${WA_NUMBER}?text=${message}`, '_blank')
-
-    // Start polling for connection
+    const code = effectiveUserId ? effectiveUserId.slice(0, 8) : 'unknown'
+    window.open(`https://wa.me/${WA_NUMBER}?text=${encodeURIComponent(`Hey! Connect my account. Code: LE-${code}`)}`, '_blank')
     setWaPolling(true)
     if (pollRef.current) clearInterval(pollRef.current)
     pollRef.current = setInterval(async () => {
       if (!effectiveUserId) return
-      const { data } = await supabase
-        .from('profiles')
-        .select('whatsapp_phone')
-        .eq('id', effectiveUserId)
-        .maybeSingle()
-
+      const { data } = await supabase.from('profiles').select('whatsapp_phone').eq('id', effectiveUserId).maybeSingle()
       if (data?.whatsapp_phone) {
         setWhatsappPhone(data.whatsapp_phone)
         setWaPolling(false)
         if (pollRef.current) clearInterval(pollRef.current)
       }
     }, 3000)
-
-    // Stop polling after 2 minutes
-    setTimeout(() => {
-      setWaPolling(false)
-      if (pollRef.current) clearInterval(pollRef.current)
-    }, 120_000)
+    setTimeout(() => { setWaPolling(false); if (pollRef.current) clearInterval(pollRef.current) }, 120_000)
   }
 
-  async function handleSave() {
+  async function saveCredentials() {
     if (!effectiveUserId) return
     setSaving(true)
-    setSaved(false)
-
-    const { error } = await supabase
-      .from('profiles')
-      .upsert({
-        id: effectiveUserId,
-        full_name: fullName.trim(),
-        phone: phone.trim(),
+    try {
+      await saveContractorProfile({
+        business_name: businessName || null,
+        license_number: licenseNumber || null,
+        languages, website_url: websiteUrl || null,
       })
-
-    if (!error) {
-      setSaved(true)
-      await refreshProfile()
-      setTimeout(() => setSaved(false), 3000)
-    }
-
+      toast({ title: isHe ? 'נשמר' : 'Saved' })
+      setActiveSheet(null)
+    } catch { toast({ title: isHe ? 'שגיאה' : 'Error', variant: 'destructive' }) }
     setSaving(false)
   }
 
-  if (loading) {
+  async function saveWorkPrefs() {
+    if (!effectiveUserId) return
+    setSaving(true)
+    try {
+      await saveContractorProfile({
+        accepts_percentage: acceptsPercentage, accepts_fixed: acceptsFixed, accepts_subwork: acceptsSubwork,
+        min_job_value: minJobValue ? Number(minJobValue) : null,
+        max_job_value: maxJobValue ? Number(maxJobValue) : null,
+      })
+      // Save availability to contractors table
+      await supabase
+        .from('contractors')
+        .update({
+          available_today: availableToday,
+          working_days: workingDays.map(dayKeyToIdx).filter(i => i >= 0),
+          working_hours: { start: workingHoursStart, end: workingHoursEnd },
+        })
+        .eq('user_id', effectiveUserId)
+      toast({ title: isHe ? 'נשמר' : 'Saved' })
+      setActiveSheet(null)
+    } catch { toast({ title: isHe ? 'שגיאה' : 'Error', variant: 'destructive' }) }
+    setSaving(false)
+  }
+
+  async function saveAccount() {
+    if (!effectiveUserId) return
+    setSaving(true)
+    try {
+      await supabase.from('profiles').upsert({ id: effectiveUserId, full_name: fullName.trim(), phone: phone.trim() })
+      await refreshProfile()
+      toast({ title: isHe ? 'נשמר' : 'Saved' })
+      setActiveSheet(null)
+    } catch { toast({ title: isHe ? 'שגיאה' : 'Error', variant: 'destructive' }) }
+    setSaving(false)
+  }
+
+  async function saveProfessions() {
+    if (!effectiveUserId) return
+    setSaving(true)
+    try {
+      await supabase.from('contractors').update({ professions: editProfessions }).eq('user_id', effectiveUserId)
+      await refetch()
+      toast({ title: isHe ? 'נשמר' : 'Saved' })
+      setActiveSheet(null)
+    } catch { toast({ title: isHe ? 'שגיאה' : 'Error', variant: 'destructive' }) }
+    setSaving(false)
+  }
+
+  async function saveAreas() {
+    if (!effectiveUserId) return
+    setSaving(true)
+    try {
+      const allZips = editAreas.flatMap(a => a.zips)
+      const allCounties = editAreas.map(a => a.county)
+      await supabase.from('contractors').update({ zip_codes: allZips }).eq('user_id', effectiveUserId)
+      await supabase.from('profiles').update({ counties: allCounties }).eq('id', effectiveUserId)
+      await refetch()
+      toast({ title: isHe ? 'נשמר' : 'Saved' })
+      setActiveSheet(null)
+    } catch { toast({ title: isHe ? 'שגיאה' : 'Error', variant: 'destructive' }) }
+    setSaving(false)
+  }
+
+  async function handlePublish() {
+    try {
+      const slug = await publishProfile()
+      toast({ title: isHe ? 'פורסם!' : 'Published!', description: `masterleadflow.com/pro/${slug}` })
+    } catch { toast({ title: isHe ? 'שגיאה' : 'Error', variant: 'destructive' }) }
+  }
+
+  function handleCopyUrl() {
+    if (!contractorData?.profile.slug) return
+    navigator.clipboard.writeText(`https://masterleadflow.com/pro/${contractorData.profile.slug}`)
+    setCopied(true); setTimeout(() => setCopied(false), 2000)
+  }
+
+  async function handleAvatarUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file || !effectiveUserId) return
+    if (file.size > 5 * 1024 * 1024) {
+      toast({ title: isHe ? 'גדול מדי' : 'File too large', variant: 'destructive' }); return
+    }
+    setAvatarUploading(true)
+    try {
+      const ext = file.name.split('.').pop()?.toLowerCase() || 'jpg'
+      const path = `avatars/${effectiveUserId}.${ext}`
+      const { error } = await supabase.storage.from('portfolio-images').upload(path, file, { upsert: true, contentType: file.type })
+      if (error) throw error
+      const { data: urlData } = supabase.storage.from('portfolio-images').getPublicUrl(path)
+      const bustUrl = `${urlData.publicUrl}?v=${Date.now()}`
+      await saveContractorProfile({ avatar_url: bustUrl }); refetch()
+      toast({ title: isHe ? 'עודכן' : 'Updated' })
+    } catch { toast({ title: isHe ? 'שגיאה' : 'Error', variant: 'destructive' }) }
+    finally { setAvatarUploading(false); if (fileInputRef.current) fileInputRef.current.value = '' }
+  }
+
+  function openSheet(sheet: string) {
+    if (sheet === 'services') setEditProfessions([...(contractorData?.professions ?? [])])
+    if (sheet === 'areas') {
+      // Build SelectedArea[] from current counties + zips
+      const currentCounties = contractorData?.counties ?? []
+      const currentZips = contractorData?.zip_codes ?? []
+      // Group zips by county isn't possible without extra data, so create one entry per county with all zips
+      // This is a simplification — the selector will let user re-pick properly
+      setEditAreas(currentCounties.map(c => ({ state: '', stateName: '', county: c, zips: [] })))
+    }
+    setActiveSheet(sheet)
+  }
+
+  /* ── Computed ── */
+  const initials = fullName ? fullName.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2) : '??'
+  const isWhatsAppConnected = !!whatsappPhone
+  const filledSegments = [!!fullName, !!phone, isWhatsAppConnected, pushStatus === 'granted', identityVerified].filter(Boolean).length
+  const strengthPercent = Math.round((filledSegments / 5) * 100)
+  const publicUrl = contractorData?.profile.slug ? `https://masterleadflow.com/pro/${contractorData.profile.slug}` : null
+  const professions = contractorData?.professions ?? []
+  const counties = contractorData?.counties ?? []
+  const zipCodes = contractorData?.zip_codes ?? []
+
+  const tierDefs = [
+    { name: 'New', Icon: UserCircle, reached: true, color: '#9ca3af', bg: 'rgba(156,163,175,0.15)' },
+    { name: 'Verified', Icon: BadgeCheck, reached: identityVerified, color: '#3b82f6', bg: 'rgba(59,130,246,0.15)' },
+    { name: 'Trusted', Icon: Award, reached: false, color: '#22c55e', bg: 'rgba(34,197,94,0.15)' },
+    { name: 'Elite', Icon: Crown, reached: false, color: '#f59e0b', bg: 'rgba(245,158,11,0.15)' },
+  ]
+  const currentTierIdx = identityVerified ? 1 : 0
+
+  /* ── Loading ── */
+  if (loading || profileLoading) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="animate-spin h-8 w-8 rounded-full border-2 border-[#fe5b25] border-t-transparent" />
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <Loader2 className="w-8 h-8 text-[#fe5b25] animate-spin" />
       </div>
     )
   }
 
-  const isWhatsAppConnected = !!whatsappPhone
+  /* ═══════════════════════════════════════════════════
+     Render
+     ═══════════════════════════════════════════════════ */
 
-  // Helper: initials from name
-  const initials = fullName
-    ? fullName.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2)
-    : '??'
-
-  // Profile strength calculation
-  const strengthSegments = [
-    !!fullName,
-    !!phone,
-    isWhatsAppConnected,
-    pushStatus === 'granted',
-    identityVerified,
-  ]
-  const filledSegments = strengthSegments.filter(Boolean).length
-  const strengthPercent = Math.round((filledSegments / 5) * 100)
+  /* Card completeness indicators */
+  const cardStatus = {
+    services: professions.length > 0,
+    areas: counties.length > 0 || zipCodes.length > 0,
+    credentials: !!(businessName || licenseNumber || identityVerified),
+    workprefs: true, // always has defaults
+    comms: isWhatsAppConnected || pushStatus === 'granted',
+    account: !!(fullName && phone),
+  }
 
   return (
-    <>
-      {/* ===================== MOBILE VIEW ===================== */}
-      <div className="md:hidden fixed inset-0 z-30 overflow-y-auto bg-[#fafafa]">
-        <div className="px-4 pt-5 pb-24 space-y-5">
+    <div className="w-full px-4 md:px-0 md:max-w-4xl md:mx-auto pb-8"
+      dir={isHe ? 'rtl' : 'ltr'}
+      style={{ background: 'linear-gradient(180deg, #faf8f5 0%, transparent 400px)' }}>
 
-        {/* ---- HERO CARD ---- */}
-        <div className="bg-[#111] rounded-[20px] p-5 mb-5 relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-[#fe5b25] rounded-full opacity-[0.08] -translate-y-10 translate-x-10" />
+      {/* ━━━━━━━━━━━━━━━ HERO CARD ━━━━━━━━━━━━━━━ */}
+      <div className="rounded-[24px] p-5 md:p-7 relative overflow-hidden mb-5"
+        style={{
+          background: 'linear-gradient(145deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)',
+          boxShadow: '0 8px 32px rgba(15,52,96,0.35), 0 2px 8px rgba(0,0,0,0.2)',
+        }}>
+        {/* Subtle decorative elements */}
+        <div className="absolute top-0 right-0 w-[200px] h-[200px] pointer-events-none"
+          style={{ background: 'radial-gradient(circle at top right, rgba(254,91,37,0.12) 0%, transparent 60%)' }} />
+        <div className="absolute bottom-0 left-0 w-[150px] h-[150px] pointer-events-none"
+          style={{ background: 'radial-gradient(circle at bottom left, rgba(254,91,37,0.08) 0%, transparent 60%)' }} />
+        {/* Grid pattern overlay */}
+        <div className="absolute inset-0 opacity-[0.03] pointer-events-none"
+          style={{ backgroundImage: 'linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)', backgroundSize: '24px 24px' }} />
 
-          {/* Avatar + Info */}
-          <div className="flex items-center gap-3.5 mb-4 relative">
-            <div className="relative">
-              <div className="w-16 h-16 rounded-2xl bg-white/10 flex items-center justify-center text-white text-[22px] font-bold">
-                {initials}
-              </div>
-              <button className="absolute -bottom-1 -right-1 w-6 h-6 bg-[#fe5b25] rounded-full flex items-center justify-center border-2 border-[#111]">
-                <Camera size={10} className="text-white" />
-              </button>
+        {/* Avatar + info */}
+        <div className="flex items-center gap-4 mb-5 relative">
+          <div className="relative">
+            <div className="w-[72px] h-[72px] rounded-[20px] flex items-center justify-center text-white text-[22px] font-bold overflow-hidden"
+              style={{
+                background: contractorData?.profile.avatar_url ? 'transparent' : 'linear-gradient(135deg, #fe5b25 0%, #ff7a4d 100%)',
+                boxShadow: '0 4px 20px rgba(254,91,37,0.3), 0 0 0 2px rgba(254,91,37,0.2)',
+              }}>
+              {contractorData?.profile.avatar_url
+                ? <img src={contractorData.profile.avatar_url} alt="" className="w-full h-full object-cover" />
+                : initials}
             </div>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-1.5">
-                <h2 className="text-[18px] font-bold text-white tracking-tight truncate">{fullName || 'Your Name'}</h2>
-                {identityVerified ? (
-                  <div className="flex-shrink-0 w-5 h-5 rounded-full bg-blue-500 flex items-center justify-center">
-                    <CheckCircle2 size={12} className="text-white" />
-                  </div>
-                ) : (
-                  <Shield size={14} className="text-[#fe5b25] flex-shrink-0" />
-                )}
-              </div>
-              <p className="text-[12px] text-white/40 truncate">
-                {contractorData?.professions?.[0] ?? 'Contractor'}
-                {contractorData?.counties?.[0] ? ` · ${contractorData.counties[0]}` : ''}
-                {contractorData?.profile?.years_experience ? ` · ${contractorData.profile.years_experience} yrs` : ''}
-              </p>
-              <div className="flex items-center gap-2 mt-1">
-                {contractorData?.profile?.avg_rating ? (
-                  <span className="flex items-center gap-0.5 text-[11px] text-amber-400 font-semibold">
-                    <Star size={10} fill="#fbbf24" /> {contractorData.profile.avg_rating.toFixed(1)} <span className="text-white/25 font-normal">({contractorData.profile.review_count ?? 0})</span>
-                  </span>
-                ) : (
-                  <span className="text-[11px] text-white/30">{isHe ? 'אין דירוג עדיין' : 'No rating yet'}</span>
-                )}
-              </div>
+            <button onClick={() => fileInputRef.current?.click()} disabled={avatarUploading}
+              className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full flex items-center justify-center shadow-lg"
+              style={{ background: 'linear-gradient(135deg, #fe5b25, #ff7a4d)', boxShadow: '0 2px 8px rgba(254,91,37,0.4)' }}>
+              {avatarUploading ? <Loader2 size={11} className="text-white animate-spin" /> : <Camera size={11} className="text-white" />}
+            </button>
+            <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarUpload} />
+          </div>
+
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2">
+              <h2 className="text-[20px] font-extrabold text-white tracking-tight truncate">
+                {fullName || (isHe ? 'השם שלך' : 'Your Name')}
+              </h2>
+              {/* Verified badge — Instagram-style blue check */}
               {identityVerified && (
-                <span className="inline-flex items-center gap-1 mt-1.5 px-2 py-0.5 rounded-full bg-blue-500/15 text-[10px] font-bold text-blue-400 border border-blue-500/20">
-                  <CheckCircle2 size={10} /> {isHe ? 'זהות מאומתת' : 'Identity Verified'}
-                </span>
-              )}
-              {identityPending && (
-                <span className="inline-flex items-center gap-1 mt-1.5 px-2 py-0.5 rounded-full bg-amber-500/15 text-[10px] font-bold text-amber-400 border border-amber-500/20">
-                  <Loader2 size={10} className="animate-spin" /> {isHe ? 'בבדיקה' : 'Verification pending'}
-                </span>
+                <BadgeCheck size={18} fill="#1d9bf0" className="text-white shrink-0" />
               )}
             </div>
-          </div>
-
-          {/* Tier journey */}
-          {(() => {
-            const tierDefs = [
-              { name: 'New', Icon: UserCircle, reached: true, color: '#9ca3af', bg: 'rgba(156,163,175,0.15)' },
-              { name: 'Verified', Icon: BadgeCheck, reached: identityVerified, color: '#3b82f6', bg: 'rgba(59,130,246,0.15)' },
-              { name: 'Trusted', Icon: Award, reached: false, color: '#22c55e', bg: 'rgba(34,197,94,0.15)' },
-              { name: 'Elite', Icon: Crown, reached: false, color: '#f59e0b', bg: 'rgba(245,158,11,0.15)' },
-            ]
-            // Find current tier index
-            const currentIdx = identityVerified ? 1 : 0
-            return (
-              <div className="flex items-center gap-0 mb-4">
-                {tierDefs.map((t, i, arr) => {
-                  const isActive = i === currentIdx
-                  const isPast = i < currentIdx || t.reached
-                  const isFuture = i > currentIdx && !t.reached
-                  return (
-                    <div key={i} className="flex items-center flex-1">
-                      <div className="flex flex-col items-center flex-1">
-                        <div
-                          className={`w-9 h-9 rounded-xl flex items-center justify-center mb-1 transition-all ${
-                            isActive ? 'ring-2 shadow-lg scale-110' : ''
-                          }`}
-                          style={{
-                            background: isPast || isActive ? t.bg : 'rgba(255,255,255,0.04)',
-                            ringColor: isActive ? t.color : undefined,
-                            boxShadow: isActive ? `0 0 16px ${t.color}33` : undefined,
-                            '--tw-ring-color': isActive ? t.color : 'transparent',
-                          } as React.CSSProperties}
-                        >
-                          <t.Icon
-                            size={16}
-                            strokeWidth={1.8}
-                            style={{ color: isPast || isActive ? t.color : 'rgba(255,255,255,0.12)' }}
-                          />
-                        </div>
-                        <span
-                          className="text-[9px] font-semibold"
-                          style={{ color: isPast || isActive ? t.color : 'rgba(255,255,255,0.12)' }}
-                        >
-                          {t.name}
-                        </span>
-                      </div>
-                      {i < arr.length - 1 && (
-                        <div
-                          className="h-[2px] w-full mt-[-14px] rounded-full"
-                          style={{
-                            background: isPast && tierDefs[i + 1]?.reached
-                              ? `linear-gradient(90deg, ${t.color}66, ${tierDefs[i + 1].color}66)`
-                              : isPast
-                                ? `${t.color}44`
-                                : 'rgba(255,255,255,0.05)',
-                          }}
-                        />
-                      )}
-                    </div>
-                  )
-                })}
-              </div>
-            )
-          })()}
-
-          {/* Profile Strength */}
-          <div className="flex items-center gap-3 mb-3">
-            <div className="flex-1 flex gap-0.5">
-              {[0, 1, 2, 3, 4].map(i => (
-                <div key={i} className={`flex-1 h-1.5 rounded-full ${i < filledSegments ? 'bg-[#fe5b25]' : 'bg-white/10'}`} />
-              ))}
+            <p className="text-[13px] text-white/50 truncate mt-0.5">
+              {professions[0] ? (isHe ? PROFESSIONS.find(p => p.id === professions[0])?.he : PROFESSIONS.find(p => p.id === professions[0])?.en) : 'Contractor'}
+              {counties[0] ? ` · ${counties[0]}` : ''}
+            </p>
+            <div className="flex items-center gap-2 mt-1.5">
+              {contractorData?.profile?.avg_rating ? (
+                <span className="flex items-center gap-0.5 text-[11px] text-white/80 font-semibold">
+                  <Star size={10} fill="#fe5b25" className="text-[#fe5b25]" /> {contractorData.profile.avg_rating.toFixed(1)}
+                  <span className="text-white/30 font-normal">({contractorData.profile.review_count ?? 0})</span>
+                </span>
+              ) : (
+                <span className="text-[11px] text-white/30">{isHe ? 'אין דירוג' : 'No rating'}</span>
+              )}
+              {/* Verified text removed — blue checkmark shown next to name */}
             </div>
-            <span className="text-[12px] font-bold text-[#fe5b25]">{strengthPercent}%</span>
           </div>
-
-          <button
-            onClick={() => navigate('/profile/public')}
-            className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-white/10 active:scale-[0.97] transition-transform"
-          >
-            <Eye size={14} className="text-white/60" />
-            <span className="text-[13px] font-medium text-white/60">Preview my public profile</span>
-          </button>
         </div>
 
-        {/* ---- NEXT TIER CARD ---- */}
-        <div className="bg-white rounded-[20px] border border-black/[0.04] shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-4 mb-5">
-          {!identityVerified ? (
+        {/* Actions row */}
+        <div className="flex gap-2.5">
+          {contractorData?.profile?.slug && (
+            <Link to={`/pro/${contractorData.profile.slug}`}
+              className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-2xl font-semibold text-[13px] text-white transition-all"
+              style={{
+                background: 'linear-gradient(135deg, #fe5b25, #ff7a4d)',
+                boxShadow: '0 4px 16px rgba(254,91,37,0.3)',
+              }}>
+              <Eye size={14} />
+              {isHe ? 'פרופיל ציבורי' : 'View Profile'}
+            </Link>
+          )}
+          <button onClick={() => setActiveSheet('account')}
+            className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-2xl font-semibold text-[13px] text-white/70
+                       hover:text-white hover:bg-white/10 transition-all"
+            style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.08)' }}>
+            <Settings size={14} />
+            {isHe ? 'הגדרות' : 'Settings'}
+          </button>
+        </div>
+      </div>
+
+      {/* ━━━━━━━━━━━━━━━ CARDS GRID ━━━━━━━━━━━━━━━ */}
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-4 stagger-children">
+
+        {/* 1. My Services */}
+        <SummaryCard wide
+          customIcon={professions.length > 0 ? PROFESSION_ICONS[professions[0]] : undefined}
+          icon={professions.length === 0 ? Briefcase : undefined}
+          title={isHe ? 'השירותים שלי' : 'My Services'}
+          onClick={() => openSheet('services')}
+          complete={cardStatus.services}>
+          {professions.length > 0 ? (
+            <div className="flex flex-wrap gap-1 mt-1">
+              {professions.slice(0, 3).map(p => {
+                const prof = PROFESSIONS.find(pr => pr.id === p)
+                const icon = PROFESSION_ICONS[p]
+                return prof ? (
+                  <span key={p} className="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg text-[11px] font-medium text-zinc-600"
+                    style={{ background: 'linear-gradient(145deg, #f5f3f0, #eae8e4)', boxShadow: '0 1px 3px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.7)' }}>
+                    {icon && <span style={{ color: '#fe5b25', width: 14, height: 14, display: 'inline-flex', flexShrink: 0 }} className="[&>svg]:w-3.5 [&>svg]:h-3.5">{icon}</span>}
+                    {isHe ? prof.he : prof.en}
+                  </span>
+                ) : null
+              })}
+              {professions.length > 3 && (
+                <span className="text-[10px] text-[#fe5b25] font-semibold">+{professions.length - 3}</span>
+              )}
+            </div>
+          ) : (
+            <span className="text-gray-400">{isHe ? 'הגדר מקצועות' : 'Set up services'}</span>
+          )}
+        </SummaryCard>
+
+        {/* 2. Service Areas */}
+        <SummaryCard icon={MapPin} title={isHe ? 'אזורי שירות' : 'Service Areas'} onClick={() => openSheet('areas')}
+          accent="#3b82f6" complete={cardStatus.areas}>
+          {counties.length > 0 || zipCodes.length > 0 ? (
             <>
-              {/* Not verified yet — show verification CTA */}
-              <div className="flex items-center gap-3 mb-3">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center">
-                  <BadgeCheck size={18} className="text-white" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-[14px] font-semibold text-zinc-900">{isHe ? 'אמת את הזהות שלך' : 'Get Verified'}</p>
-                  <p className="text-[11px] text-[#737373]">{isHe ? 'קבלנים מאומתים מקבלים עדיפות בלידים' : 'Verified contractors get lead priority'}</p>
-                </div>
+              <div className="flex flex-wrap gap-1 mt-1">
+                {counties.slice(0, 2).map(c => (
+                  <span key={c} className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] font-medium text-zinc-600"
+                    style={{ background: 'linear-gradient(145deg, #f5f3f0, #eae8e4)', boxShadow: '0 1px 3px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.7)' }}>
+                    📍 {c}
+                  </span>
+                ))}
+                {counties.length > 2 && <span className="text-[10px] text-blue-500 font-semibold">+{counties.length - 2}</span>}
               </div>
-              <button
-                onClick={() => navigate('/verify-identity')}
-                className="w-full flex items-center gap-3 p-3 rounded-xl bg-[#fafafa] active:scale-[0.97] transition-transform"
-              >
-                <div className="w-9 h-9 rounded-lg bg-white flex items-center justify-center shadow-sm">
-                  <Fingerprint size={15} className="text-zinc-900" />
-                </div>
-                <div className="flex-1 text-left">
-                  <p className="text-[13px] font-semibold text-zinc-900">{isHe ? 'אימות זהות' : 'Identity Verification'}</p>
-                  <p className="text-[10px] text-[#737373]">{isHe ? 'תעודה + סלפי · באדג\' מאומת' : 'ID + selfie · Verified badge ✓'}</p>
-                </div>
-                <div className="flex flex-col items-end gap-1">
-                  <span className="text-[10px] font-bold text-green-600">+30% {isHe ? 'יותר לידים' : 'more leads'}</span>
-                  <ArrowRight size={12} className="text-[#a3a3a3]" />
-                </div>
-              </button>
+              <p className="text-[10px] text-gray-400 mt-0.5">{zipCodes.length} zip codes</p>
             </>
           ) : (
-            <>
-              {/* Verified — show progress to Trusted */}
-              <div className="flex items-center gap-3 mb-3">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-green-500 to-green-600 flex items-center justify-center">
-                  <Award size={18} className="text-white" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-[14px] font-semibold text-zinc-900">{isHe ? 'קדם לרמת' : 'Unlock'} <span className="text-green-600">Trusted</span></p>
-                  <p className="text-[11px] text-[#737373]">{isHe ? '10 עבודות + דירוג 4.0+' : '10 completed jobs + 4.0+ rating'}</p>
-                </div>
-              </div>
-              {(() => {
-                const jobs = contractorData?.stats?.job_orders_completed ?? 0
-                const rating = contractorData?.profile?.avg_rating ?? 0
-                return (
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-3 p-3 rounded-xl bg-[#fafafa]">
-                      <div className={`w-9 h-9 rounded-lg flex items-center justify-center shadow-sm ${jobs >= 10 ? 'bg-green-100' : 'bg-white'}`}>
-                        <Briefcase size={15} className={jobs >= 10 ? 'text-green-600' : 'text-zinc-900'} />
-                      </div>
-                      <div className="flex-1">
-                        <p className="text-[13px] font-semibold text-zinc-900">{isHe ? 'עבודות שהושלמו' : 'Completed Jobs'}</p>
-                        <div className="flex items-center gap-2 mt-1">
-                          <div className="flex-1 h-1.5 rounded-full bg-zinc-100 overflow-hidden">
-                            <div className="h-full rounded-full bg-green-500 transition-all" style={{ width: `${Math.min(100, (jobs / 10) * 100)}%` }} />
-                          </div>
-                          <span className="text-[11px] font-bold text-zinc-500">{jobs}/10</span>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-3 p-3 rounded-xl bg-[#fafafa]">
-                      <div className={`w-9 h-9 rounded-lg flex items-center justify-center shadow-sm ${rating >= 4.0 ? 'bg-green-100' : 'bg-white'}`}>
-                        <Star size={15} className={rating >= 4.0 ? 'text-green-600' : 'text-zinc-900'} />
-                      </div>
-                      <div className="flex-1">
-                        <p className="text-[13px] font-semibold text-zinc-900">{isHe ? 'דירוג ממוצע' : 'Average Rating'}</p>
-                        <p className="text-[11px] text-[#737373]">{rating > 0 ? `${rating.toFixed(1)} / 4.0` : isHe ? 'אין דירוג עדיין' : 'No rating yet'}</p>
-                      </div>
-                    </div>
-                  </div>
-                )
-              })()}
-            </>
+            <span className="text-gray-400">{isHe ? 'הגדר אזורים' : 'Set up areas'}</span>
           )}
+        </SummaryCard>
 
-          {/* Existing completed items */}
-          <div className="space-y-2 mt-2">
-
-          {/* Done items */}
-          <div className="flex items-center gap-2 mt-3 px-1">
-            {!!fullName && (
-              <div className="flex items-center gap-1">
-                <CheckCircle2 size={12} className="text-green-500" />
-                <span className="text-[10px] text-green-600">Profile Photo</span>
-              </div>
-            )}
-            {!!phone && (
-              <div className="flex items-center gap-1">
-                <CheckCircle2 size={12} className="text-green-500" />
-                <span className="text-[10px] text-green-600">Phone Verified</span>
-              </div>
-            )}
+        {/* 3. Credentials */}
+        <SummaryCard icon={ShieldCheck} title={isHe ? 'אישורים' : 'Credentials'} onClick={() => setActiveSheet('credentials')}
+          accent="#22c55e" complete={cardStatus.credentials}>
+          <div className="space-y-0.5 mt-1">
+            {businessName && <p className="truncate">{businessName}</p>}
+            {licenseNumber && <p className="truncate">License #{licenseNumber}</p>}
+            {languages.length > 0 && <p>{languages.join(' · ')}</p>}
+            {identityVerified && <p className="text-green-600 font-semibold">✓ ID {isHe ? 'מאומת' : 'Verified'}</p>}
+            {!businessName && !licenseNumber && <span className="text-gray-400">{isHe ? 'הוסף פרטים' : 'Add details'}</span>}
           </div>
-        </div>
+        </SummaryCard>
 
-        {/* ---- TAB SWITCHER ---- */}
-        <div className="flex bg-[#f5f5f5] rounded-xl p-1 mb-5">
-          <button
-            onClick={() => setMobileTab('profile')}
-            className={`flex-1 py-2.5 rounded-lg text-[13px] font-semibold transition-all ${
-              mobileTab === 'profile' ? 'bg-white shadow-sm text-zinc-900' : 'text-[#737373]'
-            }`}
-          >
-            Profile
-          </button>
-          <button
-            onClick={() => setMobileTab('settings')}
-            className={`flex-1 py-2.5 rounded-lg text-[13px] font-semibold transition-all ${
-              mobileTab === 'settings' ? 'bg-white shadow-sm text-zinc-900' : 'text-[#737373]'
-            }`}
-          >
-            Settings
-          </button>
-        </div>
+        {/* 4. Availability */}
+        <SummaryCard icon={Clock} title={isHe ? 'זמינות' : 'Availability'} onClick={() => setActiveSheet('workprefs')}
+          accent="#a855f7" complete={workingDays.length > 0}>
+          <div className="space-y-0.5 mt-1">
+            <div className="flex items-center gap-1.5">
+              <div className={`w-2 h-2 rounded-full ${availableToday ? 'bg-green-500' : 'bg-gray-300'}`} />
+              <span>{availableToday ? (isHe ? 'זמין היום' : 'Available today') : (isHe ? 'לא זמין' : 'Not available')}</span>
+            </div>
+            <p>{workingHoursStart} – {workingHoursEnd}</p>
+            <p className="text-[10px]">{workingDays.map(d => String(d).slice(0,2).toUpperCase()).join(' · ')}</p>
+          </div>
+        </SummaryCard>
 
-        {mobileTab === 'profile' ? (
-          <div className="space-y-3">
-
-            {/* Professional Info collapsible */}
-            <MobileProfSection navigate={navigate} />
-
-            {/* Portfolio */}
-            <MobilePortfolioSection />
-
-            {/* Reviews */}
-            <div className="bg-white rounded-[20px] border border-black/[0.04] shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-4">
-              <div className="flex items-center justify-between mb-3">
-                <p className="text-[14px] font-semibold text-zinc-900">{isHe ? 'ביקורות' : 'Reviews'}</p>
-                <span className="text-[11px] text-[#737373]">{contractorData?.profile?.review_count ?? 0} {isHe ? 'סה״כ' : 'total'}</span>
-              </div>
-              {contractorData?.profile?.avg_rating ? (
-                <div className="flex items-center gap-4 mb-3">
-                  <div>
-                    <p className="text-[26px] font-bold tracking-tight">{contractorData.profile.avg_rating.toFixed(1)}</p>
-                    <div className="flex gap-0.5">
-                      {[1,2,3,4,5].map(i => (
-                        <Star key={i} size={9} className={i <= Math.round(contractorData.profile!.avg_rating!) ? 'text-amber-400' : 'text-gray-200'} fill={i <= Math.round(contractorData.profile!.avg_rating!) ? '#fbbf24' : '#e5e7eb'} />
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <div className="text-center py-4">
-                  <Star size={24} className="text-gray-200 mx-auto mb-2" />
-                  <p className="text-[12px] text-[#737373]">{isHe ? 'אין ביקורות עדיין' : 'No reviews yet'}</p>
-                </div>
-              )}
+        {/* 5. Channels */}
+        <SummaryCard icon={Radio} title={isHe ? 'ערוצים' : 'Channels'} onClick={() => setActiveSheet('comms')}
+          accent="#10b981" complete={cardStatus.comms}>
+          <div className="space-y-1 mt-1">
+            <div className="flex items-center gap-1.5">
+              <div className={`w-2 h-2 rounded-full ${isWhatsAppConnected ? 'bg-green-500' : 'bg-gray-300'}`} />
+              <span>WhatsApp</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <div className={`w-2 h-2 rounded-full ${pushStatus === 'granted' ? 'bg-green-500' : 'bg-gray-300'}`} />
+              <span>Push</span>
             </div>
           </div>
-        ) : (
-          <div className="space-y-3">
+        </SummaryCard>
 
-            {/* Communication section */}
-            <MobileCommSection
-              isWhatsAppConnected={isWhatsAppConnected}
-              whatsappPhone={whatsappPhone}
-              pushStatus={pushStatus}
-              pushLoading={pushLoading}
-              waPolling={waPolling}
-              handleConnectWhatsApp={handleConnectWhatsApp}
-              enablePush={enablePush}
-              navigate={navigate}
-            />
+        {/* 6. Profile & Account */}
+        <SummaryCard icon={User} title={isHe ? 'חשבון' : 'Account'} onClick={() => setActiveSheet('account')}
+          accent="#6366f1" complete={cardStatus.account}>
+          <div className="space-y-0.5 mt-1">
+            <p className="truncate">{fullName || '—'}</p>
+            <p className="truncate">{phone || '—'}</p>
+            {publicUrl && <p className="text-[#fe5b25] font-semibold">{isHe ? '🔗 מפורסם' : '🔗 Published'}</p>}
+          </div>
+        </SummaryCard>
+      </div>
 
-            {/* Working Hours */}
-            <MobileWorkingHoursSection />
+      {/* ━━━━━━━━━━━━━━━ BOTTOM SHEETS ━━━━━━━━━━━━━━━ */}
 
-            {/* Preferences */}
-            <MobilePreferencesSection />
+      {/* --- My Services --- */}
+      <BottomSheet open={activeSheet === 'services'} onClose={() => setActiveSheet(null)}
+        title={isHe ? 'השירותים שלי' : 'My Services'}>
+        <p className="text-sm text-gray-500 mb-4">
+          {isHe ? 'בחר את המקצועות שלך' : 'Select your professions'}
+        </p>
+        <ProfessionGrid
+          selected={editProfessions as any}
+          onToggle={(id) => setEditProfessions(prev =>
+            prev.includes(id) ? prev.filter(p => p !== id) : [...prev, id]
+          )}
+        />
+        <SheetSaveButton onClick={saveProfessions} saving={saving} isHe={isHe} />
+      </BottomSheet>
 
-            {/* Premium Plan */}
-            <button
-              onClick={() => navigate('/subscription')}
-              className="w-full bg-white rounded-[20px] border border-black/[0.04] shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-4 flex items-center gap-3 active:scale-[0.97] transition-transform"
-            >
-              <div className="w-9 h-9 rounded-xl bg-[#fe5b25] flex items-center justify-center">
-                <Star size={14} className="text-white" />
-              </div>
-              <div className="flex-1 text-left">
-                <p className="text-[13px] font-semibold text-zinc-900">Premium Plan</p>
-                <p className="text-[10px] text-[#737373]">$79/mo · Renews Apr 15</p>
-              </div>
-              <ChevronRight size={14} className="text-[#a3a3a3]" />
-            </button>
+      {/* --- Service Areas (full-screen overlay) --- */}
+      <BottomSheet open={activeSheet === 'areas'} onClose={() => setActiveSheet(null)}
+        title={isHe ? 'אזורי שירות' : 'Service Areas'} fullScreen>
+
+        {/* Mini map preview */}
+        {zipCodes.length > 0 && (
+          <div className="rounded-xl overflow-hidden border border-gray-200 mb-4">
+            <ServiceAreaMapLazy zipCodes={zipCodes} height="180px" />
           </div>
         )}
 
-        </div>
-      </div>
+        {/* Current selected areas */}
+        {editAreas.length > 0 && (
+          <div className="mb-4">
+            <p className="text-xs font-semibold text-gray-500 mb-1.5">{isHe ? 'אזורים נבחרים' : 'Selected areas'}</p>
+            <div className="flex flex-wrap gap-1.5">
+              {editAreas.map(a => (
+                <span key={`${a.state}-${a.county}`} className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-blue-50 border border-blue-100 text-xs font-medium text-zinc-700">
+                  <MapPin size={10} className="text-blue-400" /> {a.county}
+                  <button onClick={() => setEditAreas(prev => prev.filter(p => p.county !== a.county))}
+                    className="ml-0.5 text-gray-400 hover:text-red-500"><X size={12} /></button>
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
 
-      {/* ===================== DESKTOP VIEW ===================== */}
-      <div className="hidden md:block">
-        <div className="animate-fade-in max-w-3xl mx-auto space-y-6 pb-12">
-          {/* Header */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="flex items-center justify-center h-10 w-10 rounded-xl bg-[#fee8df] text-[#c43d10]">
-                <User className="h-5 w-5" />
+        <ServiceAreaSelector
+          selectedAreas={editAreas}
+          onAddArea={(area) => setEditAreas(prev => [...prev, area])}
+          onRemoveArea={(state, county) => setEditAreas(prev => prev.filter(a => !(a.state === state && a.county === county)))}
+        />
+
+        <SheetSaveButton onClick={saveAreas} saving={saving} isHe={isHe} />
+      </BottomSheet>
+
+      {/* --- Credentials --- */}
+      <BottomSheet open={activeSheet === 'credentials'} onClose={() => setActiveSheet(null)}
+        title={isHe ? 'אישורים ומסמכים' : 'Credentials'}>
+        <div className="space-y-4">
+          <div>
+            <SheetLabel>{isHe ? 'שם העסק' : 'Business Name'}</SheetLabel>
+            <SheetInput value={businessName} onChange={setBusinessName}
+              placeholder={isHe ? 'שם העסק שלך' : 'Your business name'} maxLength={100} />
+          </div>
+          <div>
+            <SheetLabel>{isHe ? 'מספר רישיון' : 'License Number'}</SheetLabel>
+            <SheetInput value={licenseNumber} onChange={setLicenseNumber}
+              placeholder={isHe ? 'מספר רישיון מקצועי' : 'Professional license #'} maxLength={50} />
+          </div>
+          <div>
+            <SheetLabel>{isHe ? 'שפות' : 'Languages'}</SheetLabel>
+            <div className="flex flex-wrap gap-2">
+              {LANGUAGE_OPTIONS.map(lang => (
+                <button key={lang.value} type="button"
+                  onClick={() => setLanguages(prev => prev.includes(lang.value) ? prev.filter(l => l !== lang.value) : [...prev, lang.value])}
+                  className={`px-3.5 py-1.5 rounded-xl text-sm font-medium transition-all ${
+                    languages.includes(lang.value)
+                      ? 'bg-[#fe5b25] text-white shadow-sm'
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  }`}>
+                  {isHe ? lang.labelHe : lang.label}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div>
+            <SheetLabel>{isHe ? 'אתר אינטרנט' : 'Website'}</SheetLabel>
+            <div className="relative">
+              <Globe className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 rtl:left-auto rtl:right-3" />
+              <input type="url" value={websiteUrl} onChange={e => setWebsiteUrl(e.target.value)}
+                placeholder="https://yoursite.com" maxLength={200}
+                className="w-full pl-10 rtl:pl-4 rtl:pr-10 pr-4 py-3 rounded-xl border border-gray-200
+                           bg-white text-sm text-gray-800 placeholder:text-gray-400
+                           focus:outline-none focus:ring-2 focus:ring-[#fe5b25]/30 focus:border-[#fe5b25]/50 transition-all" />
+            </div>
+          </div>
+          <div>
+            <SheetLabel>{isHe ? 'אימות זהות' : 'Identity Verification'}</SheetLabel>
+            <Link to="/verify-identity"
+              className={`flex items-center gap-3 px-4 py-3 rounded-xl border transition-all ${
+                identityVerified ? 'bg-green-50 border-green-200'
+                : identityPending ? 'bg-yellow-50 border-yellow-200'
+                : 'bg-gray-50 border-gray-200 hover:bg-gray-100'
+              }`}>
+              {identityVerified
+                ? <CheckCircle2 className="w-5 h-5 text-green-600" />
+                : <Fingerprint className={`w-5 h-5 ${identityPending ? 'text-yellow-600' : 'text-gray-400'}`} />}
+              <p className={`text-sm font-medium flex-1 ${identityVerified ? 'text-green-800' : 'text-gray-700'}`}>
+                {identityVerified ? (isHe ? 'זהות מאומתת ✓' : 'Identity Verified ✓')
+                  : identityPending ? (isHe ? 'בתהליך...' : 'In progress...')
+                  : (isHe ? 'אמת זהות' : 'Verify your identity')}
+              </p>
+            </Link>
+          </div>
+          <SheetSaveButton onClick={saveCredentials} saving={saving} isHe={isHe} />
+        </div>
+      </BottomSheet>
+
+      {/* --- Availability --- */}
+      <BottomSheet open={activeSheet === 'workprefs'} onClose={() => setActiveSheet(null)}
+        title={isHe ? 'זמינות' : 'Availability'}>
+        <div className="space-y-5">
+          {/* Available Today toggle */}
+          <div className={`rounded-xl border p-4 ${availableToday ? 'border-green-200 bg-green-50/50' : 'border-zinc-200'}`}>
+            <SheetToggle
+              label={isHe ? 'זמין היום' : 'Available today'}
+              checked={availableToday}
+              onChange={setAvailableToday}
+            />
+            <p className="text-[11px] text-zinc-400 mt-1">
+              {isHe ? 'מראה ללקוחות שאתה זמין לעבודות היום' : 'Shows clients you\'re available for jobs today'}
+            </p>
+          </div>
+
+          {/* Working Days */}
+          <div>
+            <SheetLabel>{isHe ? 'ימי עבודה' : 'Working days'}</SheetLabel>
+            <div className="flex gap-2 mt-2">
+              {[
+                { key: 'sun', en: 'S', he: 'א' },
+                { key: 'mon', en: 'M', he: 'ב' },
+                { key: 'tue', en: 'T', he: 'ג' },
+                { key: 'wed', en: 'W', he: 'ד' },
+                { key: 'thu', en: 'T', he: 'ה' },
+                { key: 'fri', en: 'F', he: 'ו' },
+                { key: 'sat', en: 'S', he: 'ש' },
+              ].map(d => {
+                const active = workingDays.includes(d.key)
+                return (
+                  <button
+                    key={d.key}
+                    onClick={() => setWorkingDays(prev =>
+                      active ? prev.filter(x => x !== d.key) : [...prev, d.key]
+                    )}
+                    className={`w-10 h-10 rounded-xl text-sm font-bold transition-all ${
+                      active
+                        ? 'bg-[#fe5b25] text-white shadow-sm'
+                        : 'bg-zinc-100 text-zinc-400 hover:bg-zinc-200'
+                    }`}
+                  >
+                    {isHe ? d.he : d.en}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+
+          {/* Working Hours */}
+          <div>
+            <SheetLabel>{isHe ? 'שעות עבודה' : 'Working hours'}</SheetLabel>
+            <div className="grid grid-cols-2 gap-3 mt-2">
+              <div>
+                <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">{isHe ? 'מ-' : 'From'}</label>
+                <input
+                  type="time"
+                  value={workingHoursStart}
+                  onChange={e => setWorkingHoursStart(e.target.value)}
+                  className="w-full mt-1 px-3 py-2.5 rounded-xl border border-zinc-200 text-sm font-semibold text-zinc-900 outline-none focus:border-[#fe5b25] focus:ring-1 focus:ring-[#fe5b25]/20"
+                />
               </div>
               <div>
-                <h1 className="text-xl font-semibold text-zinc-900">{t('profile.title')}</h1>
-                <p className="text-sm text-zinc-500">Manage your personal information</p>
+                <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">{isHe ? 'עד' : 'Until'}</label>
+                <input
+                  type="time"
+                  value={workingHoursEnd}
+                  onChange={e => setWorkingHoursEnd(e.target.value)}
+                  className="w-full mt-1 px-3 py-2.5 rounded-xl border border-zinc-200 text-sm font-semibold text-zinc-900 outline-none focus:border-[#fe5b25] focus:ring-1 focus:ring-[#fe5b25]/20"
+                />
               </div>
             </div>
-            {contractorData?.profile?.slug && (
-              <Link
-                to={`/pro/${contractorData.profile.slug}`}
-                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold text-[#fe5b25] bg-[#fff4f0] hover:bg-[#fee8df] transition-colors"
-              >
-                <Eye className="w-4 h-4" /> {isHe ? 'צפה בפרופיל ציבורי' : 'View Public Profile'}
-              </Link>
+          </div>
+
+          {/* Work type toggles (kept but secondary) */}
+          <div className="space-y-1 pt-2 border-t border-zinc-100">
+            <SheetLabel>{isHe ? 'סוגי עבודה' : 'Work types'}</SheetLabel>
+            <SheetToggle label={isHe ? 'מחיר קבוע' : 'Fixed price'} checked={acceptsFixed} onChange={setAcceptsFixed} />
+            <SheetToggle label={isHe ? 'אחוזים' : 'Percentage'} checked={acceptsPercentage} onChange={setAcceptsPercentage} />
+            <SheetToggle label={isHe ? 'קבלן משנה' : 'Sub-contractor'} checked={acceptsSubwork} onChange={setAcceptsSubwork} />
+          </div>
+
+          <SheetSaveButton onClick={saveWorkPrefs} saving={saving} isHe={isHe} />
+        </div>
+      </BottomSheet>
+
+      {/* --- Channels --- */}
+      <BottomSheet open={activeSheet === 'comms'} onClose={() => setActiveSheet(null)}
+        title={isHe ? 'ערוצים' : 'Channels'}>
+        <div className="space-y-4">
+          {/* WhatsApp */}
+          <div className={`rounded-xl border p-4 ${isWhatsAppConnected ? 'border-green-200 bg-green-50/50' : 'border-zinc-200'}`}>
+            <div className="flex items-center gap-3 mb-3">
+              <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${isWhatsAppConnected ? 'bg-green-500' : 'bg-[#25D366]'}`}>
+                <MessageCircle className="h-5 w-5 text-white" />
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-bold text-zinc-900">WhatsApp</p>
+                {isWhatsAppConnected
+                  ? <span className="inline-flex items-center gap-1 text-[10px] font-bold text-green-600 bg-green-100 px-2 py-0.5 rounded-full"><CheckCircle2 className="h-2.5 w-2.5" /> Connected</span>
+                  : <p className="text-[10px] text-zinc-400">Receive leads via WhatsApp</p>}
+              </div>
+            </div>
+            {isWhatsAppConnected ? (
+              <p className="text-xs text-zinc-500">Connected: <span className="font-mono font-semibold">{whatsappPhone}</span></p>
+            ) : (
+              <button onClick={handleConnectWhatsApp} disabled={waPolling}
+                className="w-full py-2.5 rounded-xl text-sm font-semibold flex items-center justify-center gap-2 bg-[#25D366] text-white hover:bg-[#1da851] disabled:opacity-70">
+                {waPolling ? <><Loader2 className="h-4 w-4 animate-spin" /> Waiting...</> : <><MessageCircle className="h-4 w-4" /> Connect</>}
+              </button>
             )}
           </div>
 
-          <div className="stagger-children space-y-5">
-
-            {/* --- Hero Card with Tier Journey --- */}
-            <section className="glass-panel p-6 bg-gradient-to-r from-zinc-900 to-zinc-800 text-white rounded-2xl overflow-hidden relative">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-[#fe5b25] rounded-full opacity-[0.08] -translate-y-10 translate-x-10" />
-              <div className="flex items-center gap-4 mb-5 relative">
-                <div className="relative">
-                  <div className="w-16 h-16 rounded-2xl bg-white/10 flex items-center justify-center text-white text-[22px] font-bold">
-                    {initials}
-                  </div>
-                  {identityVerified && (
-                    <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center border-2 border-zinc-900">
-                      <CheckCircle2 size={12} className="text-white" />
-                    </div>
-                  )}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <h2 className="text-lg font-bold tracking-tight truncate">{fullName || 'Your Name'}</h2>
-                  <p className="text-sm text-white/40">
-                    {contractorData?.professions?.[0] ?? 'Contractor'}
-                    {contractorData?.counties?.[0] ? ` · ${contractorData.counties[0]}` : ''}
-                    {contractorData?.profile?.years_experience ? ` · ${contractorData.profile.years_experience} yrs` : ''}
-                  </p>
-                  <div className="flex items-center gap-3 mt-1.5">
-                    {contractorData?.profile?.avg_rating ? (
-                      <span className="flex items-center gap-1 text-sm text-amber-400 font-semibold">
-                        <Star size={12} fill="#fbbf24" /> {contractorData.profile.avg_rating.toFixed(1)}
-                        <span className="text-white/25 font-normal">({contractorData.profile.review_count ?? 0})</span>
-                      </span>
-                    ) : (
-                      <span className="text-sm text-white/30">{isHe ? 'אין דירוג עדיין' : 'No rating yet'}</span>
-                    )}
-                    {identityVerified && (
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-500/15 text-[10px] font-bold text-blue-400 border border-blue-500/20">
-                        <CheckCircle2 size={10} /> {isHe ? 'מאומת' : 'Verified'}
-                      </span>
-                    )}
-                  </div>
-                </div>
+          {/* Push */}
+          <div className={`rounded-xl border p-4 ${pushStatus === 'granted' ? 'border-orange-200 bg-orange-50/50' : 'border-zinc-200'}`}>
+            <div className="flex items-center gap-3 mb-3">
+              <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${pushStatus === 'granted' ? 'bg-[#fe5b25]' : 'bg-zinc-400'}`}>
+                <Bell className="h-5 w-5 text-white" />
               </div>
-
-              {/* Tier Journey */}
-              {(() => {
-                const tierDefs = [
-                  { name: 'New', Icon: UserCircle, reached: true, color: '#9ca3af', bg: 'rgba(156,163,175,0.15)' },
-                  { name: 'Verified', Icon: BadgeCheck, reached: identityVerified, color: '#3b82f6', bg: 'rgba(59,130,246,0.15)' },
-                  { name: 'Trusted', Icon: Award, reached: false, color: '#22c55e', bg: 'rgba(34,197,94,0.15)' },
-                  { name: 'Elite', Icon: Crown, reached: false, color: '#f59e0b', bg: 'rgba(245,158,11,0.15)' },
-                ]
-                const currentIdx = identityVerified ? 1 : 0
-                return (
-                  <div className="flex items-center gap-0 mb-3">
-                    {tierDefs.map((td, i, arr) => {
-                      const isActive = i === currentIdx
-                      const isPast = i < currentIdx || td.reached
-                      return (
-                        <div key={i} className="flex items-center flex-1">
-                          <div className="flex flex-col items-center flex-1">
-                            <div
-                              className={`w-10 h-10 rounded-xl flex items-center justify-center mb-1 transition-all ${isActive ? 'ring-2 shadow-lg scale-110' : ''}`}
-                              style={{
-                                background: isPast || isActive ? td.bg : 'rgba(255,255,255,0.04)',
-                                '--tw-ring-color': isActive ? td.color : 'transparent',
-                                boxShadow: isActive ? `0 0 16px ${td.color}33` : undefined,
-                              } as React.CSSProperties}
-                            >
-                              <td.Icon size={18} strokeWidth={1.8} style={{ color: isPast || isActive ? td.color : 'rgba(255,255,255,0.12)' }} />
-                            </div>
-                            <span className="text-[10px] font-semibold" style={{ color: isPast || isActive ? td.color : 'rgba(255,255,255,0.12)' }}>
-                              {td.name}
-                            </span>
-                          </div>
-                          {i < arr.length - 1 && (
-                            <div className="h-[2px] w-full mt-[-14px] rounded-full" style={{
-                              background: isPast && tierDefs[i + 1]?.reached
-                                ? `linear-gradient(90deg, ${td.color}66, ${tierDefs[i + 1].color}66)`
-                                : isPast ? `${td.color}44` : 'rgba(255,255,255,0.05)',
-                            }} />
-                          )}
-                        </div>
-                      )
-                    })}
-                  </div>
-                )
-              })()}
-
-              {/* Profile Strength bar */}
-              <div className="flex items-center gap-3">
-                <div className="flex-1 flex gap-0.5">
-                  {[0, 1, 2, 3, 4].map(i => (
-                    <div key={i} className={`flex-1 h-1.5 rounded-full ${i < filledSegments ? 'bg-[#fe5b25]' : 'bg-white/10'}`} />
-                  ))}
-                </div>
-                <span className="text-[12px] font-bold text-[#fe5b25]">{strengthPercent}%</span>
+              <div className="flex-1">
+                <p className="text-sm font-bold text-zinc-900">Push Alerts</p>
+                {pushStatus === 'granted'
+                  ? <span className="inline-flex items-center gap-1 text-[10px] font-bold text-[#e04d1c] bg-orange-100 px-2 py-0.5 rounded-full"><CheckCircle2 className="h-2.5 w-2.5" /> Enabled</span>
+                  : pushStatus === 'denied'
+                    ? <p className="text-[10px] text-red-500">{isHe ? 'חסום' : 'Blocked'}</p>
+                    : <p className="text-[10px] text-zinc-400">{isHe ? 'התראות מיידיות' : 'Instant alerts'}</p>}
               </div>
-            </section>
-
-            {/* --- Professional Info --- */}
-            <section className="glass-panel p-6 space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2 text-sm font-medium text-zinc-700">
-                  <Wrench className="h-4 w-4 text-[#e04d1c]" />
-                  {isHe ? 'מידע מקצועי' : 'Professional Info'}
-                </div>
-                <Link to="/profile/edit" className="text-xs font-semibold text-[#fe5b25] hover:underline">
-                  {isHe ? 'ערוך' : 'Edit'}
-                </Link>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="rounded-xl border border-zinc-100 p-4 space-y-1">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Wrench size={14} className="text-zinc-400" />
-                    <span className="text-xs font-semibold text-zinc-500">{isHe ? 'שירותים' : 'Services'}</span>
-                  </div>
-                  <div className="flex flex-wrap gap-1.5">
-                    {(contractorData?.professions ?? []).length > 0
-                      ? contractorData!.professions!.map((p: string) => {
-                          const prof = PROFESSIONS.find(pr => pr.id === p)
-                          return prof ? (
-                            <span key={p} className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-[#fff4f0] text-[11px] font-medium text-zinc-700">
-                              {prof.emoji} {isHe ? prof.he : prof.en}
-                            </span>
-                          ) : null
-                        })
-                      : <span className="text-xs text-zinc-400">{isHe ? 'לא נבחר' : 'Not set'}</span>
-                    }
-                  </div>
-                </div>
-                <div className="rounded-xl border border-zinc-100 p-4 space-y-1">
-                  <div className="flex items-center gap-2 mb-2">
-                    <MapPin size={14} className="text-zinc-400" />
-                    <span className="text-xs font-semibold text-zinc-500">{isHe ? 'אזורי שירות' : 'Service Areas'}</span>
-                  </div>
-                  <div className="flex flex-wrap gap-1.5">
-                    {(contractorData?.counties ?? []).length > 0
-                      ? contractorData!.counties!.map((c: string) => (
-                          <span key={c} className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-blue-50 text-[11px] font-medium text-zinc-700">
-                            <MapPin size={10} className="text-blue-400" /> {c}
-                          </span>
-                        ))
-                      : (contractorData?.zip_codes ?? []).length > 0
-                        ? contractorData!.zip_codes!.slice(0, 6).map((z: string) => (
-                            <span key={z} className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-blue-50 text-[11px] font-medium text-zinc-700">
-                              {z}
-                            </span>
-                          ))
-                        : <span className="text-xs text-zinc-400">{isHe ? 'לא נבחר' : 'Not set'}</span>
-                    }
-                  </div>
-                </div>
-              </div>
-            </section>
-
-            {/* --- Reviews --- */}
-            <section className="glass-panel p-6 space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2 text-sm font-medium text-zinc-700">
-                  <Star className="h-4 w-4 text-[#e04d1c]" />
-                  {isHe ? 'ביקורות' : 'Reviews'}
-                </div>
-                <span className="text-xs text-zinc-400">{contractorData?.profile?.review_count ?? 0} {isHe ? 'סה״כ' : 'total'}</span>
-              </div>
-              {contractorData?.profile?.avg_rating ? (
-                <div className="flex items-center gap-4">
-                  <p className="text-3xl font-bold tracking-tight text-zinc-900">{contractorData.profile.avg_rating.toFixed(1)}</p>
-                  <div className="flex gap-0.5">
-                    {[1,2,3,4,5].map(i => (
-                      <Star key={i} size={16} className={i <= Math.round(contractorData.profile!.avg_rating!) ? 'text-amber-400' : 'text-gray-200'} fill={i <= Math.round(contractorData.profile!.avg_rating!) ? '#fbbf24' : '#e5e7eb'} />
-                    ))}
-                  </div>
-                </div>
-              ) : (
-                <div className="text-center py-6">
-                  <Star size={28} className="text-gray-200 mx-auto mb-2" />
-                  <p className="text-sm text-zinc-400">{isHe ? 'אין ביקורות עדיין' : 'No reviews yet'}</p>
-                </div>
-              )}
-            </section>
-
-            {/* --- Portfolio --- */}
-            <section className="glass-panel p-6 space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2 text-sm font-medium text-zinc-700">
-                  <Image className="h-4 w-4 text-[#e04d1c]" />
-                  {isHe ? 'פורטפוליו' : 'Portfolio'}
-                </div>
-                <Link to="/profile/edit" className="text-xs font-semibold text-[#fe5b25] hover:underline">
-                  {isHe ? 'הוסף פרויקט' : 'Add Project'}
-                </Link>
-              </div>
-              <div className="grid grid-cols-4 gap-3">
-                {['Smart Lock Install', 'Commercial Rekey', 'Emergency Lockout', 'Safe Install'].map((p, i) => (
-                  <div key={i} className="group cursor-pointer">
-                    <div className="aspect-[3/4] rounded-xl bg-zinc-100 flex items-center justify-center mb-1.5 relative overflow-hidden group-hover:shadow-md transition-shadow">
-                      <Image size={20} className="text-zinc-300" />
-                      <span className="absolute bottom-1.5 left-1.5 text-[9px] font-semibold bg-zinc-900/70 text-white px-1.5 py-0.5 rounded backdrop-blur-sm">B/A</span>
-                    </div>
-                    <p className="text-[11px] font-medium truncate text-zinc-700">{p}</p>
-                  </div>
-                ))}
-              </div>
-              <div className="flex items-center gap-2 bg-blue-50 rounded-xl p-3">
-                <TrendingUp size={14} className="text-blue-500" />
-                <p className="text-xs text-blue-700">6+ projects = <strong>40% more inquiries</strong></p>
-              </div>
-            </section>
-
-            {/* --- Personal Info --- */}
-            <section className="glass-panel p-6 space-y-4">
-              <div className="flex items-center gap-2 text-sm font-medium text-zinc-700">
-                <User className="h-4 w-4 text-[#e04d1c]" />
-                Personal Information
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="space-y-1.5">
-                  <label className="text-xs font-medium text-zinc-500">Full Name</label>
-                  <div className="relative">
-                    <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
-                    <input
-                      type="text"
-                      value={fullName}
-                      onChange={(e) => { setFullName(e.target.value); setSaved(false) }}
-                      placeholder="John Doe"
-                      className="w-full rounded-xl border border-zinc-200 bg-white/80 py-2.5 pl-10 pr-4 text-sm text-zinc-900 placeholder:text-zinc-400 outline-none focus:border-[#fe5b25] focus:ring-2 focus:ring-[#fee8df] transition-all"
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-xs font-medium text-zinc-500">Email</label>
-                  <div className="relative">
-                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
-                    <input
-                      type="email"
-                      value={user?.email ?? ''}
-                      readOnly
-                      className="w-full rounded-xl border border-zinc-200 bg-zinc-50 py-2.5 pl-10 pr-4 text-sm text-zinc-500 cursor-not-allowed"
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-1.5 sm:col-span-2">
-                  <label className="text-xs font-medium text-zinc-500">Phone</label>
-                  <div className="relative">
-                    <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
-                    <input
-                      type="tel"
-                      value={phone}
-                      onChange={(e) => { setPhone(e.target.value); setSaved(false) }}
-                      placeholder="+1 (555) 123-4567"
-                      className="w-full rounded-xl border border-zinc-200 bg-white/80 py-2.5 pl-10 pr-4 text-sm text-zinc-900 placeholder:text-zinc-400 outline-none focus:border-[#fe5b25] focus:ring-2 focus:ring-[#fee8df] transition-all"
-                    />
-                  </div>
-                </div>
-              </div>
-            </section>
-
-            {/* --- Communication Channels --- */}
-            <section className="glass-panel p-6 space-y-4">
-              <div className="flex items-center gap-2 text-sm font-medium text-zinc-700">
-                <Radio className="h-4 w-4 text-[#e04d1c]" />
-                Communication Channels
-              </div>
-              <p className="text-xs text-zinc-400">Choose how you want to receive leads and updates</p>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {/* WhatsApp Channel */}
-                <div className={`rounded-xl border p-5 transition-all ${
-                  isWhatsAppConnected
-                    ? 'border-green-200 bg-green-50/50'
-                    : 'border-zinc-200 bg-white hover:border-[#fe5b25]/30 hover:shadow-sm'
-                }`}>
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
-                      isWhatsAppConnected ? 'bg-green-500' : 'bg-[#25D366]'
-                    }`}>
-                      <MessageCircle className="h-5 w-5 text-white" />
-                    </div>
-                    <div className="flex-1">
-                      <p className="text-sm font-bold text-zinc-900">WhatsApp</p>
-                      {isWhatsAppConnected ? (
-                        <span className="inline-flex items-center gap-1 text-[10px] font-bold text-green-600 bg-green-100 px-2 py-0.5 rounded-full">
-                          <CheckCircle2 className="h-2.5 w-2.5" /> Connected
-                        </span>
-                      ) : (
-                        <p className="text-[10px] text-zinc-400">Receive leads on WhatsApp</p>
-                      )}
-                    </div>
-                  </div>
-
-                  {isWhatsAppConnected ? (
-                    <div className="space-y-1.5">
-                      <p className="text-xs text-zinc-500">
-                        Connected as: <span className="font-mono font-semibold text-zinc-700">{whatsappPhone}</span>
-                      </p>
-                      <p className="text-[10px] text-zinc-400">Leads will be sent to this number</p>
-                    </div>
-                  ) : (
-                    <div>
-                      <p className="text-xs text-zinc-500 mb-3">
-                        Send us a message on WhatsApp to connect your account instantly.
-                      </p>
-                      <button
-                        type="button"
-                        onClick={handleConnectWhatsApp}
-                        disabled={waPolling}
-                        className="w-full py-2.5 rounded-xl text-sm font-semibold flex items-center justify-center gap-2 transition-all bg-[#25D366] text-white hover:bg-[#1da851] shadow-sm disabled:opacity-70"
-                      >
-                        {waPolling ? (
-                          <>
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                            Waiting for message...
-                          </>
-                        ) : (
-                          <>
-                            <MessageCircle className="h-4 w-4" />
-                            Connect WhatsApp
-                            <ExternalLink className="h-3 w-3 opacity-60" />
-                          </>
-                        )}
-                      </button>
-                    </div>
-                  )}
-                </div>
-
-                {/* Push Notifications Channel */}
-                <div className={`rounded-xl border p-5 transition-all ${
-                  pushStatus === 'granted'
-                    ? 'border-orange-200 bg-orange-50/50'
-                    : 'border-zinc-200 bg-white hover:border-[#fe5b25]/30 hover:shadow-sm'
-                }`}>
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
-                      pushStatus === 'granted' ? 'bg-[#fe5b25]' : 'bg-zinc-400'
-                    }`}>
-                      <Bell className="h-5 w-5 text-white" />
-                    </div>
-                    <div className="flex-1">
-                      <p className="text-sm font-bold text-zinc-900">Push Alerts</p>
-                      {pushStatus === 'granted' ? (
-                        <span className="inline-flex items-center gap-1 text-[10px] font-bold text-[#e04d1c] bg-orange-100 px-2 py-0.5 rounded-full">
-                          <CheckCircle2 className="h-2.5 w-2.5" /> Enabled
-                        </span>
-                      ) : pushStatus === 'denied' ? (
-                        <p className="text-[10px] text-red-500">Blocked by browser</p>
-                      ) : pushStatus === 'unsupported' ? (
-                        <p className="text-[10px] text-zinc-400">Not supported on this browser</p>
-                      ) : (
-                        <p className="text-[10px] text-zinc-400">Get instant alerts on this device</p>
-                      )}
-                    </div>
-                  </div>
-
-                  {pushStatus === 'granted' ? (
-                    <p className="text-xs text-zinc-500">You'll receive instant alerts when new leads match your preferences.</p>
-                  ) : pushStatus === 'denied' ? (
-                    <p className="text-xs text-zinc-500">Notifications are blocked. Open your browser settings to allow notifications for this site.</p>
-                  ) : pushStatus === 'unsupported' ? (
-                    <p className="text-xs text-zinc-500">Try using Chrome or Safari for push notification support.</p>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={enablePush}
-                      disabled={pushLoading}
-                      className="w-full py-2.5 rounded-xl text-sm font-semibold flex items-center justify-center gap-2 transition-all bg-[#fe5b25] text-white hover:brightness-110 shadow-sm disabled:opacity-70"
-                    >
-                      {pushLoading ? (
-                        <><Loader2 className="h-4 w-4 animate-spin" /> Enabling...</>
-                      ) : (
-                        <><Bell className="h-4 w-4" /> Enable Push Alerts</>
-                      )}
-                    </button>
-                  )}
-                </div>
-              </div>
-            </section>
-
-            {/* --- Save Button --- */}
-            <div className="flex items-center justify-end gap-3 pt-2">
-              {saved && (
-                <span className="inline-flex items-center gap-1.5 text-sm font-medium text-[#e04d1c] animate-fade-in">
-                  <CheckCircle className="h-4 w-4" />
-                  {t('profile.saved')}
-                </span>
-              )}
-              <button
-                type="button"
-                onClick={handleSave}
-                disabled={saving}
-                className="btn-primary inline-flex items-center gap-2 rounded-xl px-6 py-2.5 text-sm font-medium disabled:opacity-60"
-              >
-                {saving ? (
-                  <div className="animate-spin h-4 w-4 rounded-full border-2 border-white border-t-transparent" />
-                ) : (
-                  <Save className="h-4 w-4" />
-                )}
-                {t('profile.save')}
-              </button>
             </div>
+            {pushStatus === 'granted' ? (
+              <p className="text-xs text-zinc-500">{isHe ? 'התראות מיידיות על לידים חדשים.' : 'Instant alerts for new leads.'}</p>
+            ) : pushStatus !== 'denied' ? (
+              <button onClick={enablePush} disabled={pushLoading}
+                className="w-full py-2.5 rounded-xl text-sm font-semibold flex items-center justify-center gap-2 bg-[#fe5b25] text-white hover:brightness-110 disabled:opacity-70">
+                {pushLoading ? <><Loader2 className="h-4 w-4 animate-spin" /> {isHe ? 'מפעיל...' : 'Enabling...'}</> : <><Bell className="h-4 w-4" /> {isHe ? 'הפעל' : 'Enable'}</>}
+              </button>
+            ) : (
+              <p className="text-xs text-zinc-500">{isHe ? 'חסום. שנה בהגדרות הדפדפן.' : 'Blocked. Change in browser settings.'}</p>
+            )}
           </div>
         </div>
-      </div>
-      </div>
-    </>
+      </BottomSheet>
+
+      {/* --- Profile & Account --- */}
+      <BottomSheet open={activeSheet === 'account'} onClose={() => setActiveSheet(null)}
+        title={isHe ? 'חשבון ופרופיל' : 'Profile & Account'}>
+        <div className="space-y-4">
+          <div>
+            <SheetLabel>{isHe ? 'שם מלא' : 'Full Name'}</SheetLabel>
+            <SheetInput value={fullName} onChange={setFullName} placeholder="John Doe" />
+          </div>
+          <div>
+            <SheetLabel>{isHe ? 'טלפון' : 'Phone'}</SheetLabel>
+            <SheetInput type="tel" value={phone} onChange={setPhone} placeholder="+1 (555) 123-4567" />
+          </div>
+          <div>
+            <SheetLabel>{isHe ? 'אימייל' : 'Email'}</SheetLabel>
+            <SheetInput value={user?.email ?? ''} onChange={() => {}} disabled />
+          </div>
+
+          {/* Profile Visibility */}
+          <div className="pt-3 border-t border-gray-100">
+            <SheetLabel>{isHe ? 'נראות פרופיל' : 'Profile Visibility'}</SheetLabel>
+            {publicUrl ? (
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <div className="flex-1 px-3 py-2 rounded-xl bg-gray-50 border border-gray-200 text-xs text-gray-600 font-mono truncate">
+                    {publicUrl}
+                  </div>
+                  <button onClick={handleCopyUrl}
+                    className="w-9 h-9 rounded-xl bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors">
+                    {copied ? <CheckCircle2 className="w-4 h-4 text-green-600" /> : <Copy className="w-4 h-4 text-gray-500" />}
+                  </button>
+                  <a href={publicUrl} target="_blank" rel="noopener noreferrer"
+                    className="w-9 h-9 rounded-xl bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors">
+                    <ExternalLink className="w-4 h-4 text-gray-500" />
+                  </a>
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-white rounded-xl border border-gray-200 shadow-sm">
+                    <QRCodeCanvas id="profile-qr" value={publicUrl} size={100} level="H"
+                      imageSettings={{ src: '/icon.png', height: 20, width: 20, excavate: true }} />
+                  </div>
+                  <button onClick={() => {
+                    const canvas = document.getElementById('profile-qr') as HTMLCanvasElement
+                    const url = canvas.toDataURL('image/png')
+                    const a = document.createElement('a'); a.href = url; a.download = 'my-profile-qr.png'; a.click()
+                  }} className="inline-flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 transition-colors">
+                    <Download className="w-3.5 h-3.5" /> {isHe ? 'הורד QR' : 'Download QR'}
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="text-center py-3">
+                <Sparkles className="w-6 h-6 text-[#fe5b25]/60 mx-auto mb-2" />
+                <p className="text-xs text-gray-500 mb-3">{isHe ? 'פרסם פרופיל ציבורי' : 'Publish your public profile'}</p>
+                <button onClick={handlePublish} disabled={isPublishing}
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#fe5b25] text-white text-sm font-medium hover:bg-[#e5501f] disabled:opacity-50">
+                  {isPublishing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Globe className="w-4 h-4" />}
+                  {isHe ? 'פרסם' : 'Publish'}
+                </button>
+              </div>
+            )}
+          </div>
+
+          <SheetSaveButton onClick={saveAccount} saving={saving} isHe={isHe} />
+        </div>
+      </BottomSheet>
+    </div>
+  )
+}
+
+/* ═══════════════════════════════════════════════════
+   Lazy-loaded ServiceAreaMap to avoid mapbox bundle
+   when not needed
+   ═══════════════════════════════════════════════════ */
+
+import { lazy, Suspense } from 'react'
+const ServiceAreaMapComponent = lazy(() => import('../components/ServiceAreaMap'))
+
+function ServiceAreaMapLazy({ zipCodes, height }: { zipCodes: string[]; height: string }) {
+  return (
+    <Suspense fallback={<div style={{ height }} className="bg-gray-100 animate-pulse rounded-xl" />}>
+      <ServiceAreaMapComponent zipCodes={zipCodes} height={height} />
+    </Suspense>
   )
 }

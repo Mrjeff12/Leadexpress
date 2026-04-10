@@ -109,7 +109,7 @@ export function useUserSubscription() {
         .order('price_cents'),
       supabase
         .from('profiles')
-        .select('network_points, network_level')
+        .select('id')
         .eq('id', effectiveUserId)
         .maybeSingle(),
     ])
@@ -126,9 +126,9 @@ export function useUserSubscription() {
     if (plansRes.data) setPlans(plansRes.data as PlanData[])
 
     if (profileRes.data) {
-      const points = profileRes.data.network_points ?? 0
-      setNetworkPoints(points)
-      setNetworkLevel(profileRes.data.network_level ?? deriveNetworkLevel(points))
+      // network_points/network_level columns not yet in DB — default to 0/member
+      setNetworkPoints(0)
+      setNetworkLevel(deriveNetworkLevel(0))
     }
 
     setLoading(false)

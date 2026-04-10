@@ -20,6 +20,7 @@ import {
   Coins,
   Settings,
   Brain,
+  Briefcase,
   MessageCircle,
   X,
   Clock,
@@ -67,6 +68,10 @@ const HUBS: HubDef[] = [
   { id: 'clients', x: 800, y: 380, size: 60, color: '#10b981',
     gradient: ['#34d399', '#059669'], icon: Users, path: '/admin/clients' },
 
+  // Jobs — between Contractors and Finance
+  { id: 'jobs', x: 1050, y: 460, size: 52, color: '#6366f1',
+    gradient: ['#818cf8', '#4f46e5'], icon: Briefcase, path: '/admin/jobs' },
+
   // Finance — bottom center
   { id: 'finance', x: 450, y: 660, size: 44, color: '#f59e0b',
     gradient: ['#fbbf24', '#d97706'], icon: Coins, path: '/admin/finance' },
@@ -90,7 +95,8 @@ function getHub(id: string) { return HUBS.find(h => h.id === id)! }
 const CONNECTIONS: { from: string; to: string; width: number; animated?: boolean }[] = [
   { from: 'channels', to: 'brain', width: 3, animated: true },
   { from: 'brain', to: 'clients', width: 3.5, animated: true },
-  { from: 'clients', to: 'finance', width: 2, animated: true },
+  { from: 'clients', to: 'jobs', width: 2.5, animated: true },
+  { from: 'jobs', to: 'finance', width: 2, animated: true },
   { from: 'brain', to: 'intel', width: 1.5, animated: true },
   { from: 'brain', to: 'finance', width: 1.5, animated: true },
   { from: 'partners', to: 'clients', width: 1.5 },
@@ -394,11 +400,16 @@ function NetworkVisualization({ he, kpis, dateRange, botStatus, groupsExpanded, 
   const mrr = Number(kpis.mrr ?? 0)
   const leadsToday = Number(kpis.leadsToday ?? 0)
   const activePartners = Number(kpis.activePartners ?? 0)
+  const jobsTotal = Number(kpis.jobsTotal ?? 0)
+  const jobsPending = Number(kpis.jobsPending ?? 0)
+  const jobsAccepted = Number(kpis.jobsAccepted ?? 0)
+  const jobsCompleted = Number(kpis.jobsCompleted ?? 0)
 
   const hubLabels: Record<string, { value: string | number; label: string; filtered?: boolean }> = {
     brain: { value: hotLeads, label: he ? 'AI · לידים חמים' : 'AI · HOT LEADS', filtered: true },
     channels: { value: net.groupsCount, label: he ? 'קבוצות' : 'GROUPS' },
     clients: { value: net.contractors.length, label: he ? 'קבלנים' : 'CONTRACTORS' },
+    jobs: { value: jobsTotal, label: he ? 'ג\'ובים' : 'JOBS' },
     finance: { value: `$${mrr}`, label: 'MRR' },
     intel: { value: leadsToday, label: he ? 'היום' : 'TODAY', filtered: true },
     partners: { value: activePartners, label: he ? 'שותפים' : 'PARTNERS' },
@@ -434,6 +445,31 @@ function NetworkVisualization({ he, kpis, dateRange, botStatus, groupsExpanded, 
           <animate attributeName="r" values="55;130" dur="4s" repeatCount="indefinite" />
           <animate attributeName="opacity" values="0.08;0" dur="4s" repeatCount="indefinite" />
         </circle>
+
+        {/* Jobs orbit ring */}
+        {(() => {
+          const jobsHub = getHub('jobs')
+          return (
+            <circle cx={jobsHub.x} cy={jobsHub.y} r={95}
+              fill="none" stroke="#6366f1" strokeWidth="0.6" opacity="0.1" strokeDasharray="4 8" />
+          )
+        })()}
+
+        {/* Jobs status spokes */}
+        {(() => {
+          const jobsHub = getHub('jobs')
+          const ringR = 95
+          return [0, 1, 2].map(i => {
+            const angle = ((i - 1) / 3) * Math.PI * 1.2 - Math.PI / 2
+            const sx = jobsHub.x + ringR * Math.cos(angle)
+            const sy = jobsHub.y + ringR * Math.sin(angle)
+            return (
+              <line key={`job-spoke-${i}`}
+                x1={jobsHub.x} y1={jobsHub.y} x2={sx} y2={sy}
+                stroke="#6366f1" strokeWidth="0.8" opacity="0.1" />
+            )
+          })
+        })()}
 
         {/* Hub connections + particles */}
         {CONNECTIONS.map((conn, i) => {
@@ -646,6 +682,59 @@ function NetworkVisualization({ he, kpis, dateRange, botStatus, groupsExpanded, 
         </div>
       </div>
 
+      {/* ─── Jobs status badges orbiting Jobs hub ─── */}
+      {(() => {
+        const jobsHub = getHub('jobs')
+        const statuses = [
+          { key: 'pending', count: jobsPending, color: '#f59e0b', label: he ? 'ממתין' : 'Pending', emoji: '⏳' },
+          { key: 'accepted', count: jobsAccepted, color: '#22c55e', label: he ? 'פעיל' : 'Active', emoji: '✅' },
+          { key: 'completed', count: jobsCompleted, color: '#3b82f6', label: he ? 'הושלם' : 'Done', emoji: '🏁' },
+        ]
+        const ringR = 95
+        return statuses.map((s, i) => {
+          const angle = ((i - 1) / 3) * Math.PI * 1.2 - Math.PI / 2
+          const sx = jobsHub.x + ringR * Math.cos(angle)
+          const sy = jobsHub.y + ringR * Math.sin(angle)
+          return (
+            <div
+              key={s.key}
+              className="absolute flex flex-col items-center"
+              style={{
+                left: `${(sx / VW) * 100}%`,
+                top: `${(sy / VH) * 100}%`,
+                transform: 'translate(-50%, -50%)',
+                pointerEvents: 'none',
+                opacity: 0,
+                animation: `fadeScaleIn 0.4s ease-out ${400 + i * 80}ms forwards`,
+              }}
+            >
+              <div
+                className="flex flex-col items-center gap-0.5 px-2.5 py-1.5 rounded-xl"
+                style={{
+                  background: s.count > 0 ? `${s.color}08` : '#f5f2ed',
+                  border: `1.5px solid ${s.count > 0 ? s.color + '30' : '#e5e5e5'}`,
+                  boxShadow: s.count > 0 ? `0 2px 8px ${s.color}12` : 'none',
+                }}
+              >
+                <span className="text-[14px] leading-none">{s.emoji}</span>
+                <span
+                  className="text-[12px] font-black tabular-nums leading-none"
+                  style={{ color: s.count > 0 ? s.color : '#bbb' }}
+                >
+                  {s.count}
+                </span>
+                <span
+                  className="text-[6px] uppercase tracking-[0.08em] font-semibold leading-none"
+                  style={{ color: s.count > 0 ? s.color + 'aa' : '#ccc' }}
+                >
+                  {s.label}
+                </span>
+              </div>
+            </div>
+          )
+        })
+      })()}
+
       {/* ─── Profession nodes orbiting Clients ─── */}
       {profNodes.map((prof, i) => {
         const hasContractors = prof.contractorCount > 0
@@ -775,6 +864,7 @@ export default function AdminCanvas() {
   const convRate = Number(kpis.conversionRate ?? 0)
   const activePartners = Number(kpis.activePartners ?? 0)
   const pendingPartners = Number(kpis.pendingPartners ?? 0)
+  const topBarJobsTotal = Number(kpis.jobsTotal ?? 0)
 
   return (
     <div className="h-screen w-full flex flex-col" style={{ background: '#faf9f6' }}>
@@ -805,6 +895,8 @@ export default function AdminCanvas() {
           <KpiPill icon={Users} label={he ? 'קבלנים' : 'CONTRACTORS'} value={activeContractors} color="#10b981" />
           <div className="w-px h-6 bg-[#efeff1]" />
           <KpiPill icon={Radio} label={he ? 'קבוצות' : 'GROUPS'} value={activeGroups} color="#8b5cf6" />
+          <div className="w-px h-6 bg-[#efeff1]" />
+          <KpiPill icon={Briefcase} label={he ? "ג'ובים" : 'JOBS'} value={topBarJobsTotal} color="#6366f1" highlight={topBarJobsTotal > 0} />
           <div className="w-px h-6 bg-[#efeff1]" />
           <KpiPill icon={TrendingUp} label={he ? 'המרה' : 'RATE'} value={`${convRate}%`} color="#f59e0b" filtered />
           <div className="w-px h-6 bg-[#efeff1]" />

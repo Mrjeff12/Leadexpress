@@ -66,7 +66,6 @@ const PartnerLayout = lazyRetry(() => import('./pages/partner/PartnerLayout'))
 const NotificationsPage = lazyRetry(() => import('./pages/NotificationsPage'))
 const PublicProfileView = lazyRetry(() => import('./pages/PublicProfileView'))
 const PublicProfile = lazyRetry(() => import('./pages/PublicProfile'))
-const ProfileEdit = lazyRetry(() => import('./pages/ProfileEdit'))
 const LeadDetail = lazyRetry(() => import('./pages/LeadDetail'))
 const JobDetail = lazyRetry(() => import('./pages/JobDetail'))
 const MyReviews = lazyRetry(() => import('./pages/MyReviews'))
@@ -153,6 +152,13 @@ function LoadingScreen() {
 /* ─── Mobile Tab Bar — floating dark pill (matches prototype) ─── */
 function MobileTabBar() {
   const location = useLocation()
+
+  // Hide on full-screen immersive pages (chat, job detail) — they have their own bottom input/actions
+  const isImmersive =
+    location.pathname.startsWith('/chat/') ||
+    location.pathname.startsWith('/messages')
+  if (isImmersive) return null
+
   const tabs = [
     { to: '/',            Icon: Home,         label: 'Home',   match: (p: string) => p === '/' },
     { to: '/leads',       Icon: Zap,          label: 'Leads',  match: (p: string) => p === '/leads' || p.startsWith('/leads/') },
@@ -161,17 +167,17 @@ function MobileTabBar() {
     { to: '/profile',     Icon: User,         label: 'Profile',match: (p: string) => p.startsWith('/profile') || p === '/subscription' },
   ]
   return (
-    <nav className="md:hidden fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-1.5 bg-[#111] rounded-[28px] px-1.5 py-[5px] shadow-[0_8px_32px_rgba(0,0,0,0.20)]">
+    <nav className="md:hidden fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 bg-[#111] rounded-[32px] px-2 py-[6px] shadow-[0_8px_32px_rgba(0,0,0,0.20)]">
       {tabs.map(({ to, Icon, label, match }) => {
         const active = match(location.pathname)
         return (
           <NavLink
             key={to}
             to={to}
-            className={`w-[46px] h-[46px] rounded-full flex flex-col items-center justify-center gap-0.5 transition-all duration-[250ms] [transition-timing-function:cubic-bezier(0.34,1.56,0.64,1)] active:scale-[0.88] ${active ? 'bg-white' : 'bg-transparent'}`}
+            className={`w-[54px] h-[54px] rounded-full flex flex-col items-center justify-center gap-0.5 transition-all duration-[250ms] [transition-timing-function:cubic-bezier(0.34,1.56,0.64,1)] active:scale-[0.88] ${active ? 'bg-white' : 'bg-transparent'}`}
           >
-            <Icon size={18} strokeWidth={active ? 2.2 : 1.5} className={active ? 'text-[#111]' : 'text-white/50'} />
-            <span className={`text-[9px] font-medium ${active ? 'text-[#111]' : 'text-white/35'}`}>{label}</span>
+            <Icon size={20} strokeWidth={active ? 2.2 : 1.5} className={active ? 'text-[#111]' : 'text-white/50'} />
+            <span className={`text-[10px] font-medium ${active ? 'text-[#111]' : 'text-white/35'}`}>{label}</span>
           </NavLink>
         )
       })}
@@ -235,7 +241,6 @@ function AppShell() {
               <Route path="/jobs/:id" element={<JobDetail />} />
               <Route path="/published-job/:id" element={<PublishedJobDetail />} />
               <Route path="/profile" element={<Profile />} />
-              <Route path="/profile/edit" element={<ProfileEdit />} />
               <Route path="/profile/public" element={<PublicProfileView />} />
               <Route path="/subscription" element={<Subscription />} />
 

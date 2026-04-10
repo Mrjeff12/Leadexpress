@@ -4,6 +4,7 @@ import { useI18n } from '../lib/i18n'
 import { timeAgo } from '../lib/shared'
 import { supabase } from '../lib/supabase'
 import { PROFESSIONS } from '../lib/professions'
+import { PROFESSION_ICONS } from '../lib/profession-icons'
 import { useToast } from './hooks/use-toast'
 import {
   X,
@@ -153,7 +154,7 @@ export default function JobDetailPanel({ jobId, onClose, onUpdate }: JobDetailPa
         const [jobRes, eventsRes] = await Promise.all([
           supabase
             .from('job_orders')
-            .select('*, subcontractors ( full_name, phone ), leads ( profession, city, zip_code, parsed_summary )')
+            .select('*, subcontractors ( full_name, phone )')
             .eq('id', jobId)
             .single(),
           supabase
@@ -168,6 +169,18 @@ export default function JobDetailPanel({ jobId, onClose, onUpdate }: JobDetailPa
         if (jobRes.error) throw jobRes.error
 
         const row = jobRes.data
+
+        // Fetch lead data separately to avoid RLS issues
+        let lead: any = null
+        if (row.lead_id) {
+          const { data: leadData } = await supabase
+            .from('leads')
+            .select('profession, city, zip_code, parsed_summary')
+            .eq('id', row.lead_id)
+            .maybeSingle()
+          lead = leadData
+        }
+
         const mapped: JobOrder = {
           id: row.id,
           lead_id: row.lead_id,
@@ -186,12 +199,12 @@ export default function JobDetailPanel({ jobId, onClose, onUpdate }: JobDetailPa
           notes: row.notes,
           created_at: row.created_at,
           completed_at: row.completed_at,
-          sub_name: row.subcontractors?.full_name || 'Unknown',
+          sub_name: row.subcontractors?.full_name || '',
           sub_phone: row.subcontractors?.phone || '',
-          lead_profession: row.leads?.profession || null,
-          lead_city: row.leads?.city || null,
-          lead_zip: row.leads?.zip_code || null,
-          lead_summary: row.leads?.parsed_summary || null,
+          lead_profession: lead?.profession || null,
+          lead_city: lead?.city || null,
+          lead_zip: lead?.zip_code || null,
+          lead_summary: lead?.parsed_summary || null,
         }
 
         setJob(mapped)
@@ -413,10 +426,12 @@ export default function JobDetailPanel({ jobId, onClose, onUpdate }: JobDetailPa
   const location = job ? [job.lead_city, job.lead_zip].filter(Boolean).join(', ') : ''
   const dealLabel = job
     ? job.deal_type === 'percentage'
-      ? `${job.deal_value}% ${he ? 'מהעבודה' : 'of job'}`
+      ? `${job.deal_value}%`
       : job.deal_type === 'fixed_price'
-        ? `$${job.deal_value} ${he ? 'קבוע' : 'fixed'}`
-        : job.deal_value
+        ? `$${job.deal_value}`
+        : job.deal_value === 'TBD'
+          ? (he ? 'מותאם' : 'Custom')
+          : job.deal_value
     : ''
 
   return (
@@ -442,7 +457,10 @@ export default function JobDetailPanel({ jobId, onClose, onUpdate }: JobDetailPa
             {/* ── Header ── */}
             <div className="px-6 py-4 border-b border-stone-100 flex items-center justify-between bg-stone-50/50 shrink-0">
               <div className="flex items-center gap-3">
-                <span className="text-xl">{prof?.emoji ?? '📋'}</span>
+                {job.lead_profession && PROFESSION_ICONS[job.lead_profession]
+                  ? <span style={{ color: '#fe5b25', width: 24, height: 24, display: 'inline-flex', flexShrink: 0 }} className="[&>svg]:w-6 [&>svg]:h-6">{PROFESSION_ICONS[job.lead_profession]}</span>
+                  : <span style={{ color: '#fe5b25' }}><Star className="w-6 h-6" /></span>
+                }
                 <div>
                   <div className="flex items-center gap-2">
                     <h2 className="text-sm font-bold text-stone-800">
@@ -554,14 +572,24 @@ export default function JobDetailPanel({ jobId, onClose, onUpdate }: JobDetailPa
                     <User className="w-4 h-4 text-[#e04d1c]" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-stone-800">{job.sub_name}</p>
-                    <div className="flex items-center gap-1 text-[11px] text-stone-400 mt-0.5">
-                      <Phone className="w-3 h-3" />
-                      {job.sub_phone}
-                    </div>
+                    <p className="text-sm font-semibold text-stone-800">
+                      {job.sub_name || (he ? 'לא שויך עדיין' : 'Not assigned yet')}
+                    </p>
+                    {job.sub_phone && (
+                      <div className="flex items-center gap-1 text-[11px] text-stone-400 mt-0.5">
+                        <Phone className="w-3 h-3" />
+                        {job.sub_phone}
+                      </div>
+                    )}
                   </div>
                   <div className="text-right shrink-0">
-                    <p className="text-sm font-bold text-[#e04d1c]">{dealLabel}</p>
+                    <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-bold border ${
+                      job.deal_type === 'percentage' ? 'bg-purple-50 text-purple-700 border-purple-200'
+                      : job.deal_type === 'fixed_price' ? 'bg-blue-50 text-blue-700 border-blue-200'
+                      : 'bg-stone-50 text-stone-500 border-stone-200'
+                    }`}>
+                      {dealLabel || (he ? 'לא הוגדר' : 'Not set')}
+                    </span>
                   </div>
                 </div>
                 {job.lead_summary && (

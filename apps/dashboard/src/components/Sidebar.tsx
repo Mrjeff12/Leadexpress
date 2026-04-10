@@ -23,7 +23,6 @@ import {
   ChevronDown,
   Menu,
   X as XIcon,
-  Search,
   Star,
   Fingerprint,
 } from 'lucide-react'
@@ -85,8 +84,7 @@ export default function Sidebar() {
     { label: locale === 'he' ? 'קבוצות לסריקה' : 'Group Scan', to: '/group-scan', icon: Users },
     { label: locale === 'he' ? 'עבודות' : 'Jobs', to: '/jobs', icon: Briefcase },
     { label: locale === 'he' ? 'ביקורות' : 'Reviews', to: '/reviews', icon: Star },
-    { label: locale === 'he' ? 'הפרופיל שלי' : 'My Profile', to: '/profile/edit', icon: UserCircle },
-    { label: locale === 'he' ? 'מדריך' : 'Directory', to: '/directory', icon: Search },
+    { label: locale === 'he' ? 'הפרופיל שלי' : 'My Profile', to: '/profile', icon: UserCircle },
   ]
 
   const publisherNav: NavItem[] = [

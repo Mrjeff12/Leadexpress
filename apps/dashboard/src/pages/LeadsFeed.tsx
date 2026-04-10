@@ -8,6 +8,7 @@ import { supabase } from '../lib/supabase'
 import ForwardLeadModal from '../components/ForwardLeadModal'
 import UpsellModal from '../components/UpsellModal'
 import LeadFeedbackButtons from '../components/LeadFeedbackButtons'
+import { PROFESSION_ICONS } from '../lib/profession-icons'
 import {
   ResponsiveContainer,
   AreaChart,
@@ -68,35 +69,38 @@ interface Lead {
   source?: string
 }
 
-/* ── Profession + Urgency config ───────────────────────────────────── */
+/* ── Profession + Urgency config — unified orange palette ── */
+// Brand colors only: orange (#fe5b25), black (#111), stone grays
+const BRAND = '#fe5b25'
 const PROF: Record<string, { icon: React.ElementType; label: string; he: string; color: string; bg: string }> = {
-  hvac:            { icon: Thermometer, label: 'HVAC',            he: 'מיזוג',        color: '#0284c7', bg: 'rgba(2,132,199,0.08)' },
-  air_duct:        { icon: Wind,        label: 'Air Duct',        he: 'תעלות אוויר',   color: '#0ea5e9', bg: 'rgba(14,165,233,0.08)' },
-  chimney:         { icon: Flame,       label: 'Chimney',         he: 'קמינים',       color: '#ea580c', bg: 'rgba(234,88,12,0.08)' },
-  dryer_vent:      { icon: Wind,        label: 'Dryer Vent',      he: 'פתחי אוורור',   color: '#6366f1', bg: 'rgba(99,102,241,0.08)' },
-  garage_door:     { icon: Car,         label: 'Garage Door',     he: 'דלתות מוסך',   color: '#475569', bg: 'rgba(71,85,105,0.08)' },
-  locksmith:       { icon: Key,         label: 'Locksmith',       he: 'מנעולן',       color: '#b45309', bg: 'rgba(180,83,9,0.08)' },
-  roofing:         { icon: Home,        label: 'Roofing',         he: 'גגות',         color: '#9a3412', bg: 'rgba(154,52,18,0.08)' },
-  plumbing:        { icon: Droplets,    label: 'Plumbing',        he: 'אינסטלציה',    color: '#0369a1', bg: 'rgba(3,105,161,0.08)' },
-  electrical:      { icon: Zap,         label: 'Electrical',      he: 'חשמל',         color: '#d97706', bg: 'rgba(217,119,6,0.08)' },
-  painting:        { icon: Paintbrush,  label: 'Painting',        he: 'צביעה',        color: '#be185d', bg: 'rgba(190,24,93,0.08)' },
-  cleaning:        { icon: Sparkles,    label: 'Cleaning',        he: 'ניקיון',       color: '#059669', bg: 'rgba(5,150,105,0.08)' },
-  carpet_cleaning: { icon: Sparkles,    label: 'Carpet Cleaning', he: 'ניקוי שטיחים', color: '#10b981', bg: 'rgba(16,185,129,0.08)' },
-  renovation:      { icon: Wrench,      label: 'Renovation',      he: 'שיפוץ',        color: '#c2410c', bg: 'rgba(194,65,12,0.08)' },
-  fencing:         { icon: Fence,       label: 'Fencing',         he: 'גדרות',        color: '#7c3aed', bg: 'rgba(124,58,237,0.08)' },
-  landscaping:     { icon: TreePine,    label: 'Landscaping',     he: 'גינון',        color: '#16a34a', bg: 'rgba(22,163,74,0.08)' },
-  tiling:          { icon: Grid,        label: 'Tiling',          he: 'ריצוף',        color: '#8b5cf6', bg: 'rgba(139,92,246,0.08)' },
-  kitchen:         { icon: ChefHat,     label: 'Kitchen',         he: 'מטבחים',       color: '#f59e0b', bg: 'rgba(245,158,11,0.08)' },
-  bathroom:        { icon: Bath,        label: 'Bathroom',        he: 'חדרי רחצה',    color: '#06b6d4', bg: 'rgba(6,182,212,0.08)' },
-  pool:            { icon: Waves,       label: 'Pool',            he: 'בריכות',       color: '#0284c7', bg: 'rgba(2,132,199,0.08)' },
-  moving:          { icon: Truck,       label: 'Moving',          he: 'הובלות',       color: '#4f46e5', bg: 'rgba(79,70,229,0.08)' },
-  other:           { icon: Wrench,      label: 'Service',         he: 'שירות',        color: '#5a8a5e', bg: 'rgba(90,138,94,0.08)' },
+  hvac:            { icon: Thermometer, label: 'HVAC',            he: 'מיזוג',        color: BRAND, bg: '#fff4ef' },
+  air_duct:        { icon: Wind,        label: 'Air Duct',        he: 'תעלות אוויר',   color: BRAND, bg: '#fff4ef' },
+  chimney:         { icon: Flame,       label: 'Chimney',         he: 'קמינים',       color: BRAND, bg: '#fff4ef' },
+  dryer_vent:      { icon: Wind,        label: 'Dryer Vent',      he: 'פתחי אוורור',   color: BRAND, bg: '#fff4ef' },
+  garage_door:     { icon: Car,         label: 'Garage Door',     he: 'דלתות מוסך',   color: BRAND, bg: '#fff4ef' },
+  locksmith:       { icon: Key,         label: 'Locksmith',       he: 'מנעולן',       color: BRAND, bg: '#fff4ef' },
+  roofing:         { icon: Home,        label: 'Roofing',         he: 'גגות',         color: BRAND, bg: '#fff4ef' },
+  plumbing:        { icon: Droplets,    label: 'Plumbing',        he: 'אינסטלציה',    color: BRAND, bg: '#fff4ef' },
+  electrical:      { icon: Zap,         label: 'Electrical',      he: 'חשמל',         color: BRAND, bg: '#fff4ef' },
+  painting:        { icon: Paintbrush,  label: 'Painting',        he: 'צביעה',        color: BRAND, bg: '#fff4ef' },
+  cleaning:        { icon: Sparkles,    label: 'Cleaning',        he: 'ניקיון',       color: BRAND, bg: '#fff4ef' },
+  carpet_cleaning: { icon: Sparkles,    label: 'Carpet Cleaning', he: 'ניקוי שטיחים', color: BRAND, bg: '#fff4ef' },
+  renovation:      { icon: Wrench,      label: 'Renovation',      he: 'שיפוץ',        color: BRAND, bg: '#fff4ef' },
+  fencing:         { icon: Fence,       label: 'Fencing',         he: 'גדרות',        color: BRAND, bg: '#fff4ef' },
+  landscaping:     { icon: TreePine,    label: 'Landscaping',     he: 'גינון',        color: BRAND, bg: '#fff4ef' },
+  tiling:          { icon: Grid,        label: 'Tiling',          he: 'ריצוף',        color: BRAND, bg: '#fff4ef' },
+  kitchen:         { icon: ChefHat,     label: 'Kitchen',         he: 'מטבחים',       color: BRAND, bg: '#fff4ef' },
+  bathroom:        { icon: Bath,        label: 'Bathroom',        he: 'חדרי רחצה',    color: BRAND, bg: '#fff4ef' },
+  pool:            { icon: Waves,       label: 'Pool',            he: 'בריכות',       color: BRAND, bg: '#fff4ef' },
+  moving:          { icon: Truck,       label: 'Moving',          he: 'הובלות',       color: BRAND, bg: '#fff4ef' },
+  other:           { icon: Wrench,      label: 'Service',         he: 'שירות',        color: BRAND, bg: '#fff4ef' },
 }
 
+// Urgency — 3 tones of orange/stone (no red/yellow/blue)
 const URG = {
-  hot:  { icon: Flame,     label: 'Hot',  he: 'דחוף', color: '#FF3B30', bg: 'rgba(255,59,48,0.08)', border: 'rgba(255,59,48,0.15)' },
-  warm: { icon: Zap,       label: 'Warm', he: 'חם',   color: '#FF9500', bg: 'rgba(255,149,0,0.08)', border: 'rgba(255,149,0,0.15)' },
-  cold: { icon: Snowflake, label: 'Cold', he: 'קר',   color: '#5AC8FA', bg: 'rgba(90,200,250,0.08)', border: 'rgba(90,200,250,0.15)' },
+  hot:  { icon: Flame,     label: 'Hot',  he: 'דחוף', color: '#fe5b25', bg: '#fff4ef', border: 'rgba(254,91,37,0.2)' },
+  warm: { icon: Zap,       label: 'Warm', he: 'חם',   color: '#111',    bg: '#f5f5f4', border: 'rgba(17,17,17,0.1)' },
+  cold: { icon: Snowflake, label: 'Cold', he: 'קר',   color: '#78716c', bg: '#fafaf9', border: 'rgba(120,113,108,0.15)' },
 }
 
 function getProf(p: string) { return PROF[p] ?? PROF.other }
@@ -362,12 +366,12 @@ export default function LeadsFeed() {
         </div>
       </header>
 
-      {/* ── KPI Strip — horizontal compact on mobile ── */}
+      {/* ── KPI Strip — unified orange/black palette ── */}
       <section className="md:hidden flex gap-1.5 overflow-x-auto no-scrollbar -mx-1 px-1">
         <KpiCard icon={Zap} label="Total" value={baseFilteredLeads.length} sub="" color="#fe5b25" chartData={[]} />
-        <KpiCard icon={Flame} label="Hot" value={hot} sub="" color="#FF3B30" chartData={[]} active={filterUrg === 'hot'} onClick={() => setFilterUrg(filterUrg === 'hot' ? 'all' : 'hot')} />
-        <KpiCard icon={Zap} label="Warm" value={warm} sub="" color="#FF9500" chartData={[]} active={filterUrg === 'warm'} onClick={() => setFilterUrg(filterUrg === 'warm' ? 'all' : 'warm')} />
-        <KpiCard icon={Snowflake} label="Cold" value={cold} sub="" color="#5AC8FA" chartData={[]} active={filterUrg === 'cold'} onClick={() => setFilterUrg(filterUrg === 'cold' ? 'all' : 'cold')} />
+        <KpiCard icon={Flame} label="Hot" value={hot} sub="" color="#fe5b25" chartData={[]} active={filterUrg === 'hot'} onClick={() => setFilterUrg(filterUrg === 'hot' ? 'all' : 'hot')} />
+        <KpiCard icon={Zap} label="Warm" value={warm} sub="" color="#111" chartData={[]} active={filterUrg === 'warm'} onClick={() => setFilterUrg(filterUrg === 'warm' ? 'all' : 'warm')} />
+        <KpiCard icon={Snowflake} label="Cold" value={cold} sub="" color="#78716c" chartData={[]} active={filterUrg === 'cold'} onClick={() => setFilterUrg(filterUrg === 'cold' ? 'all' : 'cold')} />
       </section>
       <section className="hidden md:grid stagger-kpi grid-cols-4 gap-6">
         <KpiCard
@@ -385,7 +389,7 @@ export default function LeadsFeed() {
           label={he ? 'דחוף' : 'Hot Leads'}
           value={hot}
           sub={he ? 'היום / מחר' : 'Needs immediate action'}
-          color="#FF3B30"
+          color="#fe5b25"
           chartData={chartDataAll.hot}
           active={filterUrg === 'hot'}
           onClick={() => setFilterUrg(filterUrg === 'hot' ? 'all' : 'hot')}
@@ -395,7 +399,7 @@ export default function LeadsFeed() {
           label={he ? 'חם' : 'Warm Leads'}
           value={warm}
           sub={he ? 'השבוע' : 'Follow up required'}
-          color="#FF9500"
+          color="#111"
           chartData={chartDataAll.warm}
           active={filterUrg === 'warm'}
           onClick={() => setFilterUrg(filterUrg === 'warm' ? 'all' : 'warm')}
@@ -405,56 +409,58 @@ export default function LeadsFeed() {
           label={he ? 'קר' : 'Cold Leads'}
           value={cold}
           sub={he ? 'עתידי' : 'Long-term prospects'}
-          color="#5AC8FA"
+          color="#78716c"
           chartData={chartDataAll.cold}
           active={filterUrg === 'cold'}
           onClick={() => setFilterUrg(filterUrg === 'cold' ? 'all' : 'cold')}
         />
       </section>
 
-      {/* ── Search + Filters ── */}
-      <div className="glass-panel p-2.5 md:p-4 flex items-center gap-2 md:gap-4 flex-wrap border-none shadow-xl relative z-20">
-        <div className="relative flex-1 min-w-0 md:min-w-[300px]">
-          <Search className="w-4 h-4 absolute top-1/2 -translate-y-1/2" style={{
-            left: he ? 'auto' : 16, right: he ? 16 : 'auto',
-            color: '#aaa',
-          }} strokeWidth={2} />
+      {/* ── Search + Filters — Jobs design language ── */}
+      <div className="bg-stone-50 rounded-[20px] p-2.5 md:p-4 flex items-center gap-2 md:gap-3 flex-wrap relative z-20">
+        {/* Search */}
+        <div className="relative flex-1 min-w-0 md:min-w-[280px]">
+          <Search className="w-4 h-4 absolute top-1/2 -translate-y-1/2 text-stone-400"
+            style={{ left: he ? 'auto' : 14, right: he ? 14 : 'auto' }} strokeWidth={2} />
           <input
             value={search}
             onChange={e => setSearch(e.target.value)}
-            placeholder={he ? 'חפש עיר, ZIP, מקצוע...' : 'Search intelligence...'}
-            className="w-full text-xs md:text-sm rounded-xl md:rounded-2xl border-none px-4 py-2.5 md:px-6 md:py-4 outline-none transition-all bg-black/[0.03] focus:bg-black/[0.05] focus:ring-2 focus:ring-black/5"
+            placeholder={he ? 'חפש עיר, ZIP, מקצוע...' : 'Search city, zip, profession...'}
+            className="w-full text-xs md:text-sm rounded-[14px] border-none px-4 py-2.5 md:py-3 outline-none transition-all bg-white focus:ring-2 focus:ring-[#fe5b25]/20 placeholder:text-stone-400"
             style={{
-              paddingLeft: he ? 16 : 48, paddingRight: he ? 48 : 16,
-              color: '#000',
+              paddingLeft: he ? 16 : 42, paddingRight: he ? 42 : 16,
+              color: '#111',
               fontFamily: 'Outfit, sans-serif',
             }}
           />
         </div>
 
+        {/* Profession filter */}
         <div className="relative" ref={profRef}>
           <button
             onClick={() => setIsProfOpen(!isProfOpen)}
-            className="flex items-center justify-between gap-2 text-[10px] md:text-xs font-bold uppercase tracking-widest rounded-xl md:rounded-2xl border-none px-3 py-2.5 md:px-6 md:py-4 bg-black text-white hover:bg-stone-800 transition-colors min-w-0 md:min-w-[220px]"
+            className={`flex items-center justify-between gap-2 text-[10px] md:text-[11px] font-bold uppercase tracking-wider rounded-[14px] border-none px-3 py-2.5 md:px-4 md:py-3 transition-colors min-w-0 md:min-w-[180px] ${
+              filterProfs.length > 0 ? 'bg-[#fe5b25] text-white' : 'bg-white text-black hover:bg-stone-100'
+            }`}
           >
             <span>
-              {filterProfs.length === 0 
-                ? (he ? 'כל המקצועות' : 'All Professions') 
+              {filterProfs.length === 0
+                ? (he ? 'כל המקצועות' : 'All Professions')
                 : (he ? `${filterProfs.length} נבחרו` : `${filterProfs.length} Selected`)}
             </span>
-            <ChevronDown className={`w-4 h-4 text-white/60 transition-transform ${isProfOpen ? 'rotate-180' : ''}`} />
+            <ChevronDown className={`w-4 h-4 transition-transform ${isProfOpen ? 'rotate-180' : ''} ${filterProfs.length > 0 ? 'text-white/70' : 'text-stone-400'}`} />
           </button>
 
           {isProfOpen && (
-            <div className="absolute top-full mt-2 w-64 bg-white rounded-2xl shadow-xl border border-black/5 overflow-hidden z-50" style={{ [he ? 'right' : 'left']: 0 }}>
+            <div className="absolute top-full mt-2 w-64 bg-white rounded-[16px] shadow-2xl border border-stone-100 overflow-hidden z-50" style={{ [he ? 'right' : 'left']: 0 }}>
               <div className="max-h-[300px] overflow-y-auto p-2 space-y-1 scrollbar-hide">
                 <button
                   onClick={() => setFilterProfs([])}
-                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-colors ${
-                    filterProfs.length === 0 ? 'bg-black/[0.03] text-black' : 'text-stone-500 hover:bg-black/[0.02]'
+                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-[12px] text-xs font-bold uppercase tracking-wider transition-colors ${
+                    filterProfs.length === 0 ? 'bg-[#fff4ef] text-[#fe5b25]' : 'text-stone-500 hover:bg-stone-50'
                   }`}
                 >
-                  <div className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${filterProfs.length === 0 ? 'bg-black border-black' : 'border-stone-300'}`}>
+                  <div className={`w-4 h-4 rounded border-[1.5px] flex items-center justify-center transition-colors ${filterProfs.length === 0 ? 'bg-[#fe5b25] border-[#fe5b25]' : 'border-stone-300'}`}>
                     {filterProfs.length === 0 && <Check className="w-3 h-3 text-white" strokeWidth={3} />}
                   </div>
                   {he ? 'הכל' : 'All'}
@@ -462,6 +468,7 @@ export default function LeadsFeed() {
                 {profs.map(p => {
                   const isSelected = filterProfs.includes(p)
                   const prof = getProf(p)
+                  const profSvg = PROFESSION_ICONS[p]
                   return (
                     <button
                       key={p}
@@ -469,14 +476,17 @@ export default function LeadsFeed() {
                         if (isSelected) setFilterProfs(prev => prev.filter(x => x !== p))
                         else setFilterProfs(prev => [...prev, p])
                       }}
-                      className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-colors ${
-                        isSelected ? 'bg-black/[0.03] text-black' : 'text-stone-500 hover:bg-black/[0.02]'
+                      className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-[12px] text-xs font-bold uppercase tracking-wider transition-colors ${
+                        isSelected ? 'bg-[#fff4ef] text-[#fe5b25]' : 'text-stone-500 hover:bg-stone-50'
                       }`}
                     >
-                      <div className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${isSelected ? 'bg-black border-black' : 'border-stone-300'}`}>
+                      <div className={`w-4 h-4 rounded border-[1.5px] flex items-center justify-center transition-colors ${isSelected ? 'bg-[#fe5b25] border-[#fe5b25]' : 'border-stone-300'}`}>
                         {isSelected && <Check className="w-3 h-3 text-white" strokeWidth={3} />}
                       </div>
-                      <prof.icon className="w-4 h-4" style={{ color: prof.color }} />
+                      {profSvg
+                        ? <span style={{ color: '#fe5b25', width: 14, height: 14, display: 'inline-flex' }} className="[&>svg]:w-[14px] [&>svg]:h-[14px]">{profSvg}</span>
+                        : <prof.icon className="w-3.5 h-3.5 text-[#fe5b25]" />
+                      }
                       {he ? prof.he : prof.label}
                     </button>
                   )
@@ -486,23 +496,26 @@ export default function LeadsFeed() {
           )}
         </div>
 
+        {/* Date filter */}
         <div className="relative" ref={dateRef}>
           <button
             onClick={() => setIsDateOpen(!isDateOpen)}
-            className="flex items-center justify-between gap-2 text-[10px] md:text-xs font-bold uppercase tracking-widest rounded-xl md:rounded-2xl border-none px-3 py-2.5 md:px-6 md:py-4 bg-black/[0.03] text-black hover:bg-black/[0.05] transition-colors min-w-0 md:min-w-[160px]"
+            className={`flex items-center justify-between gap-2 text-[10px] md:text-[11px] font-bold uppercase tracking-wider rounded-[14px] border-none px-3 py-2.5 md:px-4 md:py-3 transition-colors min-w-0 md:min-w-[140px] ${
+              filterDate !== 'all' ? 'bg-[#fe5b25] text-white' : 'bg-white text-black hover:bg-stone-100'
+            }`}
           >
             <span>
               {filterDate === 'all' ? (he ? 'כל הזמנים' : 'All Time') :
                filterDate === 'today' ? (he ? 'היום' : 'Today') :
                filterDate === 'yesterday' ? (he ? 'אתמול' : 'Yesterday') :
                filterDate === 'week' ? (he ? 'השבוע' : 'This Week') :
-               (he ? 'תאריך ספציפי' : 'Custom Date')}
+               (he ? 'תאריך ספציפי' : 'Custom')}
             </span>
-            <ChevronDown className={`w-4 h-4 text-black/40 transition-transform ${isDateOpen ? 'rotate-180' : ''}`} />
+            <ChevronDown className={`w-4 h-4 transition-transform ${isDateOpen ? 'rotate-180' : ''} ${filterDate !== 'all' ? 'text-white/70' : 'text-stone-400'}`} />
           </button>
 
           {isDateOpen && (
-            <div className="absolute top-full mt-2 w-48 bg-white rounded-2xl shadow-xl border border-black/5 overflow-hidden z-50" style={{ [he ? 'right' : 'left']: 0 }}>
+            <div className="absolute top-full mt-2 w-48 bg-white rounded-[16px] shadow-2xl border border-stone-100 overflow-hidden z-50" style={{ [he ? 'right' : 'left']: 0 }}>
               <div className="p-2 space-y-1">
                 {(['all', 'today', 'yesterday', 'week', 'custom'] as const).map(d => (
                   <button
@@ -511,8 +524,8 @@ export default function LeadsFeed() {
                       setFilterDate(d)
                       if (d !== 'custom') setIsDateOpen(false)
                     }}
-                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-colors ${
-                      filterDate === d ? 'bg-black/[0.03] text-black' : 'text-stone-500 hover:bg-black/[0.02]'
+                    className={`w-full flex items-center px-3 py-2.5 rounded-[12px] text-xs font-bold uppercase tracking-wider transition-colors ${
+                      filterDate === d ? 'bg-[#fff4ef] text-[#fe5b25]' : 'text-stone-500 hover:bg-stone-50'
                     }`}
                   >
                     {d === 'all' ? (he ? 'כל הזמנים' : 'All Time') :
@@ -531,7 +544,7 @@ export default function LeadsFeed() {
                         setCustomDate(e.target.value)
                         setIsDateOpen(false)
                       }}
-                      className="w-full text-xs font-bold uppercase tracking-wider rounded-xl border border-black/10 px-3 py-2 outline-none focus:border-black/20"
+                      className="w-full text-xs font-bold uppercase tracking-wider rounded-[10px] border border-stone-200 px-3 py-2 outline-none focus:border-[#fe5b25]"
                     />
                   </div>
                 )}
@@ -540,7 +553,8 @@ export default function LeadsFeed() {
           )}
         </div>
 
-        <div className="flex gap-2 bg-black/[0.03] p-1.5 rounded-2xl">
+        {/* Urgency toggle */}
+        <div className="flex gap-1 bg-white p-1 rounded-[14px]">
           {(['all', 'hot', 'warm', 'cold'] as const).map(k => {
             const active = filterUrg === k
             const u = k !== 'all' ? URG[k] : null
@@ -548,8 +562,8 @@ export default function LeadsFeed() {
               <button
                 key={k}
                 onClick={() => setFilterUrg(k)}
-                className={`text-[10px] font-bold uppercase tracking-widest rounded-xl px-4 py-2.5 transition-all ${
-                  active ? 'bg-white text-black shadow-sm' : 'text-stone-400 hover:text-stone-600'
+                className={`text-[10px] font-bold uppercase tracking-wider rounded-[10px] px-3 py-2 md:px-4 md:py-2 transition-all ${
+                  active ? 'bg-[#fe5b25] text-white shadow-sm' : 'text-stone-500 hover:text-black'
                 }`}
               >
                 {k === 'all' ? (he ? 'הכל' : 'All') : (he ? u!.he : u!.label)}
@@ -558,9 +572,10 @@ export default function LeadsFeed() {
           })}
         </div>
 
-        <div className="px-4 py-2 rounded-xl bg-[#fff4ef] border border-[#fee8df] ml-auto">
-          <span className="text-[10px] font-bold text-[#e04d1c] uppercase tracking-widest">
-            {filtered.length} {he ? 'תוצאות' : 'Leads Found'}
+        {/* Result count */}
+        <div className="px-3 py-2 rounded-[12px] bg-white md:ml-auto">
+          <span className="text-[10px] font-bold text-[#fe5b25] uppercase tracking-wider">
+            {filtered.length} {he ? 'תוצאות' : 'Results'}
           </span>
         </div>
       </div>
@@ -578,45 +593,51 @@ export default function LeadsFeed() {
       {/* ── Lead List (Pro View) ── */}
       {!loading && filtered.length > 0 && (
         <div className="space-y-4">
-          {/* Mobile compact cards — prototype style */}
-          <div className="md:hidden space-y-1.5">
+          {/* Mobile compact cards — Jobs design language */}
+          <div className="md:hidden space-y-2">
             {filtered.map((lead) => {
               const p = getProf(lead.profession)
-              const u = URG[lead.urgency]
               const isUrgent = lead.urgency === 'hot'
-              const initials = p.label.slice(0, 2).toUpperCase()
+              const profSvg = PROFESSION_ICONS[lead.profession]
               return (
                 <div
                   key={lead.id}
                   onClick={() => nav(`/leads/${lead.id}`)}
-                  className={`bg-white rounded-[20px] border border-black/[0.04] shadow-sm px-4 py-3 flex items-center gap-3 active:scale-[0.97] transition-transform cursor-pointer ${isUrgent ? 'border-l-[3px] border-l-[#fe5b25]' : ''}`}
+                  className="bg-stone-50 rounded-[20px] px-4 py-3 flex items-center gap-3 active:scale-[0.97] transition-transform cursor-pointer"
                 >
-                  <div className={`w-9 h-9 rounded-xl flex items-center justify-center text-white text-[10px] font-bold flex-shrink-0 ${isUrgent ? 'bg-[#fe5b25]' : 'bg-[#111]'}`}>
-                    {initials}
+                  <div className="w-10 h-10 rounded-[12px] bg-[#fff4ef] flex items-center justify-center flex-shrink-0">
+                    {profSvg
+                      ? <span style={{ color: '#fe5b25', width: 20, height: 20, display: 'inline-flex' }} className="[&>svg]:w-5 [&>svg]:h-5">{profSvg}</span>
+                      : <p.icon className="w-5 h-5 text-[#fe5b25]" strokeWidth={2} />
+                    }
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-1.5">
-                      <p className="text-[13px] font-semibold truncate">{he ? p.he : p.label}</p>
-                      {isUrgent && <Flame className="w-2.5 h-2.5 text-[#fe5b25] flex-shrink-0" />}
+                      <p className="text-[13px] font-semibold text-black truncate">{he ? p.he : p.label}</p>
+                      {isUrgent && (
+                        <span className="text-[8px] font-bold text-[#fe5b25] bg-[#fff4ef] px-1.5 py-0.5 rounded-full uppercase tracking-wider">
+                          {he ? 'דחוף' : 'Hot'}
+                        </span>
+                      )}
                     </div>
                     <div className="flex items-center gap-2 mt-0.5">
-                      {lead.city && <span className="text-[10px] text-[#737373]">{lead.city}</span>}
-                      <span className="text-[10px] text-[#a3a3a3]">{timeAgo(lead.created_at, he)}</span>
+                      {lead.city && <span className="text-[10px] text-stone-500">{lead.city}</span>}
+                      <span className="text-[10px] text-stone-400">{timeAgo(lead.created_at, he)}</span>
                       {lead.source === 'publisher' ? (
-                        <span className="text-[8px] font-semibold text-[#fe5b25] bg-[#fff4f0] px-1.5 py-0.5 rounded-full flex items-center gap-0.5">
+                        <span className="text-[8px] font-bold text-[#fe5b25] uppercase tracking-wider flex items-center gap-0.5">
                           {publisherInfo[lead.id]?.tier && publisherInfo[lead.id].tier !== 'new' && (
                             <BadgeCheck className="w-2.5 h-2.5" />
                           )}
                           {publisherInfo[lead.id]?.name?.split(' ')[0] || 'Publisher'}
                         </span>
                       ) : (
-                        <span className="text-[8px] font-semibold text-[#25D366] bg-[#25D366]/10 px-1.5 py-0.5 rounded-full">WA</span>
+                        <span className="text-[8px] font-bold text-stone-400 uppercase tracking-wider">WhatsApp</span>
                       )}
                     </div>
                   </div>
                   <div className="flex items-center gap-2 flex-shrink-0">
-                    {lead.budget_range && <span className="text-[12px] font-bold text-green-600">{lead.budget_range}</span>}
-                    <ChevronRight className="w-3.5 h-3.5 text-[#a3a3a3]" />
+                    {lead.budget_range && <span className="text-[12px] font-bold text-black">{lead.budget_range}</span>}
+                    <ChevronRight className="w-3.5 h-3.5 text-stone-300" />
                   </div>
                 </div>
               )
@@ -651,19 +672,19 @@ export default function LeadsFeed() {
                     <div className="mt-3 flex flex-col items-center gap-1 w-full">
                       {lead.source === 'publisher' ? (
                         <>
-                          <div className="w-6 h-6 rounded-lg bg-emerald-500/10 flex items-center justify-center">
-                            <Users className="w-3 h-3 text-emerald-600" />
+                          <div className="w-6 h-6 rounded-lg bg-[#fff4ef] flex items-center justify-center">
+                            <Users className="w-3 h-3 text-[#fe5b25]" />
                           </div>
-                          <span className="text-[9px] font-bold text-emerald-600 tracking-tight text-center line-clamp-1">
+                          <span className="text-[9px] font-bold text-[#fe5b25] tracking-tight text-center line-clamp-1">
                             {publisherInfo[lead.id]?.name?.split(' ')[0] || 'Publisher'}
                           </span>
                           {publisherInfo[lead.id]?.tier && publisherInfo[lead.id].tier !== 'new' && (
-                            <span className="text-[8px] font-semibold text-blue-500">✓</span>
+                            <BadgeCheck className="w-3 h-3 text-[#fe5b25]" />
                           )}
                         </>
                       ) : (
                         <>
-                          <div className="w-6 h-6 rounded-lg bg-black/5 flex items-center justify-center">
+                          <div className="w-6 h-6 rounded-lg bg-stone-100 flex items-center justify-center">
                             <Radio className="w-3 h-3 text-stone-400" />
                           </div>
                           <span className="text-[9px] font-bold text-stone-400 uppercase tracking-tight text-center line-clamp-1">
@@ -738,7 +759,7 @@ export default function LeadsFeed() {
                     <div className="flex gap-2 mt-3 md:hidden">
                       <button
                         onClick={(e) => { e.stopPropagation(); contactAdvertiser(lead) }}
-                        className={`flex-1 flex items-center justify-center gap-1.5 text-white h-9 rounded-xl font-bold text-xs transition-all ${canSeeLeadDetails ? 'bg-[#25D366]' : 'bg-stone-400'}`}
+                        className={`flex-1 flex items-center justify-center gap-1.5 text-white h-9 rounded-xl font-bold text-xs uppercase tracking-wider transition-all ${canSeeLeadDetails ? 'bg-[#fe5b25]' : 'bg-stone-400'}`}
                       >
                         {canSeeLeadDetails ? <MessageCircle className="w-3.5 h-3.5" /> : <Lock className="w-3.5 h-3.5" />}
                         {canSeeLeadDetails ? (he ? 'פנה' : 'Contact') : (he ? 'שדרג' : 'Upgrade')}
@@ -786,7 +807,7 @@ export default function LeadsFeed() {
                         }}
                         className={`flex items-center justify-center gap-2 text-white h-10 rounded-xl font-bold text-xs transition-all w-full ${
                           canSeeLeadDetails
-                            ? 'bg-[#25D366] hover:bg-[#1da851]'
+                            ? 'bg-[#fe5b25] hover:bg-[#e04d1c]'
                             : 'bg-stone-400 hover:bg-stone-500'
                         }`}
                       >
@@ -953,67 +974,73 @@ function KpiCard({
   active?: boolean
   onClick?: () => void
 }) {
+  const isActive = !!active
+  const bg = isActive ? '#fe5b25' : '#fafaf9'
+  const textPrimary = isActive ? '#fff' : '#111'
+  const textLabel = isActive ? 'rgba(255,255,255,0.7)' : '#a8a29e'
+  const textSub = isActive ? 'rgba(255,255,255,0.6)' : '#a8a29e'
+  const iconBg = isActive ? 'rgba(255,255,255,0.18)' : '#fff'
+  const iconColor = isActive ? '#fff' : (color || '#fe5b25')
+
   return (
     <div
       onClick={onClick}
-      className={`glass-panel group flex flex-col justify-between p-2 md:p-6 min-h-0 md:min-h-[180px] min-w-[72px] md:min-w-0 overflow-hidden transition-all duration-500 ${
-        onClick ? 'cursor-pointer hover:scale-[1.02]' : ''
-      } ${active ? 'ring-2 ring-black/5 bg-white/90' : ''}`}
+      className={`group flex flex-col justify-between p-2.5 md:p-5 min-h-0 md:min-h-[160px] min-w-[82px] md:min-w-0 overflow-hidden transition-all duration-300 rounded-[16px] md:rounded-[20px] ${
+        onClick ? 'cursor-pointer active:scale-[0.97]' : ''
+      }`}
+      style={{ background: bg }}
     >
       <div className="flex items-start justify-between relative z-10">
         <div
-          className="w-5 h-5 md:w-10 md:h-10 rounded-md md:rounded-[14px] flex items-center justify-center transition-all duration-500 shadow-sm"
-          style={{
-            background: active ? '#000' : `${color}10`,
-            color: active ? '#fff' : color,
-          }}
+          className="w-6 h-6 md:w-9 md:h-9 rounded-lg md:rounded-[12px] flex items-center justify-center transition-all"
+          style={{ background: iconBg, color: iconColor }}
         >
-          <Icon className="h-2.5 w-2.5 md:h-5 md:w-5" strokeWidth={1.5} />
+          <Icon className="h-3 w-3 md:h-[18px] md:w-[18px]" strokeWidth={2} />
         </div>
         {trend && (
           <span
-            className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-bold tracking-tight ${
-              trend.value >= 0 
-                ? 'bg-[#fff4ef] text-[#e04d1c] border border-[#fee8df]' 
-                : 'bg-rose-50 text-rose-600 border border-rose-100'
-            }`}
+            className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider"
+            style={{
+              background: isActive ? 'rgba(255,255,255,0.15)' : '#fff4ef',
+              color: isActive ? '#fff' : '#fe5b25',
+            }}
           >
             {trend.value >= 0 ? <TrendingUp className="h-2.5 w-2.5" /> : <TrendingDown className="h-2.5 w-2.5" />}
             {trend.label}
           </span>
         )}
       </div>
-      
-      <div className="mt-0.5 md:mt-4 relative z-10">
-        <div className="text-[20px] md:text-3xl font-bold md:font-light tracking-tighter text-black leading-none">
-          {value}
-        </div>
-        <div className="text-[7px] md:text-[9px] font-bold uppercase tracking-[0.1em] text-stone-400 mt-0.5">
+
+      <div className="mt-1 md:mt-3 relative z-10">
+        <div className="text-[9px] md:text-[10px] font-bold uppercase tracking-[0.15em] mb-0.5" style={{ color: textLabel }}>
           {label}
         </div>
-        <div className="hidden md:block mt-1 text-[11px] font-medium text-stone-400">
+        <div className="text-[22px] md:text-[28px] font-light tracking-[-0.03em] leading-none" style={{ color: textPrimary }}>
+          {value}
+        </div>
+        <div className="hidden md:block mt-1 text-[11px] font-medium" style={{ color: textSub }}>
           {sub}
         </div>
       </div>
 
       {/* Sparkline Background — hidden on mobile */}
-      <div className="hidden md:block absolute bottom-0 left-0 right-0 h-12 opacity-20 group-hover:opacity-40 transition-opacity duration-500">
+      <div className="hidden md:block absolute bottom-0 left-0 right-0 h-10 opacity-30 group-hover:opacity-50 transition-opacity duration-500 pointer-events-none">
         {chartData.length > 0 && (
           <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
             <AreaChart data={chartData}>
               <defs>
-                <linearGradient id={`color-${label}`} x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor={color} stopOpacity={0.3}/>
-                  <stop offset="95%" stopColor={color} stopOpacity={0}/>
+                <linearGradient id={`lf-spark-${label}`} x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor={isActive ? '#fff' : (color || '#fe5b25')} stopOpacity={isActive ? 0.5 : 0.3}/>
+                  <stop offset="95%" stopColor={isActive ? '#fff' : (color || '#fe5b25')} stopOpacity={0}/>
                 </linearGradient>
               </defs>
-              <Area 
-                type="monotone" 
-                dataKey="val" 
-                stroke={color} 
-                strokeWidth={2} 
-                fillOpacity={1} 
-                fill={`url(#color-${label})`} 
+              <Area
+                type="monotone"
+                dataKey="val"
+                stroke={isActive ? '#fff' : (color || '#fe5b25')}
+                strokeWidth={2}
+                fillOpacity={1}
+                fill={`url(#lf-spark-${label})`}
                 isAnimationActive={true}
               />
             </AreaChart>

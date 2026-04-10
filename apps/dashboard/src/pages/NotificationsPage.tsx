@@ -255,7 +255,7 @@ export default function NotificationsPage() {
                 : 'Add your professions and zip codes to receive relevant lead notifications.'}
             </p>
             <button
-              onClick={() => navigate('/profile/edit')}
+              onClick={() => navigate('/profile')}
               className="text-sm font-semibold text-[#fe5b25] hover:text-[#ff7a4d] transition-colors"
             >
               {isHe ? 'עבור להגדרות פרופיל' : 'Go to Profile Settings'}

@@ -147,7 +147,7 @@ export default function ProfileCompletionBar({ completeness, profile }: ProfileC
             return (
               <Link
                 key={item.key}
-                to={item.key === 'identity' ? '/verify-identity' : '/profile/edit'}
+                to={item.key === 'identity' ? '/verify-identity' : '/profile'}
                 className="flex items-center gap-2.5 px-3 py-2 rounded-xl
                            bg-orange-50/60 hover:bg-orange-100/80
                            transition-colors group"
@@ -192,7 +192,7 @@ export default function ProfileCompletionBar({ completeness, profile }: ProfileC
       {/* CTA */}
       {percent < 100 && (
         <Link
-          to="/profile/edit"
+          to="/profile"
           className="flex items-center justify-center gap-2 w-full py-2.5 px-4
                      rounded-xl bg-[#fe5b25] text-white font-medium text-sm
                      hover:bg-[#e5501f] transition-colors shadow-sm"
