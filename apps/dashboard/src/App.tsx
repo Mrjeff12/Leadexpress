@@ -191,12 +191,6 @@ function AppShell() {
 
   if (isAdmin && !impersonatedUserId) return <Navigate to="/admin" replace />
 
-  // Redirect old onboarding path to web signup
-  if (location.pathname === '/onboarding') {
-    window.location.href = 'https://masterleadflow.com/signup'
-    return <div className="min-h-screen flex items-center justify-center"><div className="w-8 h-8 border-[3px] border-gray-200 border-t-[#fe5b25] rounded-full animate-spin" /></div>
-  }
-
   // Partner onboarding is full-screen, no sidebar
   if (location.pathname === '/partner/join') {
     return <PartnerOnboarding />

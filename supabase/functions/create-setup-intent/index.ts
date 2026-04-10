@@ -1,3 +1,5 @@
+// verify_jwt=false because Edge runtime's verifier rejects /auth/v1/token JWTs in some configs.
+// Security: function validates the JWT itself via supabase.auth.getUser(token) before doing any work.
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import Stripe from "npm:stripe@17";
@@ -16,13 +18,22 @@ Deno.serve(async (req: Request) => {
 
   try {
     const authHeader = req.headers.get("Authorization");
-    if (!authHeader) return new Response("Unauthorized", { status: 401 });
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({ error: "Unauthorized" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
 
     const token = authHeader.replace("Bearer ", "");
     const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-    if (authError || !user) return new Response("Unauthorized", { status: 401 });
+    if (authError || !user) {
+      return new Response(
+        JSON.stringify({ error: "Unauthorized" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
 
-    // Get or create Stripe customer (pattern from create-checkout-session)
     const { data: sub } = await supabase
       .from("subscriptions")
       .select("stripe_customer_id")
@@ -45,15 +56,46 @@ Deno.serve(async (req: Request) => {
       });
       customerId = customer.id;
 
-      await supabase
-        .from("subscriptions")
-        .upsert(
-          { user_id: user.id, stripe_customer_id: customerId },
-          { onConflict: "user_id" },
-        );
+      // Use UPDATE when the subscription row exists (common case — Rebeca creates it).
+      // Fall back to INSERT only in the rare case where no row exists yet.
+      // NB: plain upsert() fails here because plan_id is NOT NULL without default.
+      if (sub !== null) {
+        const { error: updateErr } = await supabase
+          .from("subscriptions")
+          .update({ stripe_customer_id: customerId })
+          .eq("user_id", user.id);
+        if (updateErr) {
+          console.error("[create-setup-intent] Failed to update customer_id:", updateErr);
+          return new Response(
+            JSON.stringify({ error: "DB update failed: " + updateErr.message }),
+            { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+          );
+        }
+      } else {
+        const { data: plan } = await supabase
+          .from("plans")
+          .select("id")
+          .eq("slug", "free")
+          .eq("is_active", true)
+          .maybeSingle();
+        const { error: insertErr } = await supabase
+          .from("subscriptions")
+          .insert({
+            user_id: user.id,
+            stripe_customer_id: customerId,
+            plan_id: plan?.id,
+            status: "active",
+          });
+        if (insertErr) {
+          console.error("[create-setup-intent] Failed to insert subscription:", insertErr);
+          return new Response(
+            JSON.stringify({ error: "DB insert failed: " + insertErr.message }),
+            { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+          );
+        }
+      }
     }
 
-    // Create the SetupIntent — no charge, just saves a payment method for later
     const setupIntent = await stripe.setupIntents.create({
       customer: customerId,
       payment_method_types: ["card"],
@@ -74,7 +116,7 @@ Deno.serve(async (req: Request) => {
   } catch (err) {
     console.error("[create-setup-intent] Error:", err);
     return new Response(
-      JSON.stringify({ error: "Failed to create setup intent" }),
+      JSON.stringify({ error: String((err as Error)?.message || err) }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   }
