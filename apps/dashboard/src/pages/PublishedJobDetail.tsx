@@ -133,6 +133,8 @@ export default function PublishedJobDetail() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [choosing, setChoosing] = useState<string | null>(null)
+  const [rebroadcasting, setRebroadcasting] = useState(false)
+  const [rebroadcastMsg, setRebroadcastMsg] = useState<string | null>(null)
 
   /* ─── Fetch broadcast + responses ─── */
 
@@ -235,6 +237,32 @@ export default function PublishedJobDetail() {
       console.error('[PublishedJobDetail] choose error:', e)
     } finally {
       setChoosing(null)
+    }
+  }
+
+  /* ─── Rebroadcast ─── */
+
+  async function handleRebroadcast() {
+    if (!broadcast || rebroadcasting) return
+    setRebroadcasting(true)
+    setRebroadcastMsg(null)
+    try {
+      const { data, error: err } = await supabase.functions.invoke('broadcast-job', {
+        body: { action: 'send_broadcast', broadcast_id: broadcast.id },
+      })
+      if (err) throw err
+      const sent = data?.sent_count ?? 0
+      setBroadcast(prev => prev ? { ...prev, sent_count: prev.sent_count + sent } : prev)
+      setRebroadcastMsg(
+        sent > 0
+          ? (isHe ? `נשלח ל-${sent} קבלנים נוספים` : `Sent to ${sent} more contractors`)
+          : (isHe ? 'אין קבלנים נוספים באזור' : 'No additional contractors found in area')
+      )
+    } catch (e: any) {
+      console.error('[Rebroadcast] error:', e)
+      setRebroadcastMsg(isHe ? 'שגיאה בשידור מחדש' : 'Rebroadcast failed')
+    } finally {
+      setRebroadcasting(false)
     }
   }
 
@@ -522,10 +550,17 @@ export default function PublishedJobDetail() {
             <p className="text-xs text-stone-500 mb-3">
               {isHe ? 'לא מוצא את ההתאמה הנכונה?' : 'Not finding the right fit?'}
             </p>
-            <button className="bg-stone-900 hover:bg-stone-800 text-white py-3 px-6 rounded-xl text-sm font-semibold transition-colors inline-flex items-center gap-2">
-              <RefreshCw size={14} />
+            <button
+              onClick={handleRebroadcast}
+              disabled={rebroadcasting}
+              className="bg-stone-900 hover:bg-stone-800 disabled:opacity-60 text-white py-3 px-6 rounded-xl text-sm font-semibold transition-colors inline-flex items-center gap-2"
+            >
+              {rebroadcasting ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}
               {isHe ? 'שדר מחדש לעוד קבלנים' : 'Rebroadcast to More Contractors'}
             </button>
+            {rebroadcastMsg && (
+              <p className="text-xs text-stone-500 mt-2">{rebroadcastMsg}</p>
+            )}
           </div>
         </div>
       )}
