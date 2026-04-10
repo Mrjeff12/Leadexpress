@@ -2218,7 +2218,7 @@ async function executeOnboardingCompletion(phone: string, onboardData: Record<st
       const lr = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/magic-login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'generate', user_id: newUserId, redirect_path: '/complete-account' }),
+        body: JSON.stringify({ action: 'generate', user_id: newUserId, redirect_path: '/onboarding' }),
       });
       const ld = await lr.json();
       if (ld.link) dashLink = ld.link;
@@ -2803,7 +2803,7 @@ async function onboardConfirm(phone: string, textLower: string, data: Record<str
         const lr = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/magic-login`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: 'generate', user_id: newUserId, redirect_path: '/complete-account' }),
+          body: JSON.stringify({ action: 'generate', user_id: newUserId, redirect_path: '/onboarding' }),
         });
         const ld = await lr.json();
         if (ld.link) dashLink = ld.link;
@@ -2867,7 +2867,7 @@ async function onboardGroups(phone: string, text: string, textLower: string, dat
       }).eq('phone', phone);
     }
 
-    // Generate magic link for complete-account page
+    // Generate magic link for onboarding page
     let dashLink = 'https://app.masterleadflow.com';
     if (userId) {
       try {
@@ -2877,7 +2877,7 @@ async function onboardGroups(phone: string, text: string, textLower: string, dat
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
           },
-          body: JSON.stringify({ action: 'generate', user_id: userId, redirect_path: '/complete-account' }),
+          body: JSON.stringify({ action: 'generate', user_id: userId, redirect_path: '/onboarding' }),
         });
         const ld = await lr.json();
         if (ld.link) dashLink = ld.link;

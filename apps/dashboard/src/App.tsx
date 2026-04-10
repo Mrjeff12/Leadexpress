@@ -11,16 +11,12 @@ import Sidebar from './components/Sidebar'
 import ImpersonationBanner from './components/ImpersonationBanner'
 import Login from './pages/Login'
 import AutoLogin from './pages/AutoLogin'
-const CompleteAccount = lazyRetry(() => import('./pages/CompleteAccount'))
 import RequireSubscription from './components/Paywall'
 import SubscriptionBanner from './components/SubscriptionBanner'
-import CompleteAccountBanner from './components/CompleteAccountBanner'
 import { supabase } from './lib/supabase'
 import { ContractorContext, useContractorData, useContractor } from './lib/useContractor'
-import PushBanner from './components/PushBanner'
 import WhatsAppReconnectBanner from './components/WhatsAppReconnectBanner'
 import RebecaConnectPopup from './components/RebecaConnectPopup'
-import { PWAInstallBanner } from './components/PWAInstallBanner'
 import { OnboardingOverlayContext } from './components/OnboardingOverlayContext'
 import PushPermissionPopup from './components/PushPermissionPopup'
 
@@ -213,9 +209,6 @@ function AppShell() {
       <div className="le-bg" />
       <div className="le-grain" />
       {!onboardingActive && <WhatsAppReconnectBanner />}
-      {!onboardingActive && <PWAInstallBanner />}
-      {!onboardingActive && <PushBanner />}
-      {!onboardingActive && <CompleteAccountBanner />}
       {!onboardingActive && <SubscriptionBanner />}
       <ImpersonationBanner />
       {!onboardingActive && <Sidebar />}
@@ -297,7 +290,6 @@ function App() {
                   <Route path="/group-leads" element={<GroupLeads />} />
                   <Route path="/login" element={<Login />} />
                   <Route path="/auto-login" element={<AutoLogin />} />
-                  <Route path="/complete-account" element={<RequireAuth><CompleteAccount /></RequireAuth>} />
                   <Route path="/admin/*" element={
                     <RequireAuth><RequireAdmin><AdminLayout /></RequireAdmin></RequireAuth>
                   } />

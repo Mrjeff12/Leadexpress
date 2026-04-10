@@ -107,8 +107,10 @@ export default function AutoLogin() {
 
         setStatus('success')
 
-        const safePath = (data.redirect_path && data.redirect_path.startsWith('/') && !data.redirect_path.startsWith('//'))
-          ? data.redirect_path : '/complete-account'
+        // Legacy tokens from Rebeca may still carry /complete-account — redirect them to /onboarding
+        const rawPath = data.redirect_path === '/complete-account' ? '/onboarding' : data.redirect_path
+        const safePath = (rawPath && rawPath.startsWith('/') && !rawPath.startsWith('//'))
+          ? rawPath : '/onboarding'
         // Hard redirect — forces Supabase client to re-initialize with stored tokens
         setTimeout(() => {
           window.location.replace(safePath)
