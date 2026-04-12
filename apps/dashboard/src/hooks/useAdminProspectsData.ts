@@ -33,7 +33,7 @@ export async function fetchProspects(): Promise<ProspectRecord[]> {
       .from('prospect_with_groups')
       .select('*')
       .is('archived_at', null)
-      .order('updated_at', { ascending: false })
+      .order('last_contact_at', { ascending: false, nullsFirst: false })
       .range(from, from + pageSize - 1)
 
     if (error) throw error

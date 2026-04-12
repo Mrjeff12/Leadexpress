@@ -292,6 +292,34 @@ async function routeToProspectChat(body: GreenNotification["body"]) {
   await supabase.from("prospects").update(updates).eq("id", prospect.id);
 }
 
+// ── Outgoing DM routing (save messages sent from phone to prospect chat) ──
+async function routeOutgoingToProspectChat(body: GreenNotification["body"]) {
+  const recipientId = body.senderData?.chatId ?? "";
+  if (!recipientId) return;
+
+  const { data: prospect } = await supabase
+    .from("prospects").select("id, stage").eq("wa_id", recipientId).maybeSingle();
+  if (!prospect) return;
+
+  const text = body.messageData?.textMessageData?.textMessage ??
+    body.messageData?.extendedTextMessageData?.text ?? "";
+  if (!text) return;
+
+  const messageId = body.idMessage ?? `green-out-${Date.now()}`;
+
+  // Upsert to avoid duplicates — messages sent via CRM are already saved by wa-listener
+  const { error: msgErr } = await supabase.from("prospect_messages").upsert({
+    prospect_id: prospect.id, direction: "outgoing", message_type: "text",
+    content: text, wa_message_id: messageId, channel: "green_api",
+    sent_at: new Date(body.timestamp * 1000).toISOString(),
+  }, { onConflict: "wa_message_id", ignoreDuplicates: true });
+  if (msgErr?.code === "23505") return; // already saved by wa-listener
+
+  await supabase.from("prospects").update({
+    last_contact_at: new Date().toISOString(),
+  }).eq("id", prospect.id);
+}
+
 // ── Handle personal group links ──────────────────────────────────────────────
 async function handlePersonalGroupLink(text: string, senderId: string) {
   const matches = [...text.matchAll(GROUP_LINK_REGEX)];
@@ -412,6 +440,14 @@ async function processNotification(notif: GreenNotification, account: WaAccount)
       .update({ status: dbStatus, ...(state === "authorized" ? { connected_since: new Date().toISOString() } : {}) })
       .eq("green_api_id", account.green_api_id);
     return `state:${state}`;
+  }
+
+  // ── Outgoing messages (sent from phone or API) → save to prospect chat ──
+  if (body.typeWebhook === "outgoingMessageReceived" || body.typeWebhook === "outgoingAPIMessageReceived") {
+    const recipientChatId = body.senderData?.chatId ?? "";
+    if (!recipientChatId || !recipientChatId.endsWith("@c.us")) return "outgoing_skip";
+    await routeOutgoingToProspectChat(body);
+    return "outgoing_dm_routed";
   }
 
   if (body.typeWebhook !== "incomingMessageReceived") return "ignored";

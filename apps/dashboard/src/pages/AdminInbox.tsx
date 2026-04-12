@@ -826,11 +826,11 @@ export default function AdminInbox() {
             const aNr = needsReply.has(a.id) ? 0 : 1
             const bNr = needsReply.has(b.id) ? 0 : 1
             if (aNr !== bNr) return aNr - bNr
-            return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
+            return (new Date(b.last_contact_at ?? b.created_at).getTime()) - (new Date(a.last_contact_at ?? a.created_at).getTime())
           }
           case 'last_activity':
           default:
-            return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
+            return (new Date(b.last_contact_at ?? b.created_at).getTime()) - (new Date(a.last_contact_at ?? a.created_at).getTime())
         }
       })
     }
