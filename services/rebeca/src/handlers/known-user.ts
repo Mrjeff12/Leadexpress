@@ -18,7 +18,7 @@ const POSITIVE_RESPONSES = new Set([
 export async function handleKnownUser(
   phone: string,
   text: string,
-  profile: { id: string; full_name: string },
+  profile: { id: string; full_name: string; preferred_locale?: string | null },
 ): Promise<void> {
   const lower = text.trim().toLowerCase();
 

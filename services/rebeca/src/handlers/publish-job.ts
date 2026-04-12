@@ -1,6 +1,7 @@
 import { getState, setState, type BotState } from '../lib/state.js';
 import { sendText } from '../lib/twilio.js';
 import { supabase } from '../lib/supabase.js';
+import type { Lang } from '../lib/i18n.js';
 
 /**
  * Publish Job handler — multi-step conversation where a publisher
@@ -28,16 +29,114 @@ const PROFESSIONS = [
   { key: 'landscaping', en: 'Landscaping',               emoji: '🌳',  num: '14' },
 ];
 
+// ── i18n helpers ──────────────────────────────────────────────────────────────
+
+function L(lang: Lang): Lang { return lang || 'en'; }
+
+const PJ: Record<string, Record<Lang, string>> = {
+  start: {
+    en: '🔧 *Post a Job*\n\nWhat trade do you need?\n\n{{list}}\n\nReply with a number or type the trade name.',
+    he: '🔧 *פרסם עבודה*\n\nאיזה מקצוע אתה צריך?\n\n{{list}}\n\nהקלד מספר או שם המקצוע.',
+    es: '🔧 *Publicar Trabajo*\n\n¿Qué oficio necesitas?\n\n{{list}}\n\nResponde con un número o el nombre del oficio.',
+  },
+  trade_not_found: {
+    en: '❌ Trade not found. Reply with a number (1-14) or type the name.',
+    he: '❌ לא מצאתי את המקצוע. הקלד מספר (1-14) או את שם המקצוע.',
+    es: '❌ Oficio no encontrado. Responde con un número (1-14) o escribe el nombre.',
+  },
+  describe: {
+    en: '{{prof}}\n\nNow describe the job briefly.\n\nExample: "Residential lock change, 3 doors, customer waiting"',
+    he: '{{prof}}\n\nתאר את העבודה בקצרה.\n\nדוגמה: "החלפת מנעול בדירה, 3 דלתות, לקוח ממתין"',
+    es: '{{prof}}\n\nDescribe el trabajo brevemente.\n\nEjemplo: "Cambio de cerradura residencial, 3 puertas, cliente esperando"',
+  },
+  describe_too_short: {
+    en: 'Please describe the job in at least a few words.',
+    he: 'תאר את העבודה בכמה מילים לפחות.',
+    es: 'Describe el trabajo con al menos unas palabras.',
+  },
+  ask_location: {
+    en: '📍 Where is the job?\n\nEnter city and ZIP code.\nExample: "Miami, 33101"',
+    he: '📍 איפה העבודה?\n\nהקלד עיר ומיקוד.\nדוגמה: "Miami, 33101"',
+    es: '📍 ¿Dónde es el trabajo?\n\nEscribe ciudad y código postal.\nEjemplo: "Miami, 33101"',
+  },
+  ask_location_retry: {
+    en: 'Please enter the city and ZIP code.',
+    he: 'הקלד עיר ומיקוד.',
+    es: 'Escribe la ciudad y el código postal.',
+  },
+  ask_address: {
+    en: '🏠 Full customer address?\n\nOr type "skip" if you don\'t have it yet.',
+    he: '🏠 כתובת מלאה של הלקוח?\n\nאו הקלד "דלג" אם אין לך עדיין.',
+    es: '🏠 ¿Dirección completa del cliente?\n\nO escribe "saltar" si aún no la tienes.',
+  },
+  ask_commission: {
+    en: '💰 What percentage does the sub-contractor get?\n\nExample: "80" means 80% to sub, 20% to you.',
+    he: '💰 כמה אחוז מקבל קבלן המשנה?\n\nדוגמה: "80" = 80% לטכנאי, 20% לך.',
+    es: '💰 ¿Qué porcentaje recibe el subcontratista?\n\nEjemplo: "80" significa 80% para el sub, 20% para ti.',
+  },
+  commission_invalid: {
+    en: 'Please enter a number between 1 and 100 (percentage for the sub-contractor).',
+    he: 'הקלד מספר בין 1 ל-100 (אחוז לקבלן המשנה).',
+    es: 'Escribe un número entre 1 y 100 (porcentaje para el subcontratista).',
+  },
+  summary: {
+    en: '📋 *Job Summary*\n\n🔧 Trade: {{prof}}\n📍 Location: {{loc}}\n📝 {{desc}}\n{{addr}}💰 Commission: {{sub_pct}}% to sub / {{my_pct}}% to you\n\nReply *yes* to publish or *no* to cancel.',
+    he: '📋 *סיכום העבודה*\n\n🔧 מקצוע: {{prof}}\n📍 מיקום: {{loc}}\n📝 {{desc}}\n{{addr}}💰 חלוקה: {{sub_pct}}% לטכנאי / {{my_pct}}% לך\n\nהקלד *כן* לפרסם או *לא* לבטל.',
+    es: '📋 *Resumen del Trabajo*\n\n🔧 Oficio: {{prof}}\n📍 Ubicación: {{loc}}\n📝 {{desc}}\n{{addr}}💰 Comisión: {{sub_pct}}% al sub / {{my_pct}}% a ti\n\nResponde *sí* para publicar o *no* para cancelar.',
+  },
+  confirm_retry: {
+    en: 'Reply *yes* to publish or *no* to cancel.',
+    he: 'הקלד *כן* לפרסם או *לא* לבטל.',
+    es: 'Responde *sí* para publicar o *no* para cancelar.',
+  },
+  cancelled: {
+    en: '❌ Job cancelled. Send me a message anytime to post another one.',
+    he: '❌ העבודה בוטלה. שלח הודעה מתי שתרצה לפרסם עבודה נוספת.',
+    es: '❌ Trabajo cancelado. Envíame un mensaje cuando quieras publicar otro.',
+  },
+  publishing: {
+    en: '⏳ Publishing your job...',
+    he: '⏳ מפרסם את העבודה...',
+    es: '⏳ Publicando tu trabajo...',
+  },
+  not_registered: {
+    en: '⚠️ You need to be registered to publish jobs. Type "register" to get started.',
+    he: '⚠️ צריך להירשם כדי לפרסם עבודות. הקלד "הרשמה" כדי להתחיל.',
+    es: '⚠️ Necesitas registrarte para publicar trabajos. Escribe "registro" para comenzar.',
+  },
+  published: {
+    en: '✅ *Job Published!*\n\nYour {{prof}} job has been sent to matching contractors in your area.\n\nWe\'ll notify you on WhatsApp when someone is interested. 🔔',
+    he: '✅ *העבודה פורסמה!*\n\nעבודת ה-{{prof}} נשלחה לטכנאים מתאימים באזור שלך.\n\nנעדכן אותך בוואטסאפ כשמישהו מתעניין. 🔔',
+    es: '✅ *¡Trabajo Publicado!*\n\nTu trabajo de {{prof}} fue enviado a contratistas en tu área.\n\nTe notificaremos por WhatsApp cuando alguien esté interesado. 🔔',
+  },
+  error: {
+    en: '⚠️ Something went wrong publishing your job. Please try again later.',
+    he: '⚠️ משהו השתבש בפרסום. נסה שוב מאוחר יותר.',
+    es: '⚠️ Algo salió mal al publicar. Inténtalo más tarde.',
+  },
+};
+
+function pj(key: string, lang: Lang, vars?: Record<string, string>): string {
+  let str = PJ[key]?.[L(lang)] ?? PJ[key]?.en ?? key;
+  if (vars) {
+    for (const [k, v] of Object.entries(vars)) {
+      str = str.replaceAll(`{{${k}}}`, v);
+    }
+  }
+  return str;
+}
+
+// ── Entry & dispatcher ────────────────────────────────────────────────────────
+
 /** Start the publish job flow — show profession picker first */
 export async function startPublishJob(phone: string, state: BotState): Promise<void> {
   state.step = 'pj_profession';
   state.extra = { ...(state.extra || {}), job: {} };
   await setState(phone, state);
 
+  const l = L(state.language);
   const list = PROFESSIONS.map(p => `${p.num}. ${p.emoji} ${p.en}`).join('\n');
-  await sendText(phone,
-    `🔧 *Post a Job*\n\nWhat trade do you need?\n\n${list}\n\nReply with a number or type the trade name.`
-  );
+  await sendText(phone, pj('start', l, { list }));
 }
 
 /** Main dispatcher */
@@ -66,15 +165,14 @@ export async function handlePublishJob(phone: string, text: string): Promise<voi
 // ── Step handlers ──────────────────────────────────────────────────────────
 
 async function handleProfession(phone: string, text: string, state: BotState, job: Record<string, string>) {
+  const l = L(state.language);
   const input = text.trim().toLowerCase();
-  // Match by number
   const byNum = PROFESSIONS.find(p => p.num === input);
-  // Match by key or name
   const byKey = PROFESSIONS.find(p => p.key === input || p.en.toLowerCase() === input || p.en.toLowerCase().startsWith(input));
   const match = byNum || byKey;
 
   if (!match) {
-    await sendText(phone, '❌ Trade not found. Reply with a number (1-14) or type the name.');
+    await sendText(phone, pj('trade_not_found', l));
     return;
   }
 
@@ -83,58 +181,54 @@ async function handleProfession(phone: string, text: string, state: BotState, jo
   state.extra = { ...(state.extra || {}), job };
   state.step = 'pj_description';
   await setState(phone, state);
-  await sendText(phone,
-    `${match.emoji} *${match.en}*\n\nNow describe the job briefly.\n\nExample: "Residential lock change, 3 doors, customer waiting"`
-  );
+  await sendText(phone, pj('describe', l, { prof: `${match.emoji} *${match.en}*` }));
 }
 
 async function handleDescription(phone: string, text: string, state: BotState, job: Record<string, string>) {
+  const l = L(state.language);
   if (!text.trim() || text.trim().length < 5) {
-    await sendText(phone, 'Please describe the job in at least a few words.');
+    await sendText(phone, pj('describe_too_short', l));
     return;
   }
   job.description = text.trim();
   state.extra = { ...(state.extra || {}), job };
   state.step = 'pj_location';
   await setState(phone, state);
-  await sendText(phone,
-    '📍 Where is the job?\n\nEnter city and ZIP code.\nExample: "Miami, 33101"'
-  );
+  await sendText(phone, pj('ask_location', l));
 }
 
 async function handleLocation(phone: string, text: string, state: BotState, job: Record<string, string>) {
+  const l = L(state.language);
   if (!text.trim()) {
-    await sendText(phone, 'Please enter the city and ZIP code.');
+    await sendText(phone, pj('ask_location_retry', l));
     return;
   }
-  // Try to parse city + zip
   const parts = text.split(',').map(s => s.trim());
   job.city = parts[0] || text.trim();
   job.zip_code = parts[1] || '';
   state.extra = { ...(state.extra || {}), job };
   state.step = 'pj_address';
   await setState(phone, state);
-  await sendText(phone,
-    '🏠 Full customer address?\n\nOr type "skip" if you don\'t have it yet.'
-  );
+  await sendText(phone, pj('ask_address', l));
 }
 
 async function handleAddress(phone: string, text: string, state: BotState, job: Record<string, string>) {
-  if (text.trim().toLowerCase() !== 'skip') {
+  const l = L(state.language);
+  const lower = text.trim().toLowerCase();
+  if (lower !== 'skip' && lower !== 'דלג' && lower !== 'saltar') {
     job.address = text.trim();
   }
   state.extra = { ...(state.extra || {}), job };
   state.step = 'pj_commission';
   await setState(phone, state);
-  await sendText(phone,
-    '💰 What percentage does the sub-contractor get?\n\nExample: "80" means 80% to sub, 20% to you.'
-  );
+  await sendText(phone, pj('ask_commission', l));
 }
 
 async function handleCommission(phone: string, text: string, state: BotState, job: Record<string, string>) {
+  const l = L(state.language);
   const num = parseInt(text.trim().replace('%', ''));
   if (isNaN(num) || num < 1 || num > 100) {
-    await sendText(phone, 'Please enter a number between 1 and 100 (percentage for the sub-contractor).');
+    await sendText(phone, pj('commission_invalid', l));
     return;
   }
   job.sub_pct = String(num);
@@ -143,43 +237,38 @@ async function handleCommission(phone: string, text: string, state: BotState, jo
   state.step = 'pj_confirm';
   await setState(phone, state);
 
-  // Show summary
   const profLabel = job.professionLabel || (job.profession || '').replace(/_/g, ' ');
   const loc = [job.city, job.zip_code].filter(Boolean).join(', ');
-  await sendText(phone,
-    `📋 *Job Summary*\n\n` +
-    `🔧 Trade: ${profLabel}\n` +
-    `📍 Location: ${loc}\n` +
-    `📝 ${job.description}\n` +
-    (job.address ? `🏠 Address: ${job.address}\n` : '') +
-    `💰 Commission split: ${job.sub_pct}% to sub / ${job.my_pct}% to you\n\n` +
-    `Reply *yes* to publish and send to matching contractors, or *no* to cancel.`
-  );
+  const addr = job.address
+    ? (l === 'he' ? `🏠 כתובת: ${job.address}\n` : l === 'es' ? `🏠 Dirección: ${job.address}\n` : `🏠 Address: ${job.address}\n`)
+    : '';
+  await sendText(phone, pj('summary', l, { prof: profLabel, loc, desc: job.description, addr, sub_pct: job.sub_pct, my_pct: job.my_pct }));
 }
 
 async function handleConfirm(phone: string, text: string, state: BotState, job: Record<string, string>) {
+  const l = L(state.language);
   const answer = text.trim().toLowerCase();
 
-  if (answer === 'no' || answer === 'cancel') {
+  if (['no', 'cancel', 'לא', 'ביטול', 'cancelar'].includes(answer)) {
     state.step = 'menu';
     state.extra = { ...(state.extra || {}), job: undefined };
     await setState(phone, state);
-    await sendText(phone, '❌ Job cancelled. Send me a message anytime to post another one.');
+    await sendText(phone, pj('cancelled', l));
     return;
   }
 
-  if (answer !== 'yes' && answer !== 'y' && answer !== 'כן') {
-    await sendText(phone, 'Reply *yes* to publish or *no* to cancel.');
+  if (!['yes', 'y', 'כן', 'sí', 'si'].includes(answer)) {
+    await sendText(phone, pj('confirm_retry', l));
     return;
   }
 
   // ── Publish the job ──
-  await sendText(phone, '⏳ Publishing your job...');
+  await sendText(phone, pj('publishing', l));
 
   try {
     const userId = state.userId;
     if (!userId) {
-      await sendText(phone, '⚠️ You need to be registered to publish jobs. Type "register" to get started.');
+      await sendText(phone, pj('not_registered', l));
       return;
     }
 
@@ -245,8 +334,7 @@ async function handleConfirm(phone: string, text: string, state: BotState, job: 
       }),
     });
 
-    const result = await res.json().catch(() => ({}));
-    const sentCount = result.sent_count || 0;
+    await res.json().catch(() => ({}));
 
     // 5. Done — return to menu
     state.step = 'menu';
@@ -254,15 +342,11 @@ async function handleConfirm(phone: string, text: string, state: BotState, job: 
     await setState(phone, state);
 
     const profLabel = job.professionLabel || (job.profession || '').replace(/_/g, ' ');
-    await sendText(phone,
-      `✅ *Job Published!*\n\n` +
-      `Your ${profLabel} job has been sent to matching contractors in your area.\n\n` +
-      `We'll notify you on WhatsApp when someone is interested. 🔔`
-    );
+    await sendText(phone, pj('published', l, { prof: profLabel }));
 
   } catch (err: any) {
     console.error('[publish-job] Error:', err.message || err);
-    await sendText(phone, '⚠️ Something went wrong publishing your job. Please try again later.');
+    await sendText(phone, pj('error', l));
     state.step = 'menu';
     await setState(phone, state);
   }

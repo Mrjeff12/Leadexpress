@@ -342,6 +342,104 @@ const STATE_META: Record<string, { label: string; emoji: string }> = {
   TX: { label: "Texas", emoji: "\u{1F920}" },
 };
 
+// ── All 50 US states ────────────────────────────────────────────────────────
+
+export const US_STATES: Record<string, { name: string; he?: string }> = {
+  AL: { name: "Alabama" },
+  AK: { name: "Alaska" },
+  AZ: { name: "Arizona", he: "אריזונה" },
+  AR: { name: "Arkansas" },
+  CA: { name: "California", he: "קליפורניה" },
+  CO: { name: "Colorado", he: "קולורדו" },
+  CT: { name: "Connecticut" },
+  DE: { name: "Delaware" },
+  FL: { name: "Florida", he: "פלורידה" },
+  GA: { name: "Georgia", he: "ג׳ורג׳יה" },
+  HI: { name: "Hawaii", he: "הוואי" },
+  ID: { name: "Idaho" },
+  IL: { name: "Illinois", he: "אילינוי" },
+  IN: { name: "Indiana" },
+  IA: { name: "Iowa" },
+  KS: { name: "Kansas" },
+  KY: { name: "Kentucky" },
+  LA: { name: "Louisiana" },
+  ME: { name: "Maine" },
+  MD: { name: "Maryland", he: "מרילנד" },
+  MA: { name: "Massachusetts", he: "מסצ׳וסטס" },
+  MI: { name: "Michigan", he: "מישיגן" },
+  MN: { name: "Minnesota" },
+  MS: { name: "Mississippi" },
+  MO: { name: "Missouri" },
+  MT: { name: "Montana" },
+  NE: { name: "Nebraska" },
+  NV: { name: "Nevada", he: "נבאדה" },
+  NH: { name: "New Hampshire" },
+  NJ: { name: "New Jersey", he: "ניו ג׳רזי" },
+  NM: { name: "New Mexico" },
+  NY: { name: "New York", he: "ניו יורק" },
+  NC: { name: "North Carolina" },
+  ND: { name: "North Dakota" },
+  OH: { name: "Ohio", he: "אוהיו" },
+  OK: { name: "Oklahoma" },
+  OR: { name: "Oregon" },
+  PA: { name: "Pennsylvania", he: "פנסילבניה" },
+  RI: { name: "Rhode Island" },
+  SC: { name: "South Carolina" },
+  SD: { name: "South Dakota" },
+  TN: { name: "Tennessee" },
+  TX: { name: "Texas", he: "טקסס" },
+  UT: { name: "Utah" },
+  VT: { name: "Vermont" },
+  VA: { name: "Virginia", he: "וירג׳יניה" },
+  WA: { name: "Washington", he: "וושינגטון" },
+  WV: { name: "West Virginia" },
+  WI: { name: "Wisconsin" },
+  WY: { name: "Wyoming" },
+};
+
+/**
+ * Match free-text input to a US state code.
+ * Accepts: abbreviation ("FL"), full name ("Florida"), Hebrew ("פלורידה"),
+ * or partial match ("flor" → FL).
+ * Returns the 2-letter code or null.
+ */
+export function matchState(input: string): string | null {
+  const q = input.trim().toLowerCase();
+  if (!q) return null;
+
+  // Exact abbreviation
+  const upper = q.toUpperCase();
+  if (US_STATES[upper]) return upper;
+
+  // Exact or prefix match on name / Hebrew
+  for (const [code, s] of Object.entries(US_STATES)) {
+    if (s.name.toLowerCase() === q) return code;
+    if (s.he && s.he === input.trim()) return code;
+    if (s.name.toLowerCase().startsWith(q) && q.length >= 3) return code;
+  }
+
+  return null;
+}
+
+/**
+ * Match multiple states from a comma/newline separated string.
+ * Returns unique matched state codes.
+ */
+export function matchMultipleStates(input: string): string[] {
+  const parts = input.split(/[,\n]+/).map(s => s.trim()).filter(Boolean);
+  const codes = new Set<string>();
+  for (const part of parts) {
+    const code = matchState(part);
+    if (code) codes.add(code);
+  }
+  return [...codes];
+}
+
+/** Get display name for a state code */
+export function stateName(code: string): string {
+  return US_STATES[code]?.name ?? code;
+}
+
 // ---------------------------------------------------------------------------
 // Helper functions
 // ---------------------------------------------------------------------------

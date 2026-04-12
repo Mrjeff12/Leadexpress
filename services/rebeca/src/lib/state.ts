@@ -1,18 +1,21 @@
 import { supabase } from './supabase.js';
 
 export interface BotState {
-  step: 'welcome' | 'name' | 'profession' | 'state_select' | 'city' | 'working_days' | 'email' | 'confirm' | 'ai' | 'groups' | 'menu' | 'post_job' | 'lead_pending' | 'pj_description' | 'pj_profession' | 'pj_location' | 'pj_address' | 'pj_commission' | 'pj_confirm';
+  step: 'welcome' | 'name' | 'role' | 'profession' | 'state_select' | 'city' | 'working_days' | 'email' | 'confirm' | 'ai' | 'groups' | 'menu' | 'post_job' | 'lead_pending' | 'pj_description' | 'pj_profession' | 'pj_location' | 'pj_address' | 'pj_commission' | 'pj_confirm' | 'gc_states' | 'gc_cities' | 'gc_professions' | 'gc_confirm';
   userId: string | null;
   prospectId: string | null;
-  language: 'he' | 'en';
+  language: 'he' | 'en' | 'es';
   openaiResponseId: string | null;
   sessionStartedAt: string;
   collected: {
     name?: string;
     email?: string;
+    role?: 'sub' | 'gc';
     professions?: string[];
     state?: string;
+    states?: string[];
     cities?: string[];
+    citiesByState?: Record<string, string[]>;
     zipCodes?: string[];
     workingDays?: number[];
   };
@@ -34,7 +37,7 @@ export async function getState(phone: string): Promise<BotState | null> {
     step: data.step as BotState['step'],
     userId: (d.userId as string | null) ?? null,
     prospectId: (d.prospectId as string | null) ?? null,
-    language: (d.language as 'he' | 'en') ?? 'en',
+    language: (d.language as 'he' | 'en' | 'es') ?? 'en',
     openaiResponseId: (d.openaiResponseId as string | null) ?? null,
     sessionStartedAt: (d.sessionStartedAt as string) ?? new Date().toISOString(),
     collected: (d.collected as BotState['collected']) ?? {},
@@ -84,7 +87,7 @@ export async function clearState(phone: string): Promise<void> {
 export function newOnboardState(
   userId: string | null,
   prospectId: string | null,
-  lang: 'he' | 'en',
+  lang: 'he' | 'en' | 'es',
   knownName?: string,
 ): BotState {
   return {

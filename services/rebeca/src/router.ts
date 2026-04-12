@@ -1,8 +1,8 @@
 import { supabase } from './lib/supabase.js';
 import { sendText } from './lib/twilio.js';
-import { t } from './lib/i18n.js';
+import { t, detectLangFromMessage } from './lib/i18n.js';
 import { getState } from './lib/state.js';
-import { findProfile, linkWhatsAppPhone, isOptedOut } from './lib/profile.js';
+import { findProfile, linkWhatsAppPhone, isOptedOut, setPreferredLocale } from './lib/profile.js';
 import { handleOnboarding, startOnboarding, startNewUserOnboarding } from './handlers/onboarding.js';
 import { handleKnownUser } from './handlers/known-user.js';
 import { handleLeadClaim, handleLeadPass } from './handlers/lead-action.js';
@@ -92,13 +92,21 @@ async function processMessage(phone: string, text: string, buttonPayload: string
     if (!profile.whatsapp_phone) {
       await linkWhatsAppPhone(profile.id, phone);
     }
+    // Auto-detect language from message if profile has no preference yet.
+    if (!profile.preferred_locale) {
+      const detected = detectLangFromMessage(text);
+      if (detected) {
+        await setPreferredLocale(profile.id, detected);
+        profile.preferred_locale = detected;
+      }
+    }
     await handleKnownUser(phone, text, profile);
     return;
   }
 
   // 7. Unknown → start onboarding (will create account at end)
   log.info({ phone }, 'Unknown phone — starting new user onboarding');
-  await startNewUserOnboarding(phone);
+  await startNewUserOnboarding(phone, text);
 }
 
 async function handleButtonPayload(phone: string, payload: string): Promise<void> {
