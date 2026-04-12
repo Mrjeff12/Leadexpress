@@ -1,0 +1,898 @@
+{
+  "nav": {
+    "findJobs": "Encontrar Trabajos",
+    "postJobs": "Publicar Trabajos",
+    "protection": "Trabajos Seguros",
+    "pricing": "Precios",
+    "groupLeads": "Leads de Grupos",
+    "faq": "Preguntas",
+    "contact": "Contáctanos",
+    "getStarted": "Start 7-Day Free Trial"
+  },
+  "hero": {
+    "badge": "Hecho para Contratistas",
+    "title1": "Encuentra chamba. Comparte trabajos.",
+    "titleHighlight": "Cobra más.",
+    "title2": "La plataforma en la que confían los contratistas.",
+    "subtitle": "Encuentra trabajos directo desde tus grupos de WhatsApp. Comparte los que no puedas tomar con otros contratistas verificados. Todo en un solo panel. Empieza gratis — sin tarjeta de crédito.",
+    "cta1": "Start 7-Day Free Trial",
+    "cta2": "Ver Cómo Funciona",
+    "trustedBy": "Contratistas en FL, TX, CA, NY y más ya confían en nosotros.",
+    "miniFlow": {
+      "yourGroups": "Tus Grupos",
+      "scanned247": "escaneados 24/7",
+      "aiFilters": "Filtros de IA",
+      "spamRemoved": "spam eliminado",
+      "yourFeed": "Tu Feed",
+      "onlyJobs": "solo trabajos para ti"
+    },
+    "valueProps": [
+      {
+        "label": "Encuentra",
+        "desc": "La IA escanea grupos"
+      },
+      {
+        "label": "Comparte",
+        "desc": "Subs verificados"
+      },
+      {
+        "label": "Cobra",
+        "desc": "Rastrea y protege"
+      }
+    ],
+    "heroImgAlt": "Contratista profesional listo para trabajar"
+  },
+  "logos": {
+    "label": "Nuestros aliados"
+  },
+  "workflow": {
+    "title": "Cómo Funciona",
+    "subtitle": "Listo en 2 minutos. Empieza a recibir trabajos hoy mismo.",
+    "cards": [
+      {
+        "title": "Cuéntanos qué haces",
+        "desc": "Elige tu oficio (aire acondicionado, plomería, electricidad...) y los condados donde trabajas."
+      },
+      {
+        "title": "Comparte tus grupos",
+        "desc": "Pega los enlaces de invitación de tus grupos de WhatsApp. Nos unimos y empezamos a escanear en menos de 24 horas."
+      },
+      {
+        "title": "Recibe trabajos en tu WhatsApp",
+        "desc": "Nuestro AI lee cada mensaje, encuentra pedidos reales de $500 a $2,000 en promedio, y te manda solo los que te quedan — directo a tu WhatsApp."
+      }
+    ]
+  },
+  "features": {
+    "section1": {
+      "title": "Deja de leer cientos de mensajes",
+      "desc": "MasterLeadFlow lee tus grupos por ti. Mientras estás en el job, nuestro AI revisa cada grupo, encuentra los trabajos que te quedan, y te los manda al momento. Un solo trabajo paga un año entero de MasterLeadFlow.",
+      "cta": "Start 7-Day Free Trial",
+      "bullets": [
+        "El AI encuentra pedidos reales entre cientos de mensajes al día.",
+        "Se te asignan automáticamente por oficio y condado.",
+        "Llegan directo a tu WhatsApp — sin abrir otra app."
+      ]
+    },
+    "section2": {
+      "title": "Agenda inteligente y seguimiento de trabajos",
+      "desc": "Mira todos tus leads en un solo lugar. Revisa a cuáles respondiste, cuáles cerraste, y cómo va creciendo tu negocio — todo desde un panel sencillo.",
+      "cta": "Start 7-Day Free Trial"
+    }
+  },
+  "featureGrid": {
+    "items": [
+      {
+        "title": "Por Condado",
+        "desc": "Recibe trabajos solo de las áreas donde tú trabajas."
+      },
+      {
+        "title": "Filtro por Oficio",
+        "desc": "Filtra por oficio — aire acondicionado, plomería, electricidad y más."
+      },
+      {
+        "title": "Directo a Ti",
+        "desc": "Sin spam. Los trabajos te llegan directo."
+      },
+      {
+        "title": "Tu Panel",
+        "desc": "Mira tu tasa de respuesta, tiempos y cuánto estás ganando."
+      }
+    ]
+  },
+  "marketing": {
+    "title": "Haz Crecer Tu Negocio Sin Complicarte",
+    "subtitle": "MasterLeadFlow te ayuda a seguirle el paso a tus trabajos y cerrar más chamba",
+    "features": [
+      {
+        "title": "Trabajos elegidos para ti",
+        "desc": "Te mandamos trabajos según tu perfil, tu zona y tus oficios. Valor promedio: $500–$2,000 por lead."
+      },
+      {
+        "title": "Funciona con tus herramientas",
+        "desc": "Se conecta con tus plantillas y preguntas frecuentes. Tus clientes reciben respuestas rápidas."
+      },
+      {
+        "title": "Sabe cuáles son urgentes",
+        "desc": "Mira qué clientes necesitan ayuda ya para que seas el primero en responder. Nunca pierdas un lead."
+      }
+    ]
+  },
+  "testimonials": {
+    "title": "Hecho para contratistas cansados de estar pegados al celular.",
+    "subtitle": "Esto dicen los primeros usuarios.",
+    "items": [
+      {
+        "text": "Perdía la mitad de los trabajos en mis grupos porque los tenía en silencio. Ahora MasterLeadFlow me manda solo lo que me sirve — cerré una instalación de AC de $1,800 en mi primera semana.",
+        "name": "Carlos Ramírez",
+        "role": "Técnico de AC"
+      },
+      {
+        "text": "Estoy en más de 30 grupos de WhatsApp. No hay forma de leerlos todos. MasterLeadFlow revisa todo y me manda solo los trabajos de electricidad en mi condado. Agarré 3 trabajos el mes pasado.",
+        "name": "Luis Hernández",
+        "role": "Electricista"
+      },
+      {
+        "text": "Me tomó 2 minutos configurarlo. En una hora ya tenía mi primer lead directo en WhatsApp — una reparación de fuga de $950. De verdad funciona.",
+        "name": "Miguel Ángel Torres",
+        "role": "Plomero"
+      },
+      {
+        "text": "MasterLeadFlow es como tener a alguien leyendo todos mis grupos todo el día y avisándome solo de los trabajos de techos cerca de mí. Un solo trabajo me pagó un año entero del servicio.",
+        "name": "Roberto Morales",
+        "role": "Especialista en Techos"
+      },
+      {
+        "text": "Estaba perdiendo chamba cada semana porque no me daba tiempo de leer los mensajes. Ahora me llega una notificación en el momento en que algo me queda. Ya cerré $4,000 en trabajos este mes.",
+        "name": "Javier Mendoza",
+        "role": "Contratista General"
+      },
+      {
+        "text": "El AI sabe la diferencia entre un pedido real y la plática normal. Solo me llegan trabajos de verdad — cero spam. Pasé dos trabajos que no podía tomar y me gané comisión en los dos.",
+        "name": "Antonio Vega",
+        "role": "Pro de Jardinería"
+      }
+    ]
+  },
+  "pricing": {
+    "title": "Precio sencillo. Un solo plan. Sin sorpresas.",
+    "subtitle": "Un trabajo paga un año entero. Empieza gratis — actualiza cuando estés listo.",
+    "monthly": "Mensual",
+    "yearly": "Anual",
+    "plans": [
+      {
+        "name": "Pro",
+        "desc": "Todo lo que necesitas para recibir trabajos de tus grupos de WhatsApp.",
+        "price": "$79",
+        "period": "/mes",
+        "cta": "Start 7-Day Free Trial",
+        "features": [
+          "Condados ilimitados",
+          "3 oficios",
+          "Asistente AI en WhatsApp",
+          "Detalles completos del lead + contacto",
+          "Panel + reporte semanal",
+          "Gana comisión por trabajos que pases a otros"
+        ]
+      }
+    ]
+  },
+  "faq": {
+    "title": "Preguntas Frecuentes",
+    "subtitle": "Todo lo que necesitas saber sobre MasterLeadFlow",
+    "items": [
+      {
+        "q": "¿Cómo encuentra MasterLeadFlow los trabajos para mí?",
+        "a": "Nuestro AI vigila tus grupos de WhatsApp 24/7. Lee cada mensaje, identifica los pedidos reales, y te manda solo los que te quedan según tu oficio y tu condado."
+      },
+      {
+        "q": "¿Puedo agregar mis propios grupos de WhatsApp?",
+        "a": "Sí — así es como funciona. Comparte los enlaces de invitación, nos unimos en 24 horas, y el AI empieza a escanearlos por ti."
+      },
+      {
+        "q": "¿La gente en el grupo va a saber que estoy usando esto?",
+        "a": "No. Nunca escribimos, comentamos ni interactuamos en tus grupos. Solo leemos los mensajes en silencio y te mandamos los leads en privado. Nadie se va a enterar."
+      },
+      {
+        "q": "¿Qué tan rápido me avisan?",
+        "a": "Al instante. En cuanto se publica un trabajo que te queda, recibes un mensaje de WhatsApp con todos los detalles. Sé el primero en responder."
+      },
+      {
+        "q": "¿Qué puede hacer Rebeca por mí?",
+        "a": "Rebeca es tu asistente AI en WhatsApp. Pídele que revise tus estadísticas, pause tus leads, actualice tus oficios, o deja comentarios sobre un lead — todo sin salir de WhatsApp."
+      },
+      {
+        "q": "¿Y si no puedo tomar un trabajo?",
+        "a": "Pásalo a otros contratistas a través de Rebeca. Ganas comisión por cada trabajo que pases que se cierre. Todos ganamos."
+      },
+      {
+        "q": "¿Y si no recibo leads?",
+        "a": "Si no recibes un lead que te quede en los primeros 7 días, te extendemos la prueba. Nosotros solo ganamos cuando tú ganas."
+      },
+      {
+        "q": "¿Cuánto tarda la configuración?",
+        "a": "Como 2 minutos. Elige tu oficio, define tu zona, y comparte los enlaces de tus grupos. Los trabajos empiezan a llegar al toque."
+      }
+    ]
+  },
+  "cta": {
+    "title": "Deja de estar pegado al celular. Empieza a recibir chamba.",
+    "desc": "Tus grupos de WhatsApp están llenos de trabajo ahora mismo. Deja que nuestro AI filtre el ruido y te mande solo lo que te conviene. Valor promedio del lead: $500–$2,000. Un solo trabajo paga un año.",
+    "button": "Start 7-Day Free Trial"
+  },
+  "footer": {
+    "desc": "MasterLeadFlow — AI que escanea tus grupos de WhatsApp 24/7 y te manda solo los trabajos que te quedan por oficio y zona.",
+    "company": "Empresa",
+    "aboutUs": "Nosotros",
+    "features": "Cómo Funciona",
+    "pricing": "Precios",
+    "resources": "Recursos",
+    "blog": "Blog y Artículos",
+    "contact": "Contáctanos",
+    "integrations": "Integraciones",
+    "legal": "Legal",
+    "privacy": "Política de Privacidad",
+    "terms": "Términos y Condiciones",
+    "copyright": "© 2026 MasterLeadFlow, Inc. Todos los derechos reservados."
+  },
+  "rebecaScanner": {
+    "badge": "Rebeca — Tu buscadora de leads",
+    "titlePart1": "Ella encuentra los trabajos.",
+    "titleHighlight": "Tú eliges los que quieres.",
+    "subtitle": "Rebeca revisa más de 2,000 grupos de WhatsApp 24/7, busca tu oficio y tu área, y te manda los leads correctos directo a tu WhatsApp.",
+    "working247": "Trabajando 24/7",
+    "name": "Rebeca",
+    "role": "Tu buscadora de leads",
+    "online": "en línea",
+    "typePlaceholder": "Escribe un mensaje...",
+    "scenes": [
+      {
+        "label": "Buscar leads",
+        "desc": "La IA revisa tus grupos de WhatsApp 24/7 y te manda los trabajos correctos directo a ti.",
+        "messages": [
+          "🔔 ¡Nuevo lead en tu área!\n\n📍 Miami, FL 33101\n🔧 Plomería — Fuga de tubería\n💰 $300–500\n\n¿Te interesa?",
+          "¡Sí, me interesa!",
+          "✅ ¡Te estoy conectando ahora!\n📞 Cliente: Maria López\n🕐 Está esperando tu llamada"
+        ]
+      },
+      {
+        "label": "Check de la mañana",
+        "desc": "Cada mañana Rebeca te pregunta dónde estás trabajando y te manda los leads de la noche.",
+        "messages": [
+          "☀️ ¡Buenos días! ¿Listo para hoy?\n\n¿En qué áreas estás disponible y en qué horario?",
+          "Hoy estoy en Miami, de 9 a 5",
+          "✅ ¡Listo! Buscando trabajos en Miami, 9AM–5PM.\n\nTienes 3 leads esperando desde anoche. ¿Te los mando?",
+          "Mándalos",
+          "📋 Enviando 3 leads ahora..."
+        ]
+      }
+    ]
+  },
+  "rebecaDistributor": {
+    "badge": "Rebeca — Manda trabajos por ti",
+    "titlePart1": "Cuéntale del trabajo.",
+    "titleHighlight": "Ella encuentra al contratista correcto.",
+    "subtitle": "¿Tienes un trabajo que no puedes hacer tú mismo? Mándale un mensaje de voz a Rebeca — ella lo envía a los contratistas correctos y te avisa quién responde.",
+    "readyToSend": "Lista para enviar",
+    "name": "Rebeca",
+    "role": "Manda trabajos por ti",
+    "online": "en línea",
+    "typePlaceholder": "Escribe un mensaje...",
+    "scenes": [
+      {
+        "label": "Publicar trabajos",
+        "desc": "¿Tienes un trabajo que no puedes hacer? Cuéntale a Rebeca y ella encuentra al contratista correcto.",
+        "messages": [
+          "Tengo un trabajo de AC que no puedo hacer, ¿lo puedes enviar?",
+          "📝 ¡Entendido! Esto es lo que voy a enviar:\n\n❄️ Instalación de AC\n📍 Fort Lauderdale, 33301\n💰 $800–1,200\n\n¿Lo mando a tus contratistas?",
+          "Sí, comisión del 15%",
+          "✅ ¡Enviado a 12 contratistas!\n💰 Tu parte: 15%\n\n3 ya respondieron. Te voy avisando."
+        ]
+      },
+      {
+        "label": "Tus números",
+        "desc": "Pregúntale a Rebeca por tus números de la semana, cambia tus servicios o actualiza tus áreas.",
+        "messages": [
+          "¿Cómo van mis números esta semana?",
+          "📊 Esta semana:\n• 23 leads nuevos\n• 8 tomados\n• $12,400 en valor total\n\n¡Estás en el top 15% de contratistas en FL! 🔥",
+          "Agrega techos a mis servicios",
+          "✅ ¡Techos agregado! Ahora vas a recibir leads de techos en tus áreas de trabajo."
+        ]
+      }
+    ]
+  },
+  "receiveJobs": {
+    "badge": "TU ESCÁNER CON IA",
+    "titlePart1": "Escaneamos tus grupos. Tú recibes",
+    "titleHighlight": "los trabajos",
+    "titleSuffix": ".",
+    "subtitle": "Conecta tus grupos de WhatsApp y nuestra IA lee cada mensaje 24/7 — filtrando por tu oficio, tu zona y tu disponibilidad. Solo los trabajos que te sirven llegan a ti.",
+    "yourGroups": "Tus grupos",
+    "aiFilter": "Filtro IA",
+    "newLead": "¡Nuevo trabajo!",
+    "brand": "MasterLeadFlow",
+    "interested": "✅ Me interesa",
+    "unreadMessages": "47 MENSAJES SIN LEER",
+    "unreadShort": "47 SIN LEER",
+    "match": "¡MATCH!",
+    "statsScanned": "Grupos escaneados 24/7",
+    "statsFiltered": "Filtrado por oficio y zona",
+    "statsMatching": "Solo trabajos que te sirven",
+    "groupHeader": "Contratistas — Trabajos FL 🔧",
+    "groupMembers": "Carlos, Luis, Miguel, Javier, Roberto, Antonio...",
+    "groupMembersShort": "Carlos, Luis, Miguel...",
+    "chatMessages": [
+      {
+        "name": "Carlos",
+        "text": "¿Alguien libre para un trabajo en Miami?"
+      },
+      {
+        "name": "Luis",
+        "text": "¡¡Yo!!"
+      },
+      {
+        "name": "Miguel",
+        "text": "Yo también estoy libre"
+      },
+      {
+        "name": "Javier",
+        "text": "Puedo mañana"
+      },
+      {
+        "name": "Roberto",
+        "text": "¿Cuál es el presupuesto?"
+      },
+      {
+        "name": "Antonio",
+        "text": "¿Ya lo tomaron?"
+      }
+    ],
+    "chatMessagesMobile": [
+      {
+        "name": "Carlos",
+        "text": "¿Alguien libre para Miami?"
+      },
+      {
+        "name": "Luis",
+        "text": "¡¡Yo!!"
+      },
+      {
+        "name": "Miguel",
+        "text": "Yo también estoy libre"
+      },
+      {
+        "name": "Javier",
+        "text": "Puedo mañana"
+      },
+      {
+        "name": "Roberto",
+        "text": "¿Cuál es el presupuesto?"
+      }
+    ],
+    "leadCard": {
+      "location": "Miami, FL 33101",
+      "trade": "Plomería — Fuga de tubería",
+      "price": "$300–500"
+    },
+    "matchedLeads": [
+      {
+        "trade": "Aire Acondicionado",
+        "location": "Miami, FL 33130",
+        "price": "$400–700"
+      },
+      {
+        "trade": "Plomería",
+        "location": "Boca Raton, FL 33431",
+        "price": "$250–500"
+      },
+      {
+        "trade": "Electricidad",
+        "location": "Fort Lauderdale, FL 33301",
+        "price": "$300–600"
+      }
+    ]
+  },
+  "secureTab": {
+    "stepLabels": {
+      "risk": "El riesgo hoy",
+      "verify": "Verifica → Transfiere → Rastrea",
+      "protected": "Ambos lados protegidos",
+      "reputation": "Construye tu reputación"
+    },
+    "problem": {
+      "badge": "El problema",
+      "title1": "¿Pasando trabajos hoy?",
+      "title2": "Todo depende de la suerte.",
+      "subtitle": "Cada día, los contratistas mandan dinero y confianza a gente que nunca han conocido. Aquí está lo que sale mal.",
+      "card1": {
+        "title": "Cero información",
+        "desc": "Le das un trabajo a alguien que no conoces. Sin reseñas. Sin historial. Solo un número de teléfono de un grupo de WhatsApp.",
+        "phoneMsg": "+1 (718) 555-0192 — dile que Dave te mandó",
+        "reply": "¿Es bueno? ¿Alguien ha trabajado con él?",
+        "tag": "Sin reseñas · Sin calificación · Sin verificación"
+      },
+      "card2": {
+        "title": "Cero control",
+        "desc": "Dejan de contestar. Hacen mal trabajo. Toman el dinero y desaparecen. No tienes cómo protegerte.",
+        "name": "Tony Ramos",
+        "rating": "★ Sin calificación · 0 trabajos",
+        "offline": "FUERA DE LÍNEA",
+        "note": "Depósito enviado · Sin trabajo hecho"
+      },
+      "card3": {
+        "title": "Ambos lados pierden",
+        "desc": "Tu sub también arriesga. Hace el trabajo, pero a veces no le pagan. Sin confianza — todos pierden.",
+        "you": "Tú",
+        "youLost": "Perdiste $3,500",
+        "sub": "Sub",
+        "subLost": "Trabajó gratis",
+        "tag": "Sin contrato · Sin prueba · Sin protección"
+      },
+      "footer1": "Esto pasa todos los días. Miles de millones en trabajos se mueven sin protección.",
+      "footer2": "Hasta ahora."
+    },
+    "solution": {
+      "badge": "La solución",
+      "title1": "Se acabó adivinar.",
+      "title2": "Conoce con quién trabajas.",
+      "subtitle": "Verificamos, rastreamos y calificamos — así no tienes que cruzar los dedos.",
+      "steps": [
+        {
+          "label": "Verifica",
+          "desc": "Cada sub en nuestra plataforma está verificado. Identidad real. Historial real. Calificaciones reales de gente real."
+        },
+        {
+          "label": "Transfiere",
+          "desc": "Mándale un trabajo a tu sub con un clic. Él recibe todos los detalles. Tú obtienes un panel para seguir todo."
+        },
+        {
+          "label": "Rastrea",
+          "desc": "Mira el estado del trabajo en tiempo real. Cuando termine — ambos se califican. El buen trabajo construye reputación."
+        }
+      ],
+      "tipTitle": "¿Tu sub aún no tiene cuenta?",
+      "tipBody": "No hay problema. Mándale un enlace para unirse — le toma 2 minutos. Luego transfiere el trabajo directo."
+    },
+    "trust": {
+      "badge": "Identidad verificada",
+      "title1": "Conoce con quién",
+      "title2": "estás trabajando",
+      "subtitle": "Verifica tu identidad para generar confianza al instante. Ambos lados ven con quién están tratando.",
+      "steps": [
+        {
+          "title": "Sube tu ID",
+          "desc": "Foto de tu identificación oficial — encriptada y privada."
+        },
+        {
+          "title": "Selfie rápido",
+          "desc": "La IA compara tu cara con tu ID — toma 5 segundos."
+        },
+        {
+          "title": "¡Verificado!",
+          "desc": "Insignia visible para ambos lados. Confianza al instante."
+        }
+      ],
+      "stepLabel": "Paso",
+      "stats1": "La verificación es",
+      "statsOptional": "opcional",
+      "stats2": "— pero los contratistas verificados reciben",
+      "stats3": "3× más ofertas de trabajo",
+      "cardHeader": "Verificación de identidad",
+      "verifiedBadge": "VERIFICADO",
+      "personName": "Miguel Hernández",
+      "personTrade": "Plomería · Memphis, TN",
+      "identityConfirmed": "Identidad confirmada",
+      "checks": [
+        {
+          "label": "Identificación oficial"
+        },
+        {
+          "label": "Coincidencia facial"
+        },
+        {
+          "label": "Número de teléfono"
+        },
+        {
+          "label": "Licencia comercial"
+        }
+      ],
+      "passed": "Pasó",
+      "jobsCount": "· 127 trabajos",
+      "verifiedSince": "Verificado desde enero 2026",
+      "reviewsTitle1": "Ambos lados se califican.",
+      "reviewsTitle2": "Ambos lados están protegidos.",
+      "reviewsSubtitle": "Después de cada trabajo, ambos se califican. El buen trabajo construye reputación.",
+      "reviewYouTitle": "Calificaste a tu sub",
+      "daysAgo": "hace 2 días",
+      "reviewYouSubtitle": "Plomería · Remodelación de cocina",
+      "reviewYouLabels": [
+        "Calidad del trabajo",
+        "Comunicación",
+        "Puntualidad"
+      ],
+      "wouldHire": "Lo contrataría otra vez",
+      "reviewSubTitle": "Tu sub te calificó",
+      "reviewSubName": "Tú",
+      "reviewSubSubtitle": "Contratado para remodelación de cocina",
+      "reviewSubLabels": [
+        "Pagó a tiempo",
+        "Comunicación",
+        "Trabajo como se describió"
+      ],
+      "wouldWork": "Trabajaría otra vez"
+    },
+    "tiers": {
+      "topRated": "Mejor calificado",
+      "title": "Haz buen trabajo. Consigue más trabajos.",
+      "subtitle": "Tu reputación te sigue. Completa más trabajos con buenas calificaciones para desbloquear niveles más altos.",
+      "items": [
+        {
+          "label": "Registrado",
+          "desc": "Te registraste",
+          "jobs": "0 trabajos"
+        },
+        {
+          "label": "Verificado",
+          "desc": "ID + selfie",
+          "jobs": "0 trabajos"
+        },
+        {
+          "label": "Probado",
+          "desc": "Historial real",
+          "jobs": "5+ trabajos"
+        },
+        {
+          "label": "Confiable",
+          "desc": "Calificación 4.5+",
+          "jobs": "15+ trabajos"
+        },
+        {
+          "label": "Élite",
+          "desc": "Máximo nivel",
+          "jobs": "30+ trabajos"
+        }
+      ],
+      "footer1": "Nivel más alto = más confianza =",
+      "footer2": "más trabajos para ti."
+    }
+  },
+  "leadsFeedShowcase": {
+    "filters": [
+      "Todos",
+      "Aire Acond.",
+      "Plomería",
+      "Electricidad",
+      "Techos",
+      "Pintura"
+    ],
+    "eyebrow": "Buscador de trabajos con IA",
+    "title1": "Cada trabajo,",
+    "title2": "encontrado automáticamente.",
+    "subtitle": "Nuestra IA lee más de 800 grupos de WhatsApp día y noche, encontrando trabajos con tipo de servicio, zona y qué tan urgentes son — enviados a tu feed antes de que otros contratistas vean el mensaje.",
+    "features": [
+      {
+        "title": "Escaneo 24/7",
+        "desc": "847 grupos activos revisados día y noche"
+      },
+      {
+        "title": "Filtrado fácil",
+        "desc": "Filtra por tipo de servicio, urgencia o zona al instante"
+      },
+      {
+        "title": "La IA encuentra trabajos",
+        "desc": "Tipo de servicio, código postal y urgencia detectados automáticamente"
+      }
+    ],
+    "checkingGroups": "Revisando 847 grupos",
+    "contacts": "contactos",
+    "leadsThisWeek": "Trabajos esta semana",
+    "urgency": {
+      "Hot": "Urgente",
+      "Warm": "Tibio",
+      "Cold": "Frío"
+    },
+    "timeAgo": {
+      "2m": "hace 2 min",
+      "4m": "hace 4 min",
+      "5m": "hace 5 min",
+      "6m": "hace 6 min",
+      "8m": "hace 8 min",
+      "9m": "hace 9 min",
+      "12m": "hace 12 min",
+      "15m": "hace 15 min",
+      "18m": "hace 18 min",
+      "22m": "hace 22 min",
+      "25m": "hace 25 min",
+      "28m": "hace 28 min",
+      "31m": "hace 31 min",
+      "35m": "hace 35 min",
+      "42m": "hace 42 min"
+    },
+    "summaries": {
+      "hvac1": "AC central no enfría — casa de 2,400 sq ft, unidad del 2008. Necesito cotización de reemplazo completo ASAP.",
+      "hvac2": "Instalación mini-split — 3 zonas, ampliación 2º piso. Busco HVAC con licencia y experiencia en Mitsubishi.",
+      "hvac3": "Unidad comercial en techo no enfría. Cocina de restaurante — necesito servicio de emergencia hoy.",
+      "roof1": "Daños por huracán en techo de tejas, varias goteras en recámara principal y garaje. Reclamo de seguro ya hecho.",
+      "roof2": "Remoción y reemplazo completo de shingles — 2,800 sq ft rancho. Seguro aprobado, listos para empezar.",
+      "roof3": "Coating de techo plano para bodega comercial — 5,000 sq ft. Necesito cotización para el viernes.",
+      "elec1": "Construcción nueva — cableado casa 4 recámaras, panel 200A, pre-cableado smart home, listo para cargador EV.",
+      "elec2": "Upgrade de panel de 100A a 200A — casa antigua, tiene que pasar inspección del seguro.",
+      "elec3": "Instalación de generador — Generac 22kW. Ya tengo la unidad, busco instalador con licencia.",
+      "plumb1": "Fuga en losa detectada, la cuenta del agua se duplicó el mes pasado. Necesito inspección con cámara y estimado.",
+      "plumb2": "Repipe completo de casa — galvanizado a PEX. 3 baños, 2,200 sq ft. Necesito plomero con licencia ASAP.",
+      "plumb3": "Cambio de calentador — tanque de 50 gal a tankless. Instalación en garaje, línea de gas ya está.",
+      "paint1": "Pintura interior — 4 recámaras, 3 baños, 2,600 sq ft. Paredes + techos + molduras. Prefiero Sherwin-Williams.",
+      "paint2": "Pintura exterior de estuco — 3,400 sq ft, 2 pisos. Hidrolavado + primer + 2 capas. Para esta semana.",
+      "paint3": "Refinishing de gabinetes — cocina completa, 42 puertas + cajones. Acabado en spray, de blanco a azul marino."
+    }
+  },
+  "dashboardShowcase": {
+    "eyebrow": "Tu Dashboard",
+    "title1": "Tu negocio,",
+    "title2": "un solo dashboard.",
+    "subtitle": "Mira cada trabajo, cada cliente y cada dólar en tiempo real. Los números se actualizan al instante, el mapa muestra dónde trabajas, y los nuevos trabajos siguen llegando — todo en un solo lugar.",
+    "features": [
+      {
+        "title": "Números en Vivo",
+        "desc": "Ingresos, trabajos activos y tasa de éxito en un solo lugar"
+      },
+      {
+        "title": "Mapa de Zona de Trabajo",
+        "desc": "Mira tus códigos postales activos en el mapa en tiempo real"
+      },
+      {
+        "title": "Feed de Trabajos",
+        "desc": "Los trabajos nuevos aparecen al instante con tipo de servicio y ubicación"
+      }
+    ],
+    "kpis": {
+      "activeJobs": "Trabajos Activos",
+      "completed": "Completados",
+      "revenue": "Ingresos",
+      "successRate": "Tasa de Éxito"
+    },
+    "mapHeader": "Mapa de Zona de Trabajo",
+    "activeAreas": "7 Zonas Activas",
+    "recentLeads": "Trabajos Recientes",
+    "professions": {
+      "hvac": "Aire Acondicionado",
+      "plumbing": "Plomería",
+      "electrical": "Electricidad"
+    },
+    "urgency": {
+      "Hot": "Urgente",
+      "Warm": "Pronto",
+      "Cold": "Flexible"
+    },
+    "summaries": {
+      "hvac1": "Necesita reemplazo de aire central para casa de 2,400 pies², el equipo tiene 18 años...",
+      "plumbing1": "Remodelación de cocina necesita cambio completo de tubería, de cobre a PEX, 2 baños...",
+      "electrical1": "Actualización del panel de 100A a 200A, agregando circuito para cargador EV en el garaje..."
+    },
+    "timeAgo": {
+      "4m": "hace 4m",
+      "12m": "hace 12m",
+      "18m": "hace 18m"
+    }
+  },
+  "subcontractorShowcase": {
+    "eyebrow": "Administra Tu Equipo",
+    "title1": "Administra tu equipo",
+    "title2": "en un solo lugar.",
+    "subtitle": "Arma tu lista de subcontratistas, sigue cada trabajo desde el inicio hasta el pago, y mira quién hace el mejor trabajo — todo en un solo lugar. Manda trabajos con un solo toque, monitorea cuándo terminan y cobra los pagos.",
+    "features": [
+      {
+        "title": "Perfiles de Subcontratistas",
+        "desc": "Calificaciones, servicios y zonas de trabajo de cada subcontratista"
+      },
+      {
+        "title": "Seguimiento de Trabajos",
+        "desc": "Desde que mandas el trabajo hasta que se termina y te pagan"
+      },
+      {
+        "title": "Resumen de Ingresos",
+        "desc": "Mira tus ganancias, trabajos sin pagar y tus mejores subs"
+      }
+    ],
+    "professions": {
+      "hvac": "Aire Acondicionado",
+      "plumbing": "Plomería",
+      "electrical": "Electricidad",
+      "roofing": "Techos"
+    },
+    "stats": {
+      "rating": "Calificación",
+      "jobs": "Trabajos",
+      "zips": "Zonas"
+    },
+    "statuses": {
+      "Active": "Activo",
+      "Completed": "Completado",
+      "Accepted": "Aceptado",
+      "Pending": "Pendiente",
+      "Rejected": "Rechazado"
+    },
+    "payments": {
+      "Paid": "Pagado",
+      "Pending": "Pendiente",
+      "Unpaid": "Sin Pagar"
+    },
+    "table": {
+      "job": "Trabajo",
+      "location": "Ubicación",
+      "contractor": "Subcontratista",
+      "amount": "Monto",
+      "status": "Estado",
+      "payment": "Pago"
+    }
+  },
+  "earnMore": {
+    "badge": "Tus Trabajos Privados",
+    "heading": "Cada trabajo que no tomas es dinero que pierdes.",
+    "subheading": "Todos los días te llegan trabajos que no puedes hacer — no es tu servicio, está muy lejos, o ya estás lleno. Ahora mismo se pierden. Con nosotros, se convierten en ingresos.",
+    "useCases": [
+      {
+        "emoji": "📍",
+        "title": "Muy lejos o sin tiempo",
+        "desc": "Te llega un trabajo pero estás al otro lado de la ciudad o ya tienes todo lleno. En vez de ignorarlo — mándalo."
+      },
+      {
+        "emoji": "🔧",
+        "title": "No es tu servicio",
+        "desc": "Alguien pide trabajo eléctrico y tú eres plomero. Ese trabajo todavía vale dinero — mándalo a la persona indicada."
+      },
+      {
+        "emoji": "🏠",
+        "title": "\"¿Conoces a alguien que...?\"",
+        "desc": "Terminas un trabajo y el cliente pregunta por cambio de ventanas. Normalmente te irías. Ahora ganas."
+      }
+    ],
+    "chat": [
+      {
+        "type": "voice",
+        "duration": "0:05",
+        "caption": "Me entró un trabajo de aire que no puedo hacer — ¿puedes mandarlo?",
+        "time": "14:22"
+      },
+      {
+        "type": "agent",
+        "text": "📝 ¡Listo!\n\n❄️ Limpieza de Aire\n📍 Fort Lauderdale, 33301\n💰 $800–1,200\n\n¿Lo mando a tus subs con 15% de comisión?",
+        "time": "14:22"
+      },
+      {
+        "type": "user",
+        "text": "Sí, mándalo",
+        "time": "14:23"
+      },
+      {
+        "type": "agent",
+        "text": "✅ ¡Enviado a 12 subs!\n\n3 ya respondieron.\n💰 Tu comisión: $120–180",
+        "time": "14:23"
+      }
+    ],
+    "online": "en línea",
+    "typePlaceholder": "Escribe un mensaje...",
+    "flowSteps": [
+      {
+        "label": "Tú lo mandas",
+        "desc": "Manda un mensaje de voz a Rebeca"
+      },
+      {
+        "label": "Rebeca lo distribuye",
+        "desc": "Enviado a subs cerca del trabajo"
+      },
+      {
+        "label": "Ellos responden",
+        "desc": "Los subs toman el trabajo en segundos"
+      },
+      {
+        "label": "Tú ganas",
+        "desc": "La comisión se paga automáticamente"
+      }
+    ],
+    "network": {
+      "title": "Tus Subs",
+      "count": "12 subs",
+      "more": "más",
+      "addContractor": "Agregar Sub",
+      "setCommission": "Fijar Comisión",
+      "contractors": [
+        {
+          "name": "David R.",
+          "trade": "Aire"
+        },
+        {
+          "name": "Mike S.",
+          "trade": "Plomería"
+        },
+        {
+          "name": "Alex T.",
+          "trade": "Electricidad"
+        },
+        {
+          "name": "Chris L.",
+          "trade": "Limpieza AC"
+        },
+        {
+          "name": "James P.",
+          "trade": "Mudanzas"
+        }
+      ]
+    },
+    "earnings": {
+      "earnedThisMonth": "Ganado este mes",
+      "jobsSentOut": "Trabajos enviados",
+      "jobsTaken": "Trabajos tomados"
+    }
+  },
+  "chaosToOrder": {
+    "badge": "El Problema",
+    "heading": "Estás perdiendo trabajos. Y perdiendo dinero con subs malos.",
+    "p1": "Docenas de contratistas, un solo mensaje — el primero que responde gana. Estás perdiendo miles de dólares al mes porque no viste el mensaje a tiempo.",
+    "p2": "Y cuando pasas trabajos por WhatsApp — sin verificación, sin calificaciones, sin protección. El dinero desaparece. El trabajo no se hace.",
+    "imgAlt": "Técnico frustrado en su van mirando el teléfono"
+  },
+  "contractorsShowcase": {
+    "eyebrow": "Hecho Para Contratistas",
+    "heading": "Cada oficio. Cada zona. A un WhatsApp de distancia.",
+    "subheading": "Aire, plomería, electricidad, techos — MasterLeadFlow monitorea tus grupos y te manda solo los trabajos que te quedan bien.",
+    "tradesList": "Aire · Plomería · Electricidad · Techos · Mudanzas y más",
+    "stats": [
+      {
+        "num": "15+",
+        "label": "Oficios"
+      },
+      {
+        "num": "24/7",
+        "label": "Escaneo"
+      },
+      {
+        "num": "<30s",
+        "label": "Entrega"
+      },
+      {
+        "num": "2 min",
+        "label": "Setup"
+      }
+    ],
+    "imgAlt": "El equipo de MasterLeadFlow — ayudando a contratistas a encontrar trabajos en todo EE. UU."
+  },
+  "mapSection": {
+    "heading": "Mira los trabajos entrando — de los 50 estados",
+    "subheading": "Nuestra IA monitorea miles de grupos de WhatsApp 24/7",
+    "leadsLabel": "trabajos encontrados",
+    "statesLabel": "estados",
+    "valueLabel": "valor total"
+  },
+  "appShell": {
+    "midCta": {
+      "getStarted": "Start 7-Day Free Trial — No Credit Card",
+      "startGetting": "Empieza a Recibir Trabajos — Gratis",
+      "startPosting": "Empieza a Publicar Trabajos — Gratis",
+      "getVerified": "Verifícate — Es Gratis"
+    },
+    "solutions": {
+      "findJobs": {
+        "title": "Encuentra Trabajos",
+        "subtitle": "La IA monitorea tus grupos de WhatsApp 24/7 y te manda los trabajos que te quedan bien al instante."
+      },
+      "shareJobs": {
+        "title": "Comparte Trabajos",
+        "subtitle": "Publica los trabajos que no puedes hacer y la IA los conecta con subs verificados."
+      },
+      "protection": {
+        "title": "Protección",
+        "subtitle": "Ambos lados verificados. Cada trabajo rastreado. Se acabó confiar a ciegas."
+      }
+    },
+    "steps": {
+      "connectGroups": "Conecta Tus Grupos",
+      "aiScans": "La IA Escanea 24/7",
+      "getFeed": "Recibe Tu Feed de Trabajos",
+      "claimStart": "Tómalo y Arranca",
+      "postJob": "Publica un Trabajo Que No Puedes Hacer",
+      "findSub": "La IA Encuentra al Sub Correcto",
+      "earnTransfer": "Gana en Cada Transferencia"
+    }
+  }
+}
